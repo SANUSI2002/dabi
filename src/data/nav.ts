@@ -28,6 +28,11 @@ import {
   RefreshCw,
   ScrollText,
   Settings,
+  CalendarRange,
+  Fingerprint,
+  ClipboardList,
+  SlidersHorizontal,
+  FolderKanban,
   type LucideIcon,
 } from "lucide-react";
 
@@ -80,6 +85,17 @@ export const NAV: NavGroup[] = [
       { to: "/referrals", label: "Referrals", icon: Share2 },
       { to: "/surveillance", label: "Surveillance", icon: Radar },
       { to: "/outreach", label: "Outreach (CHW)", icon: Home },
+    ],
+  },
+  {
+    title: "Workforce",
+    items: [
+      { to: "/workforce", label: "Time Dashboard", icon: LayoutDashboard },
+      { to: "/workforce/schedules", label: "Schedule Manager", icon: CalendarRange },
+      { to: "/workforce/attendance", label: "Attendance", icon: Fingerprint },
+      { to: "/workforce/timesheets", label: "Timesheets", icon: ClipboardList },
+      { to: "/workforce/work", label: "Work & Tasks", icon: FolderKanban },
+      { to: "/workforce/policy", label: "Time Policy", icon: SlidersHorizontal },
     ],
   },
   {

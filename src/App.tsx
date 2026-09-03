@@ -35,6 +35,12 @@ const Reports = lazy(() => import("@/pages/admin/Reports"));
 const NhmisSync = lazy(() => import("@/pages/admin/NhmisSync"));
 const AuditLog = lazy(() => import("@/pages/admin/AuditLog"));
 const Settings = lazy(() => import("@/pages/admin/Settings"));
+const WorkforceDashboard = lazy(() => import("@/pages/workforce/WorkforceDashboard"));
+const Schedules = lazy(() => import("@/pages/workforce/Schedules"));
+const WfAttendance = lazy(() => import("@/pages/workforce/Attendance"));
+const Timesheets = lazy(() => import("@/pages/workforce/Timesheets"));
+const WorkTasks = lazy(() => import("@/pages/workforce/WorkTasks"));
+const TimePolicy = lazy(() => import("@/pages/workforce/TimePolicy"));
 
 function Loader() {
   return (
@@ -90,6 +96,12 @@ export default function App() {
           <Route path="/nhmis-sync" element={<NhmisSync />} />
           <Route path="/audit-log" element={<AuditLog />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/workforce" element={<WorkforceDashboard />} />
+          <Route path="/workforce/schedules" element={<Schedules />} />
+          <Route path="/workforce/attendance" element={<WfAttendance />} />
+          <Route path="/workforce/timesheets" element={<Timesheets />} />
+          <Route path="/workforce/work" element={<WorkTasks />} />
+          <Route path="/workforce/policy" element={<TimePolicy />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
