@@ -13,8 +13,12 @@ import { naira, timeAgo, shortDate } from "@/lib/format";
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { queue, labOrders, encounters, admissions, patients, patientById } = useEmr();
+  const { queue, labOrders, encounters, admissions, patients, patientById, invoices } = useEmr();
   const drugs = useCatalog((s) => s.drugs);
+  const collected = invoices
+    .filter((i) => i.status === "Paid")
+    .reduce((n, i) => n + i.lines.reduce((m, l) => m + l.qty * l.unitPrice, 0), 0);
+  const unpaidCount = invoices.filter((i) => i.status === "Unpaid").length;
 
   const waiting = queue.filter((q) => q.status === "Waiting").length;
   const inProgress = queue.filter((q) => q.status === "In Progress").length;
@@ -164,7 +168,7 @@ export default function Dashboard() {
       </div>
 
       <p className="mt-6 text-center text-[11px] text-mist-300">
-        Government revenue this month: {naira(184000)} · NHMIS last synced {timeAgo(auditTrail[3].ts)}
+        Revenue collected this period: {naira(collected)} · {unpaidCount} unpaid invoice{unpaidCount === 1 ? "" : "s"} · NHMIS last synced {timeAgo(auditTrail[3].ts)}
       </p>
     </div>
   );

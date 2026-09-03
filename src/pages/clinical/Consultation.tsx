@@ -5,6 +5,7 @@ import { PageHeader, Button, Badge } from "@/components/ui/primitives";
 import { Field, Input, Textarea, Select, Checkbox } from "@/components/ui/form";
 import { Modal } from "@/components/ui/Modal";
 import { useEmr, serviceLine } from "@/store/useEmr";
+import { DrugField } from "@/components/clinical/DrugField";
 import { DIAGNOSES, LAB_PANELS, STATIONS } from "@/data/catalog";
 import { ageFromDob } from "@/lib/format";
 import type { Prescription } from "@/data/types";
@@ -219,8 +220,11 @@ export default function Consultation() {
               <div className="space-y-2">
                 {rx.map((r, i) => (
                   <div key={r.id} className="grid grid-cols-2 gap-2 rounded-xl bg-mist-50 p-2 md:grid-cols-6">
-                    <input className="input md:col-span-2" placeholder="Drug" value={r.drug}
-                      onChange={(e) => setRx((x) => x.map((y, j) => (j === i ? { ...y, drug: e.target.value } : y)))} />
+                    <DrugField
+                      className="md:col-span-2"
+                      value={r.drug}
+                      onChange={(name) => setRx((x) => x.map((y, j) => (j === i ? { ...y, drug: name } : y)))}
+                    />
                     <input className="input" placeholder="Dose" value={r.dose}
                       onChange={(e) => setRx((x) => x.map((y, j) => (j === i ? { ...y, dose: e.target.value } : y)))} />
                     <input className="input" placeholder="Freq" value={r.frequency}
