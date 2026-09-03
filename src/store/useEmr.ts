@@ -20,7 +20,10 @@ import type {
   OutreachActivity,
   SurveillanceCase,
   NcdClient,
+  Invoice,
+  InvoiceLine,
 } from "@/data/types";
+import { SERVICE_TYPES, PATIENT_CATEGORIES } from "@/data/catalog";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 
@@ -42,6 +45,7 @@ type EmrState = {
   surveillanceCases: SurveillanceCase[];
   ncdClients: NcdClient[];
   vitals: Record<string, Vitals[]>;
+  invoices: Invoice[];
   activePatientId: string | null;
 
   setActivePatient: (id: string | null) => void;
@@ -72,6 +76,8 @@ type EmrState = {
   addNcdClient: (c: Omit<NcdClient, "id" | "enrolledAt">) => void;
   recordVitals: (patientId: string, v: Omit<Vitals, "takenAt" | "takenBy">) => void;
   latestVitals: (patientId?: string | null) => Vitals | undefined;
+  createInvoice: (patientId: string, lines: InvoiceLine[]) => Invoice;
+  settleInvoice: (id: string, method: NonNullable<Invoice["method"]>) => void;
 };
 
 export const useEmr = create<EmrState>((set, get) => ({
@@ -94,6 +100,7 @@ export const useEmr = create<EmrState>((set, get) => ({
   vitals: {
     p13: [{ bp: "138/78", temp: 38.6, pulse: 96, resp: 22, spo2: 98, weight: 89, takenAt: new Date(Date.now() - 34 * 864e5).toISOString(), takenBy: "Nurse Grace Nwangbo" }],
   },
+  invoices: mock.invoiceSeed,
   activePatientId: "p13",
 
   setActivePatient: (id) => set({ activePatientId: id }),
@@ -233,4 +240,39 @@ export const useEmr = create<EmrState>((set, get) => ({
     })),
 
   latestVitals: (patientId) => (patientId ? get().vitals[patientId]?.[0] : undefined),
+
+  createInvoice: (patientId, lines) => {
+    const patient = get().patients.find((p) => p.id === patientId)!;
+    const cat = PATIENT_CATEGORIES.find((c) => c.code === patient.category);
+    const exempt = !!cat?.exempt || patient.payer === "NHIS";
+    const n = get().invoices.length + 4012;
+    const inv: Invoice = {
+      id: rid(),
+      number: `INV-26-${String(n).padStart(6, "0")}`,
+      patientId,
+      payer: patient.payer,
+      category: patient.category,
+      lines,
+      exempt,
+      createdAt: new Date().toISOString(),
+      status: exempt ? "Waived" : "Unpaid",
+      method: exempt ? (patient.payer === "NHIS" ? "NHIS" : "Waiver") : undefined,
+      paidAt: exempt ? new Date().toISOString() : undefined,
+    };
+    set((s) => ({ invoices: [inv, ...s.invoices] }));
+    return inv;
+  },
+
+  settleInvoice: (id, method) =>
+    set((s) => ({
+      invoices: s.invoices.map((i) =>
+        i.id === id ? { ...i, status: "Paid", method, paidAt: new Date().toISOString() } : i,
+      ),
+    })),
 }));
+
+export const priceFor = (code: string) => SERVICE_TYPES.find((s) => s.code === code)?.price ?? 0;
+export const serviceLine = (code: string, qty = 1): InvoiceLine => {
+  const s = SERVICE_TYPES.find((x) => x.code === code);
+  return { code, name: s?.name ?? code, qty, unitPrice: s?.price ?? 0 };
+};

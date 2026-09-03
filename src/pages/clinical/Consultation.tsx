@@ -4,7 +4,7 @@ import { Plus, Trash2, FlaskConical, Pill, Save, LogOut, BedDouble, Stethoscope 
 import { PageHeader, Button, Badge } from "@/components/ui/primitives";
 import { Field, Input, Textarea, Select, Checkbox } from "@/components/ui/form";
 import { Modal } from "@/components/ui/Modal";
-import { useEmr } from "@/store/useEmr";
+import { useEmr, serviceLine } from "@/store/useEmr";
 import { DIAGNOSES, LAB_PANELS, STATIONS } from "@/data/catalog";
 import { ageFromDob } from "@/lib/format";
 import type { Prescription } from "@/data/types";
@@ -18,7 +18,7 @@ const NHMIS_GROUPS: Record<string, string[]> = {
 };
 
 export default function Consultation() {
-  const { queue, patientById, saveEncounter, addLabOrders, advanceQueue, admit, latestVitals } = useEmr();
+  const { queue, patientById, saveEncounter, addLabOrders, advanceQueue, admit, latestVitals, createInvoice } = useEmr();
   const consultQueue = queue.filter((q) => ["Waiting", "In Progress"].includes(q.status));
   const [activeQ, setActiveQ] = useState(consultQueue[0]?.id ?? null);
   const entry = queue.find((q) => q.id === activeQ);
@@ -59,11 +59,23 @@ export default function Consultation() {
       station: "Consultation",
     });
     if (labs.length) addLabOrders(patient.id, labs.map((t) => ({ test: t, category: "Consultation order" })));
+
+    const invLines = [
+      serviceLine("CONS"),
+      ...(labs.length ? [{ ...serviceLine("LAB"), qty: labs.length }] : []),
+      ...(rx.length ? [serviceLine("PHARM")] : []),
+    ];
+    const inv = createInvoice(patient.id, invLines);
+
     advanceQueue(entry.id, exit ? "Completed" : "Referred", route as never);
     setSoap({ s: "", o: "", a: "", p: "" });
     setDx([]); setRx([]); setLabs([]); setNhmis({});
-    setToast(exit ? "Encounter finalized — patient sent to " + route : "Patient routed to " + route);
-    setTimeout(() => setToast(""), 2600);
+    setToast(
+      inv.exempt
+        ? `Encounter finalized · invoice ${inv.number} waived (${patient.payer})`
+        : `Encounter finalized · invoice ${inv.number} raised — patient to Billing then ${route}`,
+    );
+    setTimeout(() => setToast(""), 3200);
   }
 
   return (

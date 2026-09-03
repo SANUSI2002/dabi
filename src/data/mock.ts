@@ -163,6 +163,24 @@ export const ncdSeed = [
   },
 ];
 
+export const invoiceSeed = [
+  {
+    id: "inv1", number: "INV-26-004011", patientId: "p3", payer: "NHIS" as const, category: "NHIS",
+    lines: [{ code: "CONS", name: "General Consultation", qty: 1, unitPrice: 500 }, { code: "FASTBS", name: "Fasting Blood Sugar", qty: 1, unitPrice: 1000 }],
+    exempt: true, createdAt: iso(1, 9, 20), status: "Waived" as const, method: "NHIS" as const, paidAt: iso(1, 9, 20),
+  },
+  {
+    id: "inv2", number: "INV-26-004010", patientId: "p15", payer: "Out of Pocket" as const, category: "GEN",
+    lines: [{ code: "CONS", name: "General Consultation", qty: 1, unitPrice: 500 }, { code: "INJECT", name: "Injection / IM", qty: 1, unitPrice: 300 }],
+    exempt: false, createdAt: iso(2, 10, 5), status: "Paid" as const, method: "Cash" as const, paidAt: iso(2, 10, 12),
+  },
+  {
+    id: "inv3", number: "INV-26-004009", patientId: "p13", payer: "Out of Pocket" as const, category: "ANC",
+    lines: [{ code: "ANC", name: "Antenatal Care Visit", qty: 1, unitPrice: 0 }],
+    exempt: true, createdAt: iso(33, 12, 0), status: "Waived" as const, method: "Waiver" as const, paidAt: iso(33, 12, 0),
+  },
+];
+
 export const auditTrail: AuditEvent[] = Array.from({ length: 24 }).map((_, i) => ({
   id: "ev" + i,
   ts: iso(0, 11, 54 - i * 2),

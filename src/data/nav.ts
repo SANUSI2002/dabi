@@ -21,6 +21,7 @@ import {
   Home,
   Boxes,
   Wrench,
+  Receipt,
   IdCard,
   FileSpreadsheet,
   BarChart3,
@@ -84,6 +85,7 @@ export const NAV: NavGroup[] = [
   {
     title: "Administration",
     items: [
+      { to: "/billing", label: "Billing", icon: Receipt },
       { to: "/inventory", label: "Inventory", icon: Boxes },
       { to: "/equipment", label: "Equipment & Maintenance", icon: Wrench },
       { to: "/hris", label: "HRIS", icon: IdCard },

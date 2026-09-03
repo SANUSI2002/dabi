@@ -26,6 +26,7 @@ const Malaria = lazy(() => import("@/pages/programs/Malaria"));
 const Referrals = lazy(() => import("@/pages/programs/Referrals"));
 const Surveillance = lazy(() => import("@/pages/programs/Surveillance"));
 const Outreach = lazy(() => import("@/pages/programs/Outreach"));
+const Billing = lazy(() => import("@/pages/admin/Billing"));
 const Inventory = lazy(() => import("@/pages/admin/Inventory"));
 const Equipment = lazy(() => import("@/pages/admin/Equipment"));
 const Hris = lazy(() => import("@/pages/admin/Hris"));
@@ -80,6 +81,7 @@ export default function App() {
           <Route path="/referrals" element={<Referrals />} />
           <Route path="/surveillance" element={<Surveillance />} />
           <Route path="/outreach" element={<Outreach />} />
+          <Route path="/billing" element={<Billing />} />
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/equipment" element={<Equipment />} />
           <Route path="/hris" element={<Hris />} />

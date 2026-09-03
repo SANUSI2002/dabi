@@ -269,3 +269,24 @@ export type NcdClient = {
   control: "Controlled" | "Uncontrolled";
   nextVisit: string;
 };
+
+export type InvoiceLine = {
+  code: string;
+  name: string;
+  qty: number;
+  unitPrice: number;
+};
+
+export type Invoice = {
+  id: string;
+  number: string;
+  patientId: string;
+  payer: Payer;
+  category: string;
+  lines: InvoiceLine[];
+  exempt: boolean;
+  createdAt: string;
+  status: "Unpaid" | "Paid" | "Waived";
+  paidAt?: string;
+  method?: "Cash" | "POS" | "Transfer" | "NHIS" | "Waiver";
+};
