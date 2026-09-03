@@ -66,6 +66,7 @@ type EmrState = {
   bookAppointment: (a: Omit<Appointment, "id" | "status">) => void;
   addReferral: (r: Omit<Referral, "id" | "date" | "status">) => void;
   enrollAnc: (r: Omit<AncRecord, "id" | "visits" | "status" | "edd">) => void;
+  addAncVisit: (recordId: string, v: AncRecord["visits"][number]) => void;
   addFpClient: (c: Omit<FpClient, "id" | "status">) => void;
   addChildVisit: (c: Omit<ChildVisit, "id">) => void;
   addDelivery: (d: Omit<Delivery, "id">) => void;
@@ -210,6 +211,13 @@ export const useEmr = create<EmrState>((set, get) => ({
         ],
       };
     }),
+
+  addAncVisit: (recordId, v) =>
+    set((s) => ({
+      ancRecords: s.ancRecords.map((r) =>
+        r.id === recordId ? { ...r, visits: [...r.visits, v] } : r,
+      ),
+    })),
 
   addFpClient: (c) => set((s) => ({ fpClients: [{ ...c, id: rid(), status: "Active" }, ...s.fpClients] })),
   addChildVisit: (c) => set((s) => ({ childVisits: [{ ...c, id: rid() }, ...s.childVisits] })),

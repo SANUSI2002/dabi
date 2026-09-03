@@ -10,9 +10,12 @@ import { useEmr } from "@/store/useEmr";
 import { shortDate, ageFromDob } from "@/lib/format";
 
 export default function Antenatal() {
-  const { ancRecords, patientById, enrollAnc } = useEmr();
+  const { ancRecords, patientById, enrollAnc, addAncVisit } = useEmr();
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({ patientId: "", lmp: "", gravida: 1, para: 0, bloodGroup: "", hb: 0, ttDoses: 0 });
+
+  const [visitOpen, setVisitOpen] = useState(false);
+  const [vf, setVf] = useState({ recordId: "", date: "", weeks: 0, weight: 0, bp: "", hb: 0, fhr: 0, next: "" });
 
   const visits = ancRecords.flatMap((r) => r.visits.map((v) => ({ ...v, r })));
 
@@ -21,7 +24,14 @@ export default function Antenatal() {
       <PageHeader
         title="Antenatal Care"
         subtitle={`${ancRecords.filter((r) => r.status === "Active").length} active enrollments`}
-        actions={<Button onClick={() => setOpen(true)}><Plus size={15} /> Enroll New Patient</Button>}
+        actions={
+          <>
+            <Button variant="ghost" onClick={() => { setVf({ recordId: "", date: "", weeks: 0, weight: 0, bp: "", hb: 0, fhr: 0, next: "" }); setVisitOpen(true); }}>
+              <Plus size={15} /> Record Visit
+            </Button>
+            <Button onClick={() => setOpen(true)}><Plus size={15} /> Enroll New Patient</Button>
+          </>
+        }
       />
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -115,6 +125,62 @@ export default function Antenatal() {
             <Field label="Blood group"><Select value={f.bloodGroup} onChange={(e) => setF({ ...f, bloodGroup: e.target.value })} options={["", "O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"]} /></Field>
             <Field label="Last Hb (g/dL)"><Input type="number" step="0.1" value={f.hb || ""} onChange={(e) => setF({ ...f, hb: +e.target.value })} /></Field>
           </Grid>
+        </div>
+      </Modal>
+
+      <Modal
+        open={visitOpen}
+        onClose={() => setVisitOpen(false)}
+        title="Record ANC Visit"
+        wide
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setVisitOpen(false)}>Cancel</Button>
+            <Button
+              disabled={!vf.recordId || !vf.date}
+              onClick={() => {
+                addAncVisit(vf.recordId, {
+                  date: new Date(vf.date).toISOString(),
+                  weeks: vf.weeks, weight: vf.weight, bp: vf.bp,
+                  hb: vf.hb || undefined, fhr: vf.fhr || undefined,
+                  next: vf.next ? new Date(vf.next).toISOString() : new Date(Date.now() + 28 * 864e5).toISOString(),
+                });
+                setVisitOpen(false);
+              }}
+            >
+              Save Visit
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <Field label="ANC enrollment">
+            <Select
+              value={vf.recordId}
+              onChange={(e) => setVf({ ...vf, recordId: e.target.value })}
+              options={[
+                { value: "", label: "Select an enrolled patient…" },
+                ...ancRecords.filter((r) => r.status === "Active").map((r) => {
+                  const p = patientById(r.patientId);
+                  return { value: r.id, label: p ? `${p.firstName} ${p.lastName} · EDD ${shortDate(r.edd)}` : r.id };
+                }),
+              ]}
+            />
+          </Field>
+          <Grid cols={3}>
+            <Field label="Visit date"><Input type="date" value={vf.date} onChange={(e) => setVf({ ...vf, date: e.target.value })} /></Field>
+            <Field label="Gestational age (weeks)"><Input type="number" value={vf.weeks || ""} onChange={(e) => setVf({ ...vf, weeks: +e.target.value })} /></Field>
+            <Field label="Weight (kg)"><Input type="number" step="0.1" value={vf.weight || ""} onChange={(e) => setVf({ ...vf, weight: +e.target.value })} /></Field>
+            <Field label="Blood pressure"><Input value={vf.bp} onChange={(e) => setVf({ ...vf, bp: e.target.value })} placeholder="120/80" /></Field>
+            <Field label="Hb (g/dL)"><Input type="number" step="0.1" value={vf.hb || ""} onChange={(e) => setVf({ ...vf, hb: +e.target.value })} /></Field>
+            <Field label="Fetal heart rate"><Input type="number" value={vf.fhr || ""} onChange={(e) => setVf({ ...vf, fhr: +e.target.value })} /></Field>
+          </Grid>
+          <Field label="Next visit date"><Input type="date" value={vf.next} onChange={(e) => setVf({ ...vf, next: e.target.value })} /></Field>
+          {vf.hb > 0 && vf.hb < 10 && (
+            <div className="rounded-xl bg-action-50 px-3 py-2 text-sm font-semibold text-action-700 ring-1 ring-action-200">
+              ⚠ Hb below 10 g/dL — flag as high-risk, commence iron and review in 2 weeks.
+            </div>
+          )}
         </div>
       </Modal>
     </div>
