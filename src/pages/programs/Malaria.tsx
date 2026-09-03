@@ -1,10 +1,10 @@
-import { PageHeader, StatCard, Card, Badge } from "@/components/ui/primitives";
+import { PageHeader, StatCard, Card } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
+import { Bars } from "@/components/ui/Chart";
 import { Reveal } from "@/components/motion/Reveal";
 import { useEmr } from "@/store/useEmr";
 import { shortDate } from "@/lib/format";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 
 export default function Malaria() {
   const { encounters, patientById } = useEmr();
@@ -12,10 +12,10 @@ export default function Malaria() {
   const tested = encounters.filter((e) => e.labs.some((l) => l.toLowerCase().includes("malaria"))).length;
 
   const trend = [
-    { m: "Wk 1", tested: 22, positive: 14 },
-    { m: "Wk 2", tested: 31, positive: 19 },
-    { m: "Wk 3", tested: 27, positive: 16 },
-    { m: "Wk 4", tested: 35, positive: 24 },
+    { label: "Wk 1", tested: 22, positive: 14 },
+    { label: "Wk 2", tested: 31, positive: 19 },
+    { label: "Wk 3", tested: 27, positive: 16 },
+    { label: "Wk 4", tested: 35, positive: 24 },
   ];
 
   return (
@@ -47,21 +47,15 @@ export default function Malaria() {
           ) : (
             <Reveal>
               <Card>
-                <div className="h-64">
-                  <ResponsiveContainer>
-                    <BarChart data={trend}>
-                      <XAxis dataKey="m" tickLine={false} axisLine={false} fontSize={12} />
-                      <YAxis tickLine={false} axisLine={false} fontSize={12} />
-                      <Tooltip cursor={{ fill: "rgba(15,192,109,0.06)" }} />
-                      <Bar dataKey="tested" fill="#9ff9cb" radius={[6, 6, 0, 0]} />
-                      <Bar dataKey="positive" fill="#0fc06d" radius={[6, 6, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="mt-2 flex gap-4 text-xs text-mist-500">
-                  <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-brand-200" /> Tested</span>
-                  <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-brand-500" /> Positive</span>
-                </div>
+                <h3 className="mb-3 font-display font-bold text-mist-900">Weekly testing &amp; positivity</h3>
+                <Bars
+                  data={trend}
+                  x="label"
+                  series={[
+                    { key: "tested", label: "Tested", color: "#9ff9cb" },
+                    { key: "positive", label: "Positive", color: "#0fc06d" },
+                  ]}
+                />
               </Card>
             </Reveal>
           )

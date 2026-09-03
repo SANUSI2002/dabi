@@ -102,9 +102,9 @@ export default function Reports() {
               ))}
             </div>
 
-            <motion.div key={tabName} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+            <div>
               <ReportView tab={tab} snap={snap} />
-            </motion.div>
+            </div>
 
             <p className="mt-4 text-center text-[11px] text-mist-300">
               {family.name} · {tab.name} · {preset} · generated {new Date().toLocaleString("en-NG")}

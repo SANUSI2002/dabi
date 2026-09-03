@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { CalendarRange, Fingerprint, ClipboardList, AlertTriangle, ArrowRight } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { Bars } from "@/components/ui/Chart";
 import { PageHeader, StatCard, Card, Badge } from "@/components/ui/primitives";
 import { Reveal } from "@/components/motion/Reveal";
 import { useWorkforce } from "@/store/useWorkforce";
@@ -38,19 +38,16 @@ export default function WorkforceDashboard() {
       <div className="mt-6 grid gap-5 lg:grid-cols-3">
         <Reveal className="lg:col-span-2">
           <Card>
-            <h3 className="mb-3 font-display font-bold text-mist-900">Expected vs Worked (this period)</h3>
-            <div className="h-60">
-              <ResponsiveContainer>
-                <BarChart data={byPerson}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e8f4ec" vertical={false} />
-                  <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={12} />
-                  <YAxis tickLine={false} axisLine={false} fontSize={12} />
-                  <Tooltip />
-                  <Bar dataKey="expected" fill="#cdffe4" radius={[6, 6, 0, 0]} />
-                  <Bar dataKey="worked" fill="#0fc06d" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            <h3 className="mb-3 font-display font-bold text-mist-900">Expected vs worked (this period)</h3>
+            <Bars
+              data={byPerson}
+              x="label"
+              height={240}
+              series={[
+                { key: "expected", label: "Expected", color: "#cdffe4" },
+                { key: "worked", label: "Worked", color: "#0fc06d" },
+              ]}
+            />
           </Card>
         </Reveal>
 

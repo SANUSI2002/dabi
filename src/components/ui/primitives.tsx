@@ -25,7 +25,7 @@ export const Button = forwardRef<HTMLButtonElement, BtnProps>(function Button(
 
 /* ---------- Card ---------- */
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
-  return <div className={cn("card p-5", className)}>{children}</div>;
+  return <div className={cn("card", className)}>{children}</div>;
 }
 
 /* ---------- Page header ---------- */
@@ -70,31 +70,30 @@ export function StatCard({
   delay?: number;
 }) {
   const tones = {
-    brand: "from-brand-500/12 to-brand-500/0 text-brand-700",
-    action: "from-action-500/12 to-action-500/0 text-action-700",
-    mist: "from-mist-500/12 to-mist-500/0 text-mist-700",
-    amber: "from-amber-500/12 to-amber-500/0 text-amber-700",
+    brand: { wash: "from-brand-500/[0.10]", text: "text-brand-700" },
+    action: { wash: "from-action-500/[0.10]", text: "text-action-700" },
+    mist: { wash: "from-mist-500/[0.10]", text: "text-mist-700" },
+    amber: { wash: "from-amber-500/[0.10]", text: "text-amber-700" },
   } as const;
+  const tk = tones[tone];
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, type: "spring", stiffness: 260, damping: 24 }}
-      className="card relative overflow-hidden p-4"
+      transition={{ delay, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      className="card relative flex min-w-0 items-start justify-between gap-3 overflow-hidden p-4"
     >
-      <div className={cn("pointer-events-none absolute inset-0 bg-gradient-to-br", tones[tone])} />
-      <div className="relative flex items-start justify-between">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-wider text-mist-400">{label}</p>
-          <p className="mt-1.5 font-display text-2xl font-bold text-mist-900">{value}</p>
-          {hint && <p className="mt-0.5 text-xs text-mist-400">{hint}</p>}
-        </div>
-        {icon && (
-          <div className={cn("rounded-xl bg-white/70 p-2 ring-1 ring-mist-200", tones[tone].split(" ").pop())}>
-            {icon}
-          </div>
-        )}
+      <div className={cn("pointer-events-none absolute inset-0 bg-gradient-to-br to-transparent", tk.wash)} />
+      <div className="relative min-w-0">
+        <p className="truncate text-[11px] font-bold uppercase tracking-wider text-mist-400">{label}</p>
+        <p className="mt-1 font-display text-[1.65rem] font-bold leading-tight tracking-tight text-mist-900 [font-variant-numeric:tabular-nums]">
+          {value}
+        </p>
+        {hint && <p className="mt-0.5 truncate text-xs text-mist-400">{hint}</p>}
       </div>
+      {icon && (
+        <div className={cn("relative shrink-0 rounded-xl bg-white/80 p-2 ring-1 ring-mist-200", tk.text)}>{icon}</div>
+      )}
     </motion.div>
   );
 }
@@ -118,9 +117,21 @@ export function Badge({
 
 export function statusTone(s: string): "brand" | "action" | "mist" | "amber" {
   const v = s.toLowerCase();
-  if (["in progress", "active", "resulted", "dispensed", "completed", "attended", "normal"].includes(v)) return "brand";
-  if (["waiting", "pending", "sample collected", "scheduled", "open", "mam"].includes(v)) return "amber";
-  if (["referred", "rejected", "no-show", "critical", "sam", "out", "discontinued"].includes(v)) return "action";
+  if (
+    ["in progress", "active", "resulted", "dispensed", "completed", "attended", "normal", "paid",
+     "approved", "done", "cured", "recovered", "current", "up to date", "synced", "protected", "controlled"].includes(v)
+  )
+    return "brand";
+  if (
+    ["waiting", "pending", "sample collected", "scheduled", "open", "mam", "submitted", "draft",
+     "due", "future", "in process", "under repair", "not started", "queued", "unpaid", "incomplete"].includes(v)
+  )
+    return "amber";
+  if (
+    ["referred", "rejected", "no-show", "critical", "sam", "out", "discontinued", "blocked",
+     "overdue", "locked", "faulty", "died", "uncontrolled", "high", "emergency"].includes(v)
+  )
+    return "action";
   return "mist";
 }
 
@@ -137,15 +148,21 @@ export function EmptyState({ title, hint, action }: { title: string; hint?: stri
 }
 
 /* ---------- Progress bar ---------- */
-export function Progress({ value, target }: { value: number; target: number }) {
-  const p = Math.min(100, Math.round((value / target) * 100));
+export function Progress({ value, target, tone = "brand" }: { value: number; target: number; tone?: "brand" | "action" }) {
+  const p = target > 0 ? Math.min(100, Math.max(0, Math.round((value / target) * 100))) : 0;
   return (
-    <div className="h-2 w-full overflow-hidden rounded-full bg-mist-100">
+    <div
+      className="h-2 w-full overflow-hidden rounded-full bg-mist-200/70"
+      role="progressbar"
+      aria-valuenow={p}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
       <motion.div
-        className="h-full rounded-full bg-brand-gradient"
+        className={cn("h-full rounded-full", tone === "action" ? "bg-action-gradient" : "bg-brand-gradient")}
         initial={{ width: 0 }}
         animate={{ width: `${p}%` }}
-        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
       />
     </div>
   );

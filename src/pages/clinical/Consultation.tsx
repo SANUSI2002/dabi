@@ -299,18 +299,18 @@ export default function Consultation() {
             </div>
 
             {/* actions */}
-            <div className="card sticky bottom-4 flex flex-wrap items-center gap-3">
-              <span className="text-sm font-semibold text-mist-500">Route to:</span>
+            <div className="sticky bottom-3 z-20 flex flex-wrap items-center gap-3 rounded-2xl border border-mist-200 bg-white/95 p-3 shadow-pop backdrop-blur">
+              <span className="text-sm font-semibold text-mist-500">Route to</span>
               <Select value={route} onChange={(e) => setRoute(e.target.value)} options={[...STATIONS]} className="w-auto" />
-              <div className="ml-auto flex gap-2">
+              <div className="ml-auto flex flex-wrap gap-2">
                 <Button variant="ghost" onClick={() => finalize(false)}>
-                  <Save size={15} /> Save & Route
+                  <Save size={15} /> Save &amp; Route
                 </Button>
                 <Button variant="ghost" onClick={() => setAdmitOpen(true)}>
                   <BedDouble size={15} /> Admit
                 </Button>
                 <Button onClick={() => finalize(true)}>
-                  <LogOut size={15} /> Finalize & Exit
+                  <LogOut size={15} /> Finalize &amp; Exit
                 </Button>
               </div>
             </div>

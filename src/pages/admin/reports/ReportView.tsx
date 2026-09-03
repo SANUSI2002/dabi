@@ -1,9 +1,6 @@
-import { motion } from "framer-motion";
-import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-} from "recharts";
 import { Card, Badge, EmptyState } from "@/components/ui/primitives";
 import { Table, Row, Cell } from "@/components/ui/Table";
+import { Bars, Lines } from "@/components/ui/Chart";
 import type { ReportTab } from "./config";
 import type { EmrSnapshot } from "./types";
 
@@ -14,7 +11,8 @@ export function ReportView({ tab, snap }: { tab: ReportTab; snap: EmrSnapshot })
 
   if (tab.kind === "table") {
     const rows = tab.rows(snap);
-    if (rows.length === 0) return <EmptyState title={`${tab.name} · no records`} hint="Nothing was recorded for the selected range." />;
+    if (rows.length === 0)
+      return <EmptyState title={`${tab.name} · no records`} hint="Nothing was recorded for the selected range." />;
     return (
       <Table columns={tab.columns}>
         {rows.map((r, i) => (
@@ -35,7 +33,7 @@ export function ReportView({ tab, snap }: { tab: ReportTab; snap: EmrSnapshot })
       <Card>
         <div className="divide-y divide-mist-100">
           {tab.rows(snap).map((r) => (
-            <div key={r.k} className="flex items-center justify-between py-2.5 text-sm">
+            <div key={r.k} className="flex items-center justify-between gap-4 py-2.5 text-sm">
               <span className="text-mist-600">{r.k}</span>
               <span className="flex items-center gap-2">
                 {r.target && <span className="text-[11px] text-mist-400">target {r.target}</span>}
@@ -49,49 +47,24 @@ export function ReportView({ tab, snap }: { tab: ReportTab; snap: EmrSnapshot })
   }
 
   if (tab.kind === "bars") {
+    const data = tab.data(snap);
+    if (data.length === 0) return <EmptyState title={`${tab.name} · no data`} hint="Nothing to chart for this range." />;
     return (
       <Card>
-        <div className="h-64">
-          <ResponsiveContainer>
-            <BarChart data={tab.data(snap)}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e8f4ec" vertical={false} />
-              <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} />
-              <YAxis tickLine={false} axisLine={false} fontSize={12} />
-              <Tooltip cursor={{ fill: "rgba(15,192,109,0.06)" }} />
-              <Bar dataKey={tab.keys[0]} fill="#0fc06d" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        <Bars data={data} x="label" series={[{ key: tab.keys[0], color: "#0fc06d" }]} />
       </Card>
     );
   }
 
   // line
-  const palette = ["#9ff9cb", "#0fc06d", "#f83b3b", "#0a4f32"];
+  const data = tab.data(snap);
+  if (data.length === 0) return <EmptyState title={`${tab.name} · no data`} hint="Nothing to chart for this range." />;
+  const x = "date" in data[0] ? "date" : "label";
   return (
     <Card>
-      <div className="h-64">
-        <ResponsiveContainer>
-          <LineChart data={tab.data(snap)}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e8f4ec" vertical={false} />
-            <XAxis dataKey={tab.data(snap)[0]?.date !== undefined ? "date" : "label"} tickLine={false} axisLine={false} fontSize={12} />
-            <YAxis tickLine={false} axisLine={false} fontSize={12} />
-            <Tooltip />
-            {tab.keys.map((k, i) => (
-              <Line key={k} type="monotone" dataKey={k} stroke={palette[i % palette.length]} strokeWidth={2.5} dot={false} />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="mt-2 flex flex-wrap gap-3 text-xs text-mist-500">
-        {tab.keys.map((k, i) => (
-          <span key={k} className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded" style={{ background: palette[i % palette.length] }} /> {k}
-          </span>
-        ))}
-      </div>
+      <Lines data={data} x={x} series={tab.keys.map((k) => ({ key: k, label: k }))} />
     </Card>
   );
 }
 
-export const fade = motion.div;
+export { Badge };
