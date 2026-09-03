@@ -5,7 +5,7 @@ import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Grid } from "@/components/ui/form";
-import { drugs } from "@/data/mock";
+import { useCatalog } from "@/store/useCatalog";
 import { shortDate } from "@/lib/format";
 
 type Asset = { id: string; name: string; category: string; serial: string; location: string; cost: number; status: "Functional" | "Faulty" | "Under Repair" | "Disposed"; acquired: string };
@@ -16,6 +16,7 @@ export default function Inventory() {
     { id: "as2", name: "Vaccine Refrigerator", category: "Cold Chain", serial: "VR-8890", location: "EPI Room", cost: 380000, status: "Functional", acquired: new Date(Date.now() - 400 * 864e5).toISOString() },
     { id: "as3", name: "Delivery Bed", category: "Furniture", serial: "DB-1120", location: "Labour Room", cost: 120000, status: "Under Repair", acquired: new Date(Date.now() - 700 * 864e5).toISOString() },
   ]);
+  const drugs = useCatalog((s) => s.drugs);
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({ name: "", category: "Equipment", serial: "", location: "", cost: 0, status: "Functional" as const });
 

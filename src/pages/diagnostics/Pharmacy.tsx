@@ -5,14 +5,15 @@ import { Tabs } from "@/components/ui/Tabs";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Grid } from "@/components/ui/form";
 import { useEmr } from "@/store/useEmr";
-import { drugs } from "@/data/mock";
+import { useCatalog } from "@/store/useCatalog";
 import { DRUG_FORMS, DRUG_CLASSES } from "@/data/catalog";
 import { dateTime } from "@/lib/format";
 
 export default function Pharmacy() {
   const { encounters, patientById, dispense } = useEmr();
+  const { drugs: stock, add: addCatalog, adjustStock } = useCatalog();
   const [addStock, setAddStock] = useState(false);
-  const [stock] = useState(drugs);
+  const [newStock, setNewStock] = useState({ drug: "", qty: 0 });
 
   const pendingByPatient = encounters
     .map((e) => ({ e, pending: e.prescriptions.filter((r) => r.status === "Pending") }))
@@ -59,7 +60,7 @@ export default function Pharmacy() {
                             <span className="text-mist-400"> · {r.dose} · {r.frequency} · {r.duration} · Qty {r.qty}</span>
                           </div>
                           <div className="flex gap-1.5">
-                            <button onClick={() => dispense(e.id, r.id, "Dispensed")} className="btn-primary px-2.5 py-1 text-xs">Dispense</button>
+                            <button onClick={() => { dispense(e.id, r.id, "Dispensed"); adjustStock(r.drug, -(r.qty || 1)); }} className="btn-primary px-2.5 py-1 text-xs">Dispense</button>
                             <button onClick={() => dispense(e.id, r.id, "Outsourced")} className="btn-ghost px-2.5 py-1 text-xs">Outsource</button>
                           </div>
                         </div>
@@ -126,22 +127,29 @@ export default function Pharmacy() {
       <Modal
         open={addStock}
         onClose={() => setAddStock(false)}
-        title="Add Drug Stock"
-        footer={<><Button variant="ghost" onClick={() => setAddStock(false)}>Cancel</Button><Button onClick={() => setAddStock(false)}>Add Stock</Button></>}
+        title="Receive Drug Stock"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setAddStock(false)}>Cancel</Button>
+            <Button
+              disabled={!newStock.drug || newStock.qty <= 0}
+              onClick={() => { adjustStock(newStock.drug, newStock.qty); setAddStock(false); setNewStock({ drug: "", qty: 0 }); }}
+            >
+              Receive {newStock.qty > 0 ? `+${newStock.qty}` : ""}
+            </Button>
+          </>
+        }
       >
         <div className="space-y-4">
-          <Field label="Drug"><Select options={["Search drugs…", ...drugs.map((d) => d.name)]} /></Field>
+          <Field label="Drug">
+            <Select value={newStock.drug} onChange={(e) => setNewStock({ ...newStock, drug: e.target.value })}
+              options={[{ value: "", label: "Select a drug…" }, ...stock.map((d) => ({ value: d.name, label: `${d.name} (${d.stock} on hand)` }))]} />
+          </Field>
           <Grid cols={2}>
             <Field label="Batch number"><Input placeholder="e.g. AB123" /></Field>
             <Field label="Expiry date"><Input type="date" /></Field>
-            <Field label="Quantity"><Input type="number" /></Field>
+            <Field label="Quantity received"><Input type="number" value={newStock.qty || ""} onChange={(e) => setNewStock({ ...newStock, qty: +e.target.value })} /></Field>
             <Field label="Supplier"><Input placeholder="Optional" /></Field>
-          </Grid>
-          <p className="text-xs font-semibold uppercase text-mist-400">Catalog</p>
-          <Grid cols={3}>
-            <Field label="Form"><Select options={DRUG_FORMS} /></Field>
-            <Field label="Class"><Select options={DRUG_CLASSES} /></Field>
-            <Field label="Reorder level"><Input type="number" defaultValue={50} /></Field>
           </Grid>
         </div>
       </Modal>

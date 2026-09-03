@@ -7,12 +7,14 @@ import { PageHeader, StatCard, Card, Badge, Progress, statusTone } from "@/compo
 import { Reveal } from "@/components/motion/Reveal";
 import { useEmr } from "@/store/useEmr";
 import { useAuth } from "@/store/useAuth";
-import { monthlyTargets, drugs, auditTrail } from "@/data/mock";
+import { monthlyTargets, auditTrail } from "@/data/mock";
+import { useCatalog } from "@/store/useCatalog";
 import { naira, timeAgo, shortDate } from "@/lib/format";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const { queue, labOrders, encounters, admissions, patients, patientById } = useEmr();
+  const drugs = useCatalog((s) => s.drugs);
 
   const waiting = queue.filter((q) => q.status === "Waiting").length;
   const inProgress = queue.filter((q) => q.status === "In Progress").length;

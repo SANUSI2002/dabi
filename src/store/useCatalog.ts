@@ -28,6 +28,7 @@ type CatalogState = {
   add: (k: CatalogKey, row: Record<string, unknown>) => void;
   update: (k: CatalogKey, id: string, patch: Record<string, unknown>) => void;
   toggle: (k: CatalogKey, id: string) => void;
+  adjustStock: (drugName: string, delta: number) => void;
 };
 
 const withActive = <T extends object>(rows: T[]) => rows.map((r) => ({ active: true, ...r }));
@@ -67,5 +68,15 @@ export const useCatalog = create<CatalogState>((set) => ({
       return {
         [k]: list.map((r) => ((r.id ?? r.code) === id ? { ...r, active: !r.active } : r)),
       } as Partial<CatalogState>;
+    }),
+
+  adjustStock: (drugName, delta) =>
+    set((s) => {
+      const q = drugName.toLowerCase();
+      const match = s.drugs.find((d) => q.includes(d.name.toLowerCase()));
+      if (!match) return {};
+      return {
+        drugs: s.drugs.map((d) => (d.id === match.id ? { ...d, stock: Math.max(0, d.stock + delta) } : d)),
+      };
     }),
 }));
