@@ -4,6 +4,7 @@ import type {
   Patient,
   QueueEntry,
   Encounter,
+  Vitals,
   LabOrder,
   Admission,
   Appointment,
@@ -40,6 +41,7 @@ type EmrState = {
   outreachActivities: OutreachActivity[];
   surveillanceCases: SurveillanceCase[];
   ncdClients: NcdClient[];
+  vitals: Record<string, Vitals[]>;
   activePatientId: string | null;
 
   setActivePatient: (id: string | null) => void;
@@ -68,6 +70,8 @@ type EmrState = {
   addOutreach: (a: Omit<OutreachActivity, "id">) => void;
   addSurveillanceCase: (c: Omit<SurveillanceCase, "id" | "reportedAt" | "status">) => void;
   addNcdClient: (c: Omit<NcdClient, "id" | "enrolledAt">) => void;
+  recordVitals: (patientId: string, v: Omit<Vitals, "takenAt" | "takenBy">) => void;
+  latestVitals: (patientId?: string | null) => Vitals | undefined;
 };
 
 export const useEmr = create<EmrState>((set, get) => ({
@@ -87,6 +91,9 @@ export const useEmr = create<EmrState>((set, get) => ({
   outreachActivities: mock.outreachSeed,
   surveillanceCases: [],
   ncdClients: mock.ncdSeed,
+  vitals: {
+    p13: [{ bp: "138/78", temp: 38.6, pulse: 96, resp: 22, spo2: 98, weight: 89, takenAt: new Date(Date.now() - 34 * 864e5).toISOString(), takenBy: "Nurse Grace Nwangbo" }],
+  },
   activePatientId: "p13",
 
   setActivePatient: (id) => set({ activePatientId: id }),
@@ -213,4 +220,17 @@ export const useEmr = create<EmrState>((set, get) => ({
     })),
   addNcdClient: (c) =>
     set((s) => ({ ncdClients: [{ ...c, id: rid(), enrolledAt: new Date().toISOString() }, ...s.ncdClients] })),
+
+  recordVitals: (patientId, v) =>
+    set((s) => ({
+      vitals: {
+        ...s.vitals,
+        [patientId]: [
+          { ...v, takenAt: new Date().toISOString(), takenBy: "Nurse Grace Nwangbo" },
+          ...(s.vitals[patientId] ?? []),
+        ],
+      },
+    })),
+
+  latestVitals: (patientId) => (patientId ? get().vitals[patientId]?.[0] : undefined),
 }));

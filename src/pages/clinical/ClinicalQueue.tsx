@@ -6,6 +6,7 @@ import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Select, Textarea } from "@/components/ui/form";
 import { PatientPicker } from "@/components/ui/PatientPicker";
+import { VitalsModal } from "@/components/clinical/VitalsModal";
 import { useEmr } from "@/store/useEmr";
 import { STATIONS } from "@/data/catalog";
 import { ageFromDob } from "@/lib/format";
@@ -16,6 +17,7 @@ export default function ClinicalQueue() {
   const [tab, setTab] = useState<"All" | "Waiting" | "In Progress" | "Completed" | "Referred">("All");
   const [station, setStation] = useState<string>("All Stations");
   const [add, setAdd] = useState(false);
+  const [vitalsFor, setVitalsFor] = useState<{ patientId: string; queueId: string } | null>(null);
 
   const [pid, setPid] = useState<string | null>(null);
   const [pr, setPr] = useState("Normal");
@@ -91,7 +93,15 @@ export default function ClinicalQueue() {
               <Cell>{q.assignedTo?.split(" ").slice(-1)[0] ?? "—"}</Cell>
               <Cell>
                 <div className="flex justify-end gap-1.5">
-                  {q.status === "Waiting" && (
+                  {q.station === "Vital" && q.status !== "Completed" && (
+                    <button
+                      onClick={() => setVitalsFor({ patientId: q.patientId, queueId: q.id })}
+                      className="btn-soft px-2.5 py-1 text-xs"
+                    >
+                      Vitals
+                    </button>
+                  )}
+                  {q.status === "Waiting" && q.station !== "Vital" && (
                     <button
                       onClick={() => advanceQueue(q.id, "In Progress")}
                       className="btn-soft px-2.5 py-1 text-xs"
@@ -99,7 +109,7 @@ export default function ClinicalQueue() {
                       Start
                     </button>
                   )}
-                  {q.status === "In Progress" && (
+                  {q.status === "In Progress" && q.station === "Consultation" && (
                     <button
                       onClick={() => nav("/consultation")}
                       className="btn-primary px-2.5 py-1 text-xs"
@@ -154,6 +164,15 @@ export default function ClinicalQueue() {
           </Field>
         </div>
       </Modal>
+
+      {vitalsFor && (
+        <VitalsModal
+          patientId={vitalsFor.patientId}
+          queueId={vitalsFor.queueId}
+          open
+          onClose={() => setVitalsFor(null)}
+        />
+      )}
     </div>
   );
 }

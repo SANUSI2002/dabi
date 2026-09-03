@@ -18,11 +18,12 @@ const NHMIS_GROUPS: Record<string, string[]> = {
 };
 
 export default function Consultation() {
-  const { queue, patientById, saveEncounter, addLabOrders, advanceQueue, admit } = useEmr();
+  const { queue, patientById, saveEncounter, addLabOrders, advanceQueue, admit, latestVitals } = useEmr();
   const consultQueue = queue.filter((q) => ["Waiting", "In Progress"].includes(q.status));
   const [activeQ, setActiveQ] = useState(consultQueue[0]?.id ?? null);
   const entry = queue.find((q) => q.id === activeQ);
   const patient = patientById(entry?.patientId);
+  const vitals = latestVitals(entry?.patientId);
 
   const [soap, setSoap] = useState({ s: "", o: "", a: "", p: "" });
   const [dx, setDx] = useState<{ code: string; name: string }[]>([]);
@@ -100,24 +101,46 @@ export default function Consultation() {
           <div className="card grid place-items-center py-20 text-mist-400">Select a patient from the queue.</div>
         ) : (
           <div className="space-y-5">
-            <div className="card flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="font-display text-lg font-bold text-mist-900">
-                  {patient.firstName} {patient.lastName}
-                </p>
-                <p className="text-xs text-mist-400">
-                  {patient.mrn} · {ageFromDob(patient.dob)} · {patient.sex} ·{" "}
-                  <Badge tone="mist">{patient.payer}</Badge>{" "}
-                  {patient.allergies && patient.allergies !== "NKA" ? (
-                    <Badge tone="action">Allergy: {patient.allergies}</Badge>
-                  ) : (
-                    <Badge tone="brand">NKA</Badge>
-                  )}
-                </p>
+            <div className="card">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="font-display text-lg font-bold text-mist-900">
+                    {patient.firstName} {patient.lastName}
+                  </p>
+                  <p className="text-xs text-mist-400">
+                    {patient.mrn} · {ageFromDob(patient.dob)} · {patient.sex} ·{" "}
+                    <Badge tone="mist">{patient.payer}</Badge>{" "}
+                    {patient.allergies && patient.allergies !== "NKA" ? (
+                      <Badge tone="action">Allergy: {patient.allergies}</Badge>
+                    ) : (
+                      <Badge tone="brand">NKA</Badge>
+                    )}
+                  </p>
+                </div>
+                <Badge tone="brand">
+                  <Stethoscope size={12} /> In consultation
+                </Badge>
               </div>
-              <Badge tone="brand">
-                <Stethoscope size={12} /> In consultation
-              </Badge>
+              <div className="mt-3 flex flex-wrap gap-2 border-t border-mist-100 pt-3">
+                {vitals ? (
+                  [
+                    ["BP", vitals.bp],
+                    ["Temp", vitals.temp && `${vitals.temp}°C`],
+                    ["Pulse", vitals.pulse],
+                    ["Resp", vitals.resp],
+                    ["SpO₂", vitals.spo2 && `${vitals.spo2}%`],
+                    ["Weight", vitals.weight && `${vitals.weight} kg`],
+                  ]
+                    .filter(([, v]) => v)
+                    .map(([k, v]) => (
+                      <span key={k} className="chip bg-mist-100 text-mist-600">
+                        <span className="font-normal text-mist-400">{k}</span> {v}
+                      </span>
+                    ))
+                ) : (
+                  <span className="text-xs text-mist-400">No vitals recorded — send patient to the Vital station.</span>
+                )}
+              </div>
             </div>
 
             <div className="card space-y-4">
