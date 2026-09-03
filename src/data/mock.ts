@@ -149,6 +149,20 @@ export const childVisits: ChildVisit[] = [
   { id: "cv2", patientId: "p2", date: iso(6), weight: 9.1, height: 78, muac: 12.9, waz: -1.4, status: "MAM", feeding: "Family diet" },
 ];
 
+export const outreachSeed = [
+  {
+    id: "o1", chw: "Abisola Adedokun", type: "Household visit", ward: "Kirikiri",
+    households: 12, referrals: 2, date: iso(2),
+  },
+];
+
+export const ncdSeed = [
+  {
+    id: "n1", patientId: "p3", condition: "Type 2 Diabetes Mellitus", enrolledAt: iso(120),
+    bp: "128/82", fbs: 7.8, control: "Uncontrolled" as const, nextVisit: iso(-14),
+  },
+];
+
 export const auditTrail: AuditEvent[] = Array.from({ length: 24 }).map((_, i) => ({
   id: "ev" + i,
   ts: iso(0, 11, 54 - i * 2),

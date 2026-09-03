@@ -15,7 +15,10 @@ export default function Reports() {
   const snap: EmrSnapshot = {
     patients: emr.patients, queue: emr.queue, encounters: emr.encounters, labOrders: emr.labOrders,
     admissions: emr.admissions, appointments: emr.appointments, referrals: emr.referrals,
-    ancRecords: emr.ancRecords, fpClients: emr.fpClients, childVisits: emr.childVisits, patientById: emr.patientById,
+    ancRecords: emr.ancRecords, fpClients: emr.fpClients, childVisits: emr.childVisits,
+    deliveries: emr.deliveries, pncVisits: emr.pncVisits, cmamScreenings: emr.cmamScreenings,
+    outreachActivities: emr.outreachActivities, surveillanceCases: emr.surveillanceCases,
+    ncdClients: emr.ncdClients, patientById: emr.patientById,
   };
 
   const [familyName, setFamilyName] = useState(REPORTS[14].name); // Service Performance

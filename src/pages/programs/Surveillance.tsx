@@ -10,14 +10,10 @@ import { useEmr } from "@/store/useEmr";
 import { NOTIFIABLE } from "@/data/catalog";
 import { dateTime } from "@/lib/format";
 
-type Case = { id: string; patientId: string; disease: string; onset: string; reportedAt: string; status: "Suspected" | "Confirmed" | "Discarded" };
-
 export default function Surveillance() {
-  const { patientById } = useEmr();
-  const [cases, setCases] = useState<Case[]>([]);
+  const { surveillanceCases, patientById, addSurveillanceCase } = useEmr();
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({ patientId: "", disease: NOTIFIABLE[0].name, onset: "" });
-
   const immediate = NOTIFIABLE.filter((d) => d.class === "IDSR Immediate");
 
   return (
@@ -28,9 +24,9 @@ export default function Surveillance() {
         actions={<Button variant="action" onClick={() => setOpen(true)}><Plus size={15} /> Notify Case</Button>}
       />
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Cases This Week" value={cases.length} tone="brand" icon={<Radar size={18} />} />
-        <StatCard label="Immediate-notify" value={cases.filter((c) => immediate.some((d) => d.name === c.disease)).length} tone="action" delay={0.05} icon={<AlertTriangle size={18} />} />
-        <StatCard label="Confirmed" value={cases.filter((c) => c.status === "Confirmed").length} tone="mist" delay={0.1} />
+        <StatCard label="Cases This Week" value={surveillanceCases.length} tone="brand" icon={<Radar size={18} />} />
+        <StatCard label="Immediate-notify" value={surveillanceCases.filter((c) => immediate.some((d) => d.name === c.disease)).length} tone="action" delay={0.05} icon={<AlertTriangle size={18} />} />
+        <StatCard label="Confirmed" value={surveillanceCases.filter((c) => c.status === "Confirmed").length} tone="mist" delay={0.1} />
         <StatCard label="Diseases Tracked" value={NOTIFIABLE.length} tone="mist" delay={0.15} />
       </div>
 
@@ -38,7 +34,7 @@ export default function Surveillance() {
         {(t) =>
           t === "Line List" ? (
             <Table columns={["Patient", "Disease", "Onset", "Reported", "Status"]}>
-              {cases.map((c, i) => {
+              {surveillanceCases.map((c, i) => {
                 const p = patientById(c.patientId);
                 return (
                   <Row key={c.id} index={i}>
@@ -50,7 +46,7 @@ export default function Surveillance() {
                   </Row>
                 );
               })}
-              {cases.length === 0 && <Row><Cell className="text-mist-400">No cases notified this week.</Cell></Row>}
+              {surveillanceCases.length === 0 && <Row><Cell className="text-mist-400">No cases notified this week.</Cell></Row>}
             </Table>
           ) : (
             <Table columns={["Code", "Disease", "Class", "Priority", "Reporting Window"]}>
@@ -73,10 +69,7 @@ export default function Surveillance() {
         onClose={() => setOpen(false)}
         title="Notify Disease Case"
         footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button variant="action" disabled={!f.patientId} onClick={() => {
-            setCases((c) => [{ id: Math.random().toString(), patientId: f.patientId, disease: f.disease, onset: f.onset, reportedAt: new Date().toISOString(), status: "Suspected" }, ...c]);
-            setOpen(false);
-          }}>Submit Notification</Button></>}
+          <Button variant="action" disabled={!f.patientId} onClick={() => { addSurveillanceCase(f); setOpen(false); setF({ patientId: "", disease: NOTIFIABLE[0].name, onset: "" }); }}>Submit Notification</Button></>}
       >
         <div className="space-y-4">
           <Field label="Patient"><PatientPicker value={f.patientId} onChange={(id) => setF({ ...f, patientId: id })} /></Field>

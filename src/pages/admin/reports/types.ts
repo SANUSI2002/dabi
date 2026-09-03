@@ -14,5 +14,11 @@ export type EmrSnapshot = Pick<
   | "ancRecords"
   | "fpClients"
   | "childVisits"
+  | "deliveries"
+  | "pncVisits"
+  | "cmamScreenings"
+  | "outreachActivities"
+  | "surveillanceCases"
+  | "ncdClients"
   | "patientById"
 >;

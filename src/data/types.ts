@@ -196,3 +196,76 @@ export type AuditEvent = {
   resource: string;
   ip: string;
 };
+
+export type Delivery = {
+  id: string;
+  patientId: string;
+  date: string;
+  mode: string;
+  gaWeeks: number;
+  motherStatus: "Alive" | "Died" | "Referred";
+  bloodLoss: number;
+  babySex: Sex;
+  babyStatus: "Alive" | "Fresh stillbirth" | "Macerated stillbirth";
+  weight: number;
+  apgar1: number;
+  apgar5: number;
+  breastfed1h: boolean;
+  conductedBy: string;
+};
+
+export type PncVisit = {
+  id: string;
+  patientId: string;
+  date: string;
+  timing: string;
+  daysPP: number;
+  bp?: string;
+  uterus: string;
+  lochia: string;
+  breast: string;
+  breastfeeding: string;
+  dangerSigns: string[];
+  fpCounselled: boolean;
+};
+
+export type CmamScreening = {
+  id: string;
+  patientId: string;
+  date: string;
+  muac: number;
+  oedema: string;
+  appetite: string;
+  cls: "Normal" | "MAM" | "SAM";
+  program: string;
+};
+
+export type OutreachActivity = {
+  id: string;
+  chw: string;
+  type: string;
+  ward: string;
+  households: number;
+  referrals: number;
+  date: string;
+};
+
+export type SurveillanceCase = {
+  id: string;
+  patientId: string;
+  disease: string;
+  onset: string;
+  reportedAt: string;
+  status: "Suspected" | "Confirmed" | "Discarded";
+};
+
+export type NcdClient = {
+  id: string;
+  patientId: string;
+  condition: string;
+  enrolledAt: string;
+  bp?: string;
+  fbs?: number;
+  control: "Controlled" | "Uncontrolled";
+  nextVisit: string;
+};

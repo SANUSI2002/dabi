@@ -13,6 +13,12 @@ import type {
   ChildVisit,
   Prescription,
   Station,
+  Delivery,
+  PncVisit,
+  CmamScreening,
+  OutreachActivity,
+  SurveillanceCase,
+  NcdClient,
 } from "@/data/types";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
@@ -28,6 +34,12 @@ type EmrState = {
   ancRecords: AncRecord[];
   fpClients: FpClient[];
   childVisits: ChildVisit[];
+  deliveries: Delivery[];
+  pncVisits: PncVisit[];
+  cmamScreenings: CmamScreening[];
+  outreachActivities: OutreachActivity[];
+  surveillanceCases: SurveillanceCase[];
+  ncdClients: NcdClient[];
   activePatientId: string | null;
 
   setActivePatient: (id: string | null) => void;
@@ -50,6 +62,12 @@ type EmrState = {
   enrollAnc: (r: Omit<AncRecord, "id" | "visits" | "status" | "edd">) => void;
   addFpClient: (c: Omit<FpClient, "id" | "status">) => void;
   addChildVisit: (c: Omit<ChildVisit, "id">) => void;
+  addDelivery: (d: Omit<Delivery, "id">) => void;
+  addPncVisit: (v: Omit<PncVisit, "id">) => void;
+  addCmamScreening: (c: Omit<CmamScreening, "id">) => void;
+  addOutreach: (a: Omit<OutreachActivity, "id">) => void;
+  addSurveillanceCase: (c: Omit<SurveillanceCase, "id" | "reportedAt" | "status">) => void;
+  addNcdClient: (c: Omit<NcdClient, "id" | "enrolledAt">) => void;
 };
 
 export const useEmr = create<EmrState>((set, get) => ({
@@ -63,6 +81,12 @@ export const useEmr = create<EmrState>((set, get) => ({
   ancRecords: mock.ancRecords,
   fpClients: mock.fpClients,
   childVisits: mock.childVisits,
+  deliveries: [],
+  pncVisits: [],
+  cmamScreenings: [],
+  outreachActivities: mock.outreachSeed,
+  surveillanceCases: [],
+  ncdClients: mock.ncdSeed,
   activePatientId: "p13",
 
   setActivePatient: (id) => set({ activePatientId: id }),
@@ -175,4 +199,18 @@ export const useEmr = create<EmrState>((set, get) => ({
 
   addFpClient: (c) => set((s) => ({ fpClients: [{ ...c, id: rid(), status: "Active" }, ...s.fpClients] })),
   addChildVisit: (c) => set((s) => ({ childVisits: [{ ...c, id: rid() }, ...s.childVisits] })),
+
+  addDelivery: (d) => set((s) => ({ deliveries: [{ ...d, id: rid() }, ...s.deliveries] })),
+  addPncVisit: (v) => set((s) => ({ pncVisits: [{ ...v, id: rid() }, ...s.pncVisits] })),
+  addCmamScreening: (c) => set((s) => ({ cmamScreenings: [{ ...c, id: rid() }, ...s.cmamScreenings] })),
+  addOutreach: (a) => set((s) => ({ outreachActivities: [{ ...a, id: rid() }, ...s.outreachActivities] })),
+  addSurveillanceCase: (c) =>
+    set((s) => ({
+      surveillanceCases: [
+        { ...c, id: rid(), reportedAt: new Date().toISOString(), status: "Suspected" },
+        ...s.surveillanceCases,
+      ],
+    })),
+  addNcdClient: (c) =>
+    set((s) => ({ ncdClients: [{ ...c, id: rid(), enrolledAt: new Date().toISOString() }, ...s.ncdClients] })),
 }));

@@ -2,8 +2,13 @@ import { useState } from "react";
 import { Baby } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard, EmptyState } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
-import { Field, Input, Select, Textarea, Grid, Checkbox } from "@/components/ui/form";
+import { Table, Row, Cell } from "@/components/ui/Table";
+import { Field, Input, Select, Textarea, Grid } from "@/components/ui/form";
 import { PatientPicker } from "@/components/ui/PatientPicker";
+import { BirthCertificateDoc } from "@/components/print/documents";
+import { useEmr } from "@/store/useEmr";
+import { shortDate } from "@/lib/format";
+import type { Sex } from "@/data/types";
 
 const NHMIS_LABOUR = [
   "Decision-to-seek-care ≤ 24 hours", "Arrived by ambulance / referral",
@@ -17,8 +22,16 @@ const NHMIS_NEWBORN = [
 ];
 
 export default function Labour() {
-  const [deliveries, setDeliveries] = useState<any[]>([]);
-  const [f, setF] = useState<any>({ patientId: "", mode: "SVD", gaWeeks: 39, motherStatus: "Alive", bloodLoss: 250, babySex: "F", apgar1: 8, apgar5: 10, weight: 3.1, breastfeed: true });
+  const { deliveries, patientById, addDelivery } = useEmr();
+  const [f, setF] = useState({
+    patientId: "", date: "", mode: "SVD", gaWeeks: 39,
+    motherStatus: "Alive" as const, bloodLoss: 250,
+    babySex: "F" as Sex, babyStatus: "Alive" as const, weight: 3.1, apgar1: 8, apgar5: 10, breastfed1h: true,
+    conductedBy: "Dr. Adaeze Okonjo",
+  });
+  const [certFor, setCertFor] = useState<string | null>(null);
+
+  const live = deliveries.filter((d) => d.babyStatus === "Alive").length;
 
   return (
     <div>
@@ -26,9 +39,9 @@ export default function Labour() {
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Deliveries" value={deliveries.length} tone="brand" icon={<Baby size={18} />} />
-        <StatCard label="Live Births" value={deliveries.filter((d) => d.motherStatus === "Alive").length} tone="brand" delay={0.05} />
-        <StatCard label="Stillbirths" value={0} tone="action" delay={0.1} />
-        <StatCard label="Birth Certs Issued" value={0} tone="mist" delay={0.15} />
+        <StatCard label="Live Births" value={live} tone="brand" delay={0.05} />
+        <StatCard label="Stillbirths" value={deliveries.length - live} tone="action" delay={0.1} />
+        <StatCard label="SVD" value={deliveries.filter((d) => d.mode === "SVD").length} tone="mist" delay={0.15} />
       </div>
 
       <Tabs tabs={["Record Delivery", "Delivery Records", "Birth Certificates"]}>
@@ -45,7 +58,7 @@ export default function Labour() {
               <section>
                 <p className="mb-2 text-xs font-bold uppercase text-mist-400">Delivery</p>
                 <Grid cols={3}>
-                  <Field label="Date & time"><Input type="datetime-local" /></Field>
+                  <Field label="Date & time"><Input type="datetime-local" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
                   <Field label="GA (weeks)"><Input type="number" value={f.gaWeeks} onChange={(e) => setF({ ...f, gaWeeks: +e.target.value })} /></Field>
                   <Field label="Mode"><Select value={f.mode} onChange={(e) => setF({ ...f, mode: e.target.value })} options={["SVD", "Assisted (vacuum)", "Breech", "Caesarean (referred)"]} /></Field>
                 </Grid>
@@ -53,7 +66,7 @@ export default function Labour() {
               <section>
                 <p className="mb-2 text-xs font-bold uppercase text-mist-400">Mother outcome</p>
                 <Grid cols={3}>
-                  <Field label="Status"><Select value={f.motherStatus} onChange={(e) => setF({ ...f, motherStatus: e.target.value })} options={["Alive", "Died", "Referred"]} /></Field>
+                  <Field label="Status"><Select value={f.motherStatus} onChange={(e) => setF({ ...f, motherStatus: e.target.value as never })} options={["Alive", "Died", "Referred"]} /></Field>
                   <Field label="Blood loss (ml)"><Input type="number" value={f.bloodLoss} onChange={(e) => setF({ ...f, bloodLoss: +e.target.value })} /></Field>
                   <Field label="Complications"><Input placeholder="None" /></Field>
                 </Grid>
@@ -61,12 +74,12 @@ export default function Labour() {
               <section>
                 <p className="mb-2 text-xs font-bold uppercase text-mist-400">Baby outcome</p>
                 <Grid cols={3}>
-                  <Field label="Sex"><Select value={f.babySex} onChange={(e) => setF({ ...f, babySex: e.target.value })} options={["F", "M"]} /></Field>
+                  <Field label="Sex"><Select value={f.babySex} onChange={(e) => setF({ ...f, babySex: e.target.value as Sex })} options={["F", "M"]} /></Field>
                   <Field label="Birth weight (kg)"><Input type="number" step="0.1" value={f.weight} onChange={(e) => setF({ ...f, weight: +e.target.value })} /></Field>
-                  <Field label="Status"><Select options={["Alive", "Fresh stillbirth", "Macerated stillbirth"]} /></Field>
+                  <Field label="Status"><Select value={f.babyStatus} onChange={(e) => setF({ ...f, babyStatus: e.target.value as never })} options={["Alive", "Fresh stillbirth", "Macerated stillbirth"]} /></Field>
                   <Field label="APGAR @ 1 min"><Input type="number" value={f.apgar1} onChange={(e) => setF({ ...f, apgar1: +e.target.value })} /></Field>
                   <Field label="APGAR @ 5 min"><Input type="number" value={f.apgar5} onChange={(e) => setF({ ...f, apgar5: +e.target.value })} /></Field>
-                  <Field label="Breastfeeding within 1 hr"><Select options={["Yes", "No"]} /></Field>
+                  <Field label="Breastfeeding within 1 hr"><Select value={f.breastfed1h ? "Yes" : "No"} onChange={(e) => setF({ ...f, breastfed1h: e.target.value === "Yes" })} options={["Yes", "No"]} /></Field>
                 </Grid>
               </section>
               <section className="rounded-2xl bg-brand-gradient p-4 text-white">
@@ -88,34 +101,68 @@ export default function Labour() {
               </section>
               <Field label="Conducted by & notes"><Textarea placeholder="Brief notes / complications…" /></Field>
               <div className="flex justify-end">
-                <Button disabled={!f.patientId} onClick={() => setDeliveries((d) => [{ ...f, id: Math.random() }, ...d])}>Save Delivery</Button>
+                <Button
+                  disabled={!f.patientId || !f.date}
+                  onClick={() => { addDelivery({ ...f, date: new Date(f.date).toISOString() }); setF({ ...f, patientId: "", date: "" }); }}
+                >
+                  Save Delivery
+                </Button>
               </div>
             </div>
           ) : t === "Delivery Records" ? (
             deliveries.length === 0 ? (
               <EmptyState title="No deliveries recorded yet" hint='Switch to "Record Delivery" to add one.' />
             ) : (
-              <div className="card p-0">
-                <table className="w-full">
-                  <thead className="border-b border-mist-200 bg-mist-50/60"><tr>{["Mode", "GA", "Mother", "Baby sex", "Weight", "APGAR"].map((c) => <th key={c} className="th">{c}</th>)}</tr></thead>
-                  <tbody className="divide-y divide-mist-100">
-                    {deliveries.map((d) => (
-                      <tr key={d.id}>
-                        <td className="td">{d.mode}</td><td className="td">{d.gaWeeks}w</td>
-                        <td className="td"><Badge tone="brand">{d.motherStatus}</Badge></td>
-                        <td className="td">{d.babySex}</td><td className="td">{d.weight} kg</td>
-                        <td className="td">{d.apgar1}/{d.apgar5}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Table columns={["Mother", "Date", "Mode", "GA", "Mother", "Baby", "Weight", "APGAR", ""]}>
+                {deliveries.map((d, i) => {
+                  const p = patientById(d.patientId);
+                  return (
+                    <Row key={d.id} index={i}>
+                      <Cell className="font-semibold">{p ? `${p.firstName} ${p.lastName}` : "—"}</Cell>
+                      <Cell>{shortDate(d.date)}</Cell>
+                      <Cell>{d.mode}</Cell>
+                      <Cell>{d.gaWeeks}w</Cell>
+                      <Cell><Badge tone={d.motherStatus === "Alive" ? "brand" : "action"}>{d.motherStatus}</Badge></Cell>
+                      <Cell><Badge tone={d.babyStatus === "Alive" ? "brand" : "action"}>{d.babyStatus}</Badge></Cell>
+                      <Cell>{d.weight} kg</Cell>
+                      <Cell>{d.apgar1}/{d.apgar5}</Cell>
+                      <Cell>
+                        {d.babyStatus === "Alive" && (
+                          <button onClick={() => setCertFor(d.patientId)} className="btn-soft px-2.5 py-1 text-xs">
+                            Birth cert
+                          </button>
+                        )}
+                      </Cell>
+                    </Row>
+                  );
+                })}
+              </Table>
             )
           ) : (
-            <EmptyState title="No birth certificates issued" hint="Certificates can be issued from Registration or after recording a live birth." />
+            <Table columns={["Cert no.", "Mother", "Baby sex", "Weight", "Issued"]}>
+              {deliveries.filter((d) => d.babyStatus === "Alive").map((d, i) => {
+                const p = patientById(d.patientId);
+                return (
+                  <Row key={d.id} index={i}>
+                    <Cell className="font-mono text-xs">BN/{p?.mrn.slice(-6)}</Cell>
+                    <Cell className="font-semibold">{p ? `${p.firstName} ${p.lastName}` : "—"}</Cell>
+                    <Cell>{d.babySex}</Cell>
+                    <Cell>{d.weight} kg</Cell>
+                    <Cell>{shortDate(d.date)}</Cell>
+                  </Row>
+                );
+              })}
+              {deliveries.filter((d) => d.babyStatus === "Alive").length === 0 && (
+                <Row><Cell className="text-mist-400">No birth certificates issued yet.</Cell></Row>
+              )}
+            </Table>
           )
         }
       </Tabs>
+
+      {certFor && patientById(certFor) && (
+        <BirthCertificateDoc patient={patientById(certFor)!} open onClose={() => setCertFor(null)} />
+      )}
     </div>
   );
 }

@@ -5,19 +5,15 @@ import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Textarea } from "@/components/ui/form";
+import { useEmr } from "@/store/useEmr";
 import { staff } from "@/data/mock";
 import { shortDate } from "@/lib/format";
 
-type Activity = { id: string; chw: string; type: string; ward: string; households: number; referrals: number; date: string };
-
 export default function Outreach() {
-  const [acts, setActs] = useState<Activity[]>([
-    { id: "o1", chw: "Abisola Adedokun", type: "Household visit", ward: "Kirikiri", households: 12, referrals: 2, date: new Date(Date.now() - 2 * 864e5).toISOString() },
-  ]);
+  const { outreachActivities, addOutreach } = useEmr();
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState({ chw: staff.find((s) => s.role.includes("Community"))?.name ?? staff[0].name, type: "Household visit", ward: "Kirikiri", households: 0, referrals: 0, date: "" });
-
   const chws = staff.filter((s) => s.role.includes("Community"));
+  const [f, setF] = useState({ chw: chws[0]?.name ?? staff[0].name, type: "Household visit", ward: "Kirikiri", households: 0, referrals: 0, date: "" });
 
   return (
     <div>
@@ -27,9 +23,9 @@ export default function Outreach() {
         actions={<Button onClick={() => setOpen(true)}><Plus size={15} /> Log Activity</Button>}
       />
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Activities" value={acts.length} tone="brand" icon={<Home size={18} />} />
-        <StatCard label="Households Reached" value={acts.reduce((n, a) => n + a.households, 0)} tone="mist" delay={0.05} />
-        <StatCard label="Community Referrals" value={acts.reduce((n, a) => n + a.referrals, 0)} tone="action" delay={0.1} />
+        <StatCard label="Activities" value={outreachActivities.length} tone="brand" icon={<Home size={18} />} />
+        <StatCard label="Households Reached" value={outreachActivities.reduce((n, a) => n + a.households, 0)} tone="mist" delay={0.05} />
+        <StatCard label="Community Referrals" value={outreachActivities.reduce((n, a) => n + a.referrals, 0)} tone="action" delay={0.1} />
         <StatCard label="Active CHWs" value={chws.length} tone="mist" delay={0.15} />
       </div>
 
@@ -37,7 +33,7 @@ export default function Outreach() {
         {(t) =>
           t === "Activity Log" ? (
             <Table columns={["CHW", "Type", "Ward", "Households", "Referrals", "Date"]}>
-              {acts.map((a, i) => (
+              {outreachActivities.map((a, i) => (
                 <Row key={a.id} index={i}>
                   <Cell className="font-semibold">{a.chw}</Cell>
                   <Cell><Badge tone="mist">{a.type}</Badge></Cell>
@@ -68,7 +64,7 @@ export default function Outreach() {
         onClose={() => setOpen(false)}
         title="Log Outreach Activity"
         footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button disabled={!f.date} onClick={() => { setActs((a) => [{ ...f, id: Math.random().toString() }, ...a]); setOpen(false); }}>Save Activity</Button></>}
+          <Button disabled={!f.date} onClick={() => { addOutreach({ ...f, date: new Date(f.date).toISOString() }); setOpen(false); setF({ ...f, date: "", households: 0, referrals: 0 }); }}>Save Activity</Button></>}
       >
         <div className="space-y-4">
           <Field label="CHW"><Select value={f.chw} onChange={(e) => setF({ ...f, chw: e.target.value })} options={chws.map((c) => c.name)} /></Field>
