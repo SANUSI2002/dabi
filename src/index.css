@@ -1,0 +1,98 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@500;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-mist-50 text-mist-900 font-sans antialiased;
+  }
+  ::selection {
+    @apply bg-brand-200 text-brand-900;
+  }
+  /* Slim scrollbars */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-mist-300 rounded-full border-2 border-solid border-transparent bg-clip-content;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-mist-400;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl bg-white shadow-card ring-1 ring-mist-200/70;
+  }
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
+           transition-all duration-200 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn text-white shadow-glow;
+    background-image: linear-gradient(135deg, #0fc06d 0%, #059a57 45%, #0a4f32 100%);
+  }
+  .btn-primary:hover {
+    filter: brightness(1.06);
+  }
+  .btn-action {
+    @apply btn text-white;
+    background-image: linear-gradient(135deg, #ff6161 0%, #f83b3b 45%, #c11414 100%);
+    box-shadow: 0 12px 32px -14px rgba(229, 29, 29, 0.65);
+  }
+  .btn-action:hover {
+    filter: brightness(1.06);
+  }
+  .btn-ghost {
+    @apply btn bg-white text-mist-700 ring-1 ring-mist-200 hover:bg-mist-50 hover:text-mist-900;
+  }
+  .btn-soft {
+    @apply btn bg-brand-50 text-brand-700 ring-1 ring-brand-200 hover:bg-brand-100;
+  }
+  .input {
+    @apply w-full rounded-xl border-0 bg-mist-50 px-3.5 py-2.5 text-sm text-mist-900 shadow-sm ring-1 ring-mist-200
+           outline-none transition placeholder:text-mist-400 focus:bg-white focus:ring-2 focus:ring-brand-400;
+  }
+  .label {
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-mist-500;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold;
+  }
+  .th {
+    @apply whitespace-nowrap px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-mist-400;
+  }
+  .td {
+    @apply whitespace-nowrap px-4 py-3 text-sm text-mist-800;
+  }
+  .nav-link {
+    @apply flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium text-mist-600 transition-colors
+           hover:bg-brand-50 hover:text-brand-800;
+  }
+  .nav-link-active {
+    @apply bg-brand-gradient text-white shadow-glow hover:bg-brand-gradient hover:text-white;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #0fc06d 0%, #059a57 45%, #0a4f32 100%);
+  }
+  .glass {
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(14px);
+  }
+}

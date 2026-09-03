@@ -1,0 +1,96 @@
+import { lazy, Suspense } from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { AnimatePresence } from "framer-motion";
+import { useAuth } from "@/store/useAuth";
+import { AppShell } from "@/components/layout/AppShell";
+import LoginDoor from "@/pages/auth/LoginDoor";
+
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const ClinicalQueue = lazy(() => import("@/pages/clinical/ClinicalQueue"));
+const Registration = lazy(() => import("@/pages/clinical/Registration"));
+const Appointments = lazy(() => import("@/pages/clinical/Appointments"));
+const Consultation = lazy(() => import("@/pages/clinical/Consultation"));
+const Inpatient = lazy(() => import("@/pages/clinical/Inpatient"));
+const MedicalHistory = lazy(() => import("@/pages/clinical/MedicalHistory"));
+const Laboratory = lazy(() => import("@/pages/diagnostics/Laboratory"));
+const Pharmacy = lazy(() => import("@/pages/diagnostics/Pharmacy"));
+const Antenatal = lazy(() => import("@/pages/mch/Antenatal"));
+const Labour = lazy(() => import("@/pages/mch/Labour"));
+const Postnatal = lazy(() => import("@/pages/mch/Postnatal"));
+const FamilyPlanning = lazy(() => import("@/pages/mch/FamilyPlanning"));
+const ChildHealth = lazy(() => import("@/pages/mch/ChildHealth"));
+const Nutrition = lazy(() => import("@/pages/mch/Nutrition"));
+const Immunization = lazy(() => import("@/pages/mch/Immunization"));
+const Ncd = lazy(() => import("@/pages/programs/Ncd"));
+const Malaria = lazy(() => import("@/pages/programs/Malaria"));
+const Referrals = lazy(() => import("@/pages/programs/Referrals"));
+const Surveillance = lazy(() => import("@/pages/programs/Surveillance"));
+const Outreach = lazy(() => import("@/pages/programs/Outreach"));
+const Inventory = lazy(() => import("@/pages/admin/Inventory"));
+const Equipment = lazy(() => import("@/pages/admin/Equipment"));
+const Hris = lazy(() => import("@/pages/admin/Hris"));
+const MsfReport = lazy(() => import("@/pages/admin/MsfReport"));
+const Reports = lazy(() => import("@/pages/admin/Reports"));
+const NhmisSync = lazy(() => import("@/pages/admin/NhmisSync"));
+const AuditLog = lazy(() => import("@/pages/admin/AuditLog"));
+const Settings = lazy(() => import("@/pages/admin/Settings"));
+
+function Loader() {
+  return (
+    <div className="grid place-items-center py-32">
+      <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-brand-200 border-t-brand-600" />
+    </div>
+  );
+}
+
+export default function App() {
+  const authed = useAuth((s) => s.authed);
+  const loc = useLocation();
+
+  if (!authed) {
+    return (
+      <AnimatePresence mode="wait">
+        <LoginDoor key="login" />
+      </AnimatePresence>
+    );
+  }
+
+  return (
+    <Suspense fallback={<Loader />}>
+      <Routes location={loc}>
+        <Route element={<AppShell />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/queue" element={<ClinicalQueue />} />
+          <Route path="/registration" element={<Registration />} />
+          <Route path="/appointments" element={<Appointments />} />
+          <Route path="/consultation" element={<Consultation />} />
+          <Route path="/inpatient" element={<Inpatient />} />
+          <Route path="/history" element={<MedicalHistory />} />
+          <Route path="/laboratory" element={<Laboratory />} />
+          <Route path="/pharmacy" element={<Pharmacy />} />
+          <Route path="/anc" element={<Antenatal />} />
+          <Route path="/labour" element={<Labour />} />
+          <Route path="/pnc" element={<Postnatal />} />
+          <Route path="/family-planning" element={<FamilyPlanning />} />
+          <Route path="/child-health" element={<ChildHealth />} />
+          <Route path="/nutrition" element={<Nutrition />} />
+          <Route path="/immunization" element={<Immunization />} />
+          <Route path="/ncd" element={<Ncd />} />
+          <Route path="/malaria" element={<Malaria />} />
+          <Route path="/referrals" element={<Referrals />} />
+          <Route path="/surveillance" element={<Surveillance />} />
+          <Route path="/outreach" element={<Outreach />} />
+          <Route path="/inventory" element={<Inventory />} />
+          <Route path="/equipment" element={<Equipment />} />
+          <Route path="/hris" element={<Hris />} />
+          <Route path="/msf-report" element={<MsfReport />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/nhmis-sync" element={<NhmisSync />} />
+          <Route path="/audit-log" element={<AuditLog />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </Suspense>
+  );
+}

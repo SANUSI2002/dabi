@@ -1,0 +1,102 @@
+import {
+  LayoutDashboard,
+  ListChecks,
+  UserPlus,
+  CalendarClock,
+  Stethoscope,
+  BedDouble,
+  FileClock,
+  FlaskConical,
+  Pill,
+  HeartPulse,
+  Baby,
+  Users,
+  Syringe,
+  Salad,
+  ShieldPlus,
+  Activity,
+  Bug,
+  Share2,
+  Radar,
+  Home,
+  Boxes,
+  Wrench,
+  IdCard,
+  FileSpreadsheet,
+  BarChart3,
+  RefreshCw,
+  ScrollText,
+  Settings,
+  type LucideIcon,
+} from "lucide-react";
+
+export type NavItem = {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  badge?: "queue" | "lab" | "rx";
+};
+
+export type NavGroup = { title: string; items: NavItem[] };
+
+export const NAV: NavGroup[] = [
+  {
+    title: "Clinical",
+    items: [
+      { to: "/", label: "Dashboard", icon: LayoutDashboard },
+      { to: "/queue", label: "Clinical Queue", icon: ListChecks, badge: "queue" },
+      { to: "/registration", label: "Registration", icon: UserPlus },
+      { to: "/appointments", label: "Appointments", icon: CalendarClock },
+      { to: "/consultation", label: "Consultation", icon: Stethoscope },
+      { to: "/inpatient", label: "In-patient Care (IPC)", icon: BedDouble },
+      { to: "/history", label: "Medical History", icon: FileClock },
+    ],
+  },
+  {
+    title: "Diagnostics",
+    items: [
+      { to: "/laboratory", label: "Laboratory", icon: FlaskConical, badge: "lab" },
+      { to: "/pharmacy", label: "Pharmacy", icon: Pill, badge: "rx" },
+    ],
+  },
+  {
+    title: "Maternal & Child Health",
+    items: [
+      { to: "/anc", label: "Antenatal (ANC)", icon: HeartPulse },
+      { to: "/labour", label: "Labour and Delivery", icon: Baby },
+      { to: "/pnc", label: "Postnatal (PNC)", icon: HeartPulse },
+      { to: "/family-planning", label: "Family Planning", icon: Users },
+      { to: "/child-health", label: "Child Health", icon: Baby },
+      { to: "/nutrition", label: "Nutrition (CMAM)", icon: Salad },
+      { to: "/immunization", label: "Immunization", icon: Syringe },
+    ],
+  },
+  {
+    title: "Programs",
+    items: [
+      { to: "/ncd", label: "NCDs", icon: Activity },
+      { to: "/malaria", label: "Malaria", icon: Bug },
+      { to: "/referrals", label: "Referrals", icon: Share2 },
+      { to: "/surveillance", label: "Surveillance", icon: Radar },
+      { to: "/outreach", label: "Outreach (CHW)", icon: Home },
+    ],
+  },
+  {
+    title: "Administration",
+    items: [
+      { to: "/inventory", label: "Inventory", icon: Boxes },
+      { to: "/equipment", label: "Equipment & Maintenance", icon: Wrench },
+      { to: "/hris", label: "HRIS", icon: IdCard },
+      { to: "/msf-report", label: "MSF Report", icon: FileSpreadsheet },
+      { to: "/reports", label: "Reports", icon: BarChart3 },
+      { to: "/nhmis-sync", label: "NHMIS Sync", icon: RefreshCw },
+      { to: "/audit-log", label: "Audit Log", icon: ScrollText },
+      { to: "/settings", label: "Settings", icon: Settings },
+    ],
+  },
+];
+
+export const ALL_NAV_ITEMS = NAV.flatMap((g) => g.items);
+
+// used for the "brand mark"
+export { ShieldPlus };
