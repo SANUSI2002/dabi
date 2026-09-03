@@ -4,6 +4,7 @@ import { PageHeader, Button, Badge, StatCard, statusTone } from "@/components/ui
 import { Tabs } from "@/components/ui/Tabs";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select } from "@/components/ui/form";
+import { LabReportDoc } from "@/components/print/documents";
 import { useEmr } from "@/store/useEmr";
 import { LAB_TESTS } from "@/data/catalog";
 import { staff } from "@/data/mock";
@@ -12,6 +13,7 @@ import { dateTime } from "@/lib/format";
 export default function Laboratory() {
   const { labOrders, patientById, resolveLab } = useEmr();
   const [entry, setEntry] = useState<string | null>(null);
+  const [printPid, setPrintPid] = useState<string | null>(null);
   const [result, setResult] = useState("");
   const [flag, setFlag] = useState<"Normal" | "Low" | "High" | "Critical">("Normal");
   const [tech, setTech] = useState(staff.find((s) => s.role === "Lab Technician")?.name ?? staff[0].name);
@@ -79,7 +81,7 @@ export default function Laboratory() {
                         <td className="td">{l.result}</td>
                         <td className="td"><Badge tone={statusTone(l.flag ?? "Normal")}>{l.flag}</Badge></td>
                         <td className="td text-mist-500">{l.verifiedBy}</td>
-                        <td className="td text-right"><button className="btn-ghost px-2.5 py-1 text-xs"><Printer size={13} /> Print</button></td>
+                        <td className="td text-right"><button onClick={() => setPrintPid(l.patientId)} className="btn-ghost px-2.5 py-1 text-xs"><Printer size={13} /> Print</button></td>
                       </tr>
                     );
                   })}
@@ -120,6 +122,15 @@ export default function Laboratory() {
           </div>
         </div>
       </Modal>
+
+      {printPid && patientById(printPid) && (
+        <LabReportDoc
+          patient={patientById(printPid)!}
+          orders={labOrders.filter((l) => l.patientId === printPid && l.status === "Resulted")}
+          open
+          onClose={() => setPrintPid(null)}
+        />
+      )}
     </div>
   );
 }

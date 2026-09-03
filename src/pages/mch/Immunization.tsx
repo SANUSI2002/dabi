@@ -3,6 +3,7 @@ import { Syringe, Printer } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
 import { PatientPicker } from "@/components/ui/PatientPicker";
+import { ImmunizationCardDoc } from "@/components/print/documents";
 import { useEmr } from "@/store/useEmr";
 import { VACCINES } from "@/data/catalog";
 import { cn } from "@/lib/cn";
@@ -12,6 +13,7 @@ export default function Immunization() {
   const { patients, patientById } = useEmr();
   const [pid, setPid] = useState<string | null>(patients.find((p) => p.category === "U5")?.id ?? null);
   const [given, setGiven] = useState<Record<string, string>>({});
+  const [printCard, setPrintCard] = useState(false);
   const child = patientById(pid);
   const ageWeeks = child ? differenceInWeeks(new Date(), new Date(child.dob)) : 0;
 
@@ -48,7 +50,9 @@ export default function Immunization() {
                 {child && (
                   <div className="flex items-center gap-3 text-sm">
                     <span className="text-mist-400">Age: <b className="text-mist-700">{ageWeeks} weeks</b></span>
-                    <Button variant="ghost" className="text-xs"><Printer size={13} /> Print Immunization Card</Button>
+                    <Button variant="ghost" className="text-xs" onClick={() => setPrintCard(true)}>
+                      <Printer size={13} /> Print Immunization Card
+                    </Button>
                   </div>
                 )}
               </div>
@@ -107,6 +111,10 @@ export default function Immunization() {
           )
         }
       </Tabs>
+
+      {child && printCard && (
+        <ImmunizationCardDoc patient={child} given={given} open onClose={() => setPrintCard(false)} />
+      )}
     </div>
   );
 }

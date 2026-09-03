@@ -5,6 +5,7 @@ import { Tabs } from "@/components/ui/Tabs";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Textarea } from "@/components/ui/form";
 import { PatientPicker } from "@/components/ui/PatientPicker";
+import { ConsolidatedEmrDoc } from "@/components/print/documents";
 import { useEmr } from "@/store/useEmr";
 import { dateTime, ageFromDob } from "@/lib/format";
 
@@ -12,6 +13,7 @@ export default function MedicalHistory() {
   const { patients, encounters, labOrders, patientById } = useEmr();
   const [pid, setPid] = useState<string | null>(patients[0]?.id ?? null);
   const [amend, setAmend] = useState<string | null>(null);
+  const [printDoc, setPrintDoc] = useState(false);
   const p = patientById(pid);
   const encs = encounters.filter((e) => e.patientId === pid);
   const labs = labOrders.filter((l) => l.patientId === pid);
@@ -22,7 +24,11 @@ export default function MedicalHistory() {
       <PageHeader
         title="Medical History"
         subtitle="Consolidated patient record"
-        actions={<Button variant="ghost"><Printer size={15} /> Print Consolidated EMR</Button>}
+        actions={
+          <Button variant="ghost" disabled={!p} onClick={() => setPrintDoc(true)}>
+            <Printer size={15} /> Print Consolidated EMR
+          </Button>
+        }
       />
 
       <div className="card mb-5 flex flex-wrap items-center gap-4">
@@ -130,6 +136,10 @@ export default function MedicalHistory() {
           <p className="text-xs text-mist-400">Amendments are recorded in the audit log and never overwrite the original note.</p>
         </div>
       </Modal>
+
+      {p && printDoc && (
+        <ConsolidatedEmrDoc patient={p} encounters={encs} labs={labs} open onClose={() => setPrintDoc(false)} />
+      )}
     </div>
   );
 }

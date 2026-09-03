@@ -8,6 +8,7 @@ import { Field, Input, Select, Grid } from "@/components/ui/form";
 import { useEmr } from "@/store/useEmr";
 import { PATIENT_CATEGORIES } from "@/data/catalog";
 import { ageFromDob, shortDate } from "@/lib/format";
+import { PatientCardDoc, BirthCertificateDoc } from "@/components/print/documents";
 import type { Patient, Sex, Payer } from "@/data/types";
 
 const blank = {
@@ -24,6 +25,7 @@ export default function Registration() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(blank);
   const [row, setRow] = useState<string | null>(null);
+  const [doc, setDoc] = useState<{ kind: "card" | "birth"; patient: Patient } | null>(null);
 
   const set = (k: keyof typeof blank, v: string) => setForm((f) => ({ ...f, [k]: v }));
   const list = patients.filter((p) =>
@@ -91,10 +93,16 @@ export default function Registration() {
                     >
                       <ListPlus size={14} /> Add to Queue
                     </button>
-                    <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 hover:bg-brand-50">
+                    <button
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 hover:bg-brand-50"
+                      onClick={() => { setDoc({ kind: "card", patient: p }); setRow(null); }}
+                    >
                       <CreditCard size={14} /> Print Card
                     </button>
-                    <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 hover:bg-brand-50">
+                    <button
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 hover:bg-brand-50"
+                      onClick={() => { setDoc({ kind: "birth", patient: p }); setRow(null); }}
+                    >
                       <ScrollText size={14} /> Issue Birth Certificate
                     </button>
                   </div>
@@ -174,6 +182,13 @@ export default function Registration() {
       </Modal>
 
       <p className="mt-3 text-right text-[11px] text-mist-300">Registry as of {shortDate(new Date())}</p>
+
+      {doc?.kind === "card" && (
+        <PatientCardDoc patient={doc.patient} open onClose={() => setDoc(null)} />
+      )}
+      {doc?.kind === "birth" && (
+        <BirthCertificateDoc patient={doc.patient} open onClose={() => setDoc(null)} />
+      )}
     </div>
   );
 }
