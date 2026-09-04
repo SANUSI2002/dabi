@@ -38,6 +38,8 @@ import {
   CheckSquare,
   Building2,
   Contact,
+  Briefcase,
+  ListChecks as OnboardIcon,
   type LucideIcon,
 } from "lucide-react";
 
@@ -111,6 +113,8 @@ export const NAV: NavGroup[] = [
     title: "Human Resources",
     items: [
       { to: "/hr/employees", label: "Employee Directory", icon: Contact },
+      { to: "/hr/recruitment", label: "Recruitment", icon: Briefcase },
+      { to: "/hr/onboarding", label: "Onboarding", icon: OnboardIcon },
       { to: "/hr/org-setup", label: "Organisation Setup", icon: Building2 },
     ],
   },
