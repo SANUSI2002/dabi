@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ClipboardList, Send, Lock, Plus, Undo2, AlertTriangle, History, Timer } from "lucide-react";
+import { ClipboardList, Send, Lock, Plus, Undo2, AlertTriangle, History, Timer, FilePenLine } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard, statusTone } from "@/components/ui/primitives";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
@@ -13,7 +13,7 @@ import { cn } from "@/lib/cn";
 const sum = (ns: number[]) => ns.reduce((a, b) => a + b, 0);
 
 export default function Timesheets() {
-  const { timesheets, periods, policies, setTimesheetStatus, recallTimesheet, addManualLine, leave, overtime, requestOvertime } = useWorkforce();
+  const { timesheets, periods, policies, setTimesheetStatus, recallTimesheet, addManualLine, leave, overtime, requestOvertime, amendments, requestAmendment } = useWorkforce();
   const staff = useHr((s) => s.staff);
   const scope = useWfScope();
   const name = (id: string) => staff.find((s) => s.id === id)?.name ?? id;
@@ -29,6 +29,8 @@ export default function Timesheets() {
   const [lf, setLf] = useState({ date: "", expectedHours: 7.5, workedHours: 7.5, breakHours: 0.5, overtimeHours: 0, container: "", task: "", note: "" });
   const [otModal, setOtModal] = useState(false);
   const [ot, setOt] = useState({ date: "", hours: 1, reason: "" });
+  const [amdModal, setAmdModal] = useState(false);
+  const [amd, setAmd] = useState({ change: "", reason: "" });
 
   const period = periods.find((p) => p.id === periodId)!;
   const sheet = timesheets.find((t) => t.id === openId) ?? visible[0];
@@ -50,6 +52,8 @@ export default function Timesheets() {
   const isOwn = sheet && sheet.staffId === scope.staffId;
   const canEdit = sheet && ((isOwn && scope.canRecordOwnTime) || scope.canConfigure);
   const sheetOt = sheet ? overtime.filter((o) => o.staffId === sheet.staffId) : [];
+  const sheetAmd = sheet ? amendments.filter((a) => a.timesheetId === sheet.id) : [];
+  const periodLocked = period.locked || sheet?.status === "Locked";
 
   return (
     <div>
@@ -100,6 +104,24 @@ export default function Timesheets() {
             {sheet.status === "Returned" && sheet.returnNote && (
               <div className="rounded-2xl bg-action-50 px-4 py-3 text-sm text-action-700 ring-1 ring-action-200">
                 <b>Returned for correction:</b> “{sheet.returnNote}” — fix the entries and resubmit; this creates version {sheet.version + 1}.
+              </div>
+            )}
+
+            {periodLocked && (
+              <div className="rounded-2xl bg-mist-100 px-4 py-3 text-sm text-mist-600 ring-1 ring-mist-200">
+                <b className="flex items-center gap-1.5 text-mist-700"><Lock size={13} /> Period locked{period.lockedBy ? ` by ${period.lockedBy}` : ""}.</b>
+                The recorded lines are frozen. Corrections must be raised as an amendment for approval.
+                {sheetAmd.length > 0 && (
+                  <ul className="mt-1.5 space-y-0.5">
+                    {sheetAmd.map((a) => (
+                      <li key={a.id} className="flex flex-wrap items-center gap-2">
+                        <Badge tone={statusTone(a.status)}>{a.status}</Badge>
+                        <span>{a.change}</span>
+                        {a.decisionNote && <span className="text-[11px] text-mist-400">— “{a.decisionNote}”</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
 
@@ -161,6 +183,9 @@ export default function Timesheets() {
                 )}
                 {canEdit && (sheet.status === "Open" || sheet.status === "Returned") && (
                   <Button variant="ghost" onClick={() => { setOt({ date: "", hours: 1, reason: "" }); setOtModal(true); }}><Timer size={14} /> Request overtime</Button>
+                )}
+                {periodLocked && (isOwn || canEdit) && (
+                  <Button variant="soft" onClick={() => { setAmd({ change: "", reason: "" }); setAmdModal(true); }}><FilePenLine size={14} /> Request amendment</Button>
                 )}
                 {sheet.status === "Submitted" && scope.canApprove && !isOwn && (
                   <span className="self-center text-xs text-mist-400">Decide in the Approvals queue →</span>
@@ -251,6 +276,33 @@ export default function Timesheets() {
           <Field label="Task"><Input value={lf.task} onChange={(e) => setLf({ ...lf, task: e.target.value })} /></Field>
           <Field label="Note"><Input value={lf.note} onChange={(e) => setLf({ ...lf, note: e.target.value })} /></Field>
         </Grid>
+      </Modal>
+
+      <Modal
+        open={amdModal}
+        onClose={() => setAmdModal(false)}
+        title="Request post-lock amendment"
+        footer={<><Button variant="ghost" onClick={() => setAmdModal(false)}>Cancel</Button>
+          <Button
+            disabled={!amd.change.trim() || !amd.reason.trim() || !sheet}
+            onClick={() => {
+              if (sheet) requestAmendment({ timesheetId: sheet.id, periodId: sheet.periodId, staffId: sheet.staffId, requestedBy: scope.name, change: amd.change.trim(), reason: amd.reason.trim() });
+              setAmdModal(false);
+            }}
+          ><FilePenLine size={14} /> Submit for approval</Button></>}
+      >
+        <div className="space-y-4">
+          <Field label="Requested change">
+            <Input value={amd.change} onChange={(e) => setAmd({ ...amd, change: e.target.value })} placeholder="e.g. Add 01 Sep: 4.0h worked (Saturday outreach)" />
+          </Field>
+          <Field label="Reason">
+            <Input value={amd.reason} onChange={(e) => setAmd({ ...amd, reason: e.target.value })} placeholder="Why it was missed before the period closed" />
+          </Field>
+          <p className="rounded-xl bg-mist-50 px-3 py-2 text-xs text-mist-500">
+            This goes to the Approvals queue. If approved it is recorded as a dated addendum on this timesheet — the locked
+            line values are not overwritten.
+          </p>
+        </div>
       </Modal>
 
       <Modal

@@ -22,6 +22,7 @@ export default function WorkforceDashboard() {
   const leave = wf.leave.filter((l) => inS(l.staffId));
   const holidayWork = wf.holidayWork.filter((w) => inS(w.staffId));
   const overtime = wf.overtime.filter((o) => inS(o.staffId));
+  const amendments = wf.amendments.filter((a) => inS(a.staffId));
 
   const openIntervals = attendance.filter((a) => !a.clockOut);
   const exceptions = attendance.filter((a) => a.flags.some((f) => ["Late", "Missing checkout", "Auto-checkout"].includes(f)) && !a.exceptionResolution);
@@ -29,7 +30,8 @@ export default function WorkforceDashboard() {
   const pendingApprovals =
     leave.filter((l) => l.status === "Pending").length +
     holidayWork.filter((w) => w.status === "Pending").length +
-    overtime.filter((o) => o.status === "Pending").length;
+    overtime.filter((o) => o.status === "Pending").length +
+    amendments.filter((a) => a.status === "Pending").length;
   const worked = (t: (typeof timesheets)[number]) => t.lines.reduce((n, l) => n + l.workedHours, 0);
   const expected = (t: (typeof timesheets)[number]) => t.lines.reduce((n, l) => n + l.expectedHours, 0);
 

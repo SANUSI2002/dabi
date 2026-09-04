@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CheckCheck, Undo2, X, ShieldAlert, History, Lock, Timer } from "lucide-react";
+import { CheckCheck, Undo2, X, ShieldAlert, History, Lock, LockOpen, Timer, FilePenLine } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard, statusTone } from "@/components/ui/primitives";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
@@ -13,7 +13,7 @@ import { cn } from "@/lib/cn";
 const sum = (ns: number[]) => ns.reduce((a, b) => a + b, 0);
 
 export default function Approvals() {
-  const { timesheets, periods, setTimesheetStatus, overtime, setOvertimeStatus } = useWorkforce();
+  const { timesheets, periods, setTimesheetStatus, overtime, setOvertimeStatus, amendments, decideAmendment, lockPeriod, reopenPeriod } = useWorkforce();
   const staff = useHr((s) => s.staff);
   const scope = useWfScope();
   const name = (id: string) => staff.find((s) => s.id === id)?.name ?? id;
@@ -35,8 +35,18 @@ export default function Approvals() {
     () => overtime.filter((o) => o.status !== "Pending" && scope.inScope(o.staffId)),
     [overtime, scope],
   );
+  const amdQueue = useMemo(
+    () => amendments.filter((a) => a.status === "Pending" && scope.inScope(a.staffId)),
+    [amendments, scope],
+  );
+  const amdDecided = useMemo(
+    () => amendments.filter((a) => a.status !== "Pending" && scope.inScope(a.staffId)),
+    [amendments, scope],
+  );
 
   const [openId, setOpenId] = useState<string | null>(null);
+  const [amdDecideFor, setAmdDecideFor] = useState<string | null>(null);
+  const [amdNote, setAmdNote] = useState("");
   const [returnFor, setReturnFor] = useState<string | null>(null);
   const [returnNote, setReturnNote] = useState("");
 
@@ -92,6 +102,45 @@ export default function Approvals() {
         />
       </div>
 
+      {scope.canConfigure && (
+        <div className="card mb-5">
+          <h3 className="mb-3 flex items-center gap-2 font-display font-bold text-mist-900"><Lock size={15} /> Period close</h3>
+          <div className="space-y-2">
+            {periods.map((p) => {
+              const inP = timesheets.filter((t) => t.periodId === p.id);
+              const undecided = inP.filter((t) => ["Open", "Submitted", "Returned"].includes(t.status)).length;
+              return (
+                <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-mist-50 px-3 py-2 text-sm">
+                  <span className="font-medium text-mist-800">
+                    {p.label} <span className="text-mist-400">{shortDate(p.start)}–{shortDate(p.end)}</span>
+                  </span>
+                  <span className="flex items-center gap-2">
+                    {p.locked ? (
+                      <>
+                        <Badge tone="action"><Lock size={11} /> Locked</Badge>
+                        <span className="text-[11px] text-mist-400">by {p.lockedBy} · {p.lockedAt ? timeAgo(p.lockedAt) : ""}</span>
+                        <Button variant="ghost" onClick={() => reopenPeriod(p.id, scope.name)}><LockOpen size={13} /> Re-open</Button>
+                      </>
+                    ) : (
+                      <>
+                        {undecided > 0 && <span className="text-[11px] text-amber-600">{undecided} still undecided</span>}
+                        <Button variant="action" disabled={undecided > 0} onClick={() => lockPeriod(p.id, scope.name)}>
+                          <Lock size={13} /> Close & lock
+                        </Button>
+                      </>
+                    )}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-[11px] text-mist-400">
+            Locking freezes every approved timesheet in the period. After lock, changes go through the amendment queue and
+            never rewrite the locked record.
+          </p>
+        </div>
+      )}
+
       <div className="grid gap-5 lg:grid-cols-[minmax(0,320px)_1fr]">
         <div className="card h-fit p-2">
           <p className="px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-mist-400">Review queue</p>
@@ -138,10 +187,8 @@ export default function Approvals() {
                   <Button variant="soft" onClick={() => { setReturnFor(sheet.id); setReturnNote(""); }}><Undo2 size={14} /> Return</Button>
                   <Button onClick={() => decide(sheet.id, "Approved")}><CheckCheck size={14} /> Approve</Button>
                 </div>
-              ) : sheet.status === "Approved" && scope.canConfigure && period && !period.locked ? (
-                <Button onClick={() => { setTimesheetStatus(sheet.id, "Locked", scope.name, `Period ${period.label} closed`); setOpenId(null); }}>
-                  <Lock size={14} /> Lock period
-                </Button>
+              ) : sheet.status === "Approved" && period && !period.locked ? (
+                <span className="text-xs text-mist-400">Approved — locks when the period closes ↑</span>
               ) : (
                 <Badge tone={statusTone(sheet.status)}>{sheet.status}</Badge>
               )}
@@ -262,6 +309,81 @@ export default function Approvals() {
           Approving posts the hours to the matching day on the employee's open timesheet. Recorded attendance is untouched.
         </p>
       </div>
+
+      <div className="card mt-5">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="flex items-center gap-2 font-display font-bold text-mist-900">
+            <FilePenLine size={15} /> Post-lock amendments
+          </h3>
+          <Badge tone={amdQueue.length ? "amber" : "mist"}>{amdQueue.length} pending</Badge>
+        </div>
+        {amdQueue.length === 0 && amdDecided.length === 0 ? (
+          <p className="text-sm text-mist-400">No amendment requests against locked periods.</p>
+        ) : (
+          <Table columns={["Employee", "Period", "Requested change", "Reason", "Status", ""]}>
+            {[...amdQueue, ...amdDecided].map((a, i) => (
+              <Row key={a.id} index={i}>
+                <Cell className="font-semibold">{name(a.staffId)}</Cell>
+                <Cell className="text-mist-500">{periods.find((p) => p.id === a.periodId)?.label ?? a.periodId}</Cell>
+                <Cell className="max-w-[240px]">{a.change}</Cell>
+                <Cell className="max-w-[220px] text-mist-500">
+                  {a.reason}
+                  {a.decisionNote && <span className="block text-[11px] text-mist-400">“{a.decisionNote}” — {a.decidedBy}</span>}
+                </Cell>
+                <Cell><Badge tone={statusTone(a.status)}>{a.status}</Badge></Cell>
+                <Cell>
+                  {a.status === "Pending" && (
+                    <div className="flex justify-end gap-1.5">
+                      <button onClick={() => { setAmdDecideFor(`rej:${a.id}`); setAmdNote(""); }} className="btn-ghost px-2 py-1 text-xs">Reject</button>
+                      <button onClick={() => { setAmdDecideFor(`app:${a.id}`); setAmdNote(""); }} className="btn-primary px-2.5 py-1 text-xs"><CheckCheck size={12} /> Approve</button>
+                    </div>
+                  )}
+                </Cell>
+              </Row>
+            ))}
+          </Table>
+        )}
+        <p className="mt-3 text-[11px] text-mist-400">
+          An approved amendment is recorded as a dated addendum on the timesheet's history. The locked line values are
+          never overwritten.
+        </p>
+      </div>
+
+      <Modal
+        open={!!amdDecideFor}
+        onClose={() => setAmdDecideFor(null)}
+        title={amdDecideFor?.startsWith("app") ? "Approve amendment" : "Reject amendment"}
+        footer={<><Button variant="ghost" onClick={() => setAmdDecideFor(null)}>Cancel</Button>
+          <Button
+            variant={amdDecideFor?.startsWith("app") ? "primary" : "action"}
+            disabled={amdDecideFor?.startsWith("rej") && !amdNote.trim()}
+            onClick={() => {
+              if (!amdDecideFor) return;
+              const [k, id] = amdDecideFor.split(":");
+              decideAmendment(id, k === "app" ? "Approved" : "Rejected", scope.name, amdNote || undefined);
+              setAmdDecideFor(null);
+            }}
+          >{amdDecideFor?.startsWith("app") ? "Approve & add addendum" : "Reject"}</Button></>}
+      >
+        {(() => {
+          const id = amdDecideFor?.split(":")[1];
+          const a = amendments.find((x) => x.id === id);
+          return (
+            <div className="space-y-3">
+              {a && (
+                <div className="rounded-xl bg-mist-50 px-3 py-2 text-sm text-mist-600">
+                  <b>{name(a.staffId)}</b> · {periods.find((p) => p.id === a.periodId)?.label} · requested {timeAgo(a.requestedAt)}
+                  <span className="mt-1 block text-mist-500">{a.change}</span>
+                  <span className="block text-[11px] text-mist-400">{a.reason}</span>
+                </div>
+              )}
+              <Field label={amdDecideFor?.startsWith("rej") ? "Reason for rejection (required)" : "Note (optional)"}>
+                <Input value={amdNote} onChange={(e) => setAmdNote(e.target.value)} placeholder="Context for the record…" />
+              </Field>
+            </div>
+          );
+        })()}
+      </Modal>
 
       <Modal
         open={!!returnFor}

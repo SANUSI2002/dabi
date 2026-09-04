@@ -126,6 +126,23 @@ export type TimesheetPeriod = {
   start: string;
   end: string;
   locked: boolean;
+  lockedBy?: string;
+  lockedAt?: string;
+};
+
+export type TimesheetAmendment = {
+  id: string;
+  timesheetId: string;
+  periodId: string;
+  staffId: string;
+  requestedBy: string;
+  requestedAt: string;
+  reason: string;
+  change: string; // free-text description of the correction
+  status: "Pending" | "Approved" | "Rejected";
+  decidedBy?: string;
+  decidedAt?: string;
+  decisionNote?: string;
 };
 
 export type TimePolicy = {
@@ -307,7 +324,17 @@ export const attendanceIntervals: AttendanceInterval[] = [
 
 export const periods: TimesheetPeriod[] = [
   { id: "pd1", label: "This week", start: day(3), end: day(-3), locked: false },
-  { id: "pd0", label: "Last week", start: day(10), end: day(4), locked: true },
+  { id: "pd0", label: "Last week", start: day(10), end: day(4), locked: true, lockedBy: "Dr. Adaeze Okonjo", lockedAt: day(3) },
+];
+
+export const amendments: TimesheetAmendment[] = [
+  {
+    id: "am1", timesheetId: "ts4", periodId: "pd0", staffId: "s8",
+    requestedBy: "Stella Okon", requestedAt: day(2),
+    reason: "Forgot to log the Saturday outreach half-day before the period closed",
+    change: "Add 01 Sep: 4.0h worked (Registration desk — Saturday immunisation drive)",
+    status: "Pending",
+  },
 ];
 
 export const timesheets: Timesheet[] = [

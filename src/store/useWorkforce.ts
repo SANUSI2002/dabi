@@ -8,7 +8,7 @@ import type {
   WorkContainer, WorkTask, WorkActivity, TimesheetStatus,
   Holiday, LeaveRequest, HolidayWorkRequest, WorkLocation,
   BreakRule, ModuleCapability, ModuleCapabilityKey, AttendanceRule,
-  OvertimeRequest, ExceptionResolution,
+  OvertimeRequest, ExceptionResolution, TimesheetAmendment,
 } from "@/data/workforce";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
@@ -32,6 +32,7 @@ type WorkforceState = {
   leave: LeaveRequest[];
   holidayWork: HolidayWorkRequest[];
   overtime: OvertimeRequest[];
+  amendments: TimesheetAmendment[];
 
   addTimeBlock: (b: Omit<TimeBlock, "id" | "active">) => void;
   addSchedule: (s: Omit<WeeklySchedule, "id" | "status">) => void;
@@ -52,6 +53,10 @@ type WorkforceState = {
   setTimesheetStatus: (id: string, status: TimesheetStatus, actor?: string, note?: string) => void;
   recallTimesheet: (id: string, actor?: string) => void;
   addManualLine: (timesheetId: string, line: Omit<Timesheet["lines"][number], "id">) => void;
+  lockPeriod: (periodId: string, actor: string) => void;
+  reopenPeriod: (periodId: string, actor: string) => void;
+  requestAmendment: (a: Omit<TimesheetAmendment, "id" | "status" | "requestedAt">) => void;
+  decideAmendment: (id: string, status: "Approved" | "Rejected", actor: string, note?: string) => void;
 
   logActivity: (a: Omit<WorkActivity, "id">) => void;
   addTask: (t: Omit<WorkTask, "id" | "loggedHours">) => void;
@@ -86,6 +91,7 @@ export const useWorkforce = create<WorkforceState>((set, get) => ({
   leave: wf.leaveRequests,
   holidayWork: wf.holidayWork,
   overtime: wf.overtimeRequests,
+  amendments: wf.amendments,
 
   addTimeBlock: (b) => {
     audit("created time block", `workforce/schedule/${b.code}`);
@@ -292,6 +298,54 @@ export const useWorkforce = create<WorkforceState>((set, get) => ({
       timesheets: s.timesheets.map((t) =>
         t.id === timesheetId ? { ...t, lines: [...t.lines, { ...line, id: rid() }] } : t,
       ),
+    }));
+  },
+
+  lockPeriod: (periodId, actor) => {
+    audit("locked timesheet period", `workforce/period/${periodId}`, { user: actor });
+    const now = new Date().toISOString();
+    set((s) => ({
+      periods: s.periods.map((p) => (p.id === periodId ? { ...p, locked: true, lockedBy: actor, lockedAt: now } : p)),
+      timesheets: s.timesheets.map((t) =>
+        t.periodId === periodId && t.status === "Approved"
+          ? { ...t, status: "Locked", history: [...t.history, { version: t.version, status: "Locked", at: now, by: actor, note: "Period closed" }] }
+          : t,
+      ),
+    }));
+  },
+
+  reopenPeriod: (periodId, actor) => {
+    audit("re-opened timesheet period", `workforce/period/${periodId}`, { user: actor });
+    set((s) => ({
+      periods: s.periods.map((p) => (p.id === periodId ? { ...p, locked: false, lockedBy: undefined, lockedAt: undefined } : p)),
+    }));
+  },
+
+  requestAmendment: (a) => {
+    audit("requested post-lock amendment", `workforce/amendment/${who(a.staffId)}`, { user: a.requestedBy });
+    set((s) => ({
+      amendments: [{ ...a, id: rid(), status: "Pending", requestedAt: new Date().toISOString() }, ...s.amendments],
+    }));
+  },
+
+  decideAmendment: (id, status, actor, note) => {
+    const a = get().amendments.find((x) => x.id === id);
+    if (!a) return;
+    audit(`amendment ${status.toLowerCase()}`, `workforce/amendment/${who(a.staffId)}`, { user: actor });
+    const now = new Date().toISOString();
+    set((s) => ({
+      amendments: s.amendments.map((x) =>
+        x.id === id ? { ...x, status, decidedBy: actor, decidedAt: now, decisionNote: note } : x,
+      ),
+      // an approved amendment is recorded as an addendum on the locked sheet — the original record is preserved
+      timesheets:
+        status === "Approved"
+          ? s.timesheets.map((t) =>
+              t.id === a.timesheetId
+                ? { ...t, history: [...t.history, { version: t.version, status: t.status, at: now, by: actor, note: `Amendment approved: ${a.change}` }] }
+                : t,
+            )
+          : s.timesheets,
     }));
   },
 
