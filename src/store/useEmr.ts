@@ -24,6 +24,7 @@ import type {
   InvoiceLine,
 } from "@/data/types";
 import { SERVICE_TYPES, PATIENT_CATEGORIES } from "@/data/catalog";
+import { audit } from "@/store/useAudit";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 
@@ -116,10 +117,12 @@ export const useEmr = create<EmrState>((set, get) => ({
       registeredAt: new Date().toISOString(),
     };
     set((s) => ({ patients: [patient, ...s.patients] }));
+    audit("registered patient", `patient/${patient.mrn}`);
     return patient;
   },
 
-  addToQueue: (patientId, station, priority, complaint) =>
+  addToQueue: (patientId, station, priority, complaint) => {
+    audit("added to queue", `queue/${station.toLowerCase()}`);
     set((s) => ({
       queue: [
         ...s.queue,
@@ -134,17 +137,21 @@ export const useEmr = create<EmrState>((set, get) => ({
           waitMins: 0,
         },
       ],
-    })),
+    }));
+  },
 
   advanceQueue: (id, status, station) =>
     set((s) => ({
       queue: s.queue.map((q) => (q.id === id ? { ...q, status, station: station ?? q.station } : q)),
     })),
 
-  saveEncounter: (e) =>
+  saveEncounter: (e) => {
+    const patient = get().patients.find((p) => p.id === e.patientId);
+    audit("created encounter", `encounter/${patient?.mrn ?? e.patientId}`);
     set((s) => ({
       encounters: [{ ...e, id: rid(), date: new Date().toISOString() }, ...s.encounters],
-    })),
+    }));
+  },
 
   addLabOrders: (patientId, tests) =>
     set((s) => ({
@@ -163,42 +170,57 @@ export const useEmr = create<EmrState>((set, get) => ({
       ],
     })),
 
-  resolveLab: (id, result, flag, verifiedBy) =>
+  resolveLab: (id, result, flag, verifiedBy) => {
+    const l = get().labOrders.find((x) => x.id === id);
+    audit("resulted lab test", `lab/${l?.test ?? id}`);
     set((s) => ({
-      labOrders: s.labOrders.map((l) =>
-        l.id === id ? { ...l, status: "Resulted", result, flag, verifiedBy } : l,
+      labOrders: s.labOrders.map((x) =>
+        x.id === id ? { ...x, status: "Resulted", result, flag, verifiedBy } : x,
       ),
-    })),
+    }));
+  },
 
-  dispense: (encounterId, rxId, status) =>
+  dispense: (encounterId, rxId, status) => {
+    const rx = get().encounters.find((e) => e.id === encounterId)?.prescriptions.find((r) => r.id === rxId);
+    audit(status === "Dispensed" ? "dispensed drug" : "outsourced drug", `pharmacy/${rx?.drug ?? rxId}`);
     set((s) => ({
       encounters: s.encounters.map((e) =>
         e.id === encounterId
           ? { ...e, prescriptions: e.prescriptions.map((r) => (r.id === rxId ? { ...r, status } : r)) }
           : e,
       ),
-    })),
+    }));
+  },
 
-  admit: (patientId, ward, bed, diagnosis) =>
+  admit: (patientId, ward, bed, diagnosis) => {
+    const p = get().patients.find((x) => x.id === patientId);
+    audit("admitted patient", `inpatient/${p?.mrn ?? patientId}`);
     set((s) => ({
       admissions: [
         { id: rid(), patientId, ward, bed, diagnosis, admittedAt: new Date().toISOString(), status: "Active" },
         ...s.admissions,
       ],
-    })),
+    }));
+  },
 
-  discharge: (id, outcome) =>
+  discharge: (id, outcome) => {
+    audit("discharged patient", `inpatient/${id}`);
     set((s) => ({
       admissions: s.admissions.map((a) => (a.id === id ? { ...a, status: "Discharged", outcome } : a)),
-    })),
+    }));
+  },
 
-  bookAppointment: (a) =>
-    set((s) => ({ appointments: [{ ...a, id: rid(), status: "Scheduled" }, ...s.appointments] })),
+  bookAppointment: (a) => {
+    audit("booked appointment", `appointment/${a.type.toLowerCase()}`);
+    set((s) => ({ appointments: [{ ...a, id: rid(), status: "Scheduled" }, ...s.appointments] }));
+  },
 
-  addReferral: (r) =>
+  addReferral: (r) => {
+    audit("created referral", `referral/${r.type.toLowerCase()}`);
     set((s) => ({
       referrals: [{ ...r, id: rid(), date: new Date().toISOString(), status: "Open" }, ...s.referrals],
-    })),
+    }));
+  },
 
   enrollAnc: (r) =>
     set((s) => {
@@ -268,15 +290,19 @@ export const useEmr = create<EmrState>((set, get) => ({
       paidAt: exempt ? new Date().toISOString() : undefined,
     };
     set((s) => ({ invoices: [inv, ...s.invoices] }));
+    audit(exempt ? "waived invoice" : "raised invoice", `billing/${inv.number}`);
     return inv;
   },
 
-  settleInvoice: (id, method) =>
+  settleInvoice: (id, method) => {
+    const inv = get().invoices.find((i) => i.id === id);
+    audit("recorded payment", `billing/${inv?.number ?? id}`);
     set((s) => ({
       invoices: s.invoices.map((i) =>
         i.id === id ? { ...i, status: "Paid", method, paidAt: new Date().toISOString() } : i,
       ),
-    })),
+    }));
+  },
 }));
 
 export const priceFor = (code: string) => SERVICE_TYPES.find((s) => s.code === code)?.price ?? 0;

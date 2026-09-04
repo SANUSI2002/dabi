@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { CURRENT_USER } from "@/data/mock";
+import { audit } from "@/store/useAudit";
 
 const KEY = "sabi-emr-auth";
 const read = () => {
@@ -30,8 +31,10 @@ export const useAuth = create<AuthState>((set) => ({
   signIn: () => {
     write(true);
     set({ authed: true });
+    audit("signed in", "auth/session");
   },
   signOut: () => {
+    audit("signed out", "auth/session");
     write(false);
     set({ authed: false });
   },

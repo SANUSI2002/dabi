@@ -6,6 +6,7 @@ import {
 import { drugs as seedDrugs } from "@/data/mock";
 import type { DrugStock, StaffMember } from "@/data/types";
 import { staff as seedStaff } from "@/data/mock";
+import { audit } from "@/store/useAudit";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 
@@ -47,28 +48,34 @@ export const useCatalog = create<CatalogState>((set) => ({
     username: s.name.toLowerCase().replace(/[^a-z ]/g, "").trim().split(/\s+/).slice(-2).join("."),
   })),
 
-  add: (k, row) =>
+  add: (k, row) => {
+    audit("added catalog record", `settings/${k}`);
     set((s) => {
       const list = s[k] as Record<string, unknown>[];
       const id = (row.id as string) || (row.code as string) || rid();
       return { [k]: [{ active: true, ...row, id }, ...list] } as Partial<CatalogState>;
-    }),
+    });
+  },
 
-  update: (k, id, patch) =>
+  update: (k, id, patch) => {
+    audit("edited catalog record", `settings/${k}/${id}`);
     set((s) => {
       const list = s[k] as (Record<string, unknown> & { id?: string; code?: string })[];
       return {
         [k]: list.map((r) => ((r.id ?? r.code) === id ? { ...r, ...patch } : r)),
       } as Partial<CatalogState>;
-    }),
+    });
+  },
 
-  toggle: (k, id) =>
+  toggle: (k, id) => {
+    audit("toggled catalog record", `settings/${k}/${id}`);
     set((s) => {
       const list = s[k] as (Record<string, unknown> & { id?: string; code?: string; active?: boolean })[];
       return {
         [k]: list.map((r) => ((r.id ?? r.code) === id ? { ...r, active: !r.active } : r)),
       } as Partial<CatalogState>;
-    }),
+    });
+  },
 
   adjustStock: (drugName, delta) =>
     set((s) => {

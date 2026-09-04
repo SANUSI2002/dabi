@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { FileDown, Printer, BarChart3 } from "lucide-react";
 import { PageHeader, StatCard } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
 import { useEmr } from "@/store/useEmr";
+import { useAudit } from "@/store/useAudit";
 import { REPORTS } from "./reports/config";
 import { ReportView } from "./reports/ReportView";
 import type { EmrSnapshot } from "./reports/types";
@@ -26,10 +27,18 @@ export default function Reports() {
   const family = useMemo(() => REPORTS.find((f) => f.name === familyName)!, [familyName]);
   const [tabName, setTabName] = useState(family.tabs[0].name);
   const tab = family.tabs.find((t) => t.name === tabName) ?? family.tabs[0];
+  const log = useAudit((s) => s.log);
+
+  useEffect(() => {
+    log("viewed report", `report/${familyName.toLowerCase().replace(/[^a-z]+/g, "-")}`);
+  }, [familyName, log]);
 
   function pick(name: string) {
     setFamilyName(name);
     setTabName(REPORTS.find((f) => f.name === name)!.tabs[0].name);
+  }
+  function exportAs(fmt: string) {
+    log("exported report", `report/${familyName.toLowerCase().replace(/[^a-z]+/g, "-")}.${fmt}`);
   }
 
   return (
@@ -39,9 +48,9 @@ export default function Reports() {
         subtitle="Server-calculated analytics · NHMIS / DHIS2 aligned · NDPR-audited"
         actions={
           <>
-            <button className="btn-ghost text-xs"><FileDown size={13} /> CSV</button>
-            <button className="btn-ghost text-xs"><FileDown size={13} /> Excel</button>
-            <button className="btn-ghost text-xs"><Printer size={13} /> Print</button>
+            <button className="btn-ghost text-xs" onClick={() => exportAs("csv")}><FileDown size={13} /> CSV</button>
+            <button className="btn-ghost text-xs" onClick={() => exportAs("xlsx")}><FileDown size={13} /> Excel</button>
+            <button className="btn-ghost text-xs" onClick={() => { exportAs("pdf"); window.print(); }}><Printer size={13} /> Print</button>
           </>
         }
       />

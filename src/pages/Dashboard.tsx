@@ -7,14 +7,16 @@ import { PageHeader, StatCard, Card, Badge, Progress, statusTone } from "@/compo
 import { Reveal } from "@/components/motion/Reveal";
 import { useEmr } from "@/store/useEmr";
 import { useAuth } from "@/store/useAuth";
-import { monthlyTargets, auditTrail } from "@/data/mock";
+import { monthlyTargets } from "@/data/mock";
 import { useCatalog } from "@/store/useCatalog";
+import { useAudit } from "@/store/useAudit";
 import { naira, timeAgo, shortDate } from "@/lib/format";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const { queue, labOrders, encounters, admissions, patients, patientById, invoices } = useEmr();
   const drugs = useCatalog((s) => s.drugs);
+  const events = useAudit((s) => s.events);
   const collected = invoices
     .filter((i) => i.status === "Paid")
     .reduce((n, i) => n + i.lines.reduce((m, l) => m + l.qty * l.unitPrice, 0), 0);
@@ -147,7 +149,7 @@ export default function Dashboard() {
           <Card className="h-full">
             <h3 className="mb-3 font-display font-bold text-mist-900">Recent Activity</h3>
             <div className="space-y-3">
-              {auditTrail.slice(0, 8).map((e) => (
+              {events.slice(0, 8).map((e) => (
                 <div key={e.id} className="flex items-start gap-2.5 text-sm">
                   <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-gradient" />
                   <div className="min-w-0">
@@ -168,7 +170,7 @@ export default function Dashboard() {
       </div>
 
       <p className="mt-6 text-center text-[11px] text-mist-300">
-        Revenue collected this period: {naira(collected)} · {unpaidCount} unpaid invoice{unpaidCount === 1 ? "" : "s"} · NHMIS last synced {timeAgo(auditTrail[3].ts)}
+        Revenue collected this period: {naira(collected)} · {unpaidCount} unpaid invoice{unpaidCount === 1 ? "" : "s"} · last activity {events[0] ? timeAgo(events[0].ts) : "—"}
       </p>
     </div>
   );

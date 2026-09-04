@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import * as wf from "@/data/workforce";
+import { audit } from "@/store/useAudit";
+import { staff } from "@/data/mock";
 import type {
   TimeBlock, WeeklySchedule, ScheduleAssignment, AttendanceInterval,
   Timesheet, TimesheetPeriod, TimePolicy, Enrolment,
@@ -40,8 +42,9 @@ const hhmm = () => {
   const d = new Date();
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
+const who = (id: string) => staff.find((s) => s.id === id)?.name ?? id;
 
-export const useWorkforce = create<WorkforceState>((set) => ({
+export const useWorkforce = create<WorkforceState>((set, get) => ({
   timeBlocks: wf.timeBlocks,
   schedules: wf.schedules,
   assignments: wf.assignments,
@@ -54,11 +57,21 @@ export const useWorkforce = create<WorkforceState>((set) => ({
   tasks: wf.tasks,
   activities: wf.activities,
 
-  addTimeBlock: (b) => set((s) => ({ timeBlocks: [{ ...b, id: rid(), active: true }, ...s.timeBlocks] })),
-  addSchedule: (sc) => set((s) => ({ schedules: [{ ...sc, id: rid(), status: "Draft" }, ...s.schedules] })),
-  assignSchedule: (a) => set((s) => ({ assignments: [{ ...a, id: rid() }, ...s.assignments] })),
+  addTimeBlock: (b) => {
+    audit("created time block", `workforce/schedule/${b.code}`);
+    set((s) => ({ timeBlocks: [{ ...b, id: rid(), active: true }, ...s.timeBlocks] }));
+  },
+  addSchedule: (sc) => {
+    audit("created schedule", `workforce/schedule/${sc.name}`);
+    set((s) => ({ schedules: [{ ...sc, id: rid(), status: "Draft" }, ...s.schedules] }));
+  },
+  assignSchedule: (a) => {
+    audit("assigned schedule", `workforce/assignment/${who(a.staffId)}`);
+    set((s) => ({ assignments: [{ ...a, id: rid() }, ...s.assignments] }));
+  },
 
-  clockIn: (staffId) =>
+  clockIn: (staffId) => {
+    audit("clocked in", `workforce/attendance/${who(staffId)}`);
     set((s) => ({
       attendance: [
         {
@@ -67,36 +80,45 @@ export const useWorkforce = create<WorkforceState>((set) => ({
         },
         ...s.attendance,
       ],
-    })),
+    }));
+  },
 
-  clockOut: (id) =>
+  clockOut: (id) => {
+    const a = get().attendance.find((x) => x.id === id);
+    audit("clocked out", `workforce/attendance/${a ? who(a.staffId) : id}`);
     set((s) => ({
-      attendance: s.attendance.map((a) =>
-        a.id === id
-          ? { ...a, clockOut: hhmm(), flags: a.flags.filter((f) => f !== "Missing checkout") }
-          : a,
+      attendance: s.attendance.map((x) =>
+        x.id === id
+          ? { ...x, clockOut: hhmm(), flags: x.flags.filter((f) => f !== "Missing checkout") }
+          : x,
       ),
-    })),
+    }));
+  },
 
-  correctInterval: (id, patch) =>
+  correctInterval: (id, patch) => {
+    audit("corrected attendance", `workforce/attendance/${id}`);
     set((s) => ({
       attendance: s.attendance.map((a) => (a.id === id ? { ...a, ...patch, flags: [...new Set([...a.flags, "Corrected"])] } : a)),
-    })),
+    }));
+  },
 
-  setTimesheetStatus: (id, status, approver) =>
+  setTimesheetStatus: (id, status, approver) => {
+    const t = get().timesheets.find((x) => x.id === id);
+    audit(`timesheet ${status.toLowerCase()}`, `workforce/timesheet/${t ? who(t.staffId) : id}`, approver ? { user: approver } : undefined);
     set((s) => ({
-      timesheets: s.timesheets.map((t) =>
-        t.id === id
+      timesheets: s.timesheets.map((x) =>
+        x.id === id
           ? {
-              ...t,
+              ...x,
               status,
-              submittedAt: status === "Submitted" ? new Date().toISOString() : t.submittedAt,
-              approvedAt: status === "Approved" || status === "Locked" ? new Date().toISOString() : t.approvedAt,
-              approver: approver ?? t.approver,
+              submittedAt: status === "Submitted" ? new Date().toISOString() : x.submittedAt,
+              approvedAt: status === "Approved" || status === "Locked" ? new Date().toISOString() : x.approvedAt,
+              approver: approver ?? x.approver,
             }
-          : t,
+          : x,
       ),
-    })),
+    }));
+  },
 
   addManualLine: (timesheetId, line) =>
     set((s) => ({
@@ -105,11 +127,13 @@ export const useWorkforce = create<WorkforceState>((set) => ({
       ),
     })),
 
-  logActivity: (a) =>
+  logActivity: (a) => {
+    audit("logged activity", `workforce/task/${a.taskId}`);
     set((s) => ({
       activities: [{ ...a, id: rid() }, ...s.activities],
       tasks: s.tasks.map((t) => (t.id === a.taskId ? { ...t, loggedHours: t.loggedHours + a.hours } : t)),
-    })),
+    }));
+  },
 
   addTask: (t) => set((s) => ({ tasks: [{ ...t, id: rid(), loggedHours: 0 }, ...s.tasks] })),
 }));
