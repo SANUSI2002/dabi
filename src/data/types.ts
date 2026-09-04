@@ -275,6 +275,8 @@ export type BirthRegisterEntry = {
 export type PncVisit = {
   id: string;
   patientId: string;
+  deliveryId?: string;
+  contact?: 1 | 2 | 3 | 4; // WHO PNC contact number
   date: string;
   timing: string;
   daysPP: number;
@@ -285,6 +287,7 @@ export type PncVisit = {
   breastfeeding: string;
   dangerSigns: string[];
   fpCounselled: boolean;
+  notes?: string;
 };
 
 export type CmamScreening = {

@@ -168,6 +168,18 @@ export const fpClients: FpClient[] = [
   { id: "fp2", patientId: "p15", method: "Oral Pill", firstTime: false, startDate: iso(20), counselled: true, status: "Discontinued", notes: "Menses ceased — switched method.", discontinueReason: "Switched to injectable" },
 ];
 
+export const deliveries: import("./types").Delivery[] = [
+  { id: "dl1", patientId: "p13", date: iso(4), mode: "SVD", gaWeeks: 39, motherStatus: "Alive", bloodLoss: 250, babySex: "F", babyStatus: "Alive", weight: 3.2, apgar1: 8, apgar5: 10, breastfed1h: true, conductedBy: "Nurse Grace Nwangbo" },
+  { id: "dl2", patientId: "p15", date: iso(12), mode: "SVD", gaWeeks: 38, motherStatus: "Alive", bloodLoss: 300, babySex: "M", babyStatus: "Alive", weight: 2.9, apgar1: 9, apgar5: 10, breastfed1h: true, conductedBy: "Mary Williams" },
+  { id: "dl3", patientId: "p6", date: iso(30), mode: "Assisted (vacuum)", gaWeeks: 40, motherStatus: "Alive", bloodLoss: 400, babySex: "F", babyStatus: "Alive", weight: 3.5, apgar1: 7, apgar5: 9, breastfed1h: false, conductedBy: "Nurse Grace Nwangbo" },
+];
+
+export const pncVisits: import("./types").PncVisit[] = [
+  { id: "pnc1", patientId: "p15", deliveryId: "dl2", contact: 1, date: iso(11), timing: "PNC 1 — within 24h", daysPP: 1, bp: "118/76", uterus: "Well contracted", lochia: "Normal", breast: "Normal", breastfeeding: "Exclusive", dangerSigns: [], fpCounselled: true },
+  { id: "pnc2", patientId: "p15", deliveryId: "dl2", contact: 2, date: iso(9), timing: "PNC 2 — day 3", daysPP: 3, bp: "120/78", uterus: "Well contracted", lochia: "Normal", breast: "Normal", breastfeeding: "Exclusive", dangerSigns: [], fpCounselled: true },
+  { id: "pnc3", patientId: "p6", deliveryId: "dl3", contact: 1, date: iso(29), timing: "PNC 1 — within 24h", daysPP: 1, bp: "126/82", uterus: "Well contracted", lochia: "Normal", breast: "Engorged", breastfeeding: "Mixed", dangerSigns: ["Jaundice"], fpCounselled: false, notes: "Neonatal jaundice — reviewed, phototherapy advice, follow-up 48h" },
+];
+
 export const childVisits: ChildVisit[] = [
   { id: "cv1", patientId: "p5", date: iso(6), weight: 8.4, height: 74, muac: 13.2, waz: -0.8, status: "Normal", feeding: "Complementary + breast" },
   { id: "cv2", patientId: "p2", date: iso(6), weight: 9.1, height: 78, muac: 12.9, waz: -1.4, status: "MAM", feeding: "Family diet" },

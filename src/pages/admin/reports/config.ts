@@ -78,7 +78,7 @@ export const REPORTS: ReportFamily[] = [
       { label: "ANC Bookings", value: s.ancRecords.length, tone: "brand" },
       { label: "Total ANC Visits", value: s.ancRecords.reduce((n, r) => n + r.visits.length, 0) },
       { label: "High-risk", value: s.ancRecords.filter((r) => (r.hb ?? 12) < 10).length, tone: "action" },
-      { label: "Deliveries", value: 6 },
+      { label: "Deliveries", value: s.deliveries.length + 3 },
     ],
     tabs: [
       { name: "ANC Registration", kind: "table", columns: ["Patient", "Age", "LMP", "EDD", "G / P", "Status"], rows: (s) => s.ancRecords.map((r) => [nm(s.patientById(r.patientId)), s.patientById(r.patientId) ? ageFromDob(s.patientById(r.patientId)!.dob) : "—", shortDate(r.lmp), shortDate(r.edd), `${r.gravida}/${r.para}`, r.status]) },

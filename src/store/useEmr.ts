@@ -116,10 +116,10 @@ export const useEmr = create<EmrState>((set, get) => ({
   ancRecords: mock.ancRecords,
   fpClients: mock.fpClients,
   childVisits: mock.childVisits,
-  deliveries: [],
+  deliveries: mock.deliveries,
   birthRegister: [],
   immunizations: mock.immunizations,
-  pncVisits: [],
+  pncVisits: mock.pncVisits,
   cmamScreenings: [],
   outreachActivities: mock.outreachSeed,
   surveillanceCases: [],
@@ -455,7 +455,14 @@ export const useEmr = create<EmrState>((set, get) => ({
       ),
     }));
   },
-  addPncVisit: (v) => set((s) => ({ pncVisits: [{ ...v, id: rid() }, ...s.pncVisits] })),
+  addPncVisit: (v) => {
+    audit("recorded PNC visit", `mch/pnc/${v.patientId}`);
+    set((s) => ({ pncVisits: [{ ...v, id: rid() }, ...s.pncVisits] }));
+    // danger signs escalate the mother to the consultation queue
+    if (v.dangerSigns.length) {
+      get().addToQueue(v.patientId, "Consultation", "Urgent", `PNC danger signs: ${v.dangerSigns.join(", ")}`);
+    }
+  },
   addCmamScreening: (c) => set((s) => ({ cmamScreenings: [{ ...c, id: rid() }, ...s.cmamScreenings] })),
   addOutreach: (a) => set((s) => ({ outreachActivities: [{ ...a, id: rid() }, ...s.outreachActivities] })),
   addSurveillanceCase: (c) =>

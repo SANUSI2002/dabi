@@ -6,12 +6,20 @@ export function Tabs({
   tabs,
   children,
   initial,
+  active: activeProp,
+  onChange,
 }: {
   tabs: string[];
   children: (active: string) => ReactNode;
   initial?: string;
+  /** controlled mode: pass the active tab + onChange to drive it from the parent (e.g. jump to a tab on an action elsewhere on the page) */
+  active?: string;
+  onChange?: (tab: string) => void;
 }) {
-  const [active, setActive] = useState(initial && tabs.includes(initial) ? initial : tabs[0]);
+  const [uncontrolled, setUncontrolled] = useState(initial && tabs.includes(initial) ? initial : tabs[0]);
+  const isControlled = activeProp !== undefined;
+  const active = isControlled ? activeProp! : uncontrolled;
+  const setActive = (t: string) => (isControlled ? onChange?.(t) : setUncontrolled(t));
   const uid = useId();
 
   return (
