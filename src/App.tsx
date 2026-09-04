@@ -16,6 +16,7 @@ const MedicalHistory = lazy(() => import("@/pages/clinical/MedicalHistory"));
 const PatientChart = lazy(() => import("@/pages/clinical/PatientChart"));
 const Transfers = lazy(() => import("@/pages/clinical/Transfers"));
 const Laboratory = lazy(() => import("@/pages/diagnostics/Laboratory"));
+const LabTestSettings = lazy(() => import("@/pages/diagnostics/LabTestSettings"));
 const Pharmacy = lazy(() => import("@/pages/diagnostics/Pharmacy"));
 const Antenatal = lazy(() => import("@/pages/mch/Antenatal"));
 const Labour = lazy(() => import("@/pages/mch/Labour"));
@@ -98,6 +99,7 @@ export default function App() {
           <Route path="/patients/:id" element={<PatientChart />} />
           <Route path="/transfers" element={<Transfers />} />
           <Route path="/laboratory" element={<Laboratory />} />
+          <Route path="/laboratory/test-settings" element={<LabTestSettings />} />
           <Route path="/pharmacy" element={<Pharmacy />} />
           <Route path="/anc" element={<Antenatal />} />
           <Route path="/labour" element={<Labour />} />

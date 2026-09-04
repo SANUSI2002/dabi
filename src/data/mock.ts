@@ -85,7 +85,7 @@ export const labOrders: LabOrder[] = [
   { id: "l1", patientId: "p13", test: "Malaria RDT", category: "Parasitology", urgency: "Routine", status: "Pending", orderedAt: iso(0, 9, 5), orderedBy: CURRENT_USER.name },
   { id: "l2", patientId: "p13", test: "PCV", category: "Haematology", urgency: "Routine", status: "Pending", orderedAt: iso(0, 9, 5), orderedBy: CURRENT_USER.name },
   { id: "l3", patientId: "p13", test: "Urinalysis", category: "Urinalysis", urgency: "Routine", status: "Pending", orderedAt: iso(0, 9, 5), orderedBy: CURRENT_USER.name },
-  { id: "l4", patientId: "p3", test: "Fasting Blood Sugar", category: "Clinical Chemistry", urgency: "Urgent", status: "Sample Collected", orderedAt: iso(1, 8, 30), orderedBy: CURRENT_USER.name },
+  { id: "l4", patientId: "p3", test: "Fasting Blood Sugar", category: "Clinical Chemistry", urgency: "Urgent", status: "Sample Collected", orderedAt: iso(1, 8, 30), orderedBy: CURRENT_USER.name, sampleType: "Venous blood (Plain)", sampleCollectedBy: "Samuel Etim", sampleCollectedAt: iso(1, 8, 45) },
 ];
 
 export const admissions: Admission[] = [];

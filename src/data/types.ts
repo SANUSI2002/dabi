@@ -69,12 +69,24 @@ export type LabOrder = {
   test: string;
   category: string;
   urgency: "Routine" | "Urgent";
-  status: "Pending" | "Sample Collected" | "In Process" | "Resulted" | "Rejected";
+  status: "Pending" | "Sample Collected" | "In Process" | "Awaiting Approval" | "Resulted" | "Rejected";
   orderedAt: string;
   orderedBy: string;
   result?: string;
   flag?: "Normal" | "Low" | "High" | "Critical";
   verifiedBy?: string;
+  // Workflow tracking — sample -> phased processing -> result entry -> sign-off
+  sampleType?: string;
+  sampleCollectedBy?: string;
+  sampleCollectedAt?: string;
+  phaseIndex?: number;
+  phaseLog?: { name: string; by: string; at: string }[];
+  resultFields?: Record<string, string>;
+  submittedBy?: string;
+  submittedAt?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  revisionNote?: string;
 };
 
 export type Encounter = {

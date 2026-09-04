@@ -67,7 +67,12 @@ type EmrState = {
 
   saveEncounter: (e: Omit<Encounter, "id" | "date">) => void;
   addLabOrders: (patientId: string, tests: { test: string; category: string }[], orderedBy?: string) => void;
-  resolveLab: (id: string, result: string, flag: LabOrder["flag"], verifiedBy: string) => void;
+  collectSample: (id: string, sampleType: string) => void;
+  startProcessing: (id: string) => void;
+  advancePhase: (id: string, phaseName: string) => void;
+  submitLabResult: (id: string, fields: Record<string, string>, flag: LabOrder["flag"], lastPhaseName?: string) => void;
+  approveLabResult: (id: string) => void;
+  sendLabResultBack: (id: string, note: string) => void;
   dispense: (encounterId: string, rxId: string, status: Prescription["status"]) => void;
 
   admit: (patientId: string, ward: string, bed: string, diagnosis: string) => void;
@@ -196,13 +201,78 @@ export const useEmr = create<EmrState>((set, get) => ({
       ],
     })),
 
-  resolveLab: (id, result, flag, verifiedBy) => {
+  collectSample: (id, sampleType) => {
+    const who = useIdentity.getState().user.name;
     const l = get().labOrders.find((x) => x.id === id);
-    audit("resulted lab test", `lab/${l?.test ?? id}`);
+    audit("collected lab sample", `lab/${l?.test ?? id}`, { user: who });
     set((s) => ({
       labOrders: s.labOrders.map((x) =>
-        x.id === id ? { ...x, status: "Resulted", result, flag, verifiedBy } : x,
+        x.id === id ? { ...x, status: "Sample Collected", sampleType, sampleCollectedBy: who, sampleCollectedAt: new Date().toISOString() } : x,
       ),
+    }));
+  },
+
+  startProcessing: (id) => {
+    const l = get().labOrders.find((x) => x.id === id);
+    audit("started lab processing", `lab/${l?.test ?? id}`);
+    set((s) => ({
+      labOrders: s.labOrders.map((x) => (x.id === id ? { ...x, status: "In Process", phaseIndex: 0, phaseLog: [] } : x)),
+    }));
+  },
+
+  advancePhase: (id, phaseName) => {
+    const who = useIdentity.getState().user.name;
+    const l = get().labOrders.find((x) => x.id === id);
+    audit(`completed phase — ${phaseName}`, `lab/${l?.test ?? id}`, { user: who });
+    set((s) => ({
+      labOrders: s.labOrders.map((x) =>
+        x.id === id
+          ? { ...x, phaseIndex: (x.phaseIndex ?? 0) + 1, phaseLog: [...(x.phaseLog ?? []), { name: phaseName, by: who, at: new Date().toISOString() }] }
+          : x,
+      ),
+    }));
+  },
+
+  submitLabResult: (id, fields, flag, lastPhaseName) => {
+    const who = useIdentity.getState().user.name;
+    const l = get().labOrders.find((x) => x.id === id);
+    audit("submitted lab result — awaiting approval", `lab/${l?.test ?? id}`, { user: who });
+    const summary = Object.entries(fields).filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join(" · ");
+    set((s) => ({
+      labOrders: s.labOrders.map((x) =>
+        x.id === id
+          ? {
+              ...x,
+              status: "Awaiting Approval",
+              resultFields: fields,
+              result: summary,
+              flag,
+              submittedBy: who,
+              submittedAt: new Date().toISOString(),
+              phaseLog: lastPhaseName ? [...(x.phaseLog ?? []), { name: lastPhaseName, by: who, at: new Date().toISOString() }] : x.phaseLog,
+            }
+          : x,
+      ),
+    }));
+  },
+
+  approveLabResult: (id) => {
+    const who = useIdentity.getState().user.name;
+    const l = get().labOrders.find((x) => x.id === id);
+    audit("approved lab result", `lab/${l?.test ?? id}`, { user: who });
+    set((s) => ({
+      labOrders: s.labOrders.map((x) =>
+        x.id === id ? { ...x, status: "Resulted", approvedBy: who, approvedAt: new Date().toISOString(), verifiedBy: who } : x,
+      ),
+    }));
+  },
+
+  sendLabResultBack: (id, note) => {
+    const who = useIdentity.getState().user.name;
+    const l = get().labOrders.find((x) => x.id === id);
+    audit("sent lab result back for revision", `lab/${l?.test ?? id}`, { user: who });
+    set((s) => ({
+      labOrders: s.labOrders.map((x) => (x.id === id ? { ...x, status: "In Process", revisionNote: note } : x)),
     }));
   },
 

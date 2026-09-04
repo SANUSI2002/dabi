@@ -7,11 +7,14 @@ import { Modal } from "@/components/ui/Modal";
 import { Field, Textarea } from "@/components/ui/form";
 import { PatientPicker } from "@/components/ui/PatientPicker";
 import { ConsolidatedEmrDoc } from "@/components/print/documents";
+import { LabProgress } from "@/components/lab/LabProgress";
 import { useEmr } from "@/store/useEmr";
+import { useLabConfig } from "@/store/useLabConfig";
 import { dateTime, ageFromDob } from "@/lib/format";
 
 export default function MedicalHistory() {
   const { patients, encounters, labOrders, patientById } = useEmr();
+  const { configFor } = useLabConfig();
   const [pid, setPid] = useState<string | null>(patients[0]?.id ?? null);
   const [amend, setAmend] = useState<string | null>(null);
   const [printDoc, setPrintDoc] = useState(false);
@@ -90,17 +93,14 @@ export default function MedicalHistory() {
                 {meds.length === 0 && <div className="py-12 text-center text-mist-400">No medications.</div>}
               </div>
             ) : t.startsWith("Lab") ? (
-              <div className="card p-0">
-                {labs.map((l, i) => (
-                  <div key={i} className="flex items-center justify-between border-b border-mist-100 px-4 py-3 last:border-0">
-                    <div>
-                      <p className="text-sm font-medium text-mist-800">{l.test}</p>
+              <div className="space-y-3">
+                {labs.map((l) => (
+                  <div key={l.id} className="card">
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-sm font-semibold text-mist-800">{l.test}</p>
                       <p className="text-[11px] text-mist-400">Ordered {dateTime(l.orderedAt)}</p>
                     </div>
-                    <div className="text-right">
-                      <Badge tone={l.status === "Resulted" ? "brand" : "amber"}>{l.status}</Badge>
-                      {l.result && <p className="mt-1 text-xs text-mist-600">{l.result}</p>}
-                    </div>
+                    <LabProgress order={l} phases={configFor(l.test).phases} />
                   </div>
                 ))}
                 {labs.length === 0 && <div className="py-12 text-center text-mist-400">No lab records.</div>}
