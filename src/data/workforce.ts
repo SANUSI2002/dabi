@@ -41,6 +41,7 @@ export type ScheduleAssignment = {
   captureMode: CaptureMode;
 };
 
+export type WorkLocation = "WFO" | "WFH" | "Client Site";
 export type AttendanceInterval = {
   id: string;
   staffId: string;
@@ -51,6 +52,8 @@ export type AttendanceInterval = {
   breakMins: number;
   flags: string[]; // e.g. "Late", "Auto-checkout", "Missing checkout", "Overnight"
   location?: string;
+  workLocation?: WorkLocation;
+  consentAt?: string; // evidence-notice acknowledgement
 };
 
 export type TimesheetLineSource = "Attendance" | "Manual";
@@ -67,7 +70,14 @@ export type TimesheetLine = {
   note?: string;
 };
 
-export type TimesheetStatus = "Open" | "Submitted" | "Approved" | "Locked" | "Rejected";
+export type TimesheetStatus = "Open" | "Submitted" | "Returned" | "Approved" | "Locked" | "Rejected";
+export type TimesheetEvent = {
+  version: number;
+  status: TimesheetStatus;
+  at: string;
+  by: string;
+  note?: string;
+};
 export type Timesheet = {
   id: string;
   staffId: string;
@@ -78,6 +88,9 @@ export type Timesheet = {
   approvedAt?: string;
   approver?: string;
   captureMode: CaptureMode;
+  version: number;
+  history: TimesheetEvent[];
+  returnNote?: string;
 };
 
 export type TimesheetPeriod = {
@@ -222,12 +235,14 @@ export const assignments: ScheduleAssignment[] = [
 ];
 
 export const attendanceIntervals: AttendanceInterval[] = [
-  { id: "ai1", staffId: "s2", date: day(1), clockIn: "07:58", clockOut: "16:12", source: "Mobile", breakMins: 35, flags: [], location: "Sabi Health Post" },
-  { id: "ai2", staffId: "s3", date: day(1), clockIn: "08:22", clockOut: "16:05", source: "Kiosk", breakMins: 30, flags: ["Late"], location: "Sabi Health Post" },
-  { id: "ai3", staffId: "s7", date: day(1), clockIn: "08:01", clockOut: undefined, source: "Web", breakMins: 0, flags: ["Missing checkout"], location: "Sabi Health Post" },
-  { id: "ai4", staffId: "s8", date: day(1), clockIn: "07:45", clockOut: "17:40", source: "Kiosk", breakMins: 45, flags: ["Overtime"], location: "Sabi Health Post" },
-  { id: "ai5", staffId: "s2", date: day(2), clockIn: "22:03", clockOut: "06:11", source: "Kiosk", breakMins: 30, flags: ["Overnight"], location: "Sabi Health Post" },
-  { id: "ai6", staffId: "s3", date: day(2), clockIn: "08:05", clockOut: "16:00", source: "Kiosk", breakMins: 30, flags: [], location: "Sabi Health Post" },
+  { id: "ai1", staffId: "s2", date: day(1), clockIn: "07:58", clockOut: "16:12", source: "Mobile", breakMins: 35, flags: [], location: "Sabi Health Post", workLocation: "WFO", consentAt: iso(1) },
+  { id: "ai2", staffId: "s3", date: day(1), clockIn: "08:22", clockOut: "16:05", source: "Kiosk", breakMins: 30, flags: ["Late"], location: "Sabi Health Post", workLocation: "WFO", consentAt: iso(1) },
+  { id: "ai3", staffId: "s7", date: day(1), clockIn: "08:01", clockOut: undefined, source: "Web", breakMins: 0, flags: ["Missing checkout"], location: "Sabi Health Post", workLocation: "WFO", consentAt: iso(1) },
+  { id: "ai4", staffId: "s8", date: day(1), clockIn: "07:45", clockOut: "17:40", source: "Kiosk", breakMins: 45, flags: ["Overtime"], location: "Sabi Health Post", workLocation: "WFO", consentAt: iso(1) },
+  { id: "ai5", staffId: "s2", date: day(2), clockIn: "22:03", clockOut: "06:11", source: "Kiosk", breakMins: 30, flags: ["Overnight"], location: "Sabi Health Post", workLocation: "WFO", consentAt: iso(2) },
+  { id: "ai6", staffId: "s3", date: day(2), clockIn: "08:05", clockOut: "16:00", source: "Kiosk", breakMins: 30, flags: [], location: "Sabi Health Post", workLocation: "WFO", consentAt: iso(2) },
+  { id: "ai7", staffId: "s6", date: day(1), clockIn: "08:10", clockOut: "16:30", source: "Web", breakMins: 30, flags: [], location: "Home", workLocation: "WFH", consentAt: iso(1) },
+  { id: "ai8", staffId: "s5", date: day(1), clockIn: "07:50", clockOut: "15:40", source: "Mobile", breakMins: 30, flags: [], location: "Outreach — Ijegun", workLocation: "Client Site", consentAt: iso(1) },
 ];
 
 export const periods: TimesheetPeriod[] = [
@@ -238,7 +253,8 @@ export const periods: TimesheetPeriod[] = [
 export const timesheets: Timesheet[] = [
   {
     id: "ts1", staffId: "s2", periodId: "pd1", status: "Submitted", captureMode: "Attendance",
-    submittedAt: iso(0),
+    submittedAt: iso(0), version: 1,
+    history: [{ version: 1, status: "Submitted", at: iso(0), by: "Nurse Grace Nwangbo" }],
     lines: [
       { id: "tl1", date: day(1), source: "Attendance", expectedHours: 7.5, workedHours: 7.6, breakHours: 0.58, overtimeHours: 0, container: "Maternity Programme", task: "Ward cover" },
       { id: "tl2", date: day(2), source: "Attendance", expectedHours: 7.5, workedHours: 7.6, breakHours: 0.5, overtimeHours: 0.1, container: "Maternity Programme", task: "Night ward cover", note: "Cross-midnight shift" },
@@ -246,23 +262,42 @@ export const timesheets: Timesheet[] = [
   },
   {
     id: "ts2", staffId: "s3", periodId: "pd1", status: "Open", captureMode: "Attendance",
+    version: 0, history: [],
     lines: [
       { id: "tl3", date: day(1), source: "Attendance", expectedHours: 7.5, workedHours: 7.2, breakHours: 0.5, overtimeHours: 0, container: "Maternity Programme", task: "Ward cover", note: "22 min late — within grace? no" },
       { id: "tl4", date: day(2), source: "Attendance", expectedHours: 7.5, workedHours: 7.4, breakHours: 0.5, overtimeHours: 0 },
     ],
   },
   {
-    id: "ts3", staffId: "s4", periodId: "pd1", status: "Open", captureMode: "Manual",
+    id: "ts3", staffId: "s4", periodId: "pd1", status: "Returned", captureMode: "Manual",
+    version: 1, returnNote: "Thursday and Friday are missing — please add or mark leave.",
+    submittedAt: iso(1),
+    history: [
+      { version: 1, status: "Submitted", at: iso(1), by: "Ogundele Olajumoke" },
+      { version: 1, status: "Returned", at: iso(0), by: "Nurse Grace Nwangbo", note: "Thursday and Friday are missing — please add or mark leave." },
+    ],
     lines: [
       { id: "tl5", date: day(1), source: "Manual", expectedHours: 7.5, workedHours: 7.5, breakHours: 0.5, overtimeHours: 0, container: "Records & Reporting", task: "NHMIS monthly return" },
     ],
   },
   {
     id: "ts4", staffId: "s8", periodId: "pd0", status: "Locked", captureMode: "Attendance",
-    approvedAt: iso(4), approver: "Dr. Adaeze Okonjo",
+    approvedAt: iso(4), approver: "Dr. Adaeze Okonjo", version: 1,
+    history: [
+      { version: 1, status: "Submitted", at: iso(6), by: "Stella Okon" },
+      { version: 1, status: "Approved", at: iso(4), by: "Dr. Adaeze Okonjo" },
+      { version: 1, status: "Locked", at: iso(4), by: "Dr. Adaeze Okonjo", note: "Period pd0 closed" },
+    ],
     lines: [
       { id: "tl6", date: day(9), source: "Attendance", expectedHours: 7.5, workedHours: 9.2, breakHours: 0.75, overtimeHours: 1.7, container: "Front Office", task: "Registration desk" },
       { id: "tl7", date: day(8), source: "Attendance", expectedHours: 7.5, workedHours: 7.5, breakHours: 0.5, overtimeHours: 0 },
+    ],
+  },
+  {
+    id: "ts5", staffId: "s7", periodId: "pd1", status: "Open", captureMode: "Hybrid",
+    version: 0, history: [],
+    lines: [
+      { id: "tl8", date: day(1), source: "Attendance", expectedHours: 7.5, workedHours: 7.4, breakHours: 0.5, overtimeHours: 0, container: "Records & Reporting", task: "Lab register" },
     ],
   },
 ];

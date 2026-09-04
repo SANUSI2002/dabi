@@ -34,6 +34,7 @@ import {
   SlidersHorizontal,
   FolderKanban,
   Palmtree,
+  CheckSquare,
   type LucideIcon,
 } from "lucide-react";
 
@@ -95,6 +96,7 @@ export const NAV: NavGroup[] = [
       { to: "/workforce/schedules", label: "Schedule Manager", icon: CalendarRange },
       { to: "/workforce/attendance", label: "Attendance", icon: Fingerprint },
       { to: "/workforce/timesheets", label: "Timesheets", icon: ClipboardList },
+      { to: "/workforce/approvals", label: "Approvals", icon: CheckSquare },
       { to: "/workforce/leave", label: "Holiday & Leave", icon: Palmtree },
       { to: "/workforce/work", label: "Work & Tasks", icon: FolderKanban },
       { to: "/workforce/policy", label: "Time Policy", icon: SlidersHorizontal },

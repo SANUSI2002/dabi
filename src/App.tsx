@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { useAuth } from "@/store/useAuth";
 import { AppShell } from "@/components/layout/AppShell";
+import { WorkforceLayout } from "@/components/layout/WorkforceLayout";
 import LoginDoor from "@/pages/auth/LoginDoor";
 
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
@@ -40,6 +41,7 @@ const WorkforceDashboard = lazy(() => import("@/pages/workforce/WorkforceDashboa
 const Schedules = lazy(() => import("@/pages/workforce/Schedules"));
 const WfAttendance = lazy(() => import("@/pages/workforce/Attendance"));
 const Timesheets = lazy(() => import("@/pages/workforce/Timesheets"));
+const Approvals = lazy(() => import("@/pages/workforce/Approvals"));
 const HolidayLeave = lazy(() => import("@/pages/workforce/HolidayLeave"));
 const WorkTasks = lazy(() => import("@/pages/workforce/WorkTasks"));
 const TimePolicy = lazy(() => import("@/pages/workforce/TimePolicy"));
@@ -99,13 +101,16 @@ export default function App() {
           <Route path="/nhmis-sync" element={<NhmisSync />} />
           <Route path="/audit-log" element={<AuditLog />} />
           <Route path="/settings" element={<Settings />} />
-          <Route path="/workforce" element={<WorkforceDashboard />} />
-          <Route path="/workforce/schedules" element={<Schedules />} />
-          <Route path="/workforce/attendance" element={<WfAttendance />} />
-          <Route path="/workforce/timesheets" element={<Timesheets />} />
-          <Route path="/workforce/leave" element={<HolidayLeave />} />
-          <Route path="/workforce/work" element={<WorkTasks />} />
-          <Route path="/workforce/policy" element={<TimePolicy />} />
+          <Route path="/workforce" element={<WorkforceLayout />}>
+            <Route index element={<WorkforceDashboard />} />
+            <Route path="schedules" element={<Schedules />} />
+            <Route path="attendance" element={<WfAttendance />} />
+            <Route path="timesheets" element={<Timesheets />} />
+            <Route path="approvals" element={<Approvals />} />
+            <Route path="leave" element={<HolidayLeave />} />
+            <Route path="work" element={<WorkTasks />} />
+            <Route path="policy" element={<TimePolicy />} />
+          </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

@@ -5,12 +5,22 @@ import { PageHeader, StatCard, Card, Badge } from "@/components/ui/primitives";
 import { Reveal } from "@/components/motion/Reveal";
 import { useWorkforce } from "@/store/useWorkforce";
 import { useHr } from "@/store/useHr";
+import { useWfScope } from "@/store/useWorkforceSession";
 import { shortDate } from "@/lib/format";
 
 const name = (id: string) => useHr.getState().byId(id)?.name ?? id;
 
 export default function WorkforceDashboard() {
-  const { attendance, timesheets, assignments, tasks, leave, holidayWork } = useWorkforce();
+  const wf = useWorkforce();
+  const scope = useWfScope();
+  const inS = scope.inScope;
+
+  const attendance = wf.attendance.filter((a) => inS(a.staffId));
+  const timesheets = wf.timesheets.filter((t) => inS(t.staffId));
+  const assignments = wf.assignments.filter((a) => inS(a.staffId));
+  const tasks = wf.tasks;
+  const leave = wf.leave.filter((l) => inS(l.staffId));
+  const holidayWork = wf.holidayWork.filter((w) => inS(w.staffId));
 
   const openIntervals = attendance.filter((a) => !a.clockOut);
   const exceptions = attendance.filter((a) => a.flags.some((f) => ["Late", "Missing checkout", "Auto-checkout"].includes(f)));
@@ -28,7 +38,10 @@ export default function WorkforceDashboard() {
 
   return (
     <div>
-      <PageHeader title="Time Dashboard" subtitle="Workforce scheduling, attendance & timesheet health — WBiz V3" />
+      <PageHeader
+        title="Time Dashboard"
+        subtitle={`Workforce scheduling, attendance & timesheet health — ${scope.scopeLabel}`}
+      />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
         <StatCard label="Scheduled staff" value={assignments.length} tone="brand" icon={<CalendarRange size={18} />} />
@@ -79,7 +92,7 @@ export default function WorkforceDashboard() {
           <Card>
             <div className="mb-3 flex items-center justify-between">
               <h3 className="font-display font-bold text-mist-900">Timesheets awaiting approval</h3>
-              <Link to="/workforce/timesheets" className="text-xs font-semibold text-brand-700 hover:underline">Open →</Link>
+              <Link to="/workforce/approvals" className="text-xs font-semibold text-brand-700 hover:underline">Open queue →</Link>
             </div>
             <div className="space-y-2">
               {awaiting.map((t) => (

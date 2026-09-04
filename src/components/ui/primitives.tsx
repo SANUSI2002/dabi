@@ -129,7 +129,7 @@ export function statusTone(s: string): "brand" | "action" | "mist" | "amber" {
     return "amber";
   if (
     ["referred", "rejected", "no-show", "critical", "sam", "out", "discontinued", "blocked",
-     "overdue", "locked", "faulty", "died", "uncontrolled", "high", "emergency"].includes(v)
+     "overdue", "locked", "faulty", "died", "uncontrolled", "high", "emergency", "returned"].includes(v)
   )
     return "action";
   return "mist";
