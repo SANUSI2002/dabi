@@ -4,6 +4,7 @@ import { FileDown, Printer, BarChart3 } from "lucide-react";
 import { PageHeader, StatCard } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
 import { useEmr } from "@/store/useEmr";
+import { useAssets } from "@/store/useAssets";
 import { useAudit } from "@/store/useAudit";
 import { REPORTS } from "./reports/config";
 import { ReportView } from "./reports/ReportView";
@@ -13,13 +14,16 @@ const PRESETS = ["Today", "Last 7 days", "Last 30 days", "This month", "This qua
 
 export default function Reports() {
   const emr = useEmr();
+  const assets = useAssets((s) => s.assets);
+  const maintenanceJobs = useAssets((s) => s.jobs);
   const snap: EmrSnapshot = {
     patients: emr.patients, queue: emr.queue, encounters: emr.encounters, labOrders: emr.labOrders,
     admissions: emr.admissions, appointments: emr.appointments, referrals: emr.referrals,
     ancRecords: emr.ancRecords, fpClients: emr.fpClients, childVisits: emr.childVisits,
-    deliveries: emr.deliveries, pncVisits: emr.pncVisits, cmamScreenings: emr.cmamScreenings,
+    deliveries: emr.deliveries, birthRegister: emr.birthRegister, pncVisits: emr.pncVisits, cmamScreenings: emr.cmamScreenings,
     outreachActivities: emr.outreachActivities, surveillanceCases: emr.surveillanceCases,
     ncdClients: emr.ncdClients, patientById: emr.patientById,
+    assets, maintenanceJobs,
   };
 
   const [familyName, setFamilyName] = useState(REPORTS[14].name); // Service Performance

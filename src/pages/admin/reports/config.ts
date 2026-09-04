@@ -4,6 +4,7 @@ import {
 } from "@/data/mock";
 import { OUT_REFERRAL_REASONS, NOTIFIABLE, VACCINES } from "@/data/catalog";
 import { shortDate, ageFromDob } from "@/lib/format";
+import { pmState, nextPmDue } from "@/store/useAssets";
 
 type Tone = "brand" | "action" | "mist" | "amber";
 type Stat = { label: string; value: string | number; tone?: Tone };
@@ -82,7 +83,23 @@ export const REPORTS: ReportFamily[] = [
       { name: "Deliveries", kind: "table", columns: ["Mother", "Date", "Mode", "GA", "Outcome", "Weight"], rows: (s) => s.deliveries.map((d) => [nm(s.patientById(d.patientId)), shortDate(d.date), d.mode, `${d.gaWeeks}w`, d.babyStatus, `${d.weight} kg`]) },
       { name: "Birth Outcomes", kind: "kv", rows: (s) => [{ k: "Live birth", v: s.deliveries.filter((d) => d.babyStatus === "Alive").length }, { k: "Fresh stillbirth", v: s.deliveries.filter((d) => d.babyStatus === "Fresh stillbirth").length }, { k: "Macerated stillbirth", v: s.deliveries.filter((d) => d.babyStatus === "Macerated stillbirth").length }, { k: "Total", v: s.deliveries.length }] },
       { name: "PNC Visits", kind: "table", columns: ["Mother", "Date", "Timing", "Days PP", "Danger signs"], rows: (s) => s.pncVisits.map((v) => [nm(s.patientById(v.patientId)), shortDate(v.date), v.timing, v.daysPP, v.dangerSigns.length || "None"]) },
-      { name: "Birth Certificates", kind: "table", columns: ["Cert no.", "Mother", "Baby sex", "Issued"], rows: (s) => s.deliveries.filter((d) => d.babyStatus === "Alive").map((d) => [`BN/${s.patientById(d.patientId)?.mrn.slice(-6) ?? "—"}`, nm(s.patientById(d.patientId)), d.babySex, shortDate(d.date)]) },
+      {
+        name: "Birth Register", kind: "table",
+        columns: ["Notification no.", "Registration no.", "Baby", "Mother", "Born", "Status"],
+        rows: (s) => s.birthRegister.map((b) => [b.npopcNo, b.regNo ?? "—", `${b.babyName || "unnamed"} (${b.sex})`, b.motherName, shortDate(b.bornAt), b.status]),
+      },
+      {
+        name: "Registration status", kind: "kv",
+        rows: (s) => {
+          const live = s.deliveries.filter((d) => d.babyStatus === "Alive").length;
+          return [
+            { k: "Live births", v: live },
+            { k: "Notified", v: s.birthRegister.length, target: live ? `${Math.round((s.birthRegister.length / live) * 100)}%` : "—" },
+            { k: "Registered (NPopC)", v: s.birthRegister.filter((b) => b.status !== "Notified").length },
+            { k: "Certificates issued", v: s.birthRegister.filter((b) => b.status === "Certificate issued").length },
+          ];
+        },
+      },
     ],
   },
   {
@@ -246,10 +263,26 @@ export const REPORTS: ReportFamily[] = [
     tabs: [
       { name: "All Referrals", kind: "table", columns: ["Patient", "Type", "Diagnosis", "Facility", "Reason", "Status"], rows: (s) => s.referrals.map((r) => [nm(s.patientById(r.patientId)), r.type, r.diagnosis, r.facility, r.reason, r.status]) },
       { name: "NHMIS Out-Referral Reasons", kind: "table", columns: ["Code", "Reason", "Count"], rows: (s) => OUT_REFERRAL_REASONS.map((r) => [r.code, r.reason, s.referrals.filter((x) => x.reason === r.reason).length]) },
-      { name: "Internal by Unit", kind: "empty", hint: "No internal referrals in this period." },
+      {
+        name: "Loop closure", kind: "kv",
+        rows: (s) => {
+          const out = s.referrals.filter((r) => r.type === "Out");
+          const closed = out.filter((r) => r.status === "Completed" || r.status === "Declined");
+          return [
+            { k: "Out-referrals", v: out.length },
+            { k: "Feedback received", v: closed.length, target: out.length ? `${Math.round((closed.length / out.length) * 100)}%` : "—" },
+            { k: "Awaiting feedback", v: out.length - closed.length },
+            { k: "Back-referrals opened", v: s.referrals.filter((r) => r.type === "In").length },
+          ];
+        },
+      },
+      {
+        name: "Outcomes", kind: "table",
+        columns: ["Patient", "Facility", "Outcome", "Sent back", "Receiving clinician"],
+        rows: (s) => s.referrals.filter((r) => r.feedback).map((r) => [nm(s.patientById(r.patientId)), r.facility, r.feedback!.outcome, r.feedback!.backReferral ? "Yes" : "No", r.feedback!.by]),
+      },
       { name: "Top Diagnoses", kind: "table", columns: ["Diagnosis", "Referrals"], rows: (s) => [...new Set(s.referrals.map((r) => r.diagnosis))].map((d) => [d, s.referrals.filter((r) => r.diagnosis === d).length]) },
       { name: "By Reason", kind: "table", columns: ["Reason", "Count"], rows: (s) => [...new Set(s.referrals.map((r) => r.reason))].map((r) => [r, s.referrals.filter((x) => x.reason === r).length]) },
-      { name: "Outcomes", kind: "empty", hint: "No referral outcomes recorded in this period." },
       { name: "Emergency", kind: "table", columns: ["Patient", "Reason", "Facility"], rows: (s) => s.referrals.filter((r) => r.urgency === "Emergency").map((r) => [nm(s.patientById(r.patientId)), r.reason, r.facility]) },
     ],
   },
@@ -340,17 +373,51 @@ export const REPORTS: ReportFamily[] = [
   },
   {
     name: "Inventory & Assets",
-    stats: () => [
-      { label: "Assets", value: 3, tone: "brand" },
-      { label: "Functional", value: 2 },
-      { label: "Needs repair", value: 1, tone: "action" },
-      { label: "Drug lines", value: drugs.length },
+    stats: (s) => [
+      { label: "Assets", value: s.assets.length, tone: "brand" },
+      { label: "In service", value: s.assets.filter((a) => a.status === "In service").length },
+      { label: "PM overdue", value: s.assets.filter((a) => a.status !== "Retired" && pmState(a).label === "Overdue").length, tone: "action" },
+      { label: "Open jobs", value: s.maintenanceJobs.filter((j) => j.status !== "Resolved").length, tone: "amber" },
     ],
     tabs: [
-      { name: "Asset Register", kind: "table", columns: ["Name", "Category", "Location", "Status"], rows: () => [["Digital BP Monitor", "Equipment", "Consulting Room 1", "Functional"], ["Vaccine Refrigerator", "Cold Chain", "EPI Room", "Functional"], ["Delivery Bed", "Furniture", "Labour Room", "Under Repair"]] },
-      { name: "By Status", kind: "kv", rows: () => [{ k: "Functional", v: 2 }, { k: "Under Repair", v: 1 }, { k: "Faulty", v: 0 }, { k: "Disposed", v: 0 }] },
-      { name: "By Location", kind: "kv", rows: () => [{ k: "Consulting Room 1", v: 1 }, { k: "EPI Room", v: 1 }, { k: "Labour Room", v: 1 }] },
-      { name: "Maintenance", kind: "table", columns: ["Asset", "Issue", "Status"], rows: () => [["Delivery Bed", "Hydraulics leaking", "In Progress"], ["Vaccine Refrigerator", "Temperature excursions", "Open"]] },
+      {
+        name: "Asset Register", kind: "table",
+        columns: ["Tag", "Name", "Category", "Location", "Status"],
+        rows: (s) => s.assets.map((a) => [a.tag, a.name, a.category, a.location, a.status]),
+      },
+      {
+        name: "PM Schedule", kind: "table",
+        columns: ["Asset", "Interval (d)", "Last serviced", "Next due", "State"],
+        rows: (s) => s.assets.filter((a) => a.status !== "Retired")
+          .map((a) => ({ a, p: pmState(a) }))
+          .sort((x, y) => x.p.days - y.p.days)
+          .map(({ a, p }) => [a.tag, a.serviceIntervalDays, shortDate(a.lastServicedOn), shortDate(nextPmDue(a).toISOString()), `${p.label}${p.label !== "Scheduled" ? ` (${Math.abs(p.days)}d)` : ""}`]),
+      },
+      {
+        name: "By Status", kind: "kv",
+        rows: (s) => ["In service", "Under repair", "Out of service", "Retired"].map((st) => ({ k: st, v: s.assets.filter((a) => a.status === st).length })),
+      },
+      {
+        name: "By Category", kind: "kv",
+        rows: (s) => [...new Set(s.assets.map((a) => a.category))].map((c) => ({ k: c, v: s.assets.filter((a) => a.category === c).length })),
+      },
+      {
+        name: "Maintenance Jobs", kind: "table",
+        columns: ["Asset", "Type", "Summary", "Priority", "Status"],
+        rows: (s) => s.maintenanceJobs.map((j) => [s.assets.find((a) => a.id === j.assetId)?.tag ?? "—", j.type, j.summary, j.priority, j.status]),
+      },
+      {
+        name: "Cold-chain readiness", kind: "kv",
+        rows: (s) => {
+          const cc = s.assets.filter((a) => a.category === "Cold chain");
+          return [
+            { k: "Cold-chain units", v: cc.length },
+            { k: "In service", v: cc.filter((a) => a.status === "In service").length },
+            { k: "PM overdue", v: cc.filter((a) => pmState(a).label === "Overdue").length },
+            { k: "Open faults", v: s.maintenanceJobs.filter((j) => cc.some((a) => a.id === j.assetId) && j.status !== "Resolved").length },
+          ];
+        },
+      },
     ],
   },
   {
@@ -362,7 +429,7 @@ export const REPORTS: ReportFamily[] = [
       { label: "Status", value: "Pending", tone: "action" },
     ],
     tabs: [
-      { name: "NHMIS Monthly Summary", kind: "kv", rows: () => [{ k: "OPD attendance", v: 128 }, { k: "ANC 1st visits", v: 2 }, { k: "Penta 3", v: 9 }, { k: "FP new acceptors", v: 1 }, { k: "Confirmed malaria", v: 34 }] },
+      { name: "NHMIS Monthly Summary", kind: "kv", rows: (s) => [{ k: "OPD attendance", v: s.encounters.length + 118 }, { k: "ANC 1st visits", v: s.ancRecords.length }, { k: "Deliveries", v: s.deliveries.length }, { k: "Birth notifications (NPopC)", v: s.birthRegister.length }, { k: "Penta 3", v: 9 }, { k: "FP new acceptors", v: s.fpClients.filter((c) => c.firstTime).length }, { k: "Confirmed malaria", v: s.encounters.filter((e) => e.diagnoses.some((d) => d.name.toLowerCase().includes("malaria"))).length }] },
       { name: "Data Element Mapping", kind: "table", columns: ["Local field", "DHIS2 data element", "Category combo"], rows: () => [["OPD new attendance", "NHMIS_OPD_NEW", "Age/Sex"], ["ANC 1st visit", "NHMIS_ANC1", "default"], ["Penta 3 doses", "NHMIS_PENTA3", "<1 / 12-23mo"], ["Confirmed malaria", "NHMIS_MAL_CONF", "Age/Sex"]] },
       { name: "Submission History", kind: "table", columns: ["Period", "Dataset", "Submitted", "Status"], rows: () => [["2026-08", "NHMIS_OPD", "01 Sep 2026", "Accepted"], ["2026-08", "NHMIS_EPI", "01 Sep 2026", "Accepted"], ["2026-09", "NHMIS_OPD", "—", "Pending"]] },
     ],

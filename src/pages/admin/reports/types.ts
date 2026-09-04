@@ -1,4 +1,5 @@
 import type { useEmr } from "@/store/useEmr";
+import type { Asset, MaintenanceJob } from "@/data/assets";
 
 type Emr = ReturnType<typeof useEmr.getState>;
 
@@ -15,10 +16,14 @@ export type EmrSnapshot = Pick<
   | "fpClients"
   | "childVisits"
   | "deliveries"
+  | "birthRegister"
   | "pncVisits"
   | "cmamScreenings"
   | "outreachActivities"
   | "surveillanceCases"
   | "ncdClients"
   | "patientById"
->;
+> & {
+  assets: Asset[];
+  maintenanceJobs: MaintenanceJob[];
+};
