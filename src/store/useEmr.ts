@@ -9,6 +9,7 @@ import type {
   Admission,
   Appointment,
   Referral,
+  ReferralFeedback,
   AncRecord,
   FpClient,
   ChildVisit,
@@ -67,6 +68,8 @@ type EmrState = {
   bookAppointment: (a: Omit<Appointment, "id" | "status">) => void;
   markAppointment: (id: string, status: Appointment["status"], queueStation?: Station) => void;
   addReferral: (r: Omit<Referral, "id" | "date" | "status">) => void;
+  setReferralStatus: (id: string, status: Referral["status"]) => void;
+  recordReferralFeedback: (id: string, feedback: Omit<ReferralFeedback, "at">) => void;
   enrollAnc: (r: Omit<AncRecord, "id" | "visits" | "status" | "edd">) => void;
   addAncVisit: (recordId: string, v: AncRecord["visits"][number]) => void;
   addFpClient: (c: Omit<FpClient, "id" | "status">) => void;
@@ -230,6 +233,37 @@ export const useEmr = create<EmrState>((set, get) => ({
     set((s) => ({
       referrals: [{ ...r, id: rid(), date: new Date().toISOString(), status: "Open" }, ...s.referrals],
     }));
+  },
+
+  setReferralStatus: (id, status) => {
+    const r = get().referrals.find((x) => x.id === id);
+    audit(`referral ${status.toLowerCase()}`, `referral/${r ? r.patientId : id}`);
+    set((s) => ({ referrals: s.referrals.map((x) => (x.id === id ? { ...x, status } : x)) }));
+  },
+
+  recordReferralFeedback: (id, feedback) => {
+    const r = get().referrals.find((x) => x.id === id);
+    audit("recorded referral feedback", `referral/${r ? r.patientId : id}`);
+    set((s) => ({
+      referrals: s.referrals.map((x) =>
+        x.id === id
+          ? { ...x, status: "Completed", feedback: { ...feedback, at: new Date().toISOString() } }
+          : x,
+      ),
+    }));
+    // a back-referral opens an inbound referral for continued PHC care
+    if (feedback.backReferral && r) {
+      set((s) => ({
+        referrals: [
+          {
+            id: rid(), patientId: r.patientId, type: "In", diagnosis: r.diagnosis,
+            facility: r.facility, reason: "Continued care after referral", urgency: "Routine",
+            status: "Open", date: new Date().toISOString(), referredBy: feedback.by,
+          },
+          ...s.referrals,
+        ],
+      }));
+    }
   },
 
   enrollAnc: (r) =>

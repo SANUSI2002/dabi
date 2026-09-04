@@ -119,7 +119,7 @@ export function statusTone(s: string): "brand" | "action" | "mist" | "amber" {
   const v = s.toLowerCase();
   if (
     ["in progress", "active", "resulted", "dispensed", "completed", "attended", "normal", "paid",
-     "approved", "done", "cured", "recovered", "current", "up to date", "synced", "protected", "controlled"].includes(v)
+     "approved", "done", "cured", "recovered", "current", "up to date", "synced", "protected", "controlled", "acknowledged"].includes(v)
   )
     return "brand";
   if (
@@ -129,7 +129,7 @@ export function statusTone(s: string): "brand" | "action" | "mist" | "amber" {
     return "amber";
   if (
     ["referred", "rejected", "no-show", "critical", "sam", "out", "discontinued", "blocked",
-     "overdue", "locked", "faulty", "died", "uncontrolled", "high", "emergency", "returned"].includes(v)
+     "overdue", "locked", "faulty", "died", "uncontrolled", "high", "emergency", "returned", "declined"].includes(v)
   )
     return "action";
   return "mist";

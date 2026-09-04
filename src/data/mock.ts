@@ -121,7 +121,12 @@ export const staff: StaffMember[] = [
 ];
 
 export const referrals: Referral[] = [
-  { id: "r1", patientId: "p6", type: "Out", diagnosis: "Suspected surgical abdomen", facility: "General Hospital, Amuwo", reason: "Complicated Cases", urgency: "Urgent", status: "Open", date: iso(6) },
+  { id: "r1", patientId: "p6", type: "Out", diagnosis: "Suspected surgical abdomen", facility: "General Hospital, Amuwo", reason: "Complicated Cases", urgency: "Urgent", status: "Open", date: iso(6), referredBy: CURRENT_USER.name },
+  { id: "r2", patientId: "p3", type: "Out", diagnosis: "Poorly controlled hypertension", facility: "General Hospital, Amuwo", reason: "Specialist Care", urgency: "Routine", status: "Acknowledged", date: iso(12), referredBy: CURRENT_USER.name },
+  {
+    id: "r3", patientId: "p13", type: "Out", diagnosis: "Severe pre-eclampsia — for obstetric review", facility: "LASUTH, Ikeja", reason: "Complicated Cases", urgency: "Emergency", status: "Completed", date: iso(20), referredBy: CURRENT_USER.name,
+    feedback: { outcome: "Treated & discharged", note: "BP controlled on labetalol + nifedipine. Delivered at term. Continue BP monitoring at PHC; review in 1 week.", by: "Dr. Bello (O&G, LASUTH)", at: iso(9), backReferral: true },
+  },
 ];
 
 export const ancRecords: AncRecord[] = [

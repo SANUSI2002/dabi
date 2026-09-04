@@ -137,6 +137,14 @@ export type StaffMember = {
   status: "Active" | "Inactive";
 };
 
+export type ReferralFeedback = {
+  outcome: "Admitted & managed" | "Treated & discharged" | "Investigations done" | "Patient did not attend" | "Referred onward";
+  note: string;
+  by: string; // receiving-facility clinician
+  at: string;
+  backReferral: boolean; // returned for continued care at the PHC
+};
+
 export type Referral = {
   id: string;
   patientId: string;
@@ -145,8 +153,10 @@ export type Referral = {
   facility: string;
   reason: string;
   urgency: "Routine" | "Urgent" | "Emergency";
-  status: "Open" | "Completed";
+  status: "Open" | "Acknowledged" | "Completed" | "Declined";
   date: string;
+  referredBy?: string;
+  feedback?: ReferralFeedback;
 };
 
 export type AncRecord = {
