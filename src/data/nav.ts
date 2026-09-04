@@ -132,6 +132,7 @@ export const NAV: NavGroup[] = [
       { to: "/hr/payroll", label: "Payroll", icon: Wallet },
       { to: "/hr/assets", label: "Company Assets", icon: Package },
       { to: "/hr/helpdesk", label: "Helpdesk", icon: Headset },
+      { to: "/hr/reports", label: "HR Reports", icon: BarChart3 },
       { to: "/hr/org-setup", label: "Organisation Setup", icon: Building2 },
     ],
   },
