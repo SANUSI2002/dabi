@@ -47,6 +47,9 @@ const HolidayLeave = lazy(() => import("@/pages/workforce/HolidayLeave"));
 const WorkTasks = lazy(() => import("@/pages/workforce/WorkTasks"));
 const WorkforceReports = lazy(() => import("@/pages/workforce/WorkforceReports"));
 const TimePolicy = lazy(() => import("@/pages/workforce/TimePolicy"));
+const OrgSetup = lazy(() => import("@/pages/hr/OrgSetup"));
+const EmployeeDirectory = lazy(() => import("@/pages/hr/EmployeeDirectory"));
+const EmployeeDetail = lazy(() => import("@/pages/hr/EmployeeDetail"));
 
 function Loader() {
   return (
@@ -115,6 +118,9 @@ export default function App() {
             <Route path="reports" element={<WorkforceReports />} />
             <Route path="policy" element={<TimePolicy />} />
           </Route>
+          <Route path="/hr/org-setup" element={<OrgSetup />} />
+          <Route path="/hr/employees" element={<EmployeeDirectory />} />
+          <Route path="/hr/employees/:id" element={<EmployeeDetail />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

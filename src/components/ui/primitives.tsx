@@ -124,7 +124,8 @@ export function statusTone(s: string): "brand" | "action" | "mist" | "amber" {
     return "brand";
   if (
     ["waiting", "pending", "sample collected", "scheduled", "open", "mam", "submitted", "draft",
-     "due", "future", "in process", "under repair", "not started", "queued", "unpaid", "incomplete"].includes(v)
+     "due", "future", "in process", "under repair", "not started", "queued", "unpaid", "incomplete",
+     "requested", "uploaded", "ongoing", "new"].includes(v)
   )
     return "amber";
   if (

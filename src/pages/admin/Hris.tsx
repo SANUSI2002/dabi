@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { IdCard, Plus } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
@@ -43,7 +44,7 @@ export default function Hris() {
                 {list.map((s, i) => (
                   <Row key={s.id} index={i}>
                     <Cell className="font-semibold">
-                      {s.name}
+                      <Link to={`/hr/employees/${s.id}`} className="hover:text-brand-700 hover:underline">{s.name}</Link>
                       <span className="block text-[11px] font-normal text-mist-400">@{s.username} · hired {shortDate(s.hireDate)}</span>
                     </Cell>
                     <Cell>{s.role}</Cell>

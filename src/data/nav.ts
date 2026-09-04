@@ -36,6 +36,8 @@ import {
   FolderKanban,
   Palmtree,
   CheckSquare,
+  Building2,
+  Contact,
   type LucideIcon,
 } from "lucide-react";
 
@@ -103,6 +105,13 @@ export const NAV: NavGroup[] = [
       { to: "/workforce/work", label: "Work & Tasks", icon: FolderKanban },
       { to: "/workforce/reports", label: "Time Reports", icon: BarChart3 },
       { to: "/workforce/policy", label: "Time Settings", icon: SlidersHorizontal },
+    ],
+  },
+  {
+    title: "Human Resources",
+    items: [
+      { to: "/hr/employees", label: "Employee Directory", icon: Contact },
+      { to: "/hr/org-setup", label: "Organisation Setup", icon: Building2 },
     ],
   },
   {
