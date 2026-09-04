@@ -185,6 +185,12 @@ export const childVisits: ChildVisit[] = [
   { id: "cv2", patientId: "p2", date: iso(6), weight: 9.1, height: 78, muac: 12.9, waz: -1.4, status: "MAM", feeding: "Family diet" },
 ];
 
+export const cmamScreenings: import("./types").CmamScreening[] = [
+  { id: "cm1", patientId: "p2", date: iso(6), muac: 12.9, oedema: "None", appetite: "Pass", cls: "MAM", program: "SFP", source: "Child Health" },
+  { id: "cm2", patientId: "p9", date: iso(40), muac: 11.0, oedema: "None", appetite: "Pass", cls: "SAM", program: "OTP", source: "Nutrition", outcome: "Cured", dischargedAt: iso(5) },
+  { id: "cm3", patientId: "p12", date: iso(50), muac: 11.8, oedema: "None", appetite: "Fail", cls: "MAM", program: "SFP", source: "Nutrition", outcome: "Defaulter", dischargedAt: iso(10) },
+];
+
 export const outreachSeed = [
   {
     id: "o1", chw: "Abisola Adedokun", type: "Household visit", ward: "Kirikiri",

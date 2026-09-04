@@ -95,6 +95,7 @@ type EmrState = {
   issueBirthCertificate: (id: string) => void;
   addPncVisit: (v: Omit<PncVisit, "id">) => void;
   addCmamScreening: (c: Omit<CmamScreening, "id">) => void;
+  setCmamOutcome: (id: string, outcome: import("@/data/types").CmamOutcome) => void;
   addOutreach: (a: Omit<OutreachActivity, "id">) => void;
   addSurveillanceCase: (c: Omit<SurveillanceCase, "id" | "reportedAt" | "status">) => void;
   addNcdClient: (c: Omit<NcdClient, "id" | "enrolledAt">) => void;
@@ -120,7 +121,7 @@ export const useEmr = create<EmrState>((set, get) => ({
   birthRegister: [],
   immunizations: mock.immunizations,
   pncVisits: mock.pncVisits,
-  cmamScreenings: [],
+  cmamScreenings: mock.cmamScreenings,
   outreachActivities: mock.outreachSeed,
   surveillanceCases: [],
   ncdClients: mock.ncdSeed,
@@ -463,7 +464,18 @@ export const useEmr = create<EmrState>((set, get) => ({
       get().addToQueue(v.patientId, "Consultation", "Urgent", `PNC danger signs: ${v.dangerSigns.join(", ")}`);
     }
   },
-  addCmamScreening: (c) => set((s) => ({ cmamScreenings: [{ ...c, id: rid() }, ...s.cmamScreenings] })),
+  addCmamScreening: (c) => {
+    audit("recorded CMAM screening", `nutrition/cmam/${c.patientId}`);
+    set((s) => ({ cmamScreenings: [{ ...c, id: rid() }, ...s.cmamScreenings] }));
+  },
+
+  setCmamOutcome: (id, outcome) => {
+    const c = get().cmamScreenings.find((x) => x.id === id);
+    audit(`CMAM outcome: ${outcome.toLowerCase()}`, `nutrition/cmam/${c?.patientId ?? id}`);
+    set((s) => ({
+      cmamScreenings: s.cmamScreenings.map((x) => (x.id === id ? { ...x, outcome, dischargedAt: new Date().toISOString() } : x)),
+    }));
+  },
   addOutreach: (a) => set((s) => ({ outreachActivities: [{ ...a, id: rid() }, ...s.outreachActivities] })),
   addSurveillanceCase: (c) =>
     set((s) => ({

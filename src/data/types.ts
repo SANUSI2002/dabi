@@ -290,6 +290,8 @@ export type PncVisit = {
   notes?: string;
 };
 
+export type CmamOutcome = "Cured" | "Defaulter" | "Death" | "Non-response" | "Transferred";
+
 export type CmamScreening = {
   id: string;
   patientId: string;
@@ -299,6 +301,9 @@ export type CmamScreening = {
   appetite: string;
   cls: "Normal" | "MAM" | "SAM";
   program: string;
+  source?: "Nutrition" | "Child Health"; // where the screening originated
+  outcome?: CmamOutcome;
+  dischargedAt?: string;
 };
 
 export type OutreachActivity = {

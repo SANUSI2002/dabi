@@ -130,17 +130,31 @@ export const REPORTS: ReportFamily[] = [
     name: "Nutrition (CMAM)",
     stats: (s) => [
       { label: "Screenings", value: s.cmamScreenings.length, tone: "brand" },
-      { label: "Active OTP", value: s.cmamScreenings.filter((c) => c.program === "OTP").length, tone: "action" },
-      { label: "Active SFP", value: s.cmamScreenings.filter((c) => c.program === "SFP").length, tone: "amber" },
-      { label: "Normal", value: s.cmamScreenings.filter((c) => c.cls === "Normal").length },
+      { label: "Active OTP", value: s.cmamScreenings.filter((c) => c.program === "OTP" && !c.outcome).length, tone: "action" },
+      { label: "Active SFP", value: s.cmamScreenings.filter((c) => c.program === "SFP" && !c.outcome).length, tone: "amber" },
+      { label: "Cure rate", value: `${(() => { const d = s.cmamScreenings.filter((c) => c.outcome); return d.length ? Math.round((d.filter((c) => c.outcome === "Cured").length / d.length) * 100) : 0; })()}%`, tone: "brand" },
     ],
     tabs: [
-      { name: "Screening Summary", kind: "table", columns: ["Patient", "Date", "MUAC", "Oedema", "Classification", "Program"], rows: (s) => s.cmamScreenings.map((c) => [nm(s.patientById(c.patientId)), shortDate(c.date), `${c.muac} cm`, c.oedema, c.cls, c.program]) },
+      { name: "Screening Summary", kind: "table", columns: ["Patient", "Date", "MUAC", "Oedema", "Classification", "Program", "Outcome"], rows: (s) => s.cmamScreenings.map((c) => [nm(s.patientById(c.patientId)), shortDate(c.date), `${c.muac} cm`, c.oedema, c.cls, c.program, c.outcome ?? (c.cls === "Normal" ? "—" : "In caseload")]) },
       { name: "Nutrition Indicators", kind: "kv", rows: (s) => [{ k: "Screened by MUAC (181)", v: s.cmamScreenings.length }, { k: "SAM identified (182)", v: s.cmamScreenings.filter((c) => c.cls === "SAM").length }, { k: "MAM identified (183)", v: s.cmamScreenings.filter((c) => c.cls === "MAM").length }, { k: "Oedema cases (184)", v: s.cmamScreenings.filter((c) => c.oedema !== "None").length }] },
       { name: "MAM Treatment", kind: "kv", rows: (s) => [{ k: "MAM admitted to SFP (185)", v: s.cmamScreenings.filter((c) => c.program === "SFP").length }, { k: "MAM received RUSF (186)", v: s.cmamScreenings.filter((c) => c.program === "SFP").length }] },
-      { name: "SAM Treatment & Outcomes", kind: "kv", rows: (s) => [{ k: "SAM admitted to OTP (187)", v: s.cmamScreenings.filter((c) => c.program === "OTP").length }, { k: "SAM received RUTF (188)", v: s.cmamScreenings.filter((c) => c.program === "OTP").length }, { k: "Recovered (190)", v: 0, target: "≥ 75%" }, { k: "Defaulted (190)", v: 0, target: "< 15%" }, { k: "Death (190)", v: 0, target: "< 10%" }] },
-      { name: "Caseload", kind: "table", columns: ["Patient", "Program", "MUAC", "Enrolled"], rows: (s) => s.cmamScreenings.filter((c) => c.cls !== "Normal").map((c) => [nm(s.patientById(c.patientId)), c.program, `${c.muac} cm`, shortDate(c.date)]) },
-      { name: "Defaulter List", kind: "empty", hint: "No defaulters in this period." },
+      {
+        name: "SAM Treatment & Outcomes", kind: "kv",
+        rows: (s) => {
+          const otp = s.cmamScreenings.filter((c) => c.program === "OTP");
+          const discharged = s.cmamScreenings.filter((c) => c.outcome);
+          const rate = (o: string) => (discharged.length ? Math.round((discharged.filter((c) => c.outcome === o).length / discharged.length) * 100) : 0);
+          return [
+            { k: "SAM admitted to OTP (187)", v: otp.length },
+            { k: "SAM received RUTF (188)", v: otp.length },
+            { k: "Recovered (190)", v: `${rate("Cured")}%`, target: "≥ 75%" },
+            { k: "Defaulted (190)", v: `${rate("Defaulter")}%`, target: "< 15%" },
+            { k: "Death (190)", v: `${rate("Death")}%`, target: "< 10%" },
+          ];
+        },
+      },
+      { name: "Caseload", kind: "table", columns: ["Patient", "Program", "MUAC", "Enrolled", "Days in program"], rows: (s) => s.cmamScreenings.filter((c) => c.cls !== "Normal" && !c.outcome).map((c) => [nm(s.patientById(c.patientId)), c.program, `${c.muac} cm`, shortDate(c.date), Math.max(0, Math.round((Date.now() - +new Date(c.date)) / 864e5))]) },
+      { name: "Defaulter List", kind: "table", columns: ["Patient", "Program", "Enrolled", "Discharged"], rows: (s) => s.cmamScreenings.filter((c) => c.outcome === "Defaulter").map((c) => [nm(s.patientById(c.patientId)), c.program, shortDate(c.date), c.dischargedAt ? shortDate(c.dischargedAt) : "—"]) },
     ],
   },
   {

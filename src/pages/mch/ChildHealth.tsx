@@ -16,7 +16,7 @@ function classify(muac: number): "Normal" | "MAM" | "SAM" {
 }
 
 export default function ChildHealth() {
-  const { childVisits, patientById, addChildVisit } = useEmr();
+  const { childVisits, cmamScreenings, patientById, addChildVisit, addCmamScreening } = useEmr();
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({ patientId: "", weight: 0, height: 0, muac: 0, waz: 0, feeding: "Exclusive breastfeeding", date: "" });
   const status = classify(f.muac || 13);
@@ -50,7 +50,12 @@ export default function ChildHealth() {
                     <Cell>{v.height} cm</Cell>
                     <Cell>{v.muac} cm</Cell>
                     <Cell>{v.waz ?? "—"}</Cell>
-                    <Cell><Badge tone={statusTone(v.status)}>{v.status}</Badge></Cell>
+                    <Cell>
+                      <Badge tone={statusTone(v.status)}>{v.status}</Badge>
+                      {v.status !== "Normal" && cmamScreenings.some((c) => c.patientId === v.patientId && c.cls === v.status) && (
+                        <span className="ml-1 text-[11px] text-mist-400">→ CMAM</span>
+                      )}
+                    </Cell>
                     <Cell className="text-mist-500">{v.feeding}</Cell>
                   </Row>
                 );
@@ -74,7 +79,16 @@ export default function ChildHealth() {
         onClose={() => setOpen(false)}
         title="Record Growth Visit"
         footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button disabled={!f.patientId || !f.date} onClick={() => { addChildVisit({ ...f, status } as never); setOpen(false); }}>Save Visit</Button></>}
+          <Button disabled={!f.patientId || !f.date} onClick={() => {
+            addChildVisit({ ...f, status } as never);
+            if (status !== "Normal") {
+              addCmamScreening({
+                patientId: f.patientId, date: new Date(f.date).toISOString(), muac: f.muac, oedema: "None",
+                appetite: "Pass", cls: status, program: status === "SAM" ? "OTP" : "SFP", source: "Child Health",
+              });
+            }
+            setOpen(false);
+          }}>Save Visit</Button></>}
       >
         <div className="space-y-4">
           <Field label="Child (under 5)"><PatientPicker value={f.patientId} onChange={(id) => setF({ ...f, patientId: id })} /></Field>
@@ -90,8 +104,8 @@ export default function ChildHealth() {
           <Field label="Weight-for-age Z (WAZ)"><Input type="number" step="0.1" value={f.waz || ""} onChange={(e) => setF({ ...f, waz: +e.target.value })} /></Field>
           <div className={`rounded-xl px-3 py-2 text-sm font-semibold ${status === "Normal" ? "bg-brand-50 text-brand-700" : status === "MAM" ? "bg-amber-50 text-amber-700" : "bg-action-50 text-action-700"}`}>
             Auto-classification: {status}
-            {status === "SAM" && " — refer to OTP / stabilisation centre"}
-            {status === "MAM" && " — enrol in supplementary feeding"}
+            {status === "SAM" && " — auto-enrols in CMAM/OTP on save"}
+            {status === "MAM" && " — auto-enrols in CMAM/SFP on save"}
           </div>
         </div>
       </Modal>
