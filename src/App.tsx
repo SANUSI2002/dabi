@@ -40,6 +40,7 @@ const WorkforceDashboard = lazy(() => import("@/pages/workforce/WorkforceDashboa
 const Schedules = lazy(() => import("@/pages/workforce/Schedules"));
 const WfAttendance = lazy(() => import("@/pages/workforce/Attendance"));
 const Timesheets = lazy(() => import("@/pages/workforce/Timesheets"));
+const HolidayLeave = lazy(() => import("@/pages/workforce/HolidayLeave"));
 const WorkTasks = lazy(() => import("@/pages/workforce/WorkTasks"));
 const TimePolicy = lazy(() => import("@/pages/workforce/TimePolicy"));
 
@@ -102,6 +103,7 @@ export default function App() {
           <Route path="/workforce/schedules" element={<Schedules />} />
           <Route path="/workforce/attendance" element={<WfAttendance />} />
           <Route path="/workforce/timesheets" element={<Timesheets />} />
+          <Route path="/workforce/leave" element={<HolidayLeave />} />
           <Route path="/workforce/work" element={<WorkTasks />} />
           <Route path="/workforce/policy" element={<TimePolicy />} />
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -146,6 +146,37 @@ export type WorkActivity = {
   note: string;
 };
 
+export type Holiday = {
+  id: string;
+  name: string;
+  date: string;
+  scope: "Organisation" | "Location" | "Group" | "Schedule";
+  scopeValue: string;
+  paid: boolean;
+  workRequiresApproval: boolean;
+};
+
+export type LeaveRequest = {
+  id: string;
+  staffId: string;
+  type: "Annual" | "Sick" | "Maternity" | "Compassionate" | "Study" | "Unpaid";
+  from: string;
+  to: string;
+  days: number;
+  status: "Pending" | "Approved" | "Rejected";
+  paid: boolean;
+  note?: string;
+};
+
+export type HolidayWorkRequest = {
+  id: string;
+  staffId: string;
+  holidayId: string;
+  reason: string;
+  status: "Pending" | "Approved" | "Rejected";
+  hours: number;
+};
+
 /* ------------------------------------------------------------------ seed */
 
 const iso = (d: number) => {
@@ -270,6 +301,23 @@ export const tasks: WorkTask[] = [
   { id: "wt3", containerId: "wc2", name: "Outreach immunization day", assignedTo: "Abisola Adedokun", status: "Done", estimateHours: 8, loggedHours: 9 },
   { id: "wt4", containerId: "wc3", name: "NHMIS monthly return", assignedTo: "Folashade Adeniyi", status: "In progress", estimateHours: 12, loggedHours: 7 },
   { id: "wt5", containerId: "wc4", name: "Registration desk", assignedTo: "Stella Okon", status: "In progress", estimateHours: 37.5, loggedHours: 31 },
+];
+
+export const holidays: Holiday[] = [
+  { id: "h1", name: "Independence Day", date: `${new Date().getFullYear()}-10-01`, scope: "Organisation", scopeValue: "All facilities", paid: true, workRequiresApproval: true },
+  { id: "h2", name: "Eid al-Maulud", date: `${new Date().getFullYear()}-09-15`, scope: "Organisation", scopeValue: "All facilities", paid: true, workRequiresApproval: true },
+  { id: "h3", name: "Workers' Day", date: `${new Date().getFullYear()}-05-01`, scope: "Organisation", scopeValue: "All facilities", paid: true, workRequiresApproval: true },
+  { id: "h4", name: "Lagos State Founders' Day", date: `${new Date().getFullYear()}-05-27`, scope: "Location", scopeValue: "Lagos", paid: true, workRequiresApproval: false },
+];
+
+export const leaveRequests: LeaveRequest[] = [
+  { id: "lv1", staffId: "s3", type: "Annual", from: day(-2), to: day(-9), days: 6, status: "Approved", paid: true, note: "Family visit" },
+  { id: "lv2", staffId: "s7", type: "Sick", from: day(4), to: day(3), days: 2, status: "Approved", paid: true, note: "Malaria — RDT positive" },
+  { id: "lv3", staffId: "s4", type: "Study", from: day(-20), to: day(-25), days: 5, status: "Pending", paid: false, note: "CHO refresher" },
+];
+
+export const holidayWork: HolidayWorkRequest[] = [
+  { id: "hw1", staffId: "s2", holidayId: "h2", reason: "Maternity ward on-call — no alternative cover", status: "Approved", hours: 7.5 },
 ];
 
 export const activities: WorkActivity[] = [

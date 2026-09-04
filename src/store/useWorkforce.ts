@@ -6,6 +6,7 @@ import type {
   TimeBlock, WeeklySchedule, ScheduleAssignment, AttendanceInterval,
   Timesheet, TimesheetPeriod, TimePolicy, Enrolment,
   WorkContainer, WorkTask, WorkActivity, TimesheetStatus,
+  Holiday, LeaveRequest, HolidayWorkRequest,
 } from "@/data/workforce";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
@@ -22,6 +23,9 @@ type WorkforceState = {
   containers: WorkContainer[];
   tasks: WorkTask[];
   activities: WorkActivity[];
+  holidays: Holiday[];
+  leave: LeaveRequest[];
+  holidayWork: HolidayWorkRequest[];
 
   addTimeBlock: (b: Omit<TimeBlock, "id" | "active">) => void;
   addSchedule: (s: Omit<WeeklySchedule, "id" | "status">) => void;
@@ -36,6 +40,10 @@ type WorkforceState = {
 
   logActivity: (a: Omit<WorkActivity, "id">) => void;
   addTask: (t: Omit<WorkTask, "id" | "loggedHours">) => void;
+  addHoliday: (h: Omit<Holiday, "id">) => void;
+  requestLeave: (l: Omit<LeaveRequest, "id" | "status">) => void;
+  setLeaveStatus: (id: string, status: LeaveRequest["status"]) => void;
+  setHolidayWorkStatus: (id: string, status: HolidayWorkRequest["status"]) => void;
 };
 
 const hhmm = () => {
@@ -56,6 +64,9 @@ export const useWorkforce = create<WorkforceState>((set, get) => ({
   containers: wf.containers,
   tasks: wf.tasks,
   activities: wf.activities,
+  holidays: wf.holidays,
+  leave: wf.leaveRequests,
+  holidayWork: wf.holidayWork,
 
   addTimeBlock: (b) => {
     audit("created time block", `workforce/schedule/${b.code}`);
@@ -136,4 +147,22 @@ export const useWorkforce = create<WorkforceState>((set, get) => ({
   },
 
   addTask: (t) => set((s) => ({ tasks: [{ ...t, id: rid(), loggedHours: 0 }, ...s.tasks] })),
+
+  addHoliday: (h) => {
+    audit("added holiday", `workforce/holiday/${h.name}`);
+    set((s) => ({ holidays: [{ ...h, id: rid() }, ...s.holidays] }));
+  },
+  requestLeave: (l) => {
+    audit("requested leave", `workforce/leave/${who(l.staffId)}`);
+    set((s) => ({ leave: [{ ...l, id: rid(), status: "Pending" }, ...s.leave] }));
+  },
+  setLeaveStatus: (id, status) => {
+    const l = get().leave.find((x) => x.id === id);
+    audit(`leave ${status.toLowerCase()}`, `workforce/leave/${l ? who(l.staffId) : id}`);
+    set((s) => ({ leave: s.leave.map((x) => (x.id === id ? { ...x, status } : x)) }));
+  },
+  setHolidayWorkStatus: (id, status) => {
+    audit(`holiday-work ${status.toLowerCase()}`, `workforce/holiday-work/${id}`);
+    set((s) => ({ holidayWork: s.holidayWork.map((x) => (x.id === id ? { ...x, status } : x)) }));
+  },
 }));
