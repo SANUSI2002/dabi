@@ -119,13 +119,14 @@ export function statusTone(s: string): "brand" | "action" | "mist" | "amber" {
   const v = s.toLowerCase();
   if (
     ["in progress", "active", "resulted", "dispensed", "completed", "attended", "normal", "paid",
-     "approved", "done", "cured", "recovered", "current", "up to date", "synced", "protected", "controlled", "acknowledged"].includes(v)
+     "approved", "done", "cured", "recovered", "current", "up to date", "synced", "protected", "controlled", "acknowledged",
+     "confirmed", "settled"].includes(v)
   )
     return "brand";
   if (
     ["waiting", "pending", "sample collected", "scheduled", "open", "mam", "submitted", "draft",
      "due", "future", "in process", "under repair", "not started", "queued", "unpaid", "incomplete",
-     "requested", "uploaded", "ongoing", "new"].includes(v)
+     "requested", "uploaded", "ongoing", "new", "repaying", "review ongoing"].includes(v)
   )
     return "amber";
   if (

@@ -47,6 +47,7 @@ import {
   Users2,
   Package,
   Headset,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -128,6 +129,7 @@ export const NAV: NavGroup[] = [
       { to: "/hr/onboarding", label: "Onboarding", icon: OnboardIcon },
       { to: "/hr/offboarding", label: "Offboarding", icon: LogOut },
       { to: "/hr/performance", label: "Performance", icon: Target },
+      { to: "/hr/payroll", label: "Payroll", icon: Wallet },
       { to: "/hr/assets", label: "Company Assets", icon: Package },
       { to: "/hr/helpdesk", label: "Helpdesk", icon: Headset },
       { to: "/hr/org-setup", label: "Organisation Setup", icon: Building2 },
