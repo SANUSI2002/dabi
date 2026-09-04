@@ -188,6 +188,16 @@ export type AncRecord = {
   visits: { date: string; weeks: number; weight: number; bp: string; hb?: number; fhr?: number; next: string }[];
 };
 
+export type FpVisitType = "New Visit" | "Revisit" | "Resupply" | "Switch method" | "Removal";
+export type FpVisit = {
+  date: string;
+  type: FpVisitType;
+  method: string;
+  nextVisit?: string;
+  notes?: string;
+  by: string;
+};
+
 export type FpClient = {
   id: string;
   patientId: string;
@@ -198,6 +208,8 @@ export type FpClient = {
   counselled: boolean;
   status: "Active" | "Discontinued";
   notes?: string;
+  visits?: FpVisit[];
+  discontinueReason?: string;
 };
 
 export type ChildVisit = {

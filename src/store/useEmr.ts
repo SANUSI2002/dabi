@@ -30,6 +30,7 @@ import type {
 } from "@/data/types";
 import { SERVICE_TYPES, PATIENT_CATEGORIES } from "@/data/catalog";
 import { audit } from "@/store/useAudit";
+import { useIdentity } from "@/store/useIdentity";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 
@@ -83,6 +84,8 @@ type EmrState = {
   enrollAnc: (r: Omit<AncRecord, "id" | "visits" | "status" | "edd">) => void;
   addAncVisit: (recordId: string, v: AncRecord["visits"][number]) => void;
   addFpClient: (c: Omit<FpClient, "id" | "status">) => void;
+  addFpVisit: (clientId: string, v: { type: import("@/data/types").FpVisitType; method: string; nextVisit?: string; notes?: string; by: string }) => void;
+  discontinueFp: (clientId: string, reason: string) => void;
   addChildVisit: (c: Omit<ChildVisit, "id">) => void;
   addDelivery: (d: Omit<Delivery, "id">) => void;
   recordImmunization: (patientId: string, data: { vaccineCode: string; vaccineName: string; batchNo: string; site: string; givenBy: string }) => void;
@@ -324,7 +327,44 @@ export const useEmr = create<EmrState>((set, get) => ({
       ),
     })),
 
-  addFpClient: (c) => set((s) => ({ fpClients: [{ ...c, id: rid(), status: "Active" }, ...s.fpClients] })),
+  addFpClient: (c) => {
+    audit("registered FP client", `mch/fp/${c.patientId}`);
+    set((s) => ({
+      fpClients: [
+        {
+          ...c, id: rid(), status: "Active",
+          visits: [{ date: c.startDate, type: "New Visit", method: c.method, nextVisit: c.nextVisit, notes: c.notes, by: useIdentity.getState().user.name }],
+        },
+        ...s.fpClients,
+      ],
+    }));
+  },
+
+  addFpVisit: (clientId, v) => {
+    const c = get().fpClients.find((x) => x.id === clientId);
+    audit(`FP ${v.type.toLowerCase()}`, `mch/fp/${c?.patientId ?? clientId}`, { user: v.by });
+    set((s) => ({
+      fpClients: s.fpClients.map((x) =>
+        x.id === clientId
+          ? {
+              ...x,
+              method: v.type === "Switch method" ? v.method : x.method,
+              nextVisit: v.nextVisit ?? x.nextVisit,
+              status: v.type === "Removal" ? "Discontinued" : x.status,
+              visits: [...(x.visits ?? []), { date: new Date().toISOString(), ...v }],
+            }
+          : x,
+      ),
+    }));
+  },
+
+  discontinueFp: (clientId, reason) => {
+    const c = get().fpClients.find((x) => x.id === clientId);
+    audit("FP discontinued", `mch/fp/${c?.patientId ?? clientId}`);
+    set((s) => ({
+      fpClients: s.fpClients.map((x) => (x.id === clientId ? { ...x, status: "Discontinued", discontinueReason: reason } : x)),
+    }));
+  },
   addChildVisit: (c) => set((s) => ({ childVisits: [{ ...c, id: rid() }, ...s.childVisits] })),
 
   addDelivery: (d) => {

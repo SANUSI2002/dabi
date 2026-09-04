@@ -24,6 +24,13 @@ export type ReportFamily = {
 
 const nm = (p?: { firstName: string; lastName: string }) => (p ? `${p.firstName} ${p.lastName}` : "—");
 
+const FP_CYP: Record<string, number> = {
+  "Implant": 2.5, "IUCD": 4.6,
+  "Injectable (DMPA-IM)": 1.0, "Injectable (DMPA-SC)": 1.0,
+  "Oral Pill": 1.0, "Male Condom": 0.5, "Female Condom": 0.5,
+  "LAM": 0.25, "Natural / Calendar": 0.25,
+};
+
 export const REPORTS: ReportFamily[] = [
   {
     name: "OPD Reports",
@@ -240,17 +247,22 @@ export const REPORTS: ReportFamily[] = [
   },
   {
     name: "Family Planning",
-    stats: (s) => [
-      { label: "Clients", value: s.fpClients.length, tone: "brand" },
-      { label: "New acceptors", value: s.fpClients.filter((c) => c.firstTime).length },
-      { label: "Revisits", value: s.fpClients.filter((c) => !c.firstTime).length },
-      { label: "Discontinued", value: s.fpClients.filter((c) => c.status === "Discontinued").length, tone: "action" },
-    ],
+    stats: (s) => {
+      const active = s.fpClients.filter((c) => c.status === "Active");
+      const cyp = active.reduce((n, c) => n + (FP_CYP[c.method] ?? 0), 0);
+      return [
+        { label: "Active clients", value: active.length, tone: "brand" },
+        { label: "New acceptors", value: s.fpClients.filter((c) => c.firstTime).length },
+        { label: "CYP delivered", value: cyp.toFixed(1), tone: "brand" },
+        { label: "Discontinued", value: s.fpClients.filter((c) => c.status === "Discontinued").length, tone: "action" },
+      ];
+    },
     tabs: [
       { name: "New Acceptors", kind: "table", columns: ["Patient", "Method", "Start", "Type"], rows: (s) => s.fpClients.filter((c) => c.firstTime).map((c) => [nm(s.patientById(c.patientId)), c.method, shortDate(c.startDate), "New"]) },
-      { name: "Method Mix", kind: "table", columns: ["Method", "New", "Revisit", "Total"], rows: (s) => [...new Set(s.fpClients.map((c) => c.method))].map((m) => { const cs = s.fpClients.filter((c) => c.method === m); return [m, cs.filter((c) => c.firstTime).length, cs.filter((c) => !c.firstTime).length, cs.length]; }) },
-      { name: "Counselling Summary", kind: "kv", rows: (s) => [{ k: "Total counselled", v: s.fpClients.filter((c) => c.counselled).length }, { k: "Postpartum counselled", v: 0 }] },
-      { name: "Discontinuation", kind: "table", columns: ["Patient", "Method", "Reason", "Date"], rows: (s) => s.fpClients.filter((c) => c.status === "Discontinued").map((c) => [nm(s.patientById(c.patientId)), c.method, c.notes ?? "—", shortDate(c.startDate)]) },
+      { name: "Method Mix", kind: "table", columns: ["Method", "New", "Revisit", "Active", "CYP"], rows: (s) => [...new Set(s.fpClients.map((c) => c.method))].map((m) => { const cs = s.fpClients.filter((c) => c.method === m); const act = cs.filter((c) => c.status === "Active").length; return [m, cs.filter((c) => c.firstTime).length, cs.filter((c) => !c.firstTime).length, act, (act * (FP_CYP[m] ?? 0)).toFixed(1)]; }) },
+      { name: "Due for follow-up", kind: "table", columns: ["Patient", "Method", "Next visit", "Status"], rows: (s) => s.fpClients.filter((c) => c.status === "Active" && c.nextVisit).map((c) => { const d = Math.round((Date.now() - +new Date(c.nextVisit!)) / 864e5); return [nm(s.patientById(c.patientId)), c.method, shortDate(c.nextVisit!), d > 0 ? `${d}d overdue` : `in ${-d}d`]; }) },
+      { name: "Counselling Summary", kind: "kv", rows: (s) => [{ k: "Total counselled", v: s.fpClients.filter((c) => c.counselled).length }, { k: "Clients on long-acting (Implant/IUCD)", v: s.fpClients.filter((c) => c.status === "Active" && ["Implant", "IUCD"].includes(c.method)).length }] },
+      { name: "Discontinuation", kind: "table", columns: ["Patient", "Method", "Reason"], rows: (s) => s.fpClients.filter((c) => c.status === "Discontinued").map((c) => [nm(s.patientById(c.patientId)), c.method, c.discontinueReason ?? c.notes ?? "—"]) },
     ],
   },
   {

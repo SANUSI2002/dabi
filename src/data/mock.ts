@@ -160,8 +160,12 @@ export const ancRecords: AncRecord[] = [
 ];
 
 export const fpClients: FpClient[] = [
-  { id: "fp1", patientId: "p15", method: "Injectable (DMPA-IM)", firstTime: false, startDate: iso(140), nextVisit: iso(-6), counselled: true, status: "Active", notes: "Tolerating well." },
-  { id: "fp2", patientId: "p15", method: "Oral Pill", firstTime: false, startDate: iso(20), counselled: true, status: "Discontinued", notes: "Menses ceased — switched method." },
+  { id: "fp1", patientId: "p15", method: "Injectable (DMPA-IM)", firstTime: false, startDate: iso(140), nextVisit: iso(6), counselled: true, status: "Active", notes: "Tolerating well.",
+    visits: [
+      { date: iso(140), type: "New Visit", method: "Injectable (DMPA-IM)", nextVisit: iso(56), notes: "Started DMPA", by: "Nurse Grace Nwangbo" },
+      { date: iso(56), type: "Resupply", method: "Injectable (DMPA-IM)", nextVisit: iso(6), notes: "2nd dose, no side effects", by: "Nurse Grace Nwangbo" },
+    ] },
+  { id: "fp2", patientId: "p15", method: "Oral Pill", firstTime: false, startDate: iso(20), counselled: true, status: "Discontinued", notes: "Menses ceased — switched method.", discontinueReason: "Switched to injectable" },
 ];
 
 export const childVisits: ChildVisit[] = [
