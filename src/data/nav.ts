@@ -40,6 +40,8 @@ import {
   Contact,
   Briefcase,
   ListChecks as OnboardIcon,
+  LogOut,
+  Target,
   type LucideIcon,
 } from "lucide-react";
 
@@ -115,6 +117,8 @@ export const NAV: NavGroup[] = [
       { to: "/hr/employees", label: "Employee Directory", icon: Contact },
       { to: "/hr/recruitment", label: "Recruitment", icon: Briefcase },
       { to: "/hr/onboarding", label: "Onboarding", icon: OnboardIcon },
+      { to: "/hr/offboarding", label: "Offboarding", icon: LogOut },
+      { to: "/hr/performance", label: "Performance", icon: Target },
       { to: "/hr/org-setup", label: "Organisation Setup", icon: Building2 },
     ],
   },

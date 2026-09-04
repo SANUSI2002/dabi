@@ -52,6 +52,8 @@ const EmployeeDirectory = lazy(() => import("@/pages/hr/EmployeeDirectory"));
 const EmployeeDetail = lazy(() => import("@/pages/hr/EmployeeDetail"));
 const Recruitment = lazy(() => import("@/pages/hr/Recruitment"));
 const OnboardingHr = lazy(() => import("@/pages/hr/Onboarding"));
+const Offboarding = lazy(() => import("@/pages/hr/Offboarding"));
+const Performance = lazy(() => import("@/pages/hr/Performance"));
 
 function Loader() {
   return (
@@ -125,6 +127,8 @@ export default function App() {
           <Route path="/hr/employees/:id" element={<EmployeeDetail />} />
           <Route path="/hr/recruitment" element={<Recruitment />} />
           <Route path="/hr/onboarding" element={<OnboardingHr />} />
+          <Route path="/hr/offboarding" element={<Offboarding />} />
+          <Route path="/hr/performance" element={<Performance />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
