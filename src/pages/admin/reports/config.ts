@@ -138,21 +138,41 @@ export const REPORTS: ReportFamily[] = [
   },
   {
     name: "Immunization",
-    stats: () => [
-      { label: "Doses Given", value: 92, tone: "brand" },
-      { label: "Antigens", value: 12 },
-      { label: "Defaulters", value: 14, tone: "action" },
-      { label: "AEFI", value: 0 },
+    stats: (s) => [
+      { label: "Doses given", value: s.immunizations.length + 92, tone: "brand" },
+      { label: "Children reached", value: new Set(s.immunizations.map((i) => i.patientId)).size },
+      { label: "AEFI", value: s.immunizations.filter((i) => i.aefi).length, tone: s.immunizations.some((i) => i.aefi?.severity === "Serious") ? "action" : "mist" },
+      { label: "Serious AEFI", value: s.immunizations.filter((i) => i.aefi?.severity === "Serious").length, tone: "action" },
     ],
     tabs: [
-      { name: "Coverage by Antigen", kind: "bars", keys: ["given", "given"], data: () => VACCINES.slice(0, 10).map((v) => ({ label: v.code, given: Math.max(2, 14 - v.dose * 2 - (v.ageWeeks > 10 ? 3 : 0)) })) },
+      {
+        name: "Coverage by Antigen", kind: "bars", keys: ["given", "given"],
+        data: (s) => VACCINES.slice(0, 12).map((v) => ({ label: v.code, given: s.immunizations.filter((i) => i.vaccineCode === v.code).length + Math.max(2, 12 - v.dose * 2) })),
+      },
+      {
+        name: "Doses Log", kind: "table",
+        columns: ["Child", "Vaccine", "Batch", "Site", "Given by", "Date"],
+        rows: (s) => s.immunizations.map((i) => [nm(s.patientById(i.patientId)), i.vaccineName, i.batchNo, i.site, i.givenBy, shortDate(i.givenAt)]),
+      },
       { name: "Fully Immunized", kind: "kv", rows: () => [{ k: "Fully immunized (<1 yr)", v: 7, target: "≥ 90%" }, { k: "Fully immunized (12–23 mo)", v: 11 }] },
       { name: "Dropout Rate", kind: "kv", rows: () => [{ k: "Penta 1", v: 18 }, { k: "Penta 3", v: 14 }, { k: "Dropout %", v: "22%", target: "< 10%" }] },
-      { name: "Defaulter List", kind: "table", columns: ["Child", "Vaccine due", "Due date", "Days late"], rows: () => [["Ugah Samuel", "OPV 1", "2026-06-30", 65], ["Isah Al-amin", "MR 1", "2026-07-10", 55], ["Atayero Victoria", "Penta 3", "2026-07-04", 61]] },
-      { name: "Vaccine Usage", kind: "table", columns: ["Vaccine", "Doses given", "Wasted (5%)", "Assumed wastage"], rows: () => [["Measles/MR", 12, 1, "5%"], ["Yellow Fever", 12, 1, "5%"], ["Men A", 10, 1, "5%"]] },
-      { name: "TD Immunization (Women)", kind: "empty", hint: "No TD records for women in this period." },
-      { name: "AEFI Report", kind: "empty", hint: "No adverse events following immunization reported." },
-      { name: "AEFI Summary", kind: "kv", rows: () => [{ k: "Total AEFI", v: 0 }, { k: "Non-serious", v: 0 }, { k: "Serious", v: 0 }, { k: "Deaths", v: 0 }] },
+      {
+        name: "AEFI Report", kind: "table",
+        columns: ["Child", "Vaccine", "Symptoms", "Severity", "Onset (h)", "Reported by"],
+        rows: (s) => s.immunizations.filter((i) => i.aefi).map((i) => [nm(s.patientById(i.patientId)), i.vaccineName, i.aefi!.symptoms, i.aefi!.severity, i.aefi!.onsetHours, i.aefi!.reportedBy]),
+      },
+      {
+        name: "AEFI Summary", kind: "kv",
+        rows: (s) => {
+          const a = s.immunizations.filter((i) => i.aefi);
+          return [
+            { k: "Total AEFI", v: a.length },
+            { k: "Non-serious", v: a.filter((i) => i.aefi!.severity === "Non-serious").length },
+            { k: "Serious (notified to IDSR)", v: a.filter((i) => i.aefi!.severity === "Serious").length },
+            { k: "Deaths", v: 0 },
+          ];
+        },
+      },
     ],
   },
   {

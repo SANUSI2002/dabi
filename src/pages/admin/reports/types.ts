@@ -18,6 +18,7 @@ export type EmrSnapshot = Pick<
   | "childVisits"
   | "deliveries"
   | "birthRegister"
+  | "immunizations"
   | "pncVisits"
   | "cmamScreenings"
   | "outreachActivities"

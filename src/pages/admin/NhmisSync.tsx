@@ -14,7 +14,7 @@ export default function NhmisSync() {
 
   const DATASETS = [
     { name: "OPD Morbidity (weekly)", records: emr.encounters.length + 118, target: "DHIS2 · NHMIS_OPD" },
-    { name: "Immunization (monthly)", records: 92, target: "DHIS2 · NHMIS_EPI" },
+    { name: "Immunization (monthly)", records: 92 + emr.immunizations.length, target: "DHIS2 · NHMIS_EPI" },
     { name: "Maternal Health (monthly)", records: emr.ancRecords.length + emr.deliveries.length + emr.pncVisits.length + 42, target: "DHIS2 · NHMIS_MNCH" },
     { name: "Birth Notifications (monthly)", records: emr.birthRegister.length, target: "NPopC · e-Birth" },
     { name: "IDSR Notifiable (weekly)", records: emr.surveillanceCases.length, target: "SORMAS · IDSR_WK" },

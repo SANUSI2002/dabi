@@ -129,6 +129,15 @@ export const referrals: Referral[] = [
   },
 ];
 
+export const immunizations: import("./types").Immunization[] = [
+  { id: "im1", patientId: "p1", vaccineCode: "BCG", vaccineName: "Bacillus Calmette–Guérin (BCG)", givenAt: iso(200), givenBy: "Nurse Grace Nwangbo", batchNo: "BCG-2451", site: "Left deltoid" },
+  { id: "im2", patientId: "p1", vaccineCode: "OPV0", vaccineName: "Oral Polio Vaccine (OPV 0)", givenAt: iso(200), givenBy: "Nurse Grace Nwangbo", batchNo: "OPV-8830", site: "Mouth" },
+  { id: "im3", patientId: "p1", vaccineCode: "PENTA1", vaccineName: "Pentavalent Vaccine (Dose 1)", givenAt: iso(160), givenBy: "Nurse Grace Nwangbo", batchNo: "PENTA-1120", site: "Left outer thigh",
+    aefi: { symptoms: "Mild fever and injection-site swelling for 24h", severity: "Non-serious", onsetHours: 6, action: "Paracetamol, cold compress, advised follow-up", reportedAt: iso(159), reportedBy: "Nurse Grace Nwangbo" } },
+  { id: "im4", patientId: "p11", vaccineCode: "BCG", vaccineName: "Bacillus Calmette–Guérin (BCG)", givenAt: iso(205), givenBy: "Mary Williams", batchNo: "BCG-2451", site: "Left deltoid" },
+  { id: "im5", patientId: "p10", vaccineCode: "PENTA1", vaccineName: "Pentavalent Vaccine (Dose 1)", givenAt: iso(140), givenBy: "Mary Williams", batchNo: "PENTA-1120", site: "Left outer thigh" },
+];
+
 export const transfers: import("./types").PatientTransfer[] = [
   { id: "pt1", direction: "Out", patientId: "p6", patientName: "Zoe Amissah", facility: "PHC Kirikiri", reason: "Relocation", summary: "Hypertensive, on amlodipine 10mg. Full EMR summary attached.", date: iso(5), status: "Pending", recordsSent: false },
   { id: "pt2", direction: "In", patientName: "Ibrahim Sule", facility: "PHC Festac 7", reason: "Catchment reassignment", summary: "Diabetic, last HbA1c 8.1%. Paper records received.", date: iso(11), status: "Completed", completedAt: iso(10), handledBy: "Ogundele Olajumoke", recordsSent: true },

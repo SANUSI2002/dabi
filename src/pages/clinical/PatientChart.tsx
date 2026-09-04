@@ -31,6 +31,7 @@ export default function PatientChart() {
   const appts = emr.appointments.filter((a) => a.patientId === p.id);
   const adms = emr.admissions.filter((a) => a.patientId === p.id);
   const xfers = emr.transfers.filter((t) => t.patientId === p.id);
+  const imms = emr.immunizations.filter((i) => i.patientId === p.id);
   const vitals = emr.vitals[p.id] ?? [];
   const cat = PATIENT_CATEGORIES.find((c) => c.code === p.category);
   const balance = invoices.filter((i) => i.status === "Unpaid").reduce((n, i) => n + i.lines.reduce((m, l) => m + l.qty * l.unitPrice, 0), 0);
@@ -93,6 +94,7 @@ export default function PatientChart() {
               ...appts.map((a) => ({ ts: a.date, kind: "Appointment", text: `${a.type} with ${a.provider} · ${a.status}` })),
               ...adms.map((a) => ({ ts: a.admittedAt, kind: "Admission", text: `${a.ward} · ${a.diagnosis}` })),
               ...xfers.map((t) => ({ ts: t.date, kind: "Transfer", text: `${t.direction === "Out" ? "Out to" : "In from"} ${t.facility} · ${t.reason} · ${t.status}` })),
+              ...imms.map((i) => ({ ts: i.givenAt, kind: "Immunization", text: `${i.vaccineName} · batch ${i.batchNo}${i.aefi ? ` · AEFI (${i.aefi.severity})` : ""}` })),
             ].sort((a, b) => +new Date(b.ts) - +new Date(a.ts));
             return (
               <div className="card">

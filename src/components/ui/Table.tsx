@@ -36,11 +36,13 @@ export function Row({
   onClick,
   index = 0,
   active,
+  className,
 }: {
   children: ReactNode;
   onClick?: () => void;
   index?: number;
   active?: boolean;
+  className?: string;
 }) {
   return (
     <motion.tr
@@ -52,6 +54,7 @@ export function Row({
         "transition-colors",
         onClick ? "cursor-pointer hover:bg-brand-50/60" : "hover:bg-mist-50/50",
         active && "bg-brand-50",
+        className,
       )}
     >
       {children}

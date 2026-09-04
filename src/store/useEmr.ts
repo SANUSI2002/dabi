@@ -11,6 +11,8 @@ import type {
   Referral,
   ReferralFeedback,
   PatientTransfer,
+  Immunization,
+  Aefi,
   AncRecord,
   FpClient,
   ChildVisit,
@@ -45,6 +47,7 @@ type EmrState = {
   childVisits: ChildVisit[];
   deliveries: Delivery[];
   birthRegister: BirthRegisterEntry[];
+  immunizations: Immunization[];
   pncVisits: PncVisit[];
   cmamScreenings: CmamScreening[];
   outreachActivities: OutreachActivity[];
@@ -82,6 +85,8 @@ type EmrState = {
   addFpClient: (c: Omit<FpClient, "id" | "status">) => void;
   addChildVisit: (c: Omit<ChildVisit, "id">) => void;
   addDelivery: (d: Omit<Delivery, "id">) => void;
+  recordImmunization: (patientId: string, data: { vaccineCode: string; vaccineName: string; batchNo: string; site: string; givenBy: string }) => void;
+  recordAefi: (immunizationId: string, aefi: Omit<Aefi, "reportedAt">) => void;
   notifyBirth: (deliveryId: string, data: { babyName: string; informantName: string; informantRelation: string; fatherName?: string }) => void;
   registerBirth: (id: string) => void;
   issueBirthCertificate: (id: string) => void;
@@ -110,6 +115,7 @@ export const useEmr = create<EmrState>((set, get) => ({
   childVisits: mock.childVisits,
   deliveries: [],
   birthRegister: [],
+  immunizations: mock.immunizations,
   pncVisits: [],
   cmamScreenings: [],
   outreachActivities: mock.outreachSeed,
@@ -324,6 +330,32 @@ export const useEmr = create<EmrState>((set, get) => ({
   addDelivery: (d) => {
     audit("recorded delivery", `mch/delivery/${d.patientId}`);
     set((s) => ({ deliveries: [{ ...d, id: rid() }, ...s.deliveries] }));
+  },
+
+  recordImmunization: (patientId, data) => {
+    audit("recorded immunization", `mch/immunization/${patientId}`, { user: data.givenBy });
+    set((s) => ({
+      immunizations: [
+        { id: rid(), patientId, vaccineCode: data.vaccineCode, vaccineName: data.vaccineName, givenAt: new Date().toISOString(), givenBy: data.givenBy, batchNo: data.batchNo, site: data.site },
+        ...s.immunizations,
+      ],
+    }));
+  },
+
+  recordAefi: (immunizationId, aefi) => {
+    const s = get();
+    const imm = s.immunizations.find((x) => x.id === immunizationId);
+    if (!imm) return;
+    const now = new Date().toISOString();
+    audit(`reported AEFI (${aefi.severity.toLowerCase()})`, `mch/immunization/aefi/${imm.patientId}`, { user: aefi.reportedBy });
+    set((st) => ({
+      immunizations: st.immunizations.map((x) => (x.id === immunizationId ? { ...x, aefi: { ...aefi, reportedAt: now } } : x)),
+      // a serious AEFI becomes a notifiable surveillance event
+      surveillanceCases:
+        aefi.severity === "Serious"
+          ? [{ id: rid(), patientId: imm.patientId, disease: `AEFI — ${imm.vaccineName}`, onset: now.slice(0, 10), reportedAt: now, status: "Suspected" as const }, ...st.surveillanceCases]
+          : st.surveillanceCases,
+    }));
   },
 
   notifyBirth: (deliveryId, data) => {

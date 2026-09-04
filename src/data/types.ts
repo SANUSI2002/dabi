@@ -296,6 +296,27 @@ export type OutreachActivity = {
   date: string;
 };
 
+export type Aefi = {
+  symptoms: string;
+  severity: "Non-serious" | "Serious";
+  onsetHours: number;
+  action: string;
+  reportedAt: string;
+  reportedBy: string;
+};
+
+export type Immunization = {
+  id: string;
+  patientId: string;
+  vaccineCode: string;
+  vaccineName: string;
+  givenAt: string;
+  givenBy: string;
+  batchNo: string;
+  site: string;
+  aefi?: Aefi;
+};
+
 export type SurveillanceCase = {
   id: string;
   patientId: string;
