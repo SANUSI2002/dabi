@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { CalendarRange, Plus, Clock } from "lucide-react";
+import { addDays, differenceInCalendarDays, format } from "date-fns";
 import { PageHeader, Button, Badge, StatCard } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
@@ -19,6 +20,27 @@ export default function Schedules() {
   const rw = scope.canSchedule;
   const staffName = (id: string) => staff.find((s) => s.id === id)?.name ?? id;
   const rotations = schedules.filter((s) => s.rotation && s.rotation.length);
+
+  // rotation projection: resolve each staffer's block for the next 14 days
+  const calendar = useMemo(() => {
+    const start = new Date(new Date().toISOString().slice(0, 10));
+    const dates = Array.from({ length: 14 }, (_, i) => addDays(start, i));
+    const rows = rotations.flatMap((sc) => {
+      const anchor = new Date((sc.rotationAnchor ?? sc.startDate).slice(0, 10));
+      const len = sc.rotation!.length;
+      const staffOn = assignments.filter((a) => a.scheduleId === sc.id);
+      return staffOn.map((a) => ({
+        scheduleName: sc.name,
+        staffId: a.staffId,
+        cells: dates.map((d) => {
+          const idx = ((differenceInCalendarDays(d, anchor) % len) + len) % len;
+          const bId = sc.rotation![idx];
+          return bId === "Off" ? null : timeBlocks.find((b) => b.id === bId) ?? null;
+        }),
+      }));
+    });
+    return { dates, rows };
+  }, [rotations, assignments, timeBlocks]);
   const [blockModal, setBlockModal] = useState(false);
   const [assignModal, setAssignModal] = useState(false);
   const [tb, setTb] = useState({ name: "", code: "", start: "08:00", end: "16:00", overnight: false, paidHours: 7.5, breakMins: 30, lateGraceMins: 10, classification: "Working" as Classification, colour: "#0fc06d" });
@@ -46,7 +68,7 @@ export default function Schedules() {
         <StatCard label="Assignments" value={assignments.length} tone="brand" delay={0.15} />
       </div>
 
-      <Tabs tabs={["Weekly Schedules", "Rotations", "Time Blocks", "Assignments", "Coverage Grid"]}>
+      <Tabs tabs={["Weekly Schedules", "Rotations", "Rotation Calendar", "Time Blocks", "Assignments", "Coverage Grid"]}>
         {(t) =>
           t === "Weekly Schedules" ? (
             <div className="space-y-3">
@@ -110,6 +132,60 @@ export default function Schedules() {
                 </div>
               ))}
               {rotations.length === 0 && <div className="card text-sm text-mist-400">No rotational schedules.</div>}
+            </div>
+          ) : t === "Rotation Calendar" ? (
+            <div className="space-y-3">
+              <p className="text-xs text-mist-400">
+                Each rotational schedule projected onto the next 14 days from its cycle anchor — the shift every assigned
+                staffer is planned to work.
+              </p>
+              {calendar.rows.length === 0 ? (
+                <div className="card text-sm text-mist-400">No staff assigned to a rotational schedule yet.</div>
+              ) : (
+                <div className="card overflow-x-auto p-0">
+                  <table className="w-full min-w-[820px] text-center text-[11px]">
+                    <thead className="border-b border-mist-200 bg-mist-50/60">
+                      <tr>
+                        <th className="th sticky left-0 z-10 bg-mist-50 text-left">Employee</th>
+                        {calendar.dates.map((d) => (
+                          <th key={+d} className={cn("th px-1", [0, 6].includes(d.getDay()) && "text-action-500")}>
+                            <span className="block">{format(d, "EEE")}</span>
+                            <span className="block font-normal text-mist-400">{format(d, "d MMM")}</span>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-mist-100">
+                      {calendar.rows.map((row, ri) => (
+                        <tr key={ri}>
+                          <td className="td sticky left-0 z-10 bg-white text-left">
+                            <span className="font-semibold text-mist-800">{staffName(row.staffId)}</span>
+                            <span className="block text-[10px] text-mist-400">{row.scheduleName}</span>
+                          </td>
+                          {row.cells.map((b, ci) => (
+                            <td key={ci} className="td px-1">
+                              {b ? (
+                                <span className="inline-block rounded px-1.5 py-0.5 font-semibold text-white" style={{ background: b.colour }}>
+                                  {b.code}
+                                </span>
+                              ) : (
+                                <span className="text-mist-300">Off</span>
+                              )}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <div className="flex flex-wrap gap-2">
+                {timeBlocks.map((b) => (
+                  <span key={b.id} className="inline-flex items-center gap-1.5 text-[11px] text-mist-500">
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: b.colour }} /> {b.code} {b.start}–{b.end}
+                  </span>
+                ))}
+              </div>
             </div>
           ) : t === "Time Blocks" ? (
             <Table columns={["Block", "Code", "Window", "Paid hrs", "Break", "Late grace", "Type"]}>
