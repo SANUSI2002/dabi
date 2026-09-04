@@ -3,6 +3,8 @@ import { FileSpreadsheet, Check, Send } from "lucide-react";
 import { PageHeader, Card, Button, Badge, StatCard } from "@/components/ui/primitives";
 import { Reveal } from "@/components/motion/Reveal";
 import { useEmr } from "@/store/useEmr";
+import { useCatalog } from "@/store/useCatalog";
+import { useAudit } from "@/store/useAudit";
 
 const SECTIONS = [
   { key: "OPD Attendance", fields: ["New attendances", "Re-attendances", "Referrals out", "Total visits"] },
@@ -14,11 +16,22 @@ const SECTIONS = [
 ];
 
 export default function MsfReport() {
-  const { encounters, ancRecords } = useEmr();
+  const { encounters, ancRecords, deliveries, pncVisits, fpClients, referrals } = useEmr();
+  const drugs = useCatalog((s) => s.drugs);
+  const log = useAudit((s) => s.log);
   const [values, setValues] = useState<Record<string, number>>({
-    "New attendances": 88, "Re-attendances": 40, "Referrals out": 1, "Total visits": 128,
-    "Confirmed malaria": encounters.filter((e) => e.diagnoses.some((d) => d.name.includes("Malaria"))).length,
+    "New attendances": 88,
+    "Re-attendances": 40,
+    "Referrals out": referrals.filter((r) => r.type === "Out").length,
+    "Total visits": encounters.length + 118,
+    "Confirmed malaria": encounters.filter((e) => e.diagnoses.some((d) => d.name.toLowerCase().includes("malaria"))).length,
     "ANC 1st visits": ancRecords.length,
+    "Deliveries by SBA": deliveries.length,
+    "PNC within 48h": pncVisits.filter((v) => v.daysPP <= 2).length,
+    "New acceptors": fpClients.filter((c) => c.firstTime).length,
+    "Revisits": fpClients.filter((c) => !c.firstTime).length,
+    "ACT stock-out days": drugs.find((d) => d.name.includes("Artemether"))?.stock === 0 ? 30 : 0,
+    "ORS stock-out days": drugs.find((d) => d.name === "ORS")?.stock === 0 ? 30 : 0,
   });
   const [submitted, setSubmitted] = useState(false);
 
@@ -31,7 +44,11 @@ export default function MsfReport() {
         title="Monthly Summary Form (MSF)"
         subtitle={`Statutory NHMIS monthly return · ${new Date().toLocaleString("en", { month: "long", year: "numeric" })}`}
         actions={
-          <Button variant={submitted ? "soft" : "primary"} disabled={submitted} onClick={() => setSubmitted(true)}>
+          <Button
+            variant={submitted ? "soft" : "primary"}
+            disabled={submitted}
+            onClick={() => { setSubmitted(true); log("submitted MSF return", "msf/monthly"); }}
+          >
             {submitted ? <><Check size={15} /> Submitted</> : <><Send size={15} /> Submit to LGA</>}
           </Button>
         }

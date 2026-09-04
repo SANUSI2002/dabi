@@ -2,26 +2,32 @@ import { useState } from "react";
 import { RefreshCw, CheckCircle2, Cloud, Loader2 } from "lucide-react";
 import { PageHeader, Card, Button, Badge, StatCard } from "@/components/ui/primitives";
 import { Reveal } from "@/components/motion/Reveal";
+import { useEmr } from "@/store/useEmr";
+import { useAudit } from "@/store/useAudit";
 import { timeAgo } from "@/lib/format";
 
-const DATASETS = [
-  { name: "OPD Morbidity (weekly)", records: 128, target: "DHIS2 · NHMIS_OPD" },
-  { name: "Immunization (monthly)", records: 92, target: "DHIS2 · NHMIS_EPI" },
-  { name: "Maternal Health (monthly)", records: 46, target: "DHIS2 · NHMIS_MNCH" },
-  { name: "IDSR Notifiable (weekly)", records: 4, target: "SORMAS · IDSR_WK" },
-  { name: "Commodity / LMIS (monthly)", records: 61, target: "NHLMIS" },
-  { name: "Family Planning (monthly)", records: 12, target: "DHIS2 · NHMIS_FP" },
-];
-
 export default function NhmisSync() {
+  const emr = useEmr();
+  const log = useAudit((s) => s.log);
   const [state, setState] = useState<"idle" | "syncing" | "done">("idle");
   const [lastSync, setLastSync] = useState(new Date(Date.now() - 6 * 3600e3).toISOString());
+
+  const DATASETS = [
+    { name: "OPD Morbidity (weekly)", records: emr.encounters.length + 118, target: "DHIS2 · NHMIS_OPD" },
+    { name: "Immunization (monthly)", records: 92, target: "DHIS2 · NHMIS_EPI" },
+    { name: "Maternal Health (monthly)", records: emr.ancRecords.length + emr.deliveries.length + emr.pncVisits.length + 42, target: "DHIS2 · NHMIS_MNCH" },
+    { name: "IDSR Notifiable (weekly)", records: emr.surveillanceCases.length, target: "SORMAS · IDSR_WK" },
+    { name: "Commodity / LMIS (monthly)", records: 61, target: "NHLMIS" },
+    { name: "Family Planning (monthly)", records: emr.fpClients.length, target: "DHIS2 · NHMIS_FP" },
+    { name: "Referrals (monthly)", records: emr.referrals.length, target: "DHIS2 · NHMIS_REF" },
+  ];
 
   function run() {
     setState("syncing");
     setTimeout(() => {
       setState("done");
       setLastSync(new Date().toISOString());
+      log("synced NHMIS", "nhmis/dhis2");
     }, 1800);
   }
 
