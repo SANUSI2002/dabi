@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Printer, FileClock } from "lucide-react";
 import { PageHeader, Button, Badge } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
@@ -36,9 +37,12 @@ export default function MedicalHistory() {
           <PatientPicker value={pid} onChange={setPid} />
         </div>
         {p && (
-          <div className="text-sm">
-            <p className="font-display font-bold text-mist-900">{p.firstName} {p.lastName}</p>
-            <p className="text-xs text-mist-400">{p.mrn} · {ageFromDob(p.dob)} · {p.sex}</p>
+          <div className="flex items-center gap-3 text-sm">
+            <div>
+              <p className="font-display font-bold text-mist-900">{p.firstName} {p.lastName}</p>
+              <p className="text-xs text-mist-400">{p.mrn} · {ageFromDob(p.dob)} · {p.sex}</p>
+            </div>
+            <Link to={`/patients/${p.id}`} className="btn-soft px-2.5 py-1 text-xs">Open full chart →</Link>
           </div>
         )}
       </div>

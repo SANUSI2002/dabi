@@ -9,6 +9,7 @@ import { useEmr } from "@/store/useEmr";
 import { PATIENT_CATEGORIES } from "@/data/catalog";
 import { ageFromDob, shortDate } from "@/lib/format";
 import { PatientCardDoc, BirthCertificateDoc } from "@/components/print/documents";
+import { PatientLink } from "@/components/ui/PatientLink";
 import type { Patient, Sex, Payer } from "@/data/types";
 
 const blank = {
@@ -62,9 +63,8 @@ export default function Registration() {
         {list.map((p, i) => (
           <Row key={p.id} index={i} active={row === p.id}>
             <Cell className="font-mono text-[11px] text-mist-500">{p.mrn}</Cell>
-            <Cell className="font-semibold text-mist-900">
-              {p.firstName} {p.lastName}
-              {p.otherName ? ` ${p.otherName}` : ""}
+            <Cell>
+              <PatientLink patient={p} sub={p.otherName ? p.otherName : undefined} />
             </Cell>
             <Cell>
               {ageFromDob(p.dob)} · {p.sex}
@@ -87,6 +87,12 @@ export default function Registration() {
                 </button>
                 {row === p.id && (
                   <div className="absolute right-0 top-8 z-10 w-44 rounded-xl bg-white p-1 text-sm shadow-pop ring-1 ring-mist-200">
+                    <button
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 hover:bg-brand-50"
+                      onClick={() => { setRow(null); nav(`/patients/${p.id}`); }}
+                    >
+                      <ScrollText size={14} /> Open Chart
+                    </button>
                     <button
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2 hover:bg-brand-50"
                       onClick={() => { addToQueue(p.id, "Vital" as never, "Normal" as never); setRow(null); nav("/queue"); }}

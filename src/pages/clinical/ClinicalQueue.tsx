@@ -6,6 +6,7 @@ import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Select, Textarea } from "@/components/ui/form";
 import { PatientPicker } from "@/components/ui/PatientPicker";
+import { PatientLink } from "@/components/ui/PatientLink";
 import { VitalsModal } from "@/components/clinical/VitalsModal";
 import { useEmr } from "@/store/useEmr";
 import { STATIONS } from "@/data/catalog";
@@ -77,9 +78,8 @@ export default function ClinicalQueue() {
           const p = patientById(q.patientId);
           return (
             <Row key={q.id} index={i}>
-              <Cell className="font-semibold text-mist-900">
-                {p ? `${p.firstName} ${p.lastName}` : "—"}
-                <span className="block text-[11px] font-normal text-mist-400">{p?.mrn}</span>
+              <Cell>
+                <PatientLink patient={p} sub={p?.mrn} />
               </Cell>
               <Cell>{p ? `${ageFromDob(p.dob)} · ${p.sex}` : "—"}</Cell>
               <Cell>{q.station}</Cell>
