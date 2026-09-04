@@ -7,6 +7,7 @@ import type {
   Timesheet, TimesheetPeriod, TimePolicy, Enrolment,
   WorkContainer, WorkTask, WorkActivity, TimesheetStatus,
   Holiday, LeaveRequest, HolidayWorkRequest, WorkLocation,
+  BreakRule, ModuleCapability, ModuleCapabilityKey, AttendanceRule,
 } from "@/data/workforce";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
@@ -20,6 +21,9 @@ type WorkforceState = {
   timesheets: Timesheet[];
   policies: TimePolicy[];
   enrolments: Enrolment[];
+  breakRules: BreakRule[];
+  capabilities: ModuleCapability[];
+  attendanceRules: AttendanceRule[];
   containers: WorkContainer[];
   tasks: WorkTask[];
   activities: WorkActivity[];
@@ -30,6 +34,8 @@ type WorkforceState = {
   addTimeBlock: (b: Omit<TimeBlock, "id" | "active">) => void;
   addSchedule: (s: Omit<WeeklySchedule, "id" | "status">) => void;
   assignSchedule: (a: Omit<ScheduleAssignment, "id">) => void;
+  addPolicy: (p: Omit<TimePolicy, "id" | "status">) => void;
+  toggleCapability: (key: ModuleCapabilityKey) => void;
 
   clockIn: (staffId: string, opts?: { workLocation?: WorkLocation; location?: string }) => void;
   clockOut: (id: string) => void;
@@ -62,6 +68,9 @@ export const useWorkforce = create<WorkforceState>((set, get) => ({
   timesheets: wf.timesheets,
   policies: wf.policies,
   enrolments: wf.enrolments,
+  breakRules: wf.breakRules,
+  capabilities: wf.moduleCapabilities,
+  attendanceRules: wf.attendanceRules,
   containers: wf.containers,
   tasks: wf.tasks,
   activities: wf.activities,
@@ -80,6 +89,17 @@ export const useWorkforce = create<WorkforceState>((set, get) => ({
   assignSchedule: (a) => {
     audit("assigned schedule", `workforce/assignment/${who(a.staffId)}`);
     set((s) => ({ assignments: [{ ...a, id: rid() }, ...s.assignments] }));
+  },
+  addPolicy: (p) => {
+    audit("created policy version", `workforce/policy/${p.scope}`);
+    set((s) => ({ policies: [{ ...p, id: rid(), status: "Future" }, ...s.policies] }));
+  },
+  toggleCapability: (key) => {
+    const cap = get().capabilities.find((c) => c.key === key);
+    audit(cap?.enabled ? "suspended capability" : "enabled capability", `workforce/capability/${key}`);
+    set((s) => ({
+      capabilities: s.capabilities.map((c) => (c.key === key ? { ...c, enabled: !c.enabled } : c)),
+    }));
   },
 
   clockIn: (staffId, opts) => {

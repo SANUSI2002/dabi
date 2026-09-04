@@ -130,6 +130,29 @@ export type Enrolment = {
   resolvedPolicy: string;
 };
 
+export type BreakRule = {
+  id: string;
+  label: string;
+  minShiftHours: number; // rule triggers when the scheduled shift is at least this long
+  breakMins: number;
+  paid: boolean;
+  autoDeduct: boolean;
+};
+
+export type ModuleCapabilityKey = "Attendance" | "Scheduling" | "Timesheets";
+export type ModuleCapability = {
+  key: ModuleCapabilityKey;
+  enabled: boolean;
+  note: string;
+};
+
+export type AttendanceRule = {
+  id: string;
+  key: string;
+  value: string;
+  detail: string;
+};
+
 export type WorkContainer = {
   id: string;
   label: string; // configurable term instance e.g. "Programme", "Initiative"
@@ -315,6 +338,28 @@ export const policies: TimePolicy[] = [
     submissionDeadlineDays: 1, approvalDeadlineDays: 2, lateGraceMins: 5, earlyLeaveGraceMins: 5,
     absenceThresholdMins: 180, maxDailyHours: 16, allowEditDerived: false, overtimeEnabled: true, status: "Current",
   },
+];
+
+export const breakRules: BreakRule[] = [
+  { id: "br1", label: "Short shift", minShiftHours: 0, breakMins: 0, paid: false, autoDeduct: false },
+  { id: "br2", label: "Standard day", minShiftHours: 6, breakMins: 30, paid: false, autoDeduct: true },
+  { id: "br3", label: "Long shift", minShiftHours: 9, breakMins: 45, paid: false, autoDeduct: true },
+  { id: "br4", label: "Night shift rest", minShiftHours: 8, breakMins: 30, paid: true, autoDeduct: false },
+];
+
+export const moduleCapabilities: ModuleCapability[] = [
+  { key: "Attendance", enabled: true, note: "Check-in, check-out, breaks, correction and exception handling." },
+  { key: "Scheduling", enabled: true, note: "Time blocks, weekly schedules, assignments and expected hours." },
+  { key: "Timesheets", enabled: true, note: "Periods, manual or derived lines, submission and approval." },
+];
+
+export const attendanceRules: AttendanceRule[] = [
+  { id: "ar1", key: "Late grace", value: "10 min", detail: "Clock-in within grace is not flagged Late." },
+  { id: "ar2", key: "Early-leave grace", value: "10 min", detail: "Clock-out within grace is not flagged Early." },
+  { id: "ar3", key: "Auto-checkout", value: "After 16h open", detail: "Open interval is auto-closed and flagged for review." },
+  { id: "ar4", key: "Absence threshold", value: "240 min", detail: "Missing recognised time beyond this marks the day Absent." },
+  { id: "ar5", key: "Clock rounding", value: "Nearest 15 min", detail: "Applied to clock events before payable calculation." },
+  { id: "ar6", key: "Overlap handling", value: "Merge", detail: "Overlapping intervals are merged; time is never double counted." },
 ];
 
 export const enrolments: Enrolment[] = [

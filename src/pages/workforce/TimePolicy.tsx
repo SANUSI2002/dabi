@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { SlidersHorizontal, Plus } from "lucide-react";
+import { SlidersHorizontal, Plus, ShieldAlert, Power } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Grid, Checkbox } from "@/components/ui/form";
 import { useWorkforce } from "@/store/useWorkforce";
+import { useWfScope } from "@/store/useWorkforceSession";
 import { shortDate } from "@/lib/format";
+import { cn } from "@/lib/cn";
 
 const PRECEDENCE = [
   "Employee Override", "Schedule Assignment", "Primary Timesheet Group",
@@ -14,7 +16,8 @@ const PRECEDENCE = [
 ];
 
 export default function TimePolicy() {
-  const { policies, enrolments } = useWorkforce();
+  const { policies, enrolments, breakRules, capabilities, attendanceRules, addPolicy, toggleCapability } = useWorkforce();
+  const scope = useWfScope();
   const [open, setOpen] = useState(false);
   const [pf, setPf] = useState({
     scope: "", periodType: "Weekly" as const, captureDefault: "Hybrid" as const,
@@ -23,13 +26,42 @@ export default function TimePolicy() {
     allowEditDerived: true, overtimeEnabled: true, effectiveFrom: "",
   });
 
+  const rw = scope.canConfigure;
+
+  function saveVersion() {
+    addPolicy({
+      scope: pf.scope,
+      effectiveFrom: new Date(pf.effectiveFrom).toISOString(),
+      periodType: pf.periodType,
+      captureDefault: pf.captureDefault,
+      incrementMins: pf.incrementMins,
+      rounding: pf.rounding,
+      submissionDeadlineDays: pf.submissionDeadlineDays,
+      approvalDeadlineDays: pf.approvalDeadlineDays,
+      lateGraceMins: pf.lateGraceMins,
+      earlyLeaveGraceMins: pf.earlyLeaveGraceMins,
+      absenceThresholdMins: pf.absenceThresholdMins,
+      maxDailyHours: pf.maxDailyHours,
+      allowEditDerived: pf.allowEditDerived,
+      overtimeEnabled: pf.overtimeEnabled,
+    });
+    setOpen(false);
+  }
+
   return (
     <div>
       <PageHeader
-        title="Time Policy & Enrolment"
-        subtitle="Effective-dated tenant policy, capture-mode enrolment & deterministic precedence (BL-2.1.4)"
-        actions={<Button onClick={() => setOpen(true)}><Plus size={15} /> New Policy Version</Button>}
+        title="Workforce time settings"
+        subtitle="Tenant-level policy, enrolment, breaks and attendance rules with effective dates and audit history."
+        actions={rw ? <Button onClick={() => setOpen(true)}><Plus size={15} /> New policy version</Button> : undefined}
       />
+
+      {!rw && (
+        <div className="card mb-5 flex items-center gap-3 text-sm text-mist-500">
+          <ShieldAlert size={18} className="text-amber-500" />
+          Read-only — only the Tenant HR Administrator persona can change tenant time settings.
+        </div>
+      )}
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Policy versions" value={policies.length} tone="brand" icon={<SlidersHorizontal size={18} />} />
@@ -38,7 +70,7 @@ export default function TimePolicy() {
         <StatCard label="Employees covered" value={enrolments.reduce((n, e) => n + e.count, 0)} tone="mist" delay={0.15} />
       </div>
 
-      <Tabs tabs={["Policies", "Enrolment", "Resolution Precedence"]}>
+      <Tabs tabs={["Policies", "Breaks", "Attendance rules", "Enrolment", "Capabilities", "Resolution precedence"]}>
         {(t) =>
           t === "Policies" ? (
             <div className="space-y-3">
@@ -47,7 +79,9 @@ export default function TimePolicy() {
                   <div className="mb-3 flex items-center justify-between">
                     <div>
                       <p className="font-display font-bold text-mist-900">{p.scope}</p>
-                      <p className="text-[11px] text-mist-400">Effective {shortDate(p.effectiveFrom)}{p.effectiveTo ? ` – ${shortDate(p.effectiveTo)}` : " (open)"}</p>
+                      <p className="text-[11px] text-mist-400">
+                        Effective {shortDate(p.effectiveFrom)}{p.effectiveTo ? ` – ${shortDate(p.effectiveTo)}` : " (open)"}
+                      </p>
                     </div>
                     <Badge tone={p.status === "Current" ? "brand" : p.status === "Future" ? "amber" : "mist"}>{p.status}</Badge>
                   </div>
@@ -69,6 +103,34 @@ export default function TimePolicy() {
                 </div>
               ))}
             </div>
+          ) : t === "Breaks" ? (
+            <div className="space-y-3">
+              <p className="text-sm text-mist-500">
+                Break rules resolve by scheduled shift length — the longest matching rule applies. Unpaid auto-deduct breaks
+                are removed from payable time even if the employee did not record them.
+              </p>
+              <Table columns={["Rule", "Applies when shift ≥", "Break", "Paid", "Auto-deduct"]}>
+                {breakRules.map((b, i) => (
+                  <Row key={b.id} index={i}>
+                    <Cell className="font-semibold">{b.label}</Cell>
+                    <Cell>{b.minShiftHours ? `${b.minShiftHours} h` : "any"}</Cell>
+                    <Cell>{b.breakMins} min</Cell>
+                    <Cell><Badge tone={b.paid ? "brand" : "mist"}>{b.paid ? "Paid" : "Unpaid"}</Badge></Cell>
+                    <Cell><Badge tone={b.autoDeduct ? "amber" : "mist"}>{b.autoDeduct ? "Auto" : "Manual"}</Badge></Cell>
+                  </Row>
+                ))}
+              </Table>
+            </div>
+          ) : t === "Attendance rules" ? (
+            <Table columns={["Rule", "Value", "Detail"]}>
+              {attendanceRules.map((r, i) => (
+                <Row key={r.id} index={i}>
+                  <Cell className="font-semibold">{r.key}</Cell>
+                  <Cell><Badge tone="mist">{r.value}</Badge></Cell>
+                  <Cell className="text-mist-500">{r.detail}</Cell>
+                </Row>
+              ))}
+            </Table>
           ) : t === "Enrolment" ? (
             <Table columns={["Selector", "Capture mode", "Effective from", "Employees", "Resolved policy"]}>
               {enrolments.map((e, i) => (
@@ -81,11 +143,36 @@ export default function TimePolicy() {
                 </Row>
               ))}
             </Table>
+          ) : t === "Capabilities" ? (
+            <div className="space-y-3">
+              <p className="text-sm text-mist-500">
+                Suspending a capability hides new access across the tenant without deleting historical records.
+              </p>
+              {capabilities.map((c) => (
+                <div key={c.key} className="card flex items-center justify-between gap-4">
+                  <div>
+                    <p className="font-display font-bold text-mist-900">{c.key}</p>
+                    <p className="text-xs text-mist-400">{c.note}</p>
+                  </div>
+                  <button
+                    disabled={!rw}
+                    onClick={() => toggleCapability(c.key)}
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition disabled:opacity-50",
+                      c.enabled ? "bg-brand-50 text-brand-700 ring-brand-200" : "bg-mist-100 text-mist-500 ring-mist-200",
+                    )}
+                  >
+                    <Power size={12} /> {c.enabled ? "Enabled" : "Suspended"}
+                  </button>
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="card">
               <p className="mb-3 text-sm text-mist-500">
-                For every policy field, the resolved value is the first explicit value walking this list from most specific to least specific.
-                A same-level conflict with no primary marked returns <b>Configuration Conflict</b> and blocks activation.
+                For every policy field, the resolved value is the first explicit value walking this list from most specific
+                to least specific. A same-level conflict with no primary marked returns <b>Configuration Conflict</b> and
+                blocks activation.
               </p>
               <ol className="space-y-1.5">
                 {PRECEDENCE.map((p, i) => (
@@ -105,9 +192,9 @@ export default function TimePolicy() {
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title="New Policy Version"
+        title="New policy version"
         wide
-        footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!pf.scope || !pf.effectiveFrom} onClick={() => setOpen(false)}>Save (Future)</Button></>}
+        footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!pf.scope || !pf.effectiveFrom} onClick={saveVersion}>Save (future-dated)</Button></>}
       >
         <div className="space-y-4">
           <Grid cols={2}>
@@ -122,12 +209,13 @@ export default function TimePolicy() {
             <Field label="Late grace (min)"><Input type="number" value={pf.lateGraceMins} onChange={(e) => setPf({ ...pf, lateGraceMins: +e.target.value })} /></Field>
             <Field label="Max daily hours"><Input type="number" value={pf.maxDailyHours} onChange={(e) => setPf({ ...pf, maxDailyHours: +e.target.value })} /></Field>
           </Grid>
-          <div className="flex gap-6">
+          <div className="flex flex-wrap gap-6">
             <Checkbox label="Employees may edit attendance-derived time" checked={pf.allowEditDerived} onChange={(e) => setPf({ ...pf, allowEditDerived: e.target.checked })} />
             <Checkbox label="Overtime enabled" checked={pf.overtimeEnabled} onChange={(e) => setPf({ ...pf, overtimeEnabled: e.target.checked })} />
           </div>
           <p className="rounded-xl bg-mist-50 px-3 py-2 text-xs text-mist-500">
-            A policy change applies only from its effective date and never recalculates a locked period. An effective policy is superseded by a new version rather than overwritten.
+            A policy change applies only from its effective date and never recalculates a locked period. An effective policy
+            is superseded by a new version rather than overwritten.
           </p>
         </div>
       </Modal>

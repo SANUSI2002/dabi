@@ -99,7 +99,8 @@ export const NAV: NavGroup[] = [
       { to: "/workforce/approvals", label: "Approvals", icon: CheckSquare },
       { to: "/workforce/leave", label: "Holiday & Leave", icon: Palmtree },
       { to: "/workforce/work", label: "Work & Tasks", icon: FolderKanban },
-      { to: "/workforce/policy", label: "Time Policy", icon: SlidersHorizontal },
+      { to: "/workforce/reports", label: "Time Reports", icon: BarChart3 },
+      { to: "/workforce/policy", label: "Time Settings", icon: SlidersHorizontal },
     ],
   },
   {
