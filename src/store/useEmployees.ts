@@ -3,7 +3,7 @@ import { differenceInCalendarDays } from "date-fns";
 import * as seed from "@/data/hrProfile";
 import { audit } from "@/store/useAudit";
 import { useIdentity } from "@/store/useIdentity";
-import type { EmployeeProfile, EmployeeDocument, DisciplinaryAction, EmployeeNote, BonusPoints, DocumentCategory } from "@/data/hrProfile";
+import type { EmployeeProfile, EmployeeDocument, DisciplinaryAction, EmployeeNote, BonusPoints, DocumentCategory, Policy, PolicyCategory } from "@/data/hrProfile";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 const me = () => useIdentity.getState().user.name;
@@ -15,6 +15,9 @@ type EmployeesState = {
   disciplinaryActions: DisciplinaryAction[];
   notes: EmployeeNote[];
   bonusPoints: BonusPoints[];
+  policies: Policy[];
+  addPolicy: (p: { category: PolicyCategory; title: string; purpose: string; body: string }) => void;
+  addActionType: (name: string, blockOption: boolean) => void;
 
   profileFor: (staffId: string) => EmployeeProfile | undefined;
   upsertProfile: (staffId: string, patch: Partial<Omit<EmployeeProfile, "id">>) => void;
@@ -37,6 +40,17 @@ export const useEmployees = create<EmployeesState>((set, get) => ({
   disciplinaryActions: seed.disciplinaryActions,
   notes: seed.notes,
   bonusPoints: seed.bonusPoints,
+  policies: seed.policies,
+
+  addPolicy: (p) => {
+    audit("published policy", `hr/policy/${p.title}`);
+    set((s) => ({ policies: [{ ...p, id: rid(), updatedAt: new Date().toISOString() }, ...s.policies] }));
+  },
+
+  addActionType: (name, blockOption) => {
+    audit("added disciplinary action type", `hr/action-type/${name}`);
+    set((s) => ({ actionTypes: [...s.actionTypes, { id: rid(), name, blockOption }] }));
+  },
 
   profileFor: (staffId) => get().profiles.find((p) => p.id === staffId),
 

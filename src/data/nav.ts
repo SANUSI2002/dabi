@@ -42,6 +42,9 @@ import {
   ListChecks as OnboardIcon,
   LogOut,
   Target,
+  Network,
+  BookOpen,
+  Users2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -115,7 +118,10 @@ export const NAV: NavGroup[] = [
     title: "Human Resources",
     items: [
       { to: "/hr/employees", label: "Employee Directory", icon: Contact },
+      { to: "/hr/org-chart", label: "Organization Chart", icon: Network },
+      { to: "/hr/policies-discipline", label: "Policies & Discipline", icon: BookOpen },
       { to: "/hr/recruitment", label: "Recruitment", icon: Briefcase },
+      { to: "/hr/talent-pool", label: "Talent Pool", icon: Users2 },
       { to: "/hr/onboarding", label: "Onboarding", icon: OnboardIcon },
       { to: "/hr/offboarding", label: "Offboarding", icon: LogOut },
       { to: "/hr/performance", label: "Performance", icon: Target },

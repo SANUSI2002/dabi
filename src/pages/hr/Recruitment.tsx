@@ -5,14 +5,14 @@ import {
 } from "lucide-react";
 import { PageHeader, Card, Button, Badge, StatCard } from "@/components/ui/primitives";
 import { Modal } from "@/components/ui/Modal";
-import { Field, Input, Select, Textarea, Grid } from "@/components/ui/form";
+import { Field, Input, Select, Textarea, Grid, Checkbox } from "@/components/ui/form";
 import { useRecruitment } from "@/store/useRecruitment";
 import { useOnboarding } from "@/store/useOnboarding";
 import { useOrg } from "@/store/useOrg";
 import { useHr } from "@/store/useHr";
 import { timeAgo, initials } from "@/lib/format";
 import { cn } from "@/lib/cn";
-import type { CandidateSource } from "@/data/recruitment";
+import { SKILL_ZONES, type CandidateSource } from "@/data/recruitment";
 
 function Stars({ value, onChange }: { value: number; onChange: (n: number) => void }) {
   return (
@@ -27,7 +27,7 @@ function Stars({ value, onChange }: { value: number; onChange: (n: number) => vo
 }
 
 export default function Recruitment() {
-  const { requisitions, candidates, stagesFor, candidatesFor, addRequisition, addCandidate, moveCandidate, rateCandidate, rejectCandidate, hireCandidate, scheduleInterview } = useRecruitment();
+  const { requisitions, candidates, stagesFor, candidatesFor, addRequisition, addCandidate, moveCandidate, rateCandidate, rejectCandidate, hireCandidate, scheduleInterview, addToTalentPool } = useRecruitment();
   const { startOnboarding } = useOnboarding();
   const { departments, positionsFor, jobPositionName, departmentName } = useOrg();
   const staff = useHr((s) => s.staff);
@@ -45,6 +45,8 @@ export default function Recruitment() {
   const [cf, setCf] = useState({ name: "", email: "", phone: "", source: "Application" as CandidateSource, referredBy: "" });
   const [rejectFor, setRejectFor] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [pool, setPool] = useState(false);
+  const [poolZone, setPoolZone] = useState(SKILL_ZONES[0]);
   const [ivFor, setIvFor] = useState<string | null>(null);
   const [ivf, setIvf] = useState({ scheduledAt: "", interviewerIds: [] as string[], notes: "" });
 
@@ -109,7 +111,7 @@ export default function Recruitment() {
                         {col.type === "Interview" && (
                           <button onClick={() => { setIvFor(c.id); setIvf({ scheduledAt: "", interviewerIds: [], notes: "" }); }} className="btn-ghost px-2 py-1 text-[11px]"><CalendarClock size={11} /> Interview</button>
                         )}
-                        <button onClick={() => { setRejectFor(c.id); setRejectReason(""); }} className="btn-ghost px-2 py-1 text-[11px] text-action-600"><X size={11} /> Reject</button>
+                        <button onClick={() => { setRejectFor(c.id); setRejectReason(""); setPool(false); setPoolZone(SKILL_ZONES[0]); }} className="btn-ghost px-2 py-1 text-[11px] text-action-600"><X size={11} /> Reject</button>
                         {col.type === "Hired" ? (
                           !c.hired && <button onClick={() => hire(c.id)} className="btn-primary px-2 py-1 text-[11px]"><UserCheck size={11} /> Hire &amp; onboard</button>
                         ) : (
@@ -171,9 +173,23 @@ export default function Recruitment() {
         onClose={() => setRejectFor(null)}
         title="Reject candidate"
         footer={<><Button variant="ghost" onClick={() => setRejectFor(null)}>Cancel</Button>
-          <Button variant="action" disabled={!rejectReason} onClick={() => { if (rejectFor) rejectCandidate(rejectFor, rejectReason); setRejectFor(null); }}>Reject</Button></>}
+          <Button
+            variant="action"
+            disabled={!rejectReason}
+            onClick={() => {
+              if (rejectFor) {
+                rejectCandidate(rejectFor, rejectReason);
+                if (pool) addToTalentPool(rejectFor, poolZone, rejectReason);
+              }
+              setRejectFor(null);
+            }}
+          >Reject</Button></>}
       >
-        <Field label="Reason"><Select value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} options={["", "Overqualified", "Underqualified", "Failed practical test", "Salary mismatch", "Did not attend interview", "Position filled internally", "Other"].map((r) => ({ value: r, label: r || "Select a reason…" }))} /></Field>
+        <div className="space-y-4">
+          <Field label="Reason"><Select value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} options={["", "Overqualified", "Underqualified", "Failed practical test", "Salary mismatch", "Did not attend interview", "Position filled internally", "Other"].map((r) => ({ value: r, label: r || "Select a reason…" }))} /></Field>
+          <Checkbox label="Keep in Talent Pool for future openings" checked={pool} onChange={(e) => setPool(e.target.checked)} />
+          {pool && <Field label="Skill zone"><Select value={poolZone} onChange={(e) => setPoolZone(e.target.value)} options={SKILL_ZONES} /></Field>}
+        </div>
       </Modal>
 
       <Modal

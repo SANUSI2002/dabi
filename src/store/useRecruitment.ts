@@ -2,7 +2,7 @@ import { create } from "zustand";
 import * as seed from "@/data/recruitment";
 import { audit } from "@/store/useAudit";
 import { useHr } from "@/store/useHr";
-import type { JobRequisition, PipelineStage, Candidate, InterviewSchedule, StageType } from "@/data/recruitment";
+import type { JobRequisition, PipelineStage, Candidate, InterviewSchedule, StageType, TalentPoolEntry } from "@/data/recruitment";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 const who = (id?: string) => (id ? useHr.getState().byId(id)?.name ?? id : undefined);
@@ -12,6 +12,7 @@ type RecruitmentState = {
   stages: PipelineStage[];
   candidates: Candidate[];
   interviews: InterviewSchedule[];
+  talentPool: TalentPoolEntry[];
 
   addRequisition: (r: Omit<JobRequisition, "id" | "closed">) => void;
   closeRequisition: (id: string) => void;
@@ -26,6 +27,8 @@ type RecruitmentState = {
 
   scheduleInterview: (i: Omit<InterviewSchedule, "id" | "status">) => void;
   completeInterview: (id: string, feedback: string) => void;
+
+  addToTalentPool: (candidateId: string, skillZone: string, reason: string) => void;
 };
 
 export const useRecruitment = create<RecruitmentState>((set, get) => ({
@@ -33,6 +36,7 @@ export const useRecruitment = create<RecruitmentState>((set, get) => ({
   stages: seed.stages,
   candidates: seed.candidates,
   interviews: seed.interviews,
+  talentPool: seed.talentPool,
 
   addRequisition: (r) => {
     audit("opened requisition", `hr/recruitment/${r.title}`);
@@ -93,5 +97,14 @@ export const useRecruitment = create<RecruitmentState>((set, get) => ({
   completeInterview: (id, feedback) => {
     audit("recorded interview feedback", `hr/recruitment/interview/${id}`);
     set((s) => ({ interviews: s.interviews.map((i) => (i.id === id ? { ...i, status: "Completed", feedback } : i)) }));
+  },
+
+  addToTalentPool: (candidateId, skillZone, reason) => {
+    const c = get().candidates.find((x) => x.id === candidateId);
+    if (!c) return;
+    audit("added to talent pool", `hr/recruitment/talent-pool/${c.name}`);
+    set((s) => ({
+      talentPool: [{ id: rid(), skillZone, candidateName: c.name, email: c.email, phone: c.phone, reason, addedAt: new Date().toISOString() }, ...s.talentPool],
+    }));
   },
 }));

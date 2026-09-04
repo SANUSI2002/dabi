@@ -55,6 +55,18 @@ export type InterviewSchedule = {
   feedback?: string;
 };
 
+export type TalentPoolEntry = {
+  id: string;
+  skillZone: string;
+  candidateName: string;
+  email: string;
+  phone: string;
+  reason: string;
+  addedAt: string;
+};
+
+export const SKILL_ZONES = ["Clinical — Nursing", "Clinical — Medical", "Laboratory", "Records & HMIS", "Administration", "Community Health"];
+
 export const REJECT_REASONS = [
   "Overqualified", "Underqualified", "Failed practical test", "Salary mismatch",
   "Did not attend interview", "Position filled internally", "Other",
@@ -77,6 +89,10 @@ export const candidates: Candidate[] = [
   { id: "cd2", requisitionId: "req1", stageId: "req1-st1", name: "Blessing Achor", email: "blessing.achor@example.com", phone: "0805 555 6677", source: "Referral", referredBy: "s2", appliedAt: day(18), rating: 3, hired: false, canceled: false },
   { id: "cd3", requisitionId: "req1", stageId: "req1-st2", name: "Ngozi Umeh", email: "ngozi.umeh@example.com", phone: "0806 666 7788", source: "Application", appliedAt: day(19), rating: 4, hired: false, canceled: false },
   { id: "cd4", requisitionId: "req2", stageId: "req2-st0", name: "Tunde Bakare", email: "tunde.bakare@example.com", phone: "0807 777 8899", source: "Application", appliedAt: day(9), rating: 0, hired: false, canceled: false },
+];
+
+export const talentPool: TalentPoolEntry[] = [
+  { id: "tp1", skillZone: "Clinical — Nursing", candidateName: "Grace Osei", email: "grace.osei@example.com", phone: "0803 222 3344", reason: "Strong midwifery background; no vacancy open when she applied", addedAt: day(40) },
 ];
 
 export const interviews: InterviewSchedule[] = [

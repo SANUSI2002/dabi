@@ -50,6 +50,16 @@ export type EmployeeDocument = {
   rejectReason?: string;
 };
 
+export type PolicyCategory = "Conduct" | "Safety & Clinical" | "Data & Security" | "IT & Assets" | "Leave & Attendance" | "Other";
+export type Policy = {
+  id: string;
+  category: PolicyCategory;
+  title: string;
+  purpose: string;
+  body: string;
+  updatedAt: string;
+};
+
 export type ActionType = {
   id: string;
   name: string;
@@ -91,6 +101,39 @@ export const profiles: EmployeeProfile[] = [
   { id: "s6", dob: day(31 * 365), gender: "Female", maritalStatus: "Married", address: "19 Festac Link", lga: "Amuwo-Odofin", state: "Lagos", qualification: "BSc Statistics", companyId: "co1", departmentId: "d5", jobPositionId: "jp6", employeeTypeId: "et1", reportingManagerId: "s1", dateJoining: day(900), tagIds: ["tg4"] },
   { id: "s7", dob: day(29 * 365), gender: "Male", maritalStatus: "Single", address: "2 Trade Fair Road", lga: "Amuwo-Odofin", state: "Lagos", qualification: "AMLSCN", companyId: "co1", departmentId: "d3", jobPositionId: "jp3", jobRoleId: "jr4", employeeTypeId: "et3", reportingManagerId: "s1", dateJoining: day(200), contractEndDate: day(-100), tagIds: [] },
   { id: "s8", dob: day(26 * 365), gender: "Female", maritalStatus: "Single", address: "44 Wilmer Street", lga: "Amuwo-Odofin", state: "Lagos", qualification: "OND Office Tech", companyId: "co1", departmentId: "d6", jobPositionId: "jp7", employeeTypeId: "et1", reportingManagerId: "s1", dateJoining: day(600), tagIds: [] },
+];
+
+export const policies: Policy[] = [
+  {
+    id: "pol1", category: "Safety & Clinical", title: "Infection Prevention & Control Policy",
+    purpose: "To protect patients, staff and visitors from healthcare-associated infection.",
+    body: "All clinical staff must perform hand hygiene at the 5 WHO moments, use appropriate PPE for the level of patient contact, and follow the facility's sharps and waste-segregation protocol. Any needle-stick or exposure incident must be reported to the infection control focal person within 1 hour. Isolation precautions apply to any suspected or confirmed notifiable disease per the Surveillance module.",
+    updatedAt: day(120),
+  },
+  {
+    id: "pol2", category: "Data & Security", title: "NDPR Patient Data Privacy Policy",
+    purpose: "To ensure compliance with the Nigeria Data Protection Regulation (NDPR) for patient and staff data.",
+    body: "Patient records may only be accessed for direct care, billing, or reporting duties tied to the accessor's role. Every view, edit and export is written to the audit log. Data must never be shared outside the facility without the patient's consent or a lawful basis. Staff who leave the facility have their system access revoked as part of the offboarding Work Handover stage.",
+    updatedAt: day(60),
+  },
+  {
+    id: "pol3", category: "Conduct", title: "Code of Conduct",
+    purpose: "To set expectations for professional, ethical behaviour with patients and colleagues.",
+    body: "All staff must treat patients and colleagues with dignity and respect, maintain confidentiality, and avoid conflicts of interest. Harassment, discrimination or falsification of clinical records will not be tolerated and may lead to disciplinary action up to and including termination.",
+    updatedAt: day(200),
+  },
+  {
+    id: "pol4", category: "Leave & Attendance", title: "Attendance & Punctuality Policy",
+    purpose: "To ensure adequate clinical coverage across all shifts.",
+    body: "Staff must clock in within the shift's late-grace window and clock out at the end of their shift. Repeated lateness or missed checkouts are reviewed under the Workforce exception-resolution process and may result in a disciplinary action.",
+    updatedAt: day(90),
+  },
+  {
+    id: "pol5", category: "IT & Assets", title: "Equipment & Device Usage Policy",
+    purpose: "To protect company-issued devices and clinical equipment from misuse or loss.",
+    body: "Company-issued phones, laptops and access badges remain the property of the facility and must be returned during offboarding Work Handover. Loss or damage should be reported immediately via Helpdesk or the Assets module.",
+    updatedAt: day(150),
+  },
 ];
 
 export const actionTypes: ActionType[] = [
