@@ -2,7 +2,8 @@ import { type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Printer } from "lucide-react";
 import { ShieldPlus } from "lucide-react";
-import { FACILITY, CURRENT_USER } from "@/data/mock";
+import { FACILITY } from "@/data/mock";
+import { useIdentity } from "@/store/useIdentity";
 import { dateTime } from "@/lib/format";
 
 export function PrintDoc({
@@ -16,6 +17,7 @@ export function PrintDoc({
   docTitle: string;
   children: ReactNode;
 }) {
+  const printedBy = useIdentity((s) => s.user.name);
   return (
     <AnimatePresence>
       {open && (
@@ -63,7 +65,7 @@ export function PrintDoc({
             {children}
 
             <footer className="mt-10 border-t border-mist-200 pt-3 text-[10px] text-mist-400">
-              Computer-generated document · SabiEMR · printed by {CURRENT_USER.name} · Confidential medical record — handle
+              Computer-generated document · SabiEMR · printed by {printedBy} · Confidential medical record — handle
               under NDPR.
             </footer>
           </motion.div>

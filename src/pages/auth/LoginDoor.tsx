@@ -5,13 +5,15 @@ import { ShieldPlus, ArrowRight, Loader2 } from "lucide-react";
 import { useAuth } from "@/store/useAuth";
 import { DoctorFigure } from "./DoctorFigure";
 import { FACILITY } from "@/data/mock";
+import { ACCOUNTS, DEFAULT_ACCOUNT } from "@/data/accounts";
 
 type Phase = "approach" | "push" | "open" | "form";
 
 export default function LoginDoor() {
   const [phase, setPhase] = useState<Phase>("approach");
   const [busy, setBusy] = useState(false);
-  const signIn = useAuth((s) => s.signIn);
+  const [accountId, setAccountId] = useState(DEFAULT_ACCOUNT);
+  const signInAs = useAuth((s) => s.signInAs);
   const nav = useNavigate();
 
   useEffect(() => {
@@ -27,7 +29,7 @@ export default function LoginDoor() {
     e.preventDefault();
     setBusy(true);
     setTimeout(() => {
-      signIn();
+      signInAs(accountId);
       nav("/", { replace: true });
     }, 650);
   }
@@ -106,7 +108,7 @@ export default function LoginDoor() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     transition={{ delay: 0.25, type: "spring", stiffness: 220, damping: 24 }}
                   >
-                    <LoginCard busy={busy} onSubmit={submit} />
+                    <LoginCard busy={busy} onSubmit={submit} accountId={accountId} setAccountId={setAccountId} />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -148,7 +150,18 @@ function DoorGlass({ side }: { side: "left" | "right" }) {
   );
 }
 
-function LoginCard({ busy, onSubmit }: { busy: boolean; onSubmit: (e: FormEvent) => void }) {
+function LoginCard({
+  busy,
+  onSubmit,
+  accountId,
+  setAccountId,
+}: {
+  busy: boolean;
+  onSubmit: (e: FormEvent) => void;
+  accountId: string;
+  setAccountId: (id: string) => void;
+}) {
+  const acct = ACCOUNTS.find((a) => a.id === accountId) ?? ACCOUNTS[0];
   return (
     <div className="w-full max-w-sm rounded-2xl bg-white/95 p-6 shadow-pop ring-1 ring-white/60 backdrop-blur">
       <div className="mb-5 flex items-center gap-3">
@@ -165,18 +178,32 @@ function LoginCard({ busy, onSubmit }: { busy: boolean; onSubmit: (e: FormEvent)
 
       <form onSubmit={onSubmit} className="space-y-3">
         <div>
+          <span className="label">Account</span>
+          <select
+            value={accountId}
+            onChange={(e) => setAccountId(e.target.value)}
+            className="input"
+          >
+            {ACCOUNTS.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name} — {a.role}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
           <span className="label">Username</span>
-          <input defaultValue="adaeze.okonjo" className="input" autoComplete="username" />
+          <input value={acct.username} readOnly className="input bg-mist-50 text-mist-500" autoComplete="username" />
         </div>
         <div>
           <span className="label">Password</span>
           <input type="password" defaultValue="demo1234" className="input" autoComplete="current-password" />
         </div>
-        <label className="flex items-center gap-2 pt-1 text-xs text-mist-500">
-          <input type="checkbox" defaultChecked className="h-4 w-4 rounded border-mist-300 text-brand-600" />
-          Keep me signed in on this device
-        </label>
-        <button type="submit" disabled={busy} className="btn-primary mt-2 w-full">
+        <p className="rounded-lg bg-mist-50 px-2.5 py-1.5 text-[11px] text-mist-500">
+          Signs in with <b className="text-mist-700">{acct.systemRole}</b> access · workforce role{" "}
+          <b className="text-mist-700">{acct.wfRole}</b>
+        </p>
+        <button type="submit" disabled={busy} className="btn-primary mt-1 w-full">
           {busy ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
           {busy ? "Opening…" : "Enter Hospital"}
         </button>

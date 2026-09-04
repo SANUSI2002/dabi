@@ -1,6 +1,7 @@
 import { create } from "zustand";
-import { CURRENT_USER } from "@/data/mock";
 import { audit } from "@/store/useAudit";
+import { useIdentity } from "@/store/useIdentity";
+import type { Account } from "@/data/accounts";
 
 const KEY = "sabi-emr-auth";
 const read = () => {
@@ -20,22 +21,28 @@ const write = (v: boolean) => {
 
 type AuthState = {
   authed: boolean;
-  user: typeof CURRENT_USER;
-  signIn: () => void;
+  /** convenience mirror of the signed-in identity */
+  user: Account;
+  signInAs: (accountId: string) => void;
   signOut: () => void;
 };
 
-export const useAuth = create<AuthState>((set) => ({
-  authed: read(),
-  user: CURRENT_USER,
-  signIn: () => {
-    write(true);
-    set({ authed: true });
-    audit("signed in", "auth/session");
-  },
-  signOut: () => {
-    audit("signed out", "auth/session");
-    write(false);
-    set({ authed: false });
-  },
-}));
+export const useAuth = create<AuthState>((set) => {
+  // keep the mirror in sync with the identity store
+  useIdentity.subscribe((s) => set({ user: s.user }));
+  return {
+    authed: read(),
+    user: useIdentity.getState().user,
+    signInAs: (accountId) => {
+      useIdentity.getState().setUser(accountId);
+      write(true);
+      set({ authed: true });
+      audit("signed in", "auth/session");
+    },
+    signOut: () => {
+      audit("signed out", "auth/session");
+      write(false);
+      set({ authed: false });
+    },
+  };
+});

@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Fingerprint, LogIn, LogOut, AlertTriangle, ShieldCheck, MapPin } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Fingerprint, LogIn, LogOut, AlertTriangle, ShieldCheck, MapPin, Coffee, Play } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
@@ -23,11 +23,21 @@ function workedHours(a: { clockIn: string; clockOut?: string; breakMins: number 
   return Math.max(0, mins - a.breakMins) / 60;
 }
 
+const breakElapsed = (since?: string) =>
+  since ? Math.max(0, Math.round((Date.now() - +new Date(since)) / 60000)) : 0;
+
 export default function Attendance() {
-  const { attendance, clockIn, clockOut, correctInterval } = useWorkforce();
+  const { attendance, clockIn, clockOut, startBreak, endBreak, correctInterval } = useWorkforce();
   const staff = useHr((s) => s.staff);
   const scope = useWfScope();
   const name = (id: string) => staff.find((s) => s.id === id)?.name ?? id;
+
+  // tick every 30s so break timers stay live
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTick((n) => n + 1), 30000);
+    return () => clearInterval(t);
+  }, []);
 
   const scoped = useMemo(() => attendance.filter((a) => scope.inScope(a.staffId)), [attendance, scope]);
   const inScopeStaff = staff.filter((s) => scope.inScope(s.id));
@@ -120,9 +130,32 @@ export default function Attendance() {
             </label>
 
             {myOpen ? (
-              <Button variant="action" className="w-full" onClick={() => clockOut(myOpen.id)}>
-                <LogOut size={15} /> Clock out
-              </Button>
+              <div className="space-y-2">
+                {myOpen.onBreakSince && (
+                  <div className="flex items-center justify-between rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 ring-1 ring-amber-200">
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
+                      On break — {breakElapsed(myOpen.onBreakSince)}m
+                    </span>
+                    <span className="font-normal text-amber-500">since {new Date(myOpen.onBreakSince).toLocaleTimeString("en", { hour: "2-digit", minute: "2-digit" })}</span>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  {myOpen.onBreakSince ? (
+                    <Button variant="soft" className="flex-1" onClick={() => endBreak(myOpen.id)}>
+                      <Play size={15} /> End break
+                    </Button>
+                  ) : (
+                    <Button variant="ghost" className="flex-1" onClick={() => startBreak(myOpen.id)}>
+                      <Coffee size={15} /> Start break
+                    </Button>
+                  )}
+                  <Button variant="action" className="flex-1" disabled={!!myOpen.onBreakSince} onClick={() => clockOut(myOpen.id)}>
+                    <LogOut size={15} /> Clock out
+                  </Button>
+                </div>
+                {myOpen.onBreakSince && <p className="text-center text-[11px] text-mist-400">End your break before clocking out.</p>}
+              </div>
             ) : (
               <Button className="w-full" disabled={!consented} onClick={() => doClockIn(scope.staffId)}>
                 <LogIn size={15} /> Check in
@@ -171,7 +204,10 @@ export default function Attendance() {
                     <Cell>{shortDate(a.date)}</Cell>
                     <Cell>{a.clockIn}</Cell>
                     <Cell>{a.clockOut ?? <Badge tone="amber">open</Badge>}</Cell>
-                    <Cell>{a.breakMins}m</Cell>
+                    <Cell>
+                      {a.breakMins}m
+                      {a.onBreakSince && <span className="ml-1 text-amber-600">+{breakElapsed(a.onBreakSince)}m…</span>}
+                    </Cell>
                     <Cell className="font-semibold">{w != null ? `${w.toFixed(1)}h` : "—"}</Cell>
                     <Cell><Badge tone="mist">{a.workLocation ?? "WFO"}</Badge></Cell>
                     <Cell>{a.source}</Cell>
@@ -183,6 +219,13 @@ export default function Attendance() {
                     <Cell>
                       <div className="flex justify-end gap-1.5">
                         {!a.clockOut && !scope.readOnly && (
+                          a.onBreakSince ? (
+                            <button onClick={() => endBreak(a.id)} className="btn-soft px-2.5 py-1 text-xs"><Play size={12} /> Resume</button>
+                          ) : (
+                            <button onClick={() => startBreak(a.id)} className="btn-ghost px-2 py-1 text-xs"><Coffee size={12} /> Break</button>
+                          )
+                        )}
+                        {!a.clockOut && !scope.readOnly && !a.onBreakSince && (
                           <button onClick={() => clockOut(a.id)} className="btn-primary px-2.5 py-1 text-xs"><LogOut size={12} /> Out</button>
                         )}
                         {!scope.readOnly && (scope.canConfigure || scope.canApprove || a.staffId === scope.staffId) && (

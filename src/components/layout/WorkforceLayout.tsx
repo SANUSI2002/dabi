@@ -1,7 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Users, Eye, ShieldCheck, CalendarRange, User } from "lucide-react";
-import { useWorkforceSession, useWfScope, WF_PERSONAS, type WfRole } from "@/store/useWorkforceSession";
+import { useWorkforceSession, useWfScope, personaOptions, type WfRole } from "@/store/useWorkforceSession";
 import { useHr } from "@/store/useHr";
 
 const roleIcon: Record<WfRole, typeof Users> = {
@@ -13,12 +13,11 @@ const roleIcon: Record<WfRole, typeof Users> = {
 };
 
 export function WorkforceLayout() {
-  const personaId = useWorkforceSession((s) => s.personaId);
-  const setPersona = useWorkforceSession((s) => s.setPersona);
+  const viewAsId = useWorkforceSession((s) => s.viewAsId);
+  const setViewAs = useWorkforceSession((s) => s.setViewAs);
   const staff = useHr((s) => s.staff);
   const scope = useWfScope();
   const Icon = roleIcon[scope.role];
-
   const nameOf = (sid: string) => staff.find((s) => s.id === sid)?.name ?? sid;
 
   return (
@@ -33,25 +32,40 @@ export function WorkforceLayout() {
             <Icon size={16} />
           </span>
           <div className="leading-tight">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-white/70">Demo persona</p>
-            <p className="text-sm font-bold">{scope.name}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-white/70">
+              {scope.isViewingAs ? "Viewing as" : "Signed in as"}
+            </p>
+            <p className="text-sm font-bold">
+              {scope.name} · {scope.role}
+            </p>
           </div>
         </div>
 
-        <label className="flex items-center gap-2 text-xs">
-          <span className="text-white/70">Acting as</span>
-          <select
-            value={personaId}
-            onChange={(e) => setPersona(e.target.value)}
-            className="rounded-lg border-0 bg-white/15 px-2.5 py-1.5 text-xs font-semibold text-white outline-none ring-1 ring-white/20 focus:ring-white/50 [&>option]:text-mist-900"
-          >
-            {WF_PERSONAS.map((p) => (
-              <option key={p.id} value={p.id}>
-                {nameOf(p.staffId)} — {p.role}
-              </option>
-            ))}
-          </select>
-        </label>
+        {scope.canViewAs && (
+          <label className="flex items-center gap-2 text-xs">
+            <span className="text-white/70">View as</span>
+            <select
+              value={viewAsId ?? scope.selfId}
+              onChange={(e) => setViewAs(e.target.value === scope.selfId ? null : e.target.value)}
+              className="rounded-lg border-0 bg-white/15 px-2.5 py-1.5 text-xs font-semibold text-white outline-none ring-1 ring-white/20 focus:ring-white/50 [&>option]:text-mist-900"
+            >
+              {personaOptions().map((p) => (
+                <option key={p.id} value={p.staffId}>
+                  {nameOf(p.staffId)} — {p.role}
+                </option>
+              ))}
+            </select>
+            {scope.isViewingAs && (
+              <button
+                type="button"
+                onClick={() => setViewAs(null)}
+                className="rounded-full bg-white/15 px-2 py-1 font-semibold ring-1 ring-white/20 hover:bg-white/25"
+              >
+                Back to me
+              </button>
+            )}
+          </label>
+        )}
 
         <div className="ml-auto flex items-center gap-2 text-xs">
           <span className="rounded-full bg-white/15 px-2.5 py-1 font-semibold ring-1 ring-white/20">

@@ -59,6 +59,7 @@ export type AttendanceInterval = {
   location?: string;
   workLocation?: WorkLocation;
   consentAt?: string; // evidence-notice acknowledgement
+  onBreakSince?: string; // ISO — set while the employee is on an unpaid break
 };
 
 export type TimesheetLineSource = "Attendance" | "Manual";

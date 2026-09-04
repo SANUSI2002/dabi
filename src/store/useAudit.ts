@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { auditTrail, CURRENT_USER } from "@/data/mock";
+import { auditTrail } from "@/data/mock";
+import { useIdentity } from "@/store/useIdentity";
 import type { AuditEvent } from "@/data/types";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
@@ -18,8 +19,8 @@ export const useAudit = create<AuditState>((set) => ({
         {
           id: rid(),
           ts: new Date().toISOString(),
-          user: meta?.user ?? CURRENT_USER.name,
-          role: meta?.role ?? CURRENT_USER.role,
+          user: meta?.user ?? useIdentity.getState().user.name,
+          role: meta?.role ?? useIdentity.getState().user.role,
           action: action.toUpperCase(),
           resource,
           ip: IP,

@@ -2,11 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Bell, RefreshCw, Wifi, LogOut, ChevronDown, Menu } from "lucide-react";
 import { useAuth } from "@/store/useAuth";
+import { useIdentity } from "@/store/useIdentity";
+import { ACCOUNTS } from "@/data/accounts";
 import { initials, shortDate } from "@/lib/format";
 import { FACILITY } from "@/data/mock";
 
 export function TopBar({ onMenu }: { onMenu?: () => void }) {
   const { user, signOut } = useAuth();
+  const setUser = useIdentity((s) => s.setUser);
   const [menu, setMenu] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -81,14 +84,35 @@ export function TopBar({ onMenu }: { onMenu?: () => void }) {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -6, scale: 0.98 }}
                 transition={{ duration: 0.15 }}
-                className="absolute right-0 mt-2 w-52 overflow-hidden rounded-xl bg-white p-1.5 shadow-pop ring-1 ring-mist-200"
+                className="absolute right-0 mt-2 w-60 overflow-hidden rounded-xl bg-white p-1.5 shadow-pop ring-1 ring-mist-200"
               >
                 <div className="border-b border-mist-100 px-3 py-2 text-xs text-mist-400">
                   Signed in as <span className="font-medium text-mist-600">{user.username}</span>
+                  <span className="mt-0.5 block text-[11px] text-mist-400">{user.systemRole}</span>
+                </div>
+                <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wide text-mist-300">Switch account</p>
+                <div className="max-h-56 overflow-y-auto">
+                  {ACCOUNTS.map((a) => (
+                    <button
+                      key={a.id}
+                      onClick={() => { setUser(a.id); setMenu(false); }}
+                      className={`flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left text-xs hover:bg-mist-50 ${
+                        a.id === user.id ? "font-semibold text-brand-700" : "text-mist-600"
+                      }`}
+                    >
+                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-mist-100 text-[10px] font-bold text-mist-500">
+                        {initials(a.name)}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate">{a.name}</span>
+                        <span className="block truncate text-[10px] text-mist-400">{a.role}</span>
+                      </span>
+                    </button>
+                  ))}
                 </div>
                 <button
                   onClick={signOut}
-                  className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-action-600 hover:bg-action-50"
+                  className="mt-1 flex w-full items-center gap-2 rounded-lg border-t border-mist-100 px-3 py-2 text-sm font-medium text-action-600 hover:bg-action-50"
                 >
                   <LogOut size={15} /> Sign out
                 </button>

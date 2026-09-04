@@ -39,6 +39,8 @@ type WorkforceState = {
 
   clockIn: (staffId: string, opts?: { workLocation?: WorkLocation; location?: string }) => void;
   clockOut: (id: string) => void;
+  startBreak: (id: string) => void;
+  endBreak: (id: string) => void;
   correctInterval: (id: string, patch: Partial<AttendanceInterval>) => void;
 
   setTimesheetStatus: (id: string, status: TimesheetStatus, actor?: string, note?: string) => void;
@@ -122,9 +124,45 @@ export const useWorkforce = create<WorkforceState>((set, get) => ({
     const a = get().attendance.find((x) => x.id === id);
     audit("clocked out", `workforce/attendance/${a ? who(a.staffId) : id}`);
     set((s) => ({
+      attendance: s.attendance.map((x) => {
+        if (x.id !== id) return x;
+        // close any open break into the total
+        const extra = x.onBreakSince
+          ? Math.max(0, Math.round((Date.now() - +new Date(x.onBreakSince)) / 60000))
+          : 0;
+        return {
+          ...x,
+          clockOut: hhmm(),
+          breakMins: x.breakMins + extra,
+          onBreakSince: undefined,
+          flags: x.flags.filter((f) => f !== "Missing checkout" && f !== "On break"),
+        };
+      }),
+    }));
+  },
+
+  startBreak: (id) => {
+    const a = get().attendance.find((x) => x.id === id);
+    if (!a || a.clockOut || a.onBreakSince) return;
+    audit("started break", `workforce/attendance/${who(a.staffId)}`);
+    set((s) => ({
       attendance: s.attendance.map((x) =>
         x.id === id
-          ? { ...x, clockOut: hhmm(), flags: x.flags.filter((f) => f !== "Missing checkout") }
+          ? { ...x, onBreakSince: new Date().toISOString(), flags: [...new Set([...x.flags, "On break"])] }
+          : x,
+      ),
+    }));
+  },
+
+  endBreak: (id) => {
+    const a = get().attendance.find((x) => x.id === id);
+    if (!a || !a.onBreakSince) return;
+    const mins = Math.max(1, Math.round((Date.now() - +new Date(a.onBreakSince)) / 60000));
+    audit("ended break", `workforce/attendance/${who(a.staffId)}`);
+    set((s) => ({
+      attendance: s.attendance.map((x) =>
+        x.id === id
+          ? { ...x, breakMins: x.breakMins + mins, onBreakSince: undefined, flags: x.flags.filter((f) => f !== "On break") }
           : x,
       ),
     }));
