@@ -1,17 +1,21 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ListChecks, CheckCircle2, ArrowRight, UserPlus } from "lucide-react";
-import { PageHeader, Card, Button, Badge, StatCard } from "@/components/ui/primitives";
+import { ListChecks, CheckCircle2, ArrowRight, UserPlus, ShieldCheck, Clock, XCircle } from "lucide-react";
+import { PageHeader, Card, Button, Badge, StatCard, statusTone } from "@/components/ui/primitives";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input } from "@/components/ui/form";
 import { useOnboarding } from "@/store/useOnboarding";
 import { useOrg } from "@/store/useOrg";
+import { useApprovals } from "@/store/useApprovals";
+import { useIdentity } from "@/store/useIdentity";
 import { timeAgo, initials } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 export default function Onboarding() {
   const { stages, tasks, progress, toggleTask, canAdvance, advanceStage, convertToEmployee } = useOnboarding();
   const { jobPositionName, departmentName } = useOrg();
+  const { requests: approvalRequests, submitRequest } = useApprovals();
+  const user = useIdentity((s) => s.user);
   const [convertFor, setConvertFor] = useState<string | null>(null);
   const [cf, setCf] = useState({ role: "", cadre: "" });
   const [newEmployeeId, setNewEmployeeId] = useState<string | null>(null);
@@ -35,6 +39,7 @@ export default function Onboarding() {
           const stage = stages.find((s) => s.id === p.currentStageId)!;
           const stageTasks = tasks.filter((t) => t.stageId === stage.id);
           const ready = canAdvance(p.id);
+          const review = approvalRequests.find((r) => r.reference === p.id);
           return (
             <Card key={p.id}>
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -73,11 +78,25 @@ export default function Onboarding() {
                 ))}
               </div>
 
-              <div className="mt-3 flex justify-end">
+              <div className="mt-3 flex items-center justify-end gap-3">
                 {stage.isFinal ? (
-                  <Button disabled={!ready} onClick={() => { setCf({ role: jobPositionName(p.jobPositionId), cadre: "" }); setConvertFor(p.id); }}>
-                    <UserPlus size={14} /> Convert to employee
-                  </Button>
+                  !review || review.status === "Rejected" ? (
+                    <>
+                      {review?.status === "Rejected" && <Badge tone="action"><XCircle size={11} /> Review rejected — resubmit below</Badge>}
+                      <Button
+                        disabled={!ready}
+                        onClick={() => submitRequest("at1", { subjectLabel: `Convert ${p.candidateName} to employee`, requestedBy: user.id, reference: p.id })}
+                      >
+                        <ShieldCheck size={14} /> Submit for HR review
+                      </Button>
+                    </>
+                  ) : review.status === "Pending" ? (
+                    <Badge tone="amber"><Clock size={11} /> Awaiting HR review — see <Link to="/hr/approvals" className="underline">Approval Workflows</Link></Badge>
+                  ) : (
+                    <Button onClick={() => { setCf({ role: jobPositionName(p.jobPositionId), cadre: "" }); setConvertFor(p.id); }}>
+                      <UserPlus size={14} /> Convert to employee
+                    </Button>
+                  )
                 ) : (
                   <Button disabled={!ready} onClick={() => advanceStage(p.id)}>Next stage <ArrowRight size={14} /></Button>
                 )}
