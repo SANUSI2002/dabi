@@ -8,6 +8,7 @@ import type {
   WorkContainer, WorkTask, WorkActivity, TimesheetStatus,
   Holiday, LeaveRequest, HolidayWorkRequest, WorkLocation,
   BreakRule, ModuleCapability, ModuleCapabilityKey, AttendanceRule,
+  OvertimeRequest, ExceptionResolution,
 } from "@/data/workforce";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
@@ -30,6 +31,7 @@ type WorkforceState = {
   holidays: Holiday[];
   leave: LeaveRequest[];
   holidayWork: HolidayWorkRequest[];
+  overtime: OvertimeRequest[];
 
   addTimeBlock: (b: Omit<TimeBlock, "id" | "active">) => void;
   addSchedule: (s: Omit<WeeklySchedule, "id" | "status">) => void;
@@ -42,6 +44,10 @@ type WorkforceState = {
   startBreak: (id: string) => void;
   endBreak: (id: string) => void;
   correctInterval: (id: string, patch: Partial<AttendanceInterval>) => void;
+  resolveException: (id: string, action: ExceptionResolution["action"], note: string, actor: string) => void;
+
+  requestOvertime: (r: Omit<OvertimeRequest, "id" | "status" | "requestedAt">) => void;
+  setOvertimeStatus: (id: string, status: "Approved" | "Rejected", actor: string, note?: string) => void;
 
   setTimesheetStatus: (id: string, status: TimesheetStatus, actor?: string, note?: string) => void;
   recallTimesheet: (id: string, actor?: string) => void;
@@ -79,6 +85,7 @@ export const useWorkforce = create<WorkforceState>((set, get) => ({
   holidays: wf.holidays,
   leave: wf.leaveRequests,
   holidayWork: wf.holidayWork,
+  overtime: wf.overtimeRequests,
 
   addTimeBlock: (b) => {
     audit("created time block", `workforce/schedule/${b.code}`);
@@ -173,6 +180,71 @@ export const useWorkforce = create<WorkforceState>((set, get) => ({
     set((s) => ({
       attendance: s.attendance.map((a) => (a.id === id ? { ...a, ...patch, flags: [...new Set([...a.flags, "Corrected"])] } : a)),
     }));
+  },
+
+  resolveException: (id, action, note, actor) => {
+    const a = get().attendance.find((x) => x.id === id);
+    if (!a) return;
+    audit(`exception ${action.toLowerCase()}`, `workforce/attendance/${who(a.staffId)}`, { user: actor });
+    set((s) => ({
+      attendance: s.attendance.map((x) =>
+        x.id === id
+          ? {
+              ...x,
+              exceptionResolution: { action, by: actor, at: new Date().toISOString(), note: note || undefined },
+              flags: [...new Set([...x.flags, "Reviewed"])],
+            }
+          : x,
+      ),
+    }));
+  },
+
+  requestOvertime: (r) => {
+    audit("requested overtime", `workforce/overtime/${who(r.staffId)}`);
+    set((s) => ({
+      overtime: [{ ...r, id: rid(), status: "Pending", requestedAt: new Date().toISOString() }, ...s.overtime],
+    }));
+  },
+
+  setOvertimeStatus: (id, status, actor, note) => {
+    const r = get().overtime.find((x) => x.id === id);
+    if (!r) return;
+    audit(`overtime ${status.toLowerCase()}`, `workforce/overtime/${who(r.staffId)}`, { user: actor });
+    const now = new Date().toISOString();
+    set((s) => ({
+      overtime: s.overtime.map((x) =>
+        x.id === id ? { ...x, status, decidedBy: actor, decidedAt: now, decisionNote: note } : x,
+      ),
+    }));
+    // approved overtime flows onto the employee's open/returned timesheet
+    if (status === "Approved") {
+      const dateKey = r.date.slice(0, 10);
+      set((s) => ({
+        timesheets: s.timesheets.map((t) => {
+          if (t.staffId !== r.staffId || !["Open", "Returned"].includes(t.status)) return t;
+          const line = t.lines.find((l) => l.date.slice(0, 10) === dateKey);
+          if (line) {
+            return {
+              ...t,
+              lines: t.lines.map((l) =>
+                l.id === line.id ? { ...l, overtimeHours: +(l.overtimeHours + r.hours).toFixed(2) } : l,
+              ),
+            };
+          }
+          return {
+            ...t,
+            lines: [
+              ...t.lines,
+              {
+                id: rid(), date: r.date, source: "Manual" as const,
+                expectedHours: 0, workedHours: r.hours, breakHours: 0, overtimeHours: r.hours,
+                note: `Approved overtime — ${r.reason}`,
+              },
+            ],
+          };
+        }),
+      }));
+    }
   },
 
   setTimesheetStatus: (id, status, actor, note) => {

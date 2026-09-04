@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CheckCheck, Undo2, X, ShieldAlert, History, Lock } from "lucide-react";
+import { CheckCheck, Undo2, X, ShieldAlert, History, Lock, Timer } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard, statusTone } from "@/components/ui/primitives";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
@@ -13,7 +13,7 @@ import { cn } from "@/lib/cn";
 const sum = (ns: number[]) => ns.reduce((a, b) => a + b, 0);
 
 export default function Approvals() {
-  const { timesheets, periods, setTimesheetStatus } = useWorkforce();
+  const { timesheets, periods, setTimesheetStatus, overtime, setOvertimeStatus } = useWorkforce();
   const staff = useHr((s) => s.staff);
   const scope = useWfScope();
   const name = (id: string) => staff.find((s) => s.id === id)?.name ?? id;
@@ -25,6 +25,15 @@ export default function Approvals() {
   const decidedThisCycle = useMemo(
     () => timesheets.filter((t) => ["Approved", "Locked", "Returned", "Rejected"].includes(t.status) && scope.inScope(t.staffId)),
     [timesheets, scope],
+  );
+
+  const otQueue = useMemo(
+    () => overtime.filter((o) => o.status === "Pending" && scope.inScope(o.staffId)),
+    [overtime, scope],
+  );
+  const otDecided = useMemo(
+    () => overtime.filter((o) => o.status !== "Pending" && scope.inScope(o.staffId)),
+    [overtime, scope],
   );
 
   const [openId, setOpenId] = useState<string | null>(null);
@@ -41,8 +50,8 @@ export default function Approvals() {
         <div className="card flex items-center gap-3 text-mist-500">
           <ShieldAlert size={20} className="text-action-500" />
           <p className="text-sm">
-            The <b>{scope.role}</b> persona cannot approve timesheets. Switch to the Line Manager or Tenant HR
-            Administrator persona above to use this queue.
+            You are signed in as <b>{scope.selfName}</b> ({scope.role}). Approving timesheets and overtime is limited to
+            Line Managers and the Tenant HR Administrator. Your line manager or HR handles this queue.
           </p>
         </div>
       </div>
@@ -215,6 +224,44 @@ export default function Approvals() {
           </Table>
         </div>
       )}
+
+      <div className="card mt-5">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="flex items-center gap-2 font-display font-bold text-mist-900">
+            <Timer size={15} /> Overtime requests
+          </h3>
+          <Badge tone={otQueue.length ? "amber" : "mist"}>{otQueue.length} pending</Badge>
+        </div>
+        {otQueue.length === 0 && otDecided.length === 0 ? (
+          <p className="text-sm text-mist-400">No overtime requests in your scope.</p>
+        ) : (
+          <Table columns={["Employee", "Date worked", "Hours", "Reason", "Status", ""]}>
+            {[...otQueue, ...otDecided].map((o, i) => (
+              <Row key={o.id} index={i}>
+                <Cell className="font-semibold">{name(o.staffId)}</Cell>
+                <Cell>{shortDate(o.date)}</Cell>
+                <Cell className="font-semibold">{o.hours}h</Cell>
+                <Cell className="max-w-[280px] text-mist-500">
+                  {o.reason}
+                  {o.decisionNote && <span className="block text-[11px] text-mist-400">“{o.decisionNote}” — {o.decidedBy}</span>}
+                </Cell>
+                <Cell><Badge tone={statusTone(o.status)}>{o.status}</Badge></Cell>
+                <Cell>
+                  {o.status === "Pending" && (
+                    <div className="flex justify-end gap-1.5">
+                      <button onClick={() => setOvertimeStatus(o.id, "Rejected", scope.name)} className="btn-ghost px-2 py-1 text-xs">Reject</button>
+                      <button onClick={() => setOvertimeStatus(o.id, "Approved", scope.name)} className="btn-primary px-2.5 py-1 text-xs"><CheckCheck size={12} /> Approve</button>
+                    </div>
+                  )}
+                </Cell>
+              </Row>
+            ))}
+          </Table>
+        )}
+        <p className="mt-3 text-[11px] text-mist-400">
+          Approving posts the hours to the matching day on the employee's open timesheet. Recorded attendance is untouched.
+        </p>
+      </div>
 
       <Modal
         open={!!returnFor}

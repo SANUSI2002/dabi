@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Fingerprint, LogIn, LogOut, AlertTriangle, ShieldCheck, MapPin, Coffee, Play } from "lucide-react";
+import { Fingerprint, LogIn, LogOut, AlertTriangle, ShieldCheck, MapPin, Coffee, Play, CheckCircle2 } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
@@ -8,8 +8,8 @@ import { Field, Input, Select } from "@/components/ui/form";
 import { useWorkforce } from "@/store/useWorkforce";
 import { useWfScope } from "@/store/useWorkforceSession";
 import { useHr } from "@/store/useHr";
-import { shortDate } from "@/lib/format";
-import type { WorkLocation } from "@/data/workforce";
+import { shortDate, timeAgo } from "@/lib/format";
+import type { WorkLocation, ExceptionResolution } from "@/data/workforce";
 import { cn } from "@/lib/cn";
 
 const WORK_LOCATIONS: WorkLocation[] = ["WFO", "WFH", "Client Site"];
@@ -27,7 +27,7 @@ const breakElapsed = (since?: string) =>
   since ? Math.max(0, Math.round((Date.now() - +new Date(since)) / 60000)) : 0;
 
 export default function Attendance() {
-  const { attendance, clockIn, clockOut, startBreak, endBreak, correctInterval } = useWorkforce();
+  const { attendance, clockIn, clockOut, startBreak, endBreak, correctInterval, resolveException } = useWorkforce();
   const staff = useHr((s) => s.staff);
   const scope = useWfScope();
   const name = (id: string) => staff.find((s) => s.id === id)?.name ?? id;
@@ -47,10 +47,14 @@ export default function Attendance() {
   const [consented, setConsented] = useState(false);
   const [correct, setCorrect] = useState<string | null>(null);
   const [cf, setCf] = useState({ clockIn: "", clockOut: "", breakMins: 30 });
+  const [resolveFor, setResolveFor] = useState<string | null>(null);
+  const [rf, setRf] = useState<{ action: ExceptionResolution["action"]; note: string }>({ action: "Acknowledged", note: "" });
 
   const today = new Date().toISOString().slice(0, 10);
   const open = scoped.filter((a) => !a.clockOut);
   const exceptions = scoped.filter((a) => a.flags.some((f) => ["Late", "Missing checkout", "Auto-checkout"].includes(f)));
+  const openExceptions = exceptions.filter((a) => !a.exceptionResolution);
+  const canResolve = scope.canApprove || scope.canConfigure;
   const totalWorked = scoped.reduce((n, a) => n + (workedHours(a) ?? 0), 0);
 
   // self view state
@@ -86,7 +90,7 @@ export default function Attendance() {
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Intervals today" value={scoped.filter((a) => a.date === today).length} tone="brand" icon={<Fingerprint size={18} />} />
         <StatCard label="Currently clocked in" value={open.length} tone="mist" delay={0.05} />
-        <StatCard label="Exceptions" value={exceptions.length} tone={exceptions.length ? "action" : "mist"} delay={0.1} icon={<AlertTriangle size={18} />} />
+        <StatCard label="Open exceptions" value={openExceptions.length} tone={openExceptions.length ? "action" : "mist"} delay={0.1} icon={<AlertTriangle size={18} />} />
         <StatCard label="Payable hours (period)" value={totalWorked.toFixed(1)} tone="brand" delay={0.15} />
       </div>
 
@@ -187,7 +191,7 @@ export default function Attendance() {
         </div>
       )}
 
-      <Tabs tabs={["All Intervals", `Exceptions (${exceptions.length})`, "Currently In", "Corrections"]}>
+      <Tabs tabs={["All Intervals", `Exceptions (${openExceptions.length})`, "Currently In", "Corrections"]}>
         {(t) => {
           const rows =
             t === "All Intervals" ? scoped
@@ -213,7 +217,12 @@ export default function Attendance() {
                     <Cell>{a.source}</Cell>
                     <Cell>
                       <div className="flex flex-wrap gap-1">
-                        {a.flags.length ? a.flags.map((f) => <Badge key={f} tone={f === "Corrected" ? "brand" : "action"}>{f}</Badge>) : <span className="text-mist-300">—</span>}
+                        {a.flags.length ? a.flags.map((f) => <Badge key={f} tone={["Corrected", "Reviewed"].includes(f) ? "brand" : f === "On break" ? "amber" : "action"}>{f}</Badge>) : <span className="text-mist-300">—</span>}
+                        {a.exceptionResolution && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-semibold text-brand-700 ring-1 ring-brand-200" title={`${a.exceptionResolution.by} · ${timeAgo(a.exceptionResolution.at)}${a.exceptionResolution.note ? ` — ${a.exceptionResolution.note}` : ""}`}>
+                            <CheckCircle2 size={10} /> {a.exceptionResolution.action}
+                          </span>
+                        )}
                       </div>
                     </Cell>
                     <Cell>
@@ -230,6 +239,9 @@ export default function Attendance() {
                         )}
                         {!scope.readOnly && (scope.canConfigure || scope.canApprove || a.staffId === scope.staffId) && (
                           <button onClick={() => { setCorrect(a.id); setCf({ clockIn: a.clockIn, clockOut: a.clockOut ?? "", breakMins: a.breakMins }); }} className="btn-ghost px-2 py-1 text-xs">Correct</button>
+                        )}
+                        {t.startsWith("Exceptions") && canResolve && !a.exceptionResolution && (
+                          <button onClick={() => { setResolveFor(a.id); setRf({ action: "Acknowledged", note: "" }); }} className="btn-primary px-2.5 py-1 text-xs"><CheckCircle2 size={12} /> Resolve</button>
                         )}
                       </div>
                     </Cell>
@@ -264,6 +276,50 @@ export default function Attendance() {
             rewrites the locked record.
           </p>
         </div>
+      </Modal>
+
+      <Modal
+        open={!!resolveFor}
+        onClose={() => setResolveFor(null)}
+        title="Resolve attendance exception"
+        footer={<><Button variant="ghost" onClick={() => setResolveFor(null)}>Cancel</Button>
+          <Button
+            disabled={rf.action === "Escalated" && !rf.note.trim()}
+            onClick={() => { if (resolveFor) resolveException(resolveFor, rf.action, rf.note, scope.selfName); setResolveFor(null); }}
+          ><CheckCircle2 size={14} /> Record resolution</Button></>}
+      >
+        {(() => {
+          const a = resolveFor ? attendance.find((x) => x.id === resolveFor) : undefined;
+          return (
+            <div className="space-y-4">
+              {a && (
+                <div className="rounded-xl bg-action-50/60 px-3 py-2 text-sm text-action-800 ring-1 ring-action-100">
+                  <b>{name(a.staffId)}</b> · {shortDate(a.date)} · in {a.clockIn}{a.clockOut ? `–${a.clockOut}` : " (no checkout)"} ·{" "}
+                  {a.flags.filter((f) => ["Late", "Missing checkout", "Auto-checkout"].includes(f)).join(", ")}
+                </div>
+              )}
+              <Field label="Resolution">
+                <Select
+                  value={rf.action}
+                  onChange={(e) => setRf({ ...rf, action: e.target.value as ExceptionResolution["action"] })}
+                  options={[
+                    { value: "Acknowledged", label: "Acknowledged — noted, no adjustment" },
+                    { value: "Corrected", label: "Corrected — interval was fixed" },
+                    { value: "Excused", label: "Excused — approved reason (traffic, emergency)" },
+                    { value: "Escalated", label: "Escalated — needs HR / disciplinary review" },
+                  ]}
+                />
+              </Field>
+              <Field label={rf.action === "Escalated" ? "Escalation note (required)" : "Note (optional)"}>
+                <Input value={rf.note} onChange={(e) => setRf({ ...rf, note: e.target.value })} placeholder="Context for the record…" />
+              </Field>
+              <p className="rounded-xl bg-mist-50 px-3 py-2 text-xs text-mist-500">
+                The resolution is written to the audit log with your name and stays attached to the interval. It does not
+                rewrite the recorded times — use <b>Correct</b> for that.
+              </p>
+            </div>
+          );
+        })()}
       </Modal>
     </div>
   );

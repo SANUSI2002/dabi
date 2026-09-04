@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ClipboardList, Send, Lock, Plus, Undo2, AlertTriangle, History } from "lucide-react";
+import { ClipboardList, Send, Lock, Plus, Undo2, AlertTriangle, History, Timer } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard, statusTone } from "@/components/ui/primitives";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
@@ -13,7 +13,7 @@ import { cn } from "@/lib/cn";
 const sum = (ns: number[]) => ns.reduce((a, b) => a + b, 0);
 
 export default function Timesheets() {
-  const { timesheets, periods, policies, setTimesheetStatus, recallTimesheet, addManualLine, leave } = useWorkforce();
+  const { timesheets, periods, policies, setTimesheetStatus, recallTimesheet, addManualLine, leave, overtime, requestOvertime } = useWorkforce();
   const staff = useHr((s) => s.staff);
   const scope = useWfScope();
   const name = (id: string) => staff.find((s) => s.id === id)?.name ?? id;
@@ -27,6 +27,8 @@ export default function Timesheets() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [lineModal, setLineModal] = useState(false);
   const [lf, setLf] = useState({ date: "", expectedHours: 7.5, workedHours: 7.5, breakHours: 0.5, overtimeHours: 0, container: "", task: "", note: "" });
+  const [otModal, setOtModal] = useState(false);
+  const [ot, setOt] = useState({ date: "", hours: 1, reason: "" });
 
   const period = periods.find((p) => p.id === periodId)!;
   const sheet = timesheets.find((t) => t.id === openId) ?? visible[0];
@@ -47,6 +49,7 @@ export default function Timesheets() {
 
   const isOwn = sheet && sheet.staffId === scope.staffId;
   const canEdit = sheet && ((isOwn && scope.canRecordOwnTime) || scope.canConfigure);
+  const sheetOt = sheet ? overtime.filter((o) => o.staffId === sheet.staffId) : [];
 
   return (
     <div>
@@ -116,6 +119,24 @@ export default function Timesheets() {
               ) : null;
             })()}
 
+            {sheetOt.length > 0 && (
+              <div className="rounded-2xl bg-mist-50 px-4 py-2.5 text-sm ring-1 ring-mist-200">
+                <p className="mb-1 flex items-center gap-1.5 font-semibold text-mist-700"><Timer size={14} /> Overtime requests</p>
+                <ul className="space-y-0.5">
+                  {sheetOt.map((o) => (
+                    <li key={o.id} className="flex flex-wrap items-center gap-2 text-mist-600">
+                      <Badge tone={statusTone(o.status)}>{o.status}</Badge>
+                      <span>{shortDate(o.date)} · {o.hours}h — {o.reason}</span>
+                      {o.decidedBy && <span className="text-[11px] text-mist-400">· {o.status.toLowerCase()} by {o.decidedBy}</span>}
+                    </li>
+                  ))}
+                </ul>
+                {sheetOt.some((o) => o.status === "Approved") && (
+                  <p className="mt-1 text-[11px] text-brand-600">Approved overtime is added to the matching day on this timesheet.</p>
+                )}
+              </div>
+            )}
+
             <div className="card flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="font-display text-lg font-bold text-mist-900">{name(sheet.staffId)}</p>
@@ -137,6 +158,9 @@ export default function Timesheets() {
                 )}
                 {isOwn && sheet.status === "Submitted" && (
                   <Button variant="ghost" onClick={() => recallTimesheet(sheet.id, scope.name)}><Undo2 size={14} /> Recall</Button>
+                )}
+                {canEdit && (sheet.status === "Open" || sheet.status === "Returned") && (
+                  <Button variant="ghost" onClick={() => { setOt({ date: "", hours: 1, reason: "" }); setOtModal(true); }}><Timer size={14} /> Request overtime</Button>
                 )}
                 {sheet.status === "Submitted" && scope.canApprove && !isOwn && (
                   <span className="self-center text-xs text-mist-400">Decide in the Approvals queue →</span>
@@ -227,6 +251,32 @@ export default function Timesheets() {
           <Field label="Task"><Input value={lf.task} onChange={(e) => setLf({ ...lf, task: e.target.value })} /></Field>
           <Field label="Note"><Input value={lf.note} onChange={(e) => setLf({ ...lf, note: e.target.value })} /></Field>
         </Grid>
+      </Modal>
+
+      <Modal
+        open={otModal}
+        onClose={() => setOtModal(false)}
+        title="Request overtime"
+        footer={<><Button variant="ghost" onClick={() => setOtModal(false)}>Cancel</Button>
+          <Button
+            disabled={!ot.date || ot.hours <= 0 || !ot.reason.trim() || !sheet}
+            onClick={() => {
+              if (sheet) requestOvertime({ staffId: sheet.staffId, date: new Date(ot.date).toISOString().slice(0, 10), hours: ot.hours, reason: ot.reason.trim() });
+              setOtModal(false);
+            }}
+          ><Timer size={14} /> Submit request</Button></>}
+      >
+        <div className="space-y-4">
+          <Grid cols={2}>
+            <Field label="Date worked"><Input type="date" value={ot.date} onChange={(e) => setOt({ ...ot, date: e.target.value })} /></Field>
+            <Field label="Overtime hours"><Input type="number" step="0.25" min="0" value={ot.hours} onChange={(e) => setOt({ ...ot, hours: +e.target.value })} /></Field>
+          </Grid>
+          <Field label="Reason"><Input value={ot.reason} onChange={(e) => setOt({ ...ot, reason: e.target.value })} placeholder="Why the extra hours were needed" /></Field>
+          <p className="rounded-xl bg-mist-50 px-3 py-2 text-xs text-mist-500">
+            A {scope.canApprove ? "manager" : "line manager or HR administrator"} approves this from the Approvals queue.
+            Approved hours post to the matching day on this timesheet; they do not change your recorded attendance.
+          </p>
+        </div>
       </Modal>
     </div>
   );

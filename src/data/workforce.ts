@@ -60,6 +60,27 @@ export type AttendanceInterval = {
   workLocation?: WorkLocation;
   consentAt?: string; // evidence-notice acknowledgement
   onBreakSince?: string; // ISO — set while the employee is on an unpaid break
+  exceptionResolution?: ExceptionResolution;
+};
+
+export type ExceptionResolution = {
+  action: "Acknowledged" | "Corrected" | "Excused" | "Escalated";
+  by: string;
+  at: string;
+  note?: string;
+};
+
+export type OvertimeRequest = {
+  id: string;
+  staffId: string;
+  date: string; // ISO date the OT was worked
+  hours: number;
+  reason: string;
+  status: "Pending" | "Approved" | "Rejected";
+  requestedAt: string;
+  decidedBy?: string;
+  decidedAt?: string;
+  decisionNote?: string;
 };
 
 export type TimesheetLineSource = "Attendance" | "Manual";
@@ -414,6 +435,12 @@ export const leaveRequests: LeaveRequest[] = [
 
 export const holidayWork: HolidayWorkRequest[] = [
   { id: "hw1", staffId: "s2", holidayId: "h2", reason: "Maternity ward on-call — no alternative cover", status: "Approved", hours: 7.5 },
+];
+
+export const overtimeRequests: OvertimeRequest[] = [
+  { id: "ot1", staffId: "s3", date: day(3), hours: 2.5, reason: "Stayed to stabilise a paediatric admission until the night nurse arrived", status: "Pending", requestedAt: day(3) },
+  { id: "ot2", staffId: "s7", date: day(5), hours: 1.5, reason: "Ran the outstanding malaria RDT batch before close", status: "Pending", requestedAt: day(5) },
+  { id: "ot3", staffId: "s2", date: day(9), hours: 3, reason: "Covered the maternity ward — colleague on emergency leave", status: "Approved", requestedAt: day(9), decidedBy: "Dr. Adaeze Okonjo", decidedAt: day(8), decisionNote: "Approved — cover gap confirmed on the roster" },
 ];
 
 export const activities: WorkActivity[] = [
