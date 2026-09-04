@@ -129,6 +129,12 @@ export const referrals: Referral[] = [
   },
 ];
 
+export const transfers: import("./types").PatientTransfer[] = [
+  { id: "pt1", direction: "Out", patientId: "p6", patientName: "Zoe Amissah", facility: "PHC Kirikiri", reason: "Relocation", summary: "Hypertensive, on amlodipine 10mg. Full EMR summary attached.", date: iso(5), status: "Pending", recordsSent: false },
+  { id: "pt2", direction: "In", patientName: "Ibrahim Sule", facility: "PHC Festac 7", reason: "Catchment reassignment", summary: "Diabetic, last HbA1c 8.1%. Paper records received.", date: iso(11), status: "Completed", completedAt: iso(10), handledBy: "Ogundele Olajumoke", recordsSent: true },
+  { id: "pt3", direction: "Out", patientId: "p3", patientName: "Oluchi Dikeocha", facility: "General Hospital, Amuwo", reason: "Higher level of care", summary: "For endocrinology follow-up; continues metformin.", date: iso(2), status: "Pending", recordsSent: true },
+];
+
 export const ancRecords: AncRecord[] = [
   {
     id: "anc1", patientId: "p13", lmp: iso(160), edd: iso(-120), gravida: 1, para: 0, bloodGroup: "O+", hb: 10.8, ttDoses: 1,

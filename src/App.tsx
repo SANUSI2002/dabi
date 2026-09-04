@@ -14,6 +14,7 @@ const Consultation = lazy(() => import("@/pages/clinical/Consultation"));
 const Inpatient = lazy(() => import("@/pages/clinical/Inpatient"));
 const MedicalHistory = lazy(() => import("@/pages/clinical/MedicalHistory"));
 const PatientChart = lazy(() => import("@/pages/clinical/PatientChart"));
+const Transfers = lazy(() => import("@/pages/clinical/Transfers"));
 const Laboratory = lazy(() => import("@/pages/diagnostics/Laboratory"));
 const Pharmacy = lazy(() => import("@/pages/diagnostics/Pharmacy"));
 const Antenatal = lazy(() => import("@/pages/mch/Antenatal"));
@@ -79,6 +80,7 @@ export default function App() {
           <Route path="/inpatient" element={<Inpatient />} />
           <Route path="/history" element={<MedicalHistory />} />
           <Route path="/patients/:id" element={<PatientChart />} />
+          <Route path="/transfers" element={<Transfers />} />
           <Route path="/laboratory" element={<Laboratory />} />
           <Route path="/pharmacy" element={<Pharmacy />} />
           <Route path="/anc" element={<Antenatal />} />

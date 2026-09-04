@@ -137,6 +137,21 @@ export type StaffMember = {
   status: "Active" | "Inactive";
 };
 
+export type PatientTransfer = {
+  id: string;
+  direction: "In" | "Out";
+  patientId?: string; // linked local record (always set for Out)
+  patientName: string;
+  facility: string; // the other facility
+  reason: "Relocation" | "Catchment reassignment" | "Service not available here" | "Patient request" | "Higher level of care";
+  summary?: string; // clinical handover note
+  date: string;
+  status: "Pending" | "Completed" | "Cancelled";
+  recordsSent?: boolean; // Out: EMR summary transmitted to the receiving facility
+  completedAt?: string;
+  handledBy?: string;
+};
+
 export type ReferralFeedback = {
   outcome: "Admitted & managed" | "Treated & discharged" | "Investigations done" | "Patient did not attend" | "Referred onward";
   note: string;

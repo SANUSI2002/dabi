@@ -12,6 +12,7 @@ export type EmrSnapshot = Pick<
   | "admissions"
   | "appointments"
   | "referrals"
+  | "transfers"
   | "ancRecords"
   | "fpClients"
   | "childVisits"

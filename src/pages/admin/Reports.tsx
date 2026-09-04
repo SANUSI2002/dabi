@@ -18,7 +18,7 @@ export default function Reports() {
   const maintenanceJobs = useAssets((s) => s.jobs);
   const snap: EmrSnapshot = {
     patients: emr.patients, queue: emr.queue, encounters: emr.encounters, labOrders: emr.labOrders,
-    admissions: emr.admissions, appointments: emr.appointments, referrals: emr.referrals,
+    admissions: emr.admissions, appointments: emr.appointments, referrals: emr.referrals, transfers: emr.transfers,
     ancRecords: emr.ancRecords, fpClients: emr.fpClients, childVisits: emr.childVisits,
     deliveries: emr.deliveries, birthRegister: emr.birthRegister, pncVisits: emr.pncVisits, cmamScreenings: emr.cmamScreenings,
     outreachActivities: emr.outreachActivities, surveillanceCases: emr.surveillanceCases,

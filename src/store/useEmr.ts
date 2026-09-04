@@ -10,6 +10,7 @@ import type {
   Appointment,
   Referral,
   ReferralFeedback,
+  PatientTransfer,
   AncRecord,
   FpClient,
   ChildVisit,
@@ -38,6 +39,7 @@ type EmrState = {
   admissions: Admission[];
   appointments: Appointment[];
   referrals: Referral[];
+  transfers: PatientTransfer[];
   ancRecords: AncRecord[];
   fpClients: FpClient[];
   childVisits: ChildVisit[];
@@ -72,6 +74,9 @@ type EmrState = {
   addReferral: (r: Omit<Referral, "id" | "date" | "status">) => void;
   setReferralStatus: (id: string, status: Referral["status"]) => void;
   recordReferralFeedback: (id: string, feedback: Omit<ReferralFeedback, "at">) => void;
+  addTransfer: (t: Omit<PatientTransfer, "id" | "status" | "completedAt">) => void;
+  completeTransfer: (id: string, handledBy: string) => void;
+  cancelTransfer: (id: string) => void;
   enrollAnc: (r: Omit<AncRecord, "id" | "visits" | "status" | "edd">) => void;
   addAncVisit: (recordId: string, v: AncRecord["visits"][number]) => void;
   addFpClient: (c: Omit<FpClient, "id" | "status">) => void;
@@ -99,6 +104,7 @@ export const useEmr = create<EmrState>((set, get) => ({
   admissions: mock.admissions,
   appointments: mock.appointments,
   referrals: mock.referrals,
+  transfers: mock.transfers,
   ancRecords: mock.ancRecords,
   fpClients: mock.fpClients,
   childVisits: mock.childVisits,
@@ -245,6 +251,27 @@ export const useEmr = create<EmrState>((set, get) => ({
     const r = get().referrals.find((x) => x.id === id);
     audit(`referral ${status.toLowerCase()}`, `referral/${r ? r.patientId : id}`);
     set((s) => ({ referrals: s.referrals.map((x) => (x.id === id ? { ...x, status } : x)) }));
+  },
+
+  addTransfer: (t) => {
+    audit(`initiated ${t.direction.toLowerCase()}-transfer`, `transfer/${t.patientId ?? t.patientName}`);
+    set((s) => ({ transfers: [{ ...t, id: rid(), status: "Pending" }, ...s.transfers] }));
+  },
+
+  completeTransfer: (id, handledBy) => {
+    const t = get().transfers.find((x) => x.id === id);
+    audit("completed transfer", `transfer/${t?.patientId ?? t?.patientName ?? id}`, { user: handledBy });
+    set((s) => ({
+      transfers: s.transfers.map((x) =>
+        x.id === id ? { ...x, status: "Completed", completedAt: new Date().toISOString(), handledBy, recordsSent: true } : x,
+      ),
+    }));
+  },
+
+  cancelTransfer: (id) => {
+    const t = get().transfers.find((x) => x.id === id);
+    audit("cancelled transfer", `transfer/${t?.patientId ?? t?.patientName ?? id}`);
+    set((s) => ({ transfers: s.transfers.map((x) => (x.id === id ? { ...x, status: "Cancelled" } : x)) }));
   },
 
   recordReferralFeedback: (id, feedback) => {

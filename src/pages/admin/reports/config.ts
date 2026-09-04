@@ -334,16 +334,22 @@ export const REPORTS: ReportFamily[] = [
   },
   {
     name: "Patient Transfers",
-    stats: () => [
-      { label: "Transferred in", value: 0, tone: "brand" },
-      { label: "Transferred out", value: 0, tone: "action" },
-      { label: "Total movements", value: 0 },
-      { label: "Net", value: 0 },
-    ],
+    stats: (s) => {
+      const tin = s.transfers.filter((t) => t.direction === "In" && t.status !== "Cancelled").length;
+      const tout = s.transfers.filter((t) => t.direction === "Out" && t.status !== "Cancelled").length;
+      return [
+        { label: "Transferred in", value: tin, tone: "brand" },
+        { label: "Transferred out", value: tout, tone: "action" },
+        { label: "Total movements", value: tin + tout },
+        { label: "Net", value: tin - tout, tone: tin - tout < 0 ? "action" : "brand" },
+      ];
+    },
     tabs: [
-      { name: "Transferred In", kind: "empty", hint: "No inbound transfers in this period." },
-      { name: "Transferred Out", kind: "empty", hint: "No outbound transfers in this period." },
-      { name: "All Transfers", kind: "empty", hint: "No transfers recorded in this period." },
+      { name: "All Transfers", kind: "table", columns: ["Patient", "Direction", "Facility", "Reason", "Date", "Status"], rows: (s) => s.transfers.map((t) => [t.patientId ? nm(s.patientById(t.patientId)) : t.patientName, t.direction, t.facility, t.reason, shortDate(t.date), t.status]) },
+      { name: "Transferred In", kind: "table", columns: ["Patient", "From", "Reason", "Date", "Status"], rows: (s) => s.transfers.filter((t) => t.direction === "In").map((t) => [t.patientName, t.facility, t.reason, shortDate(t.date), t.status]) },
+      { name: "Transferred Out", kind: "table", columns: ["Patient", "To", "Reason", "Records sent", "Status"], rows: (s) => s.transfers.filter((t) => t.direction === "Out").map((t) => [t.patientId ? nm(s.patientById(t.patientId)) : t.patientName, t.facility, t.reason, t.recordsSent ? "Yes" : "No", t.status]) },
+      { name: "By Reason", kind: "kv", rows: (s) => [...new Set(s.transfers.map((t) => t.reason))].map((r) => ({ k: r, v: s.transfers.filter((t) => t.reason === r).length })) },
+      { name: "Records handover", kind: "kv", rows: (s) => { const out = s.transfers.filter((t) => t.direction === "Out" && t.status !== "Cancelled"); return [{ k: "Out-transfers", v: out.length }, { k: "EMR summary sent", v: out.filter((t) => t.recordsSent).length, target: out.length ? `${Math.round((out.filter((t) => t.recordsSent).length / out.length) * 100)}%` : "—" }, { k: "Outstanding", v: out.filter((t) => !t.recordsSent).length }]; } },
     ],
   },
   {
