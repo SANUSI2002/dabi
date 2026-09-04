@@ -21,6 +21,7 @@ export default function NhmisSync() {
     { name: "Commodity / LMIS (monthly)", records: 61, target: "NHLMIS" },
     { name: "Family Planning (monthly)", records: emr.fpClients.length, target: "DHIS2 · NHMIS_FP" },
     { name: "Referrals (monthly)", records: emr.referrals.length, target: "DHIS2 · NHMIS_REF" },
+    { name: "Patient Transfers (monthly)", records: emr.transfers.filter((t) => t.status !== "Cancelled").length, target: "DHIS2 · NHMIS_MOV" },
   ];
 
   function run() {
