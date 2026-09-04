@@ -224,6 +224,27 @@ export type Delivery = {
   conductedBy: string;
 };
 
+export type BirthRegisterEntry = {
+  id: string;
+  deliveryId: string;
+  patientId: string; // mother
+  babyName: string;
+  sex: Sex;
+  bornAt: string; // ISO datetime
+  weight: number;
+  placeOfBirth: string;
+  motherName: string;
+  fatherName?: string;
+  informantName: string;
+  informantRelation: string;
+  npopcNo: string; // birth-notification number
+  regNo?: string; // civil registration number
+  status: "Notified" | "Registered" | "Certificate issued";
+  notifiedAt: string;
+  registeredAt?: string;
+  certIssuedAt?: string;
+};
+
 export type PncVisit = {
   id: string;
   patientId: string;

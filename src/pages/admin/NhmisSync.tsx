@@ -16,6 +16,7 @@ export default function NhmisSync() {
     { name: "OPD Morbidity (weekly)", records: emr.encounters.length + 118, target: "DHIS2 · NHMIS_OPD" },
     { name: "Immunization (monthly)", records: 92, target: "DHIS2 · NHMIS_EPI" },
     { name: "Maternal Health (monthly)", records: emr.ancRecords.length + emr.deliveries.length + emr.pncVisits.length + 42, target: "DHIS2 · NHMIS_MNCH" },
+    { name: "Birth Notifications (monthly)", records: emr.birthRegister.length, target: "NPopC · e-Birth" },
     { name: "IDSR Notifiable (weekly)", records: emr.surveillanceCases.length, target: "SORMAS · IDSR_WK" },
     { name: "Commodity / LMIS (monthly)", records: 61, target: "NHLMIS" },
     { name: "Family Planning (monthly)", records: emr.fpClients.length, target: "DHIS2 · NHMIS_FP" },
@@ -47,7 +48,7 @@ export default function NhmisSync() {
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Datasets" value={DATASETS.length} tone="brand" icon={<Cloud size={18} />} />
         <StatCard label="Records Queued" value={DATASETS.reduce((n, d) => n + d.records, 0)} tone="mist" delay={0.05} />
-        <StatCard label="Endpoints" value={4} tone="mist" delay={0.1} />
+        <StatCard label="Endpoints" value={5} tone="mist" delay={0.1} />
         <StatCard label="Status" value={state === "done" ? "Up to date" : "Pending"} tone={state === "done" ? "brand" : "action"} delay={0.15} />
       </div>
 

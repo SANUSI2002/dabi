@@ -23,6 +23,7 @@ import type {
   NcdClient,
   Invoice,
   InvoiceLine,
+  BirthRegisterEntry,
 } from "@/data/types";
 import { SERVICE_TYPES, PATIENT_CATEGORIES } from "@/data/catalog";
 import { audit } from "@/store/useAudit";
@@ -41,6 +42,7 @@ type EmrState = {
   fpClients: FpClient[];
   childVisits: ChildVisit[];
   deliveries: Delivery[];
+  birthRegister: BirthRegisterEntry[];
   pncVisits: PncVisit[];
   cmamScreenings: CmamScreening[];
   outreachActivities: OutreachActivity[];
@@ -75,6 +77,9 @@ type EmrState = {
   addFpClient: (c: Omit<FpClient, "id" | "status">) => void;
   addChildVisit: (c: Omit<ChildVisit, "id">) => void;
   addDelivery: (d: Omit<Delivery, "id">) => void;
+  notifyBirth: (deliveryId: string, data: { babyName: string; informantName: string; informantRelation: string; fatherName?: string }) => void;
+  registerBirth: (id: string) => void;
+  issueBirthCertificate: (id: string) => void;
   addPncVisit: (v: Omit<PncVisit, "id">) => void;
   addCmamScreening: (c: Omit<CmamScreening, "id">) => void;
   addOutreach: (a: Omit<OutreachActivity, "id">) => void;
@@ -98,6 +103,7 @@ export const useEmr = create<EmrState>((set, get) => ({
   fpClients: mock.fpClients,
   childVisits: mock.childVisits,
   deliveries: [],
+  birthRegister: [],
   pncVisits: [],
   cmamScreenings: [],
   outreachActivities: mock.outreachSeed,
@@ -288,7 +294,68 @@ export const useEmr = create<EmrState>((set, get) => ({
   addFpClient: (c) => set((s) => ({ fpClients: [{ ...c, id: rid(), status: "Active" }, ...s.fpClients] })),
   addChildVisit: (c) => set((s) => ({ childVisits: [{ ...c, id: rid() }, ...s.childVisits] })),
 
-  addDelivery: (d) => set((s) => ({ deliveries: [{ ...d, id: rid() }, ...s.deliveries] })),
+  addDelivery: (d) => {
+    audit("recorded delivery", `mch/delivery/${d.patientId}`);
+    set((s) => ({ deliveries: [{ ...d, id: rid() }, ...s.deliveries] }));
+  },
+
+  notifyBirth: (deliveryId, data) => {
+    const s = get();
+    const d = s.deliveries.find((x) => x.id === deliveryId);
+    if (!d) return;
+    const mother = s.patients.find((p) => p.id === d.patientId);
+    const yr = new Date(d.date).getFullYear();
+    const seq = String(s.birthRegister.length + 1).padStart(4, "0");
+    audit("issued birth notification", `mch/birth-register/${d.patientId}`);
+    set((st) => ({
+      birthRegister: [
+        {
+          id: rid(),
+          deliveryId,
+          patientId: d.patientId,
+          babyName: data.babyName,
+          sex: d.babySex,
+          bornAt: d.date,
+          weight: d.weight,
+          placeOfBirth: `${mock.FACILITY.name} (${mock.FACILITY.code})`,
+          motherName: mother ? `${mother.firstName} ${mother.lastName}` : "—",
+          fatherName: data.fatherName || undefined,
+          informantName: data.informantName,
+          informantRelation: data.informantRelation,
+          npopcNo: `NOT/${mock.FACILITY.code}/${yr}/${seq}`,
+          status: "Notified",
+          notifiedAt: new Date().toISOString(),
+        },
+        ...st.birthRegister,
+      ],
+    }));
+  },
+
+  registerBirth: (id) => {
+    const e = get().birthRegister.find((x) => x.id === id);
+    if (!e || e.status !== "Notified") return;
+    const yr = new Date(e.bornAt).getFullYear();
+    const seq = String(get().birthRegister.filter((x) => x.regNo).length + 1).padStart(4, "0");
+    audit("registered birth", `mch/birth-register/${e.patientId}`);
+    set((s) => ({
+      birthRegister: s.birthRegister.map((x) =>
+        x.id === id
+          ? { ...x, status: "Registered", regNo: `BR/${mock.FACILITY.lga}/${yr}/${seq}`, registeredAt: new Date().toISOString() }
+          : x,
+      ),
+    }));
+  },
+
+  issueBirthCertificate: (id) => {
+    const e = get().birthRegister.find((x) => x.id === id);
+    if (!e || e.status !== "Registered") return;
+    audit("issued birth certificate", `mch/birth-register/${e.patientId}`);
+    set((s) => ({
+      birthRegister: s.birthRegister.map((x) =>
+        x.id === id ? { ...x, status: "Certificate issued", certIssuedAt: new Date().toISOString() } : x,
+      ),
+    }));
+  },
   addPncVisit: (v) => set((s) => ({ pncVisits: [{ ...v, id: rid() }, ...s.pncVisits] })),
   addCmamScreening: (c) => set((s) => ({ cmamScreenings: [{ ...c, id: rid() }, ...s.cmamScreenings] })),
   addOutreach: (a) => set((s) => ({ outreachActivities: [{ ...a, id: rid() }, ...s.outreachActivities] })),
