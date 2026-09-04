@@ -5,17 +5,20 @@ import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Grid } from "@/components/ui/form";
-import { staff as seed } from "@/data/mock";
+import { useHr } from "@/store/useHr";
+import { useWorkforce } from "@/store/useWorkforce";
 import { shortDate } from "@/lib/format";
-import type { StaffMember } from "@/data/types";
 
 export default function Hris() {
-  const [staff, setStaff] = useState<StaffMember[]>(seed);
+  const { staff, addStaff, setStatus } = useHr();
+  const { assignments, attendance, schedules } = useWorkforce();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({ name: "", role: "Nurse", cadre: "", phone: "", email: "", license: "", hireDate: "" });
 
   const list = staff.filter((s) => `${s.name} ${s.role}`.toLowerCase().includes(q.toLowerCase()));
+  const scheduled = new Set(assignments.map((a) => a.staffId));
+  const clockedIn = new Set(attendance.filter((a) => !a.clockOut).map((a) => a.staffId));
 
   return (
     <div>
@@ -26,8 +29,8 @@ export default function Hris() {
       />
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Staff" value={staff.length} tone="brand" icon={<IdCard size={18} />} />
-        <StatCard label="Clinical" value={staff.filter((s) => ["Medical Officer", "Nurse"].includes(s.role)).length} tone="mist" delay={0.05} />
-        <StatCard label="CHWs" value={staff.filter((s) => s.role.includes("Community")).length} tone="mist" delay={0.1} />
+        <StatCard label="On a schedule" value={scheduled.size} tone="mist" delay={0.05} />
+        <StatCard label="Clocked in now" value={clockedIn.size} tone="brand" delay={0.1} />
         <StatCard label="Active" value={staff.filter((s) => s.status === "Active").length} tone="brand" delay={0.15} />
       </div>
 
@@ -36,24 +39,66 @@ export default function Hris() {
           t === "Staff" ? (
             <>
               <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name or role…" className="input mb-4 max-w-md" />
-              <Table columns={["Name", "Role", "Cadre", "Phone", "Hire Date", "License", "Status"]}>
+              <Table columns={["Name", "Role", "Cadre", "License", "Workforce", "Status", ""]}>
                 {list.map((s, i) => (
                   <Row key={s.id} index={i}>
-                    <Cell className="font-semibold">{s.name}</Cell>
+                    <Cell className="font-semibold">
+                      {s.name}
+                      <span className="block text-[11px] font-normal text-mist-400">@{s.username} · hired {shortDate(s.hireDate)}</span>
+                    </Cell>
                     <Cell>{s.role}</Cell>
                     <Cell>{s.cadre}</Cell>
-                    <Cell>{s.phone ?? "—"}</Cell>
-                    <Cell className="text-mist-400">{shortDate(s.hireDate)}</Cell>
                     <Cell className="font-mono text-xs">{s.license ?? "—"}</Cell>
-                    <Cell><Badge tone="brand">{s.status}</Badge></Cell>
+                    <Cell>
+                      <div className="flex gap-1">
+                        {clockedIn.has(s.id) && <Badge tone="brand">Clocked in</Badge>}
+                        {scheduled.has(s.id) && !clockedIn.has(s.id) && <Badge tone="mist">Scheduled</Badge>}
+                        {!scheduled.has(s.id) && <span className="text-mist-300">—</span>}
+                      </div>
+                    </Cell>
+                    <Cell><Badge tone={s.status === "Active" ? "brand" : "mist"}>{s.status}</Badge></Cell>
+                    <Cell>
+                      <button
+                        onClick={() => setStatus(s.id, s.status === "Active" ? "Inactive" : "Active")}
+                        className="btn-ghost px-2 py-1 text-xs"
+                      >
+                        {s.status === "Active" ? "Deactivate" : "Reactivate"}
+                      </button>
+                    </Cell>
                   </Row>
                 ))}
               </Table>
             </>
           ) : t === "Schedule" ? (
-            <div className="card py-16 text-center text-mist-400">No shifts scheduled for this week. Use "Add Shift" to roster staff.</div>
+            <Table columns={["Employee", "Schedule assignment", "Capture mode", "Effective from"]}>
+              {assignments.map((a, i) => {
+                const s = staff.find((x) => x.id === a.staffId);
+                return (
+                  <Row key={a.id} index={i}>
+                    <Cell className="font-semibold">{s?.name ?? a.staffId}</Cell>
+                    <Cell>{schedules.find((x) => x.id === a.scheduleId)?.name ?? a.scheduleId}</Cell>
+                    <Cell><Badge tone="mist">{a.captureMode}</Badge></Cell>
+                    <Cell>{shortDate(a.effectiveFrom)}</Cell>
+                  </Row>
+                );
+              })}
+            </Table>
           ) : (
-            <div className="card py-16 text-center text-mist-400">No attendance records for this range.</div>
+            <Table columns={["Employee", "Date", "In", "Out", "Break", "Flags"]}>
+              {attendance.map((a, i) => {
+                const s = staff.find((x) => x.id === a.staffId);
+                return (
+                  <Row key={a.id} index={i}>
+                    <Cell className="font-semibold">{s?.name ?? a.staffId}</Cell>
+                    <Cell>{shortDate(a.date)}</Cell>
+                    <Cell>{a.clockIn}</Cell>
+                    <Cell>{a.clockOut ?? <Badge tone="amber">open</Badge>}</Cell>
+                    <Cell>{a.breakMins}m</Cell>
+                    <Cell>{a.flags.length ? a.flags.map((f) => <Badge key={f} tone="mist">{f}</Badge>) : <span className="text-mist-300">—</span>}</Cell>
+                  </Row>
+                );
+              })}
+            </Table>
           )
         }
       </Tabs>
@@ -63,7 +108,7 @@ export default function Hris() {
         onClose={() => setOpen(false)}
         title="Add Staff"
         footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button disabled={!f.name} onClick={() => { setStaff((s) => [{ ...f, id: Math.random().toString(), status: "Active", hireDate: f.hireDate || new Date().toISOString() }, ...s]); setOpen(false); }}>Add Staff</Button></>}
+          <Button disabled={!f.name} onClick={() => { addStaff({ ...f, hireDate: f.hireDate ? new Date(f.hireDate).toISOString() : new Date().toISOString() }); setOpen(false); setF({ name: "", role: "Nurse", cadre: "", phone: "", email: "", license: "", hireDate: "" }); }}>Add Staff</Button></>}
       >
         <div className="space-y-4">
           <Grid cols={2}>

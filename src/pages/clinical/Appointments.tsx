@@ -7,12 +7,13 @@ import { Field, Input, Select, Textarea, Grid } from "@/components/ui/form";
 import { PatientPicker } from "@/components/ui/PatientPicker";
 import { useEmr } from "@/store/useEmr";
 import { shortDate } from "@/lib/format";
-import { staff } from "@/data/mock";
+import { useHr } from "@/store/useHr";
 
 export default function Appointments() {
-  const { appointments, patientById, bookAppointment } = useEmr();
+  const { appointments, patientById, bookAppointment, markAppointment } = useEmr();
+  const clinicians = useHr((s) => s.staff.filter((x) => x.status === "Active"));
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState({ patientId: "", date: "", time: "09:00", provider: staff[0].name, type: "General", reason: "" });
+  const [f, setF] = useState({ patientId: "", date: "", time: "09:00", provider: clinicians[0]?.name ?? "", type: "General", reason: "" });
 
   const today = appointments.filter((a) => shortDate(a.date) === shortDate(new Date()));
   const noShows = appointments.filter((a) => a.status === "No-Show");
@@ -36,18 +37,33 @@ export default function Appointments() {
         <StatCard label="Attended" value={appointments.filter((a) => a.status === "Attended").length} tone="brand" delay={0.15} />
       </div>
 
-      <Table columns={["Patient", "Date", "Time", "Provider", "Type", "Reason", "Status"]}>
+      <Table columns={["Patient", "Date", "Time", "Provider", "Type", "Status", ""]}>
         {appointments.map((a, i) => {
           const p = patientById(a.patientId);
+          const station = a.type === "ANC" ? "ANC" : a.type === "Immunization" ? "Immunization" : "Vital";
           return (
             <Row key={a.id} index={i}>
-              <Cell className="font-semibold">{p ? `${p.firstName} ${p.lastName}` : "—"}</Cell>
+              <Cell className="font-semibold">
+                {p ? `${p.firstName} ${p.lastName}` : "—"}
+                <span className="block text-[11px] font-normal text-mist-400">{a.reason}</span>
+              </Cell>
               <Cell>{shortDate(a.date)}</Cell>
               <Cell>{a.time}</Cell>
               <Cell>{a.provider}</Cell>
               <Cell><Badge tone="mist">{a.type}</Badge></Cell>
-              <Cell className="text-mist-500">{a.reason}</Cell>
               <Cell><Badge tone={statusTone(a.status)}>{a.status}</Badge></Cell>
+              <Cell>
+                {a.status === "Scheduled" && (
+                  <div className="flex justify-end gap-1.5">
+                    <button onClick={() => markAppointment(a.id, "Attended", station as never)} className="btn-primary px-2.5 py-1 text-xs">
+                      Check in
+                    </button>
+                    <button onClick={() => markAppointment(a.id, "No-Show")} className="btn-ghost px-2 py-1 text-xs">
+                      No-show
+                    </button>
+                  </div>
+                )}
+              </Cell>
             </Row>
           );
         })}
@@ -81,7 +97,7 @@ export default function Appointments() {
             </Field>
           </Grid>
           <Field label="Provider">
-            <Select value={f.provider} onChange={(e) => setF({ ...f, provider: e.target.value })} options={staff.map((s) => s.name)} />
+            <Select value={f.provider} onChange={(e) => setF({ ...f, provider: e.target.value })} options={clinicians.map((s) => s.name)} />
           </Field>
           <Field label="Reason"><Textarea value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} /></Field>
         </div>

@@ -5,11 +5,12 @@ import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Grid } from "@/components/ui/form";
 import { useWorkforce } from "@/store/useWorkforce";
-import { staff, CURRENT_USER } from "@/data/mock";
+import { CURRENT_USER } from "@/data/mock";
+import { useHr } from "@/store/useHr";
 import { shortDate } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
-const name = (id: string) => staff.find((s) => s.id === id)?.name ?? id;
+const name = (id: string) => useHr.getState().byId(id)?.name ?? id;
 const sum = (ns: number[]) => ns.reduce((a, b) => a + b, 0);
 
 export default function Timesheets() {

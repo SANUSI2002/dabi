@@ -6,10 +6,10 @@ import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select } from "@/components/ui/form";
 import { useWorkforce } from "@/store/useWorkforce";
-import { staff } from "@/data/mock";
+import { useHr } from "@/store/useHr";
 import { shortDate } from "@/lib/format";
 
-const name = (id: string) => staff.find((s) => s.id === id)?.name ?? id;
+const name = (id: string) => useHr.getState().byId(id)?.name ?? id;
 
 function worked(a: { clockIn: string; clockOut?: string; breakMins: number }) {
   if (!a.clockOut) return null;
@@ -22,6 +22,7 @@ function worked(a: { clockIn: string; clockOut?: string; breakMins: number }) {
 
 export default function Attendance() {
   const { attendance, clockIn, clockOut, correctInterval } = useWorkforce();
+  const staff = useHr((s) => s.staff);
   const [who, setWho] = useState("s1");
   const [correct, setCorrect] = useState<string | null>(null);
   const [cf, setCf] = useState({ clockIn: "", clockOut: "", breakMins: 30 });

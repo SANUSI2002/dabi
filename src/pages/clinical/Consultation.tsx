@@ -7,6 +7,7 @@ import { Modal } from "@/components/ui/Modal";
 import { useEmr, serviceLine } from "@/store/useEmr";
 import { DrugField } from "@/components/clinical/DrugField";
 import { DIAGNOSES, LAB_PANELS, STATIONS } from "@/data/catalog";
+import { useHr } from "@/store/useHr";
 import { ageFromDob } from "@/lib/format";
 import type { Prescription } from "@/data/types";
 
@@ -20,6 +21,8 @@ const NHMIS_GROUPS: Record<string, string[]> = {
 
 export default function Consultation() {
   const { queue, patientById, saveEncounter, addLabOrders, advanceQueue, admit, latestVitals, createInvoice } = useEmr();
+  const clinicians = useHr((s) => s.staff.filter((x) => x.status === "Active" && ["Medical Officer", "Nurse"].includes(x.role)));
+  const [provider, setProvider] = useState(clinicians[0]?.name ?? "Dr. Adaeze Okonjo");
   const consultQueue = queue.filter((q) => ["Waiting", "In Progress"].includes(q.status));
   const [activeQ, setActiveQ] = useState(consultQueue[0]?.id ?? null);
   const entry = queue.find((q) => q.id === activeQ);
@@ -49,7 +52,7 @@ export default function Consultation() {
     if (!entry || !patient) return;
     saveEncounter({
       patientId: patient.id,
-      provider: "Dr. Adaeze Okonjo",
+      provider,
       complaint: soap.s || entry.complaint || "—",
       examination: soap.o,
       assessment: soap.a,
@@ -59,7 +62,7 @@ export default function Consultation() {
       labs,
       station: "Consultation",
     });
-    if (labs.length) addLabOrders(patient.id, labs.map((t) => ({ test: t, category: "Consultation order" })));
+    if (labs.length) addLabOrders(patient.id, labs.map((t) => ({ test: t, category: "Consultation order" })), provider);
 
     const invLines = [
       serviceLine("CONS"),
@@ -130,9 +133,17 @@ export default function Consultation() {
                     )}
                   </p>
                 </div>
-                <Badge tone="brand">
-                  <Stethoscope size={12} /> In consultation
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={provider}
+                    onChange={(e) => setProvider(e.target.value)}
+                    options={clinicians.map((c) => c.name)}
+                    className="w-auto py-1.5 text-xs"
+                  />
+                  <Badge tone="brand">
+                    <Stethoscope size={12} /> In consultation
+                  </Badge>
+                </div>
               </div>
               <div className="mt-3 flex flex-wrap gap-2 border-t border-mist-100 pt-3">
                 {vitals ? (

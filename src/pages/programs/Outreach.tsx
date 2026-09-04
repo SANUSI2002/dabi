@@ -6,14 +6,15 @@ import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Textarea } from "@/components/ui/form";
 import { useEmr } from "@/store/useEmr";
-import { staff } from "@/data/mock";
+import { useHr } from "@/store/useHr";
 import { shortDate } from "@/lib/format";
 
 export default function Outreach() {
   const { outreachActivities, addOutreach } = useEmr();
+  const staff = useHr((s) => s.staff);
   const [open, setOpen] = useState(false);
   const chws = staff.filter((s) => s.role.includes("Community"));
-  const [f, setF] = useState({ chw: chws[0]?.name ?? staff[0].name, type: "Household visit", ward: "Kirikiri", households: 0, referrals: 0, date: "" });
+  const [f, setF] = useState({ chw: chws[0]?.name ?? staff[0]?.name ?? "", type: "Household visit", ward: "Kirikiri", households: 0, referrals: 0, date: "" });
 
   return (
     <div>

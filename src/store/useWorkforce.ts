@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import * as wf from "@/data/workforce";
 import { audit } from "@/store/useAudit";
-import { staff } from "@/data/mock";
+import { useHr } from "@/store/useHr";
 import type {
   TimeBlock, WeeklySchedule, ScheduleAssignment, AttendanceInterval,
   Timesheet, TimesheetPeriod, TimePolicy, Enrolment,
@@ -42,7 +42,7 @@ const hhmm = () => {
   const d = new Date();
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
-const who = (id: string) => staff.find((s) => s.id === id)?.name ?? id;
+const who = (id: string) => useHr.getState().byId(id)?.name ?? id;
 
 export const useWorkforce = create<WorkforceState>((set, get) => ({
   timeBlocks: wf.timeBlocks,

@@ -57,7 +57,7 @@ type EmrState = {
   advanceQueue: (id: string, status: QueueEntry["status"], station?: Station) => void;
 
   saveEncounter: (e: Omit<Encounter, "id" | "date">) => void;
-  addLabOrders: (patientId: string, tests: { test: string; category: string }[]) => void;
+  addLabOrders: (patientId: string, tests: { test: string; category: string }[], orderedBy?: string) => void;
   resolveLab: (id: string, result: string, flag: LabOrder["flag"], verifiedBy: string) => void;
   dispense: (encounterId: string, rxId: string, status: Prescription["status"]) => void;
 
@@ -65,6 +65,7 @@ type EmrState = {
   discharge: (id: string, outcome: string) => void;
 
   bookAppointment: (a: Omit<Appointment, "id" | "status">) => void;
+  markAppointment: (id: string, status: Appointment["status"], queueStation?: Station) => void;
   addReferral: (r: Omit<Referral, "id" | "date" | "status">) => void;
   enrollAnc: (r: Omit<AncRecord, "id" | "visits" | "status" | "edd">) => void;
   addAncVisit: (recordId: string, v: AncRecord["visits"][number]) => void;
@@ -153,7 +154,7 @@ export const useEmr = create<EmrState>((set, get) => ({
     }));
   },
 
-  addLabOrders: (patientId, tests) =>
+  addLabOrders: (patientId, tests, orderedBy = "Dr. Adaeze Okonjo") =>
     set((s) => ({
       labOrders: [
         ...tests.map((t) => ({
@@ -164,7 +165,7 @@ export const useEmr = create<EmrState>((set, get) => ({
           urgency: "Routine" as const,
           status: "Pending" as const,
           orderedAt: new Date().toISOString(),
-          orderedBy: "Dr. Adaeze Okonjo",
+          orderedBy,
         })),
         ...s.labOrders,
       ],
@@ -213,6 +214,15 @@ export const useEmr = create<EmrState>((set, get) => ({
   bookAppointment: (a) => {
     audit("booked appointment", `appointment/${a.type.toLowerCase()}`);
     set((s) => ({ appointments: [{ ...a, id: rid(), status: "Scheduled" }, ...s.appointments] }));
+  },
+
+  markAppointment: (id, status, queueStation) => {
+    const appt = get().appointments.find((a) => a.id === id);
+    audit(`appointment ${status.toLowerCase()}`, `appointment/${id}`);
+    set((s) => ({ appointments: s.appointments.map((a) => (a.id === id ? { ...a, status } : a)) }));
+    if (status === "Attended" && appt && queueStation) {
+      get().addToQueue(appt.patientId, queueStation, "Normal", `${appt.type} appointment — ${appt.reason ?? ""}`.trim());
+    }
   },
 
   addReferral: (r) => {

@@ -6,15 +6,15 @@ import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Grid, Checkbox } from "@/components/ui/form";
 import { useWorkforce } from "@/store/useWorkforce";
-import { staff } from "@/data/mock";
+import { useHr } from "@/store/useHr";
 import { WEEKDAYS, type Classification } from "@/data/workforce";
 import { shortDate } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
-const staffName = (id: string) => staff.find((s) => s.id === id)?.name ?? id;
-
 export default function Schedules() {
   const { timeBlocks, schedules, assignments, addTimeBlock, assignSchedule } = useWorkforce();
+  const staff = useHr((s) => s.staff);
+  const staffName = (id: string) => staff.find((s) => s.id === id)?.name ?? id;
   const [blockModal, setBlockModal] = useState(false);
   const [assignModal, setAssignModal] = useState(false);
   const [tb, setTb] = useState({ name: "", code: "", start: "08:00", end: "16:00", overnight: false, paidHours: 7.5, breakMins: 30, lateGraceMins: 10, classification: "Working" as Classification, colour: "#0fc06d" });

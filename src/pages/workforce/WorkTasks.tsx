@@ -6,15 +6,16 @@ import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Grid } from "@/components/ui/form";
 import { useWorkforce } from "@/store/useWorkforce";
-import { staff } from "@/data/mock";
+import { useHr } from "@/store/useHr";
 import { shortDate } from "@/lib/format";
 
 export default function WorkTasks() {
   const { containers, tasks, activities, addTask, logActivity } = useWorkforce();
+  const staff = useHr((s) => s.staff);
   const [taskModal, setTaskModal] = useState(false);
   const [actModal, setActModal] = useState<string | null>(null);
   const [tf, setTf] = useState({ containerId: containers[0].id, name: "", assignedTo: "Nursing team", status: "Not started" as const, estimateHours: 8 });
-  const [af, setAf] = useState({ staff: staff[0].name, date: "", hours: 1, note: "" });
+  const [af, setAf] = useState({ staff: staff[0]?.name ?? "", date: "", hours: 1, note: "" });
 
   const logged = tasks.reduce((n, t) => n + t.loggedHours, 0);
 

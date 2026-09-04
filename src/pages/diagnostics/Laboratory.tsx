@@ -7,16 +7,18 @@ import { Field, Input, Select } from "@/components/ui/form";
 import { LabReportDoc } from "@/components/print/documents";
 import { useEmr } from "@/store/useEmr";
 import { LAB_TESTS } from "@/data/catalog";
-import { staff } from "@/data/mock";
+import { useHr } from "@/store/useHr";
 import { dateTime } from "@/lib/format";
 
 export default function Laboratory() {
   const { labOrders, patientById, resolveLab } = useEmr();
+  const techs = useHr((s) => s.staff.filter((x) => x.status === "Active"));
+  const labTechs = techs.filter((s) => s.role === "Lab Technician");
   const [entry, setEntry] = useState<string | null>(null);
   const [printPid, setPrintPid] = useState<string | null>(null);
   const [result, setResult] = useState("");
   const [flag, setFlag] = useState<"Normal" | "Low" | "High" | "Critical">("Normal");
-  const [tech, setTech] = useState(staff.find((s) => s.role === "Lab Technician")?.name ?? staff[0].name);
+  const [tech, setTech] = useState((labTechs[0] ?? techs[0])?.name ?? "");
 
   const pending = labOrders.filter((l) => l.status !== "Resulted" && l.status !== "Rejected");
   const done = labOrders.filter((l) => l.status === "Resulted");
@@ -118,7 +120,7 @@ export default function Laboratory() {
           <Field label="Result value"><Input value={result} onChange={(e) => setResult(e.target.value)} placeholder="e.g. Negative / 34 %" /></Field>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Flag"><Select value={flag} onChange={(e) => setFlag(e.target.value as never)} options={["Normal", "Low", "High", "Critical"]} /></Field>
-            <Field label="Verified by"><Select value={tech} onChange={(e) => setTech(e.target.value)} options={staff.map((s) => s.name)} /></Field>
+            <Field label="Verified by"><Select value={tech} onChange={(e) => setTech(e.target.value)} options={techs.map((s) => s.name)} /></Field>
           </div>
         </div>
       </Modal>
