@@ -57,6 +57,8 @@ const Performance = lazy(() => import("@/pages/hr/Performance"));
 const OrgChart = lazy(() => import("@/pages/hr/OrgChart"));
 const PoliciesDiscipline = lazy(() => import("@/pages/hr/PoliciesDiscipline"));
 const TalentPool = lazy(() => import("@/pages/hr/TalentPool"));
+const CompanyAssets = lazy(() => import("@/pages/hr/CompanyAssets"));
+const Helpdesk = lazy(() => import("@/pages/hr/Helpdesk"));
 
 function Loader() {
   return (
@@ -135,6 +137,8 @@ export default function App() {
           <Route path="/hr/org-chart" element={<OrgChart />} />
           <Route path="/hr/policies-discipline" element={<PoliciesDiscipline />} />
           <Route path="/hr/talent-pool" element={<TalentPool />} />
+          <Route path="/hr/assets" element={<CompanyAssets />} />
+          <Route path="/hr/helpdesk" element={<Helpdesk />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
