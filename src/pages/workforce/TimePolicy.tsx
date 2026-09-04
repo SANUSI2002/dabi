@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { SlidersHorizontal, Plus, ShieldAlert, Power } from "lucide-react";
+import { useMemo, useState } from "react";
+import { SlidersHorizontal, Plus, ShieldAlert, Power, Layers } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
@@ -7,6 +7,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Grid, Checkbox } from "@/components/ui/form";
 import { useWorkforce } from "@/store/useWorkforce";
 import { useWfScope } from "@/store/useWorkforceSession";
+import { useHr } from "@/store/useHr";
 import { shortDate } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
@@ -15,8 +16,28 @@ const PRECEDENCE = [
   "Primary Payroll Group", "Grade", "Contract Type", "Department", "Location / Branch", "Tenant Default",
 ];
 
+type Layer = { level: string; selector: string | null; values: Record<string, string | number | boolean>; conflict?: boolean };
+const RESOLVED_FIELDS = ["captureDefault", "periodType", "lateGraceMins", "maxDailyHours", "overtimeEnabled", "allowEditDerived"] as const;
+
+// demonstrative per-employee policy layers for the resolver
+const OVERRIDES: Record<string, { level: string; selector: string; values: Record<string, string | number | boolean>; conflict?: boolean }[]> = {
+  s3: [
+    { level: "Employee Override", selector: "Mary Williams — probation", values: { lateGraceMins: 5 } },
+    { level: "Contract Type", selector: "Permanent", values: {} },
+  ],
+  s7: [
+    { level: "Contract Type", selector: "Locum", values: { overtimeEnabled: false, allowEditDerived: false } },
+    { level: "Department", selector: "Laboratory", values: { captureDefault: "Manual" } },
+  ],
+  s6: [
+    { level: "Primary Timesheet Group", selector: "M&E / Reporting", values: { captureDefault: "Manual", periodType: "Monthly" } },
+    { level: "Grade", selector: "GL-10", values: {} },
+    { level: "Grade", selector: "GL-09 (acting)", values: { maxDailyHours: 12 }, conflict: true },
+  ],
+};
+
 export default function TimePolicy() {
-  const { policies, enrolments, breakRules, capabilities, attendanceRules, addPolicy, toggleCapability } = useWorkforce();
+  const { policies, enrolments, breakRules, capabilities, attendanceRules, assignments, addPolicy, toggleCapability } = useWorkforce();
   const scope = useWfScope();
   const [open, setOpen] = useState(false);
   const [pf, setPf] = useState({
@@ -27,6 +48,59 @@ export default function TimePolicy() {
   });
 
   const rw = scope.canConfigure;
+
+  const staff = useHr((s) => s.staff);
+  const [resolveStaff, setResolveStaff] = useState(staff[0]?.id ?? "");
+  const tenantPolicy = policies.find((p) => p.status === "Current") ?? policies[0];
+
+  const resolution = useMemo(() => {
+    const person = staff.find((s) => s.id === resolveStaff);
+    const asg = assignments.find((a) => a.staffId === resolveStaff);
+    const dept = person?.role?.includes("Nurse") ? "Nursing" : person?.role?.includes("Lab") ? "Laboratory" : person?.role ?? "General";
+    const ov = OVERRIDES[resolveStaff] ?? [];
+
+    const layers: Layer[] = PRECEDENCE.map((level) => {
+      if (level === "Schedule Assignment") {
+        return {
+          level,
+          selector: asg ? `Assignment (${asg.captureMode})` : null,
+          values: (asg ? { captureDefault: asg.captureMode } : {}) as Record<string, string | number | boolean>,
+        };
+      }
+      if (level === "Department") {
+        const o = ov.filter((x) => x.level === level);
+        return { level, selector: o[0]?.selector ?? dept, values: o[0]?.values ?? {} };
+      }
+      if (level === "Location / Branch") {
+        return { level, selector: "Sabi Health Post", values: {} };
+      }
+      if (level === "Tenant Default") {
+        return {
+          level, selector: tenantPolicy?.scope ?? "Tenant Default",
+          values: {
+            captureDefault: tenantPolicy?.captureDefault, periodType: tenantPolicy?.periodType,
+            lateGraceMins: tenantPolicy?.lateGraceMins, maxDailyHours: tenantPolicy?.maxDailyHours,
+            overtimeEnabled: tenantPolicy?.overtimeEnabled, allowEditDerived: tenantPolicy?.allowEditDerived,
+          } as Record<string, string | number | boolean>,
+        };
+      }
+      const matches = ov.filter((x) => x.level === level);
+      const conflict = matches.length > 1 && matches.some((m) => m.conflict);
+      const merged = matches.reduce((acc, m) => ({ ...acc, ...m.values }), {} as Record<string, string | number | boolean>);
+      return { level, selector: matches.map((m) => m.selector).join("  ·  ") || null, values: merged, conflict };
+    });
+
+    const resolved: Record<string, { value: string | number | boolean; from: string; blocked?: boolean }> = {};
+    for (const f of RESOLVED_FIELDS) {
+      for (const l of layers) {
+        if (l.selector && f in l.values && l.values[f] !== undefined) {
+          resolved[f] = { value: l.values[f], from: l.level, blocked: l.conflict };
+          break;
+        }
+      }
+    }
+    return { layers, resolved, hasConflict: layers.some((l) => l.conflict) };
+  }, [resolveStaff, staff, assignments, tenantPolicy]);
 
   function saveVersion() {
     addPolicy({
@@ -70,7 +144,7 @@ export default function TimePolicy() {
         <StatCard label="Employees covered" value={enrolments.reduce((n, e) => n + e.count, 0)} tone="mist" delay={0.15} />
       </div>
 
-      <Tabs tabs={["Policies", "Breaks", "Attendance rules", "Enrolment", "Capabilities", "Resolution precedence"]}>
+      <Tabs tabs={["Policies", "Policy resolver", "Breaks", "Attendance rules", "Enrolment", "Capabilities", "Resolution precedence"]}>
         {(t) =>
           t === "Policies" ? (
             <div className="space-y-3">
@@ -102,6 +176,70 @@ export default function TimePolicy() {
                   </div>
                 </div>
               ))}
+            </div>
+          ) : t === "Policy resolver" ? (
+            <div className="space-y-4">
+              <div className="card">
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <Field label="Resolve effective policy for">
+                    <Select
+                      value={resolveStaff}
+                      onChange={(e) => setResolveStaff(e.target.value)}
+                      options={staff.map((s) => ({ value: s.id, label: `${s.name} — ${s.role}` }))}
+                      className="w-auto"
+                    />
+                  </Field>
+                  {resolution.hasConflict ? (
+                    <Badge tone="action"><ShieldAlert size={12} /> Configuration Conflict — activation blocked</Badge>
+                  ) : (
+                    <Badge tone="brand">Resolved cleanly</Badge>
+                  )}
+                </div>
+              </div>
+
+              <div className="card">
+                <h3 className="mb-3 flex items-center gap-2 font-display font-bold text-mist-900"><Layers size={15} /> Precedence walk</h3>
+                <Table columns={["#", "Level", "Matched selector", "Contributes"]}>
+                  {resolution.layers.map((l, i) => (
+                    <Row key={l.level} index={i}>
+                      <Cell className="text-mist-400">{i + 1}</Cell>
+                      <Cell className={cn("font-semibold", l.conflict && "text-action-600")}>
+                        {l.level}
+                        {l.conflict && <Badge tone="action">conflict</Badge>}
+                      </Cell>
+                      <Cell className="text-mist-500">{l.selector ?? <span className="text-mist-300">— no rule —</span>}</Cell>
+                      <Cell className="text-mist-600">
+                        {Object.keys(l.values).length
+                          ? Object.entries(l.values).map(([k, v]) => `${k}=${String(v)}`).join(", ")
+                          : <span className="text-mist-300">—</span>}
+                      </Cell>
+                    </Row>
+                  ))}
+                </Table>
+              </div>
+
+              <div className="card">
+                <h3 className="mb-3 font-display font-bold text-mist-900">Resolved effective policy</h3>
+                <div className="grid gap-x-8 gap-y-1.5 text-sm sm:grid-cols-2">
+                  {RESOLVED_FIELDS.map((f) => {
+                    const r = resolution.resolved[f];
+                    return (
+                      <div key={f} className="flex items-center justify-between border-b border-dashed border-mist-100 py-1.5">
+                        <span className="text-mist-400">{f}</span>
+                        <span className="flex items-center gap-2">
+                          <span className={cn("font-semibold", r?.blocked ? "text-action-600" : "text-mist-800")}>{r ? String(r.value) : "—"}</span>
+                          {r && <Badge tone={r.from === "Tenant Default" ? "mist" : "brand"}>{r.from}</Badge>}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="mt-3 rounded-xl bg-mist-50 px-3 py-2 text-xs text-mist-500">
+                  Each field takes the first explicit value walking the ladder from most specific (Employee Override) to
+                  least (Tenant Default). Two rules at the same level that both set a value, with none marked primary, raise
+                  a Configuration Conflict and block the enrolment from activating (BL-2.1.4).
+                </p>
+              </div>
             </div>
           ) : t === "Breaks" ? (
             <div className="space-y-3">
