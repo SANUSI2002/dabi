@@ -59,6 +59,7 @@ const PoliciesDiscipline = lazy(() => import("@/pages/hr/PoliciesDiscipline"));
 const TalentPool = lazy(() => import("@/pages/hr/TalentPool"));
 const CompanyAssets = lazy(() => import("@/pages/hr/CompanyAssets"));
 const Helpdesk = lazy(() => import("@/pages/hr/Helpdesk"));
+const HrDashboard = lazy(() => import("@/pages/hr/HrDashboard"));
 
 function Loader() {
   return (
@@ -139,6 +140,7 @@ export default function App() {
           <Route path="/hr/talent-pool" element={<TalentPool />} />
           <Route path="/hr/assets" element={<CompanyAssets />} />
           <Route path="/hr/helpdesk" element={<Helpdesk />} />
+          <Route path="/hr/dashboard" element={<HrDashboard />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

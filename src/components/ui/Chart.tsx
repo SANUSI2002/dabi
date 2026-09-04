@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import {
   ResponsiveContainer, BarChart, Bar, LineChart, Line, AreaChart, Area,
-  XAxis, YAxis, Tooltip, CartesianGrid, Legend,
+  XAxis, YAxis, Tooltip, CartesianGrid, Legend, PieChart, Pie, Cell,
 } from "recharts";
 
 export const CHART_COLORS = ["#0fc06d", "#2fdd8a", "#f83b3b", "#0a4f32", "#84bd9b", "#f59e0b"];
@@ -76,6 +76,47 @@ export function Bars({
         ))}
       </BarChart>
     </Frame>
+  );
+}
+
+export function Donut({
+  data,
+  height = 220,
+  centerLabel,
+}: {
+  data: { label: string; value: number; color?: string }[];
+  height?: number;
+  centerLabel?: string;
+}) {
+  const total = data.reduce((n, d) => n + d.value, 0);
+  return (
+    <div className="relative" style={{ height }}>
+      <Frame height={height}>
+        <PieChart margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
+          <Tooltip {...tip} />
+          <Legend iconType="circle" wrapperStyle={{ fontSize: 11 }} />
+          <Pie
+            data={data}
+            dataKey="value"
+            nameKey="label"
+            innerRadius="58%"
+            outerRadius="80%"
+            paddingAngle={2}
+            isAnimationActive={false}
+          >
+            {data.map((d, i) => (
+              <Cell key={d.label} fill={d.color ?? CHART_COLORS[i % CHART_COLORS.length]} stroke="#fff" strokeWidth={2} />
+            ))}
+          </Pie>
+        </PieChart>
+      </Frame>
+      <div className="pointer-events-none absolute inset-x-0 top-0 grid place-items-center" style={{ height: height - 40 }}>
+        <div className="text-center">
+          <p className="font-display text-2xl font-bold text-mist-900">{total}</p>
+          {centerLabel && <p className="text-[10px] font-semibold uppercase text-mist-400">{centerLabel}</p>}
+        </div>
+      </div>
+    </div>
   );
 }
 
