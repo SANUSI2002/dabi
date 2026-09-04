@@ -12,7 +12,7 @@ import { dateTime } from "@/lib/format";
 
 export default function Laboratory() {
   const { labOrders, patientById, resolveLab } = useEmr();
-  const techs = useHr((s) => s.staff.filter((x) => x.status === "Active"));
+  const techs = useHr((s) => s.staff).filter((x) => x.status === "Active");
   const labTechs = techs.filter((s) => s.role === "Lab Technician");
   const [entry, setEntry] = useState<string | null>(null);
   const [printPid, setPrintPid] = useState<string | null>(null);

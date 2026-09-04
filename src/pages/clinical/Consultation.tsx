@@ -21,7 +21,9 @@ const NHMIS_GROUPS: Record<string, string[]> = {
 
 export default function Consultation() {
   const { queue, patientById, saveEncounter, addLabOrders, advanceQueue, admit, latestVitals, createInvoice } = useEmr();
-  const clinicians = useHr((s) => s.staff.filter((x) => x.status === "Active" && ["Medical Officer", "Nurse"].includes(x.role)));
+  const clinicians = useHr((s) => s.staff).filter(
+    (x) => x.status === "Active" && ["Medical Officer", "Nurse"].includes(x.role),
+  );
   const [provider, setProvider] = useState(clinicians[0]?.name ?? "Dr. Adaeze Okonjo");
   const consultQueue = queue.filter((q) => ["Waiting", "In Progress"].includes(q.status));
   const [activeQ, setActiveQ] = useState(consultQueue[0]?.id ?? null);

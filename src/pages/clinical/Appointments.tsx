@@ -11,7 +11,7 @@ import { useHr } from "@/store/useHr";
 
 export default function Appointments() {
   const { appointments, patientById, bookAppointment, markAppointment } = useEmr();
-  const clinicians = useHr((s) => s.staff.filter((x) => x.status === "Active"));
+  const clinicians = useHr((s) => s.staff).filter((x) => x.status === "Active");
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({ patientId: "", date: "", time: "09:00", provider: clinicians[0]?.name ?? "", type: "General", reason: "" });
 
