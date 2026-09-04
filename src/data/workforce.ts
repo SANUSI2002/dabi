@@ -21,14 +21,19 @@ export type TimeBlock = {
   active: boolean;
 };
 
+export type HolidayRule = "Observe as non-working" | "Preserve planned shift";
 export type WeeklySchedule = {
   id: string;
   name: string;
   description?: string;
   startDate: string;
+  endDate?: string;
   days: Record<WeekDay, string | "Off">; // timeBlock id or "Off"
   rotation?: string[]; // ordered block ids / "Off" for rotational
   rotationLength?: number;
+  rotationAnchor?: string; // ISO date the cycle counts from
+  holidayRule: HolidayRule;
+  expectedCycleHours: number;
   status: "Active" | "Draft" | "Retired";
 };
 
@@ -234,17 +239,27 @@ export const timeBlocks: TimeBlock[] = [
 export const schedules: WeeklySchedule[] = [
   {
     id: "sc1", name: "Standard Clinic Week", description: "Mon–Fri day shift, weekend off", startDate: day(120),
-    days: { Mon: "tb1", Tue: "tb1", Wed: "tb1", Thu: "tb1", Fri: "tb1", Sat: "Off", Sun: "Off" }, status: "Active",
+    days: { Mon: "tb1", Tue: "tb1", Wed: "tb1", Thu: "tb1", Fri: "tb1", Sat: "Off", Sun: "Off" },
+    holidayRule: "Observe as non-working", expectedCycleHours: 37.5, status: "Active",
   },
   {
     id: "sc2", name: "6-Day Front Desk", description: "Mon–Sat day shift", startDate: day(120),
-    days: { Mon: "tb1", Tue: "tb1", Wed: "tb1", Thu: "tb1", Fri: "tb1", Sat: "tb1", Sun: "Off" }, status: "Active",
+    days: { Mon: "tb1", Tue: "tb1", Wed: "tb1", Thu: "tb1", Fri: "tb1", Sat: "tb1", Sun: "Off" },
+    holidayRule: "Observe as non-working", expectedCycleHours: 45, status: "Active",
   },
   {
     id: "sc3", name: "Maternity 3-Week Rotation", description: "Day → Late → Night rotating", startDate: day(90),
     days: { Mon: "tb1", Tue: "tb1", Wed: "tb1", Thu: "tb1", Fri: "tb1", Sat: "Off", Sun: "Off" },
     rotation: ["tb1", "tb1", "tb1", "tb1", "tb1", "Off", "Off", "tb2", "tb2", "tb2", "tb2", "tb2", "Off", "Off", "tb3", "tb3", "tb3", "tb3", "tb3", "Off", "Off"],
-    rotationLength: 21, status: "Active",
+    rotationLength: 21, rotationAnchor: day(90), holidayRule: "Preserve planned shift",
+    expectedCycleHours: 112.5, status: "Active",
+  },
+  {
+    id: "sc4", name: "Seven-Day Hospital Rotation", description: "2 mornings, 2 lates, 2 nights, 1 rest", startDate: day(35),
+    days: { Mon: "tb1", Tue: "tb1", Wed: "tb2", Thu: "tb2", Fri: "tb3", Sat: "tb3", Sun: "Off" },
+    rotation: ["tb1", "tb1", "tb2", "tb2", "tb3", "tb3", "Off"],
+    rotationLength: 7, rotationAnchor: day(35), holidayRule: "Preserve planned shift",
+    expectedCycleHours: 45, status: "Active",
   },
 ];
 

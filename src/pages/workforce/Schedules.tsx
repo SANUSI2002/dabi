@@ -7,6 +7,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Grid, Checkbox } from "@/components/ui/form";
 import { useWorkforce } from "@/store/useWorkforce";
 import { useHr } from "@/store/useHr";
+import { useWfScope } from "@/store/useWorkforceSession";
 import { WEEKDAYS, type Classification } from "@/data/workforce";
 import { shortDate } from "@/lib/format";
 import { cn } from "@/lib/cn";
@@ -14,7 +15,10 @@ import { cn } from "@/lib/cn";
 export default function Schedules() {
   const { timeBlocks, schedules, assignments, addTimeBlock, assignSchedule } = useWorkforce();
   const staff = useHr((s) => s.staff);
+  const scope = useWfScope();
+  const rw = scope.canSchedule;
   const staffName = (id: string) => staff.find((s) => s.id === id)?.name ?? id;
+  const rotations = schedules.filter((s) => s.rotation && s.rotation.length);
   const [blockModal, setBlockModal] = useState(false);
   const [assignModal, setAssignModal] = useState(false);
   const [tb, setTb] = useState({ name: "", code: "", start: "08:00", end: "16:00", overnight: false, paidHours: 7.5, breakMins: 30, lateGraceMins: 10, classification: "Working" as Classification, colour: "#0fc06d" });
@@ -26,33 +30,36 @@ export default function Schedules() {
         title="Schedule Manager"
         subtitle="Time blocks, weekly schedules, rotations & assignments"
         actions={
-          <>
-            <Button variant="ghost" onClick={() => setBlockModal(true)}><Clock size={15} /> New Time Block</Button>
-            <Button onClick={() => setAssignModal(true)}><Plus size={15} /> Assign Schedule</Button>
-          </>
+          rw ? (
+            <>
+              <Button variant="ghost" onClick={() => setBlockModal(true)}><Clock size={15} /> New Time Block</Button>
+              <Button onClick={() => setAssignModal(true)}><Plus size={15} /> Assign Schedule</Button>
+            </>
+          ) : undefined
         }
       />
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Time Blocks" value={timeBlocks.length} tone="brand" icon={<Clock size={18} />} />
-        <StatCard label="Schedules" value={schedules.length} tone="mist" delay={0.05} icon={<CalendarRange size={18} />} />
-        <StatCard label="Rotations" value={schedules.filter((s) => s.rotation).length} tone="mist" delay={0.1} />
+        <StatCard label="Weekly" value={schedules.length - rotations.length} tone="mist" delay={0.05} icon={<CalendarRange size={18} />} />
+        <StatCard label="Rotations" value={rotations.length} tone="mist" delay={0.1} />
         <StatCard label="Assignments" value={assignments.length} tone="brand" delay={0.15} />
       </div>
 
-      <Tabs tabs={["Weekly Schedules", "Time Blocks", "Assignments", "Coverage Grid"]}>
+      <Tabs tabs={["Weekly Schedules", "Rotations", "Time Blocks", "Assignments", "Coverage Grid"]}>
         {(t) =>
           t === "Weekly Schedules" ? (
             <div className="space-y-3">
-              {schedules.map((sc) => (
+              {schedules.filter((s) => !s.rotation).map((sc) => (
                 <div key={sc.id} className="card">
-                  <div className="mb-2 flex items-center justify-between">
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <p className="font-display font-bold text-mist-900">{sc.name}</p>
                       <p className="text-[11px] text-mist-400">{sc.description} · from {shortDate(sc.startDate)}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      {sc.rotation && <Badge tone="amber">{sc.rotationLength}-day rotation</Badge>}
+                      <Badge tone="mist">{sc.expectedCycleHours}h / cycle</Badge>
+                      <Badge tone={sc.holidayRule === "Preserve planned shift" ? "amber" : "mist"}>{sc.holidayRule}</Badge>
                       <Badge tone={sc.status === "Active" ? "brand" : "mist"}>{sc.status}</Badge>
                     </div>
                   </div>
@@ -63,13 +70,46 @@ export default function Schedules() {
                       return (
                         <div key={d} className="rounded-lg p-2 text-center text-[11px] ring-1 ring-mist-200" style={b ? { background: b.colour + "1a" } : {}}>
                           <p className="font-bold text-mist-600">{d}</p>
-                          <p className="text-mist-500">{b ? b.code : "Off"}</p>
+                          <p className="text-mist-500">{b ? `${b.code} · ${b.start}` : "Off"}</p>
                         </div>
                       );
                     })}
                   </div>
                 </div>
               ))}
+            </div>
+          ) : t === "Rotations" ? (
+            <div className="space-y-3">
+              {rotations.map((sc) => (
+                <div key={sc.id} className="card">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="font-display font-bold text-mist-900">{sc.name}</p>
+                      <p className="text-[11px] text-mist-400">
+                        {sc.description} · {sc.rotationLength}-day cycle
+                        {sc.rotationAnchor && ` · anchored ${shortDate(sc.rotationAnchor)}`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge tone="mist">{sc.expectedCycleHours}h / cycle</Badge>
+                      <Badge tone="amber">{sc.holidayRule}</Badge>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {sc.rotation!.map((bId, i) => {
+                      const b = timeBlocks.find((x) => x.id === bId);
+                      return (
+                        <div key={i} className="w-16 rounded-lg p-2 text-center text-[11px] ring-1 ring-mist-200" style={b ? { background: b.colour + "1a" } : {}}>
+                          <p className="font-bold text-mist-600">Day {i + 1}</p>
+                          <p className="text-mist-500">{b ? b.code : "Off"}</p>
+                          {b && <p className="text-[10px] text-mist-400">{b.start}</p>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              {rotations.length === 0 && <div className="card text-sm text-mist-400">No rotational schedules.</div>}
             </div>
           ) : t === "Time Blocks" ? (
             <Table columns={["Block", "Code", "Window", "Paid hrs", "Break", "Late grace", "Type"]}>
