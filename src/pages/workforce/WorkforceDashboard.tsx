@@ -10,11 +10,13 @@ import { shortDate } from "@/lib/format";
 const name = (id: string) => useHr.getState().byId(id)?.name ?? id;
 
 export default function WorkforceDashboard() {
-  const { attendance, timesheets, assignments, tasks } = useWorkforce();
+  const { attendance, timesheets, assignments, tasks, leave, holidayWork } = useWorkforce();
 
   const openIntervals = attendance.filter((a) => !a.clockOut);
   const exceptions = attendance.filter((a) => a.flags.some((f) => ["Late", "Missing checkout", "Auto-checkout"].includes(f)));
   const awaiting = timesheets.filter((t) => t.status === "Submitted");
+  const pendingApprovals =
+    leave.filter((l) => l.status === "Pending").length + holidayWork.filter((w) => w.status === "Pending").length;
   const worked = (t: (typeof timesheets)[number]) => t.lines.reduce((n, l) => n + l.workedHours, 0);
   const expected = (t: (typeof timesheets)[number]) => t.lines.reduce((n, l) => n + l.expectedHours, 0);
 
@@ -28,11 +30,12 @@ export default function WorkforceDashboard() {
     <div>
       <PageHeader title="Time Dashboard" subtitle="Workforce scheduling, attendance & timesheet health — WBiz V3" />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
         <StatCard label="Scheduled staff" value={assignments.length} tone="brand" icon={<CalendarRange size={18} />} />
         <StatCard label="Currently clocked in" value={openIntervals.length} tone="mist" delay={0.05} icon={<Fingerprint size={18} />} />
         <StatCard label="Attendance exceptions" value={exceptions.length} tone="action" delay={0.1} icon={<AlertTriangle size={18} />} />
-        <StatCard label="Timesheets awaiting approval" value={awaiting.length} tone="amber" delay={0.15} icon={<ClipboardList size={18} />} />
+        <StatCard label="Timesheets awaiting" value={awaiting.length} tone="amber" delay={0.15} icon={<ClipboardList size={18} />} />
+        <StatCard label="Leave / holiday approvals" value={pendingApprovals} tone={pendingApprovals ? "amber" : "mist"} delay={0.2} />
       </div>
 
       <div className="mt-6 grid gap-5 lg:grid-cols-3">

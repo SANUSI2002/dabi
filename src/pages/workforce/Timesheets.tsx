@@ -14,7 +14,7 @@ const name = (id: string) => useHr.getState().byId(id)?.name ?? id;
 const sum = (ns: number[]) => ns.reduce((a, b) => a + b, 0);
 
 export default function Timesheets() {
-  const { timesheets, periods, setTimesheetStatus, addManualLine } = useWorkforce();
+  const { timesheets, periods, setTimesheetStatus, addManualLine, leave } = useWorkforce();
   const [periodId, setPeriodId] = useState(periods[0].id);
   const [openId, setOpenId] = useState<string | null>(timesheets[0]?.id ?? null);
   const [lineModal, setLineModal] = useState(false);
@@ -76,6 +76,21 @@ export default function Timesheets() {
           <div className="card grid place-items-center py-20 text-mist-400">Select a timesheet.</div>
         ) : (
           <div className="space-y-4">
+            {(() => {
+              const lv = leave.filter(
+                (l) =>
+                  l.staffId === sheet.staffId &&
+                  l.status === "Approved" &&
+                  +new Date(l.from) <= +new Date(period.end) &&
+                  +new Date(l.to) >= +new Date(period.start),
+              );
+              return lv.length ? (
+                <div className="rounded-2xl bg-brand-50 px-4 py-2.5 text-sm text-brand-700 ring-1 ring-brand-200">
+                  Approved leave in this period: {lv.map((l) => `${l.type} (${l.days}d)`).join(", ")} — those days carry
+                  zero expected hours and are excluded from lateness / absence.
+                </div>
+              ) : null;
+            })()}
             <div className="card flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="font-display text-lg font-bold text-mist-900">{name(sheet.staffId)}</p>
