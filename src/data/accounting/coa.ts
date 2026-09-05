@@ -83,6 +83,8 @@ const SEED: Seed[] = [
   // ---- Liabilities 2000–2999 ----
   [2000, "Accounts Payable — Trade", "liability", "accounts_payable", 1_850_000],
   [2100, "Accrued Expenses", "liability", "current_liability", 0],
+  [2110, "Staff Reimbursements Payable", "liability", "current_liability", 0],
+  [2120, "Salaries & Wages Payable", "liability", "current_liability", 0],
   [2200, "VAT Payable", "liability", "tax_payable", 0],
   [2210, "Withholding Tax Payable", "liability", "tax_payable", 0],
   [2300, "PAYE Payable", "liability", "tax_payable", 420_000],
@@ -165,6 +167,8 @@ export const ACCT = {
   accumDepreciation: 1590,
   apTrade: 2000,
   accruals: 2100,
+  reimbursementsPayable: 2110,
+  salariesPayable: 2120,
   vatPayable: 2200,
   whtPayable: 2210,
   payePayable: 2300,

@@ -84,6 +84,10 @@ const AcctGoodsReceipts = lazy(() => import("@/pages/accounting/GoodsReceipts"))
 const AcctBills = lazy(() => import("@/pages/accounting/Bills"));
 const AcctVendorPayments = lazy(() => import("@/pages/accounting/VendorPayments"));
 const AcctVendorCredits = lazy(() => import("@/pages/accounting/VendorCredits"));
+const AcctBankAccounts = lazy(() => import("@/pages/accounting/BankAccounts"));
+const AcctBankTransactions = lazy(() => import("@/pages/accounting/BankTransactions"));
+const AcctReconciliation = lazy(() => import("@/pages/accounting/BankReconciliation"));
+const AcctExpenses = lazy(() => import("@/pages/accounting/Expenses"));
 
 function Loader() {
   return (
@@ -189,6 +193,10 @@ export default function App() {
           <Route path="/accounting/bills" element={<AcctBills />} />
           <Route path="/accounting/vendor-payments" element={<AcctVendorPayments />} />
           <Route path="/accounting/vendor-credits" element={<AcctVendorCredits />} />
+          <Route path="/accounting/bank-accounts" element={<AcctBankAccounts />} />
+          <Route path="/accounting/bank-transactions" element={<AcctBankTransactions />} />
+          <Route path="/accounting/reconciliation" element={<AcctReconciliation />} />
+          <Route path="/accounting/expenses" element={<AcctExpenses />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

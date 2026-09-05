@@ -13,9 +13,13 @@ import { useTax } from "@/store/accounting/useTax";
 import { useAcctControl } from "@/store/accounting/useAcctControl";
 import { useAR } from "@/store/accounting/useAR";
 import { useAP } from "@/store/accounting/useAP";
+import { useExpenses } from "@/store/accounting/useExpenses";
+import { useBanking } from "@/store/accounting/useBanking";
 
 useLedger.getState();
 useTax.getState();
 useAcctControl.getState();
 useAR.getState();
 useAP.getState();
+useExpenses.getState();
+useBanking.getState();

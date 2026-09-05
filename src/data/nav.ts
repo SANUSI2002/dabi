@@ -53,6 +53,7 @@ import {
   BookOpenCheck,
   HandCoins,
   ShoppingCart,
+  Landmark,
   type LucideIcon,
 } from "lucide-react";
 
@@ -188,6 +189,17 @@ export const NAV: NavGroup[] = [
           { to: "/accounting/vendor-credits", label: "Vendor Credits" },
         ],
       },
+      {
+        to: "/accounting/bank-accounts",
+        label: "Banking",
+        icon: Landmark,
+        children: [
+          { to: "/accounting/bank-accounts", label: "Bank Accounts" },
+          { to: "/accounting/bank-transactions", label: "Bank Transactions" },
+          { to: "/accounting/reconciliation", label: "Reconciliation" },
+        ],
+      },
+      { to: "/accounting/expenses", label: "Expenses", icon: Wallet },
     ],
   },
   {
