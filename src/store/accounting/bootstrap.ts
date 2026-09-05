@@ -18,6 +18,7 @@ import { useBanking } from "@/store/accounting/useBanking";
 import { useFixedAssets } from "@/store/accounting/useFixedAssets";
 import { useBudgets } from "@/store/accounting/useBudgets";
 import { useInventoryAccounting } from "@/store/accounting/useInventoryAccounting";
+import { useAccountingSettings } from "@/store/accounting/useAccountingSettings";
 
 useLedger.getState();
 useTax.getState();
@@ -29,3 +30,4 @@ useBanking.getState();
 useFixedAssets.getState();
 useBudgets.getState();
 useInventoryAccounting.getState();
+useAccountingSettings.getState();
