@@ -71,6 +71,12 @@ const ChartOfAccounts = lazy(() => import("@/pages/accounting/ChartOfAccounts"))
 const JournalEntries = lazy(() => import("@/pages/accounting/JournalEntries"));
 const GeneralLedger = lazy(() => import("@/pages/accounting/GeneralLedger"));
 const TrialBalance = lazy(() => import("@/pages/accounting/TrialBalance"));
+const AcctCustomers = lazy(() => import("@/pages/accounting/Customers"));
+const AcctEstimates = lazy(() => import("@/pages/accounting/Estimates"));
+const AcctSalesOrders = lazy(() => import("@/pages/accounting/SalesOrders"));
+const AcctInvoices = lazy(() => import("@/pages/accounting/Invoices"));
+const AcctReceipts = lazy(() => import("@/pages/accounting/CustomerReceipts"));
+const AcctCreditNotes = lazy(() => import("@/pages/accounting/CreditNotes"));
 
 function Loader() {
   return (
@@ -163,6 +169,12 @@ export default function App() {
           <Route path="/accounting/journals" element={<JournalEntries />} />
           <Route path="/accounting/general-ledger" element={<GeneralLedger />} />
           <Route path="/accounting/trial-balance" element={<TrialBalance />} />
+          <Route path="/accounting/customers" element={<AcctCustomers />} />
+          <Route path="/accounting/quotations" element={<AcctEstimates />} />
+          <Route path="/accounting/sales-orders" element={<AcctSalesOrders />} />
+          <Route path="/accounting/invoices" element={<AcctInvoices />} />
+          <Route path="/accounting/receipts" element={<AcctReceipts />} />
+          <Route path="/accounting/credit-notes" element={<AcctCreditNotes />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

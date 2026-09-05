@@ -51,6 +51,7 @@ import {
   ShieldCheck,
   TrendingUp,
   BookOpenCheck,
+  HandCoins,
   type LucideIcon,
 } from "lucide-react";
 
@@ -157,6 +158,19 @@ export const NAV: NavGroup[] = [
           { to: "/accounting/journals", label: "Journal Entries" },
           { to: "/accounting/general-ledger", label: "General Ledger" },
           { to: "/accounting/trial-balance", label: "Trial Balance" },
+        ],
+      },
+      {
+        to: "/accounting/customers",
+        label: "Sales & Receivables",
+        icon: HandCoins,
+        children: [
+          { to: "/accounting/customers", label: "Customers" },
+          { to: "/accounting/quotations", label: "Quotations" },
+          { to: "/accounting/sales-orders", label: "Sales Orders" },
+          { to: "/accounting/invoices", label: "Invoices" },
+          { to: "/accounting/receipts", label: "Customer Receipts" },
+          { to: "/accounting/credit-notes", label: "Credit Notes" },
         ],
       },
     ],
