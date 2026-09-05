@@ -74,8 +74,8 @@ const recomputeStatus = (inv: Invoice): Invoice["status"] => {
   if (inv.status === "Draft" || inv.status === "Void") return inv.status;
   const total = docTotal(inv.lines);
   if (inv.amountPaid >= total - 0.01) return "Paid";
-  if (inv.amountPaid > 0.01) return "Partially Paid";
   if (new Date(inv.dueDate).getTime() < Date.now()) return "Overdue";
+  if (inv.amountPaid > 0.01) return "Partially Paid";
   return "Open";
 };
 

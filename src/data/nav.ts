@@ -52,6 +52,7 @@ import {
   TrendingUp,
   BookOpenCheck,
   HandCoins,
+  ShoppingCart,
   type LucideIcon,
 } from "lucide-react";
 
@@ -171,6 +172,20 @@ export const NAV: NavGroup[] = [
           { to: "/accounting/invoices", label: "Invoices" },
           { to: "/accounting/receipts", label: "Customer Receipts" },
           { to: "/accounting/credit-notes", label: "Credit Notes" },
+        ],
+      },
+      {
+        to: "/accounting/vendors",
+        label: "Purchases & Payables",
+        icon: ShoppingCart,
+        children: [
+          { to: "/accounting/vendors", label: "Vendors" },
+          { to: "/accounting/requisitions", label: "Purchase Requisitions" },
+          { to: "/accounting/purchase-orders", label: "Purchase Orders" },
+          { to: "/accounting/goods-receipts", label: "Goods Receipts" },
+          { to: "/accounting/bills", label: "Bills" },
+          { to: "/accounting/vendor-payments", label: "Vendor Payments" },
+          { to: "/accounting/vendor-credits", label: "Vendor Credits" },
         ],
       },
     ],

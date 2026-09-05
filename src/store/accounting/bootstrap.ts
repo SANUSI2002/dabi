@@ -10,8 +10,12 @@
 
 import { useLedger } from "@/store/accounting/useLedger";
 import { useTax } from "@/store/accounting/useTax";
+import { useAcctControl } from "@/store/accounting/useAcctControl";
 import { useAR } from "@/store/accounting/useAR";
+import { useAP } from "@/store/accounting/useAP";
 
 useLedger.getState();
 useTax.getState();
+useAcctControl.getState();
 useAR.getState();
+useAP.getState();
