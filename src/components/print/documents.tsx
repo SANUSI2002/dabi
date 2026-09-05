@@ -266,3 +266,47 @@ export function ConsolidatedEmrDoc({
     </PrintDoc>
   );
 }
+
+/* ---------------- Disciplinary Query Letter ---------------- */
+export function QueryLetterDoc({
+  employeeName,
+  employeeRole,
+  subject,
+  body,
+  raisedByName,
+  hrSignatoryName,
+  raisedAt,
+  responseDeadlineDays,
+  open,
+  onClose,
+}: {
+  employeeName: string;
+  employeeRole: string;
+  subject: string;
+  body: string;
+  raisedByName: string;
+  hrSignatoryName: string;
+  raisedAt: string;
+  responseDeadlineDays: number;
+  open: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <PrintDoc open={open} onClose={onClose} docTitle="Query Letter">
+      <div className="mb-6 grid grid-cols-2 gap-x-8">
+        <Line label="To" value={`${employeeName} (${employeeRole})`} />
+        <Line label="Date" value={shortDate(raisedAt)} />
+      </div>
+
+      <p className="mb-4 font-display text-lg font-bold text-mist-900">RE: {subject}</p>
+
+      <p className="whitespace-pre-line text-sm leading-relaxed text-mist-700">{body}</p>
+
+      <p className="mt-4 text-sm text-mist-700">
+        You are required to submit a written explanation within <b>{responseDeadlineDays} days</b> of receipt of this letter. Failure to respond within this period may result in further disciplinary action.
+      </p>
+
+      <SignRow roles={[`Line Manager — ${raisedByName}`, `HR — ${hrSignatoryName}`, "Employee acknowledgement"]} />
+    </PrintDoc>
+  );
+}

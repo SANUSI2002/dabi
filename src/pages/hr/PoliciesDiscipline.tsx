@@ -1,13 +1,18 @@
 import { useState } from "react";
-import { BookOpen, FileWarning, Plus, ShieldAlert } from "lucide-react";
-import { PageHeader, Card, Button, Badge, StatCard } from "@/components/ui/primitives";
+import { BookOpen, FileWarning, Plus, ShieldAlert, Mail, Send, Eye } from "lucide-react";
+import { PageHeader, Card, Button, Badge, StatCard, EmptyState } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Textarea, Checkbox } from "@/components/ui/form";
 import { useEmployees } from "@/store/useEmployees";
 import { useHr } from "@/store/useHr";
-import { shortDate } from "@/lib/format";
+import { useQueries } from "@/store/useQueries";
+import { useApprovals } from "@/store/useApprovals";
+import { useIdentity } from "@/store/useIdentity";
+import { ACCOUNTS } from "@/data/accounts";
+import { QueryLetterDoc } from "@/components/print/documents";
+import { shortDate, timeAgo } from "@/lib/format";
 import type { PolicyCategory } from "@/data/hrProfile";
 
 const CATEGORIES: PolicyCategory[] = ["Conduct", "Safety & Clinical", "Data & Security", "IT & Assets", "Leave & Attendance", "Other"];
@@ -15,7 +20,12 @@ const CATEGORIES: PolicyCategory[] = ["Conduct", "Safety & Clinical", "Data & Se
 export default function PoliciesDiscipline() {
   const { policies, disciplinaryActions, actionTypes, addPolicy, addActionType } = useEmployees();
   const staff = useHr((s) => s.staff);
+  const byId = useHr((s) => s.byId);
   const name = (id: string) => staff.find((s) => s.id === id)?.name ?? id;
+  const { queries, raiseQuery, markSent } = useQueries();
+  const { requestFor } = useApprovals();
+  const user = useIdentity((s) => s.user);
+  const hrAdmin = ACCOUNTS.find((a) => a.wfRole === "Tenant HR Administrator");
 
   const [viewFor, setViewFor] = useState<string | null>(null);
   const [polOpen, setPolOpen] = useState(false);
@@ -23,18 +33,30 @@ export default function PoliciesDiscipline() {
   const [typeOpen, setTypeOpen] = useState(false);
   const [tf, setTf] = useState({ name: "", blockOption: false });
 
+  const [queryOpen, setQueryOpen] = useState(false);
+  const [qf, setQf] = useState({ employeeId: staff[0]?.id ?? "", subject: "", body: "", responseDeadlineDays: 3 });
+  const [printQuery, setPrintQuery] = useState<string | null>(null);
+
+  function queryStatusFor(queryId: string) {
+    const req = requestFor(queryId);
+    if (!req) return { label: "Not submitted", tone: "mist" as const };
+    if (req.status === "Pending") return { label: `Awaiting ${req.steps[req.currentStepIndex]?.approverType === "Line Manager" ? "manager escalation" : "HR signature"}`, tone: "amber" as const };
+    if (req.status === "Rejected") return { label: "Rejected", tone: "action" as const };
+    return { label: "HR signed", tone: "brand" as const };
+  }
+
   return (
     <div>
-      <PageHeader title="Policies & Discipline" subtitle="Company policy library and disciplinary record" />
+      <PageHeader title="Policies & Discipline" subtitle="Company policy library, disciplinary record and query letters" />
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Policies published" value={policies.length} tone="brand" icon={<BookOpen size={18} />} />
         <StatCard label="Disciplinary actions" value={disciplinaryActions.length} tone={disciplinaryActions.length ? "action" : "mist"} delay={0.05} icon={<FileWarning size={18} />} />
-        <StatCard label="Action types" value={actionTypes.length} tone="mist" delay={0.1} />
-        <StatCard label="Block-eligible types" value={actionTypes.filter((t) => t.blockOption).length} tone="amber" delay={0.15} icon={<ShieldAlert size={18} />} />
+        <StatCard label="Queries raised" value={queries.length} tone="amber" delay={0.1} icon={<Mail size={18} />} />
+        <StatCard label="Block-eligible types" value={actionTypes.filter((t) => t.blockOption).length} tone="mist" delay={0.15} icon={<ShieldAlert size={18} />} />
       </div>
 
-      <Tabs tabs={["Policies", "Disciplinary Actions", "Action Types"]}>
+      <Tabs tabs={["Policies", "Queries", "Disciplinary Actions", "Action Types"]}>
         {(t) =>
           t === "Policies" ? (
             <div className="space-y-3">
@@ -52,6 +74,45 @@ export default function PoliciesDiscipline() {
                   </Card>
                 ))}
               </div>
+            </div>
+          ) : t === "Queries" ? (
+            <div className="space-y-3">
+              <div className="flex justify-end">
+                <Button onClick={() => { setQf({ employeeId: staff[0]?.id ?? "", subject: "", body: "", responseDeadlineDays: 3 }); setQueryOpen(true); }}><Plus size={14} /> Raise query</Button>
+              </div>
+              {queries.length === 0 && <EmptyState title="No queries raised" hint="A line manager raising a query against an employee will show up here, routed to HR for signature." />}
+              {queries.map((q) => {
+                const st = queryStatusFor(q.id);
+                const req = requestFor(q.id);
+                const approved = req?.status === "Approved";
+                return (
+                  <Card key={q.id}>
+                    <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="font-display font-bold text-mist-900">{name(q.employeeId)}</p>
+                        <p className="text-xs text-mist-500">RE: {q.subject}</p>
+                        <p className="text-[11px] text-mist-400">Raised by {name(q.raisedBy)} · {timeAgo(q.raisedAt)}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Badge tone={q.status === "Sent" ? "brand" : "amber"}>{q.status}</Badge>
+                        <Badge tone={st.tone}>{st.label}</Badge>
+                      </div>
+                    </div>
+                    <p className="mb-3 whitespace-pre-line rounded-xl bg-mist-50 px-3 py-2 text-sm text-mist-600">{q.body}</p>
+                    <div className="flex flex-wrap justify-end gap-2">
+                      {!approved && q.status === "Drafted" && (
+                        <p className="text-xs text-mist-400">See <a href="/hr/approvals" className="text-brand-600 hover:underline">Approval Workflows</a> for the sign-off queue.</p>
+                      )}
+                      {approved && q.status === "Drafted" && (
+                        <Button variant="soft" onClick={() => markSent(q.id)}><Send size={14} /> Mark sent</Button>
+                      )}
+                      {(approved || q.status === "Sent") && (
+                        <Button variant="ghost" onClick={() => setPrintQuery(q.id)}><Eye size={14} /> View / print letter</Button>
+                      )}
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
           ) : t === "Disciplinary Actions" ? (
             <Table columns={["Employees", "Action", "Description", "Duration", "Date"]}>
@@ -120,6 +181,48 @@ export default function PoliciesDiscipline() {
           <Field label="Body"><Textarea value={pf.body} onChange={(e) => setPf({ ...pf, body: e.target.value })} /></Field>
         </div>
       </Modal>
+
+      <Modal
+        open={queryOpen}
+        onClose={() => setQueryOpen(false)}
+        title="Raise disciplinary query"
+        wide
+        footer={<><Button variant="ghost" onClick={() => setQueryOpen(false)}>Cancel</Button>
+          <Button
+            disabled={!qf.subject.trim() || !qf.body.trim()}
+            onClick={() => { raiseQuery({ employeeId: qf.employeeId, raisedBy: user.id, subject: qf.subject.trim(), body: qf.body.trim(), responseDeadlineDays: qf.responseDeadlineDays }); setQueryOpen(false); }}
+          >
+            Escalate to HR
+          </Button></>}
+      >
+        <div className="space-y-4">
+          <Field label="Employee"><Select value={qf.employeeId} onChange={(e) => setQf({ ...qf, employeeId: e.target.value })} options={staff.map((s) => ({ value: s.id, label: s.name }))} /></Field>
+          <Field label="Subject"><Input value={qf.subject} onChange={(e) => setQf({ ...qf, subject: e.target.value })} placeholder="e.g. Unexplained absence from duty" /></Field>
+          <Field label="Query letter body"><Textarea className="min-h-[160px]" value={qf.body} onChange={(e) => setQf({ ...qf, body: e.target.value })} placeholder="State the facts, the policy or expectation breached, and what is being asked of the employee…" /></Field>
+          <Field label="Response deadline (days)"><Input type="number" min="1" value={qf.responseDeadlineDays} onChange={(e) => setQf({ ...qf, responseDeadlineDays: +e.target.value })} /></Field>
+          <p className="rounded-xl bg-mist-50 px-3 py-2 text-xs text-mist-500">Routes to the employee's line manager to confirm and escalate, then to HR for signature, before it can be sent.</p>
+        </div>
+      </Modal>
+
+      {printQuery && (() => {
+        const q = queries.find((x) => x.id === printQuery);
+        if (!q) return null;
+        const emp = byId(q.employeeId);
+        return (
+          <QueryLetterDoc
+            employeeName={emp?.name ?? "—"}
+            employeeRole={emp?.role ?? "—"}
+            subject={q.subject}
+            body={q.body}
+            raisedByName={name(q.raisedBy)}
+            hrSignatoryName={hrAdmin?.name ?? "HR"}
+            raisedAt={q.raisedAt}
+            responseDeadlineDays={q.responseDeadlineDays}
+            open
+            onClose={() => setPrintQuery(null)}
+          />
+        );
+      })()}
 
       <Modal
         open={typeOpen}
