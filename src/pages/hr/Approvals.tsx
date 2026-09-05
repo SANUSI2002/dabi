@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ShieldCheck, CheckCircle2, XCircle, Clock, Plus, X, Check, Workflow, Users, ListChecks,
+  ShieldCheck, CheckCircle2, XCircle, Clock, Plus, X, Check, Workflow, Users, ListChecks, Pencil,
 } from "lucide-react";
 import { PageHeader, Card, Button, Badge, StatCard, statusTone, EmptyState } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
@@ -83,8 +83,10 @@ function RequestCard({ req, onDecide }: { req: ApprovalRequest; onDecide: (id: s
   );
 }
 
+const rid = () => Math.random().toString(36).slice(2, 9);
+
 export default function Approvals() {
-  const { types, workflows, requests, addWorkflow, addApprovalType, decideStep } = useApprovals();
+  const { types, workflows, requests, addWorkflow, updateWorkflow, addApprovalType, updateApprovalType, decideStep } = useApprovals();
   const byId = useHr((s) => s.byId);
   const user = useIdentity((s) => s.user);
 
@@ -100,12 +102,14 @@ export default function Approvals() {
   const [comment, setComment] = useState("");
 
   const [wfOpen, setWfOpen] = useState(false);
+  const [wfEditId, setWfEditId] = useState<string | null>(null);
   const [wfName, setWfName] = useState("");
-  const [wfSteps, setWfSteps] = useState<{ name: string; approverType: ApproverType; approverId?: string }[]>([
-    { name: "Line Manager approval", approverType: "Line Manager" },
+  const [wfSteps, setWfSteps] = useState<{ id: string; name: string; approverType: ApproverType; approverId?: string }[]>([
+    { id: rid(), name: "Line Manager approval", approverType: "Line Manager" },
   ]);
 
   const [typeOpen, setTypeOpen] = useState(false);
+  const [typeEditId, setTypeEditId] = useState<string | null>(null);
   const [tf, setTf] = useState({ name: "", module: "", description: "", workflowId: workflows[0]?.id ?? "" });
 
   const lineManagers = ACCOUNTS.filter((a) => a.wfRole === "Line Manager");
@@ -168,16 +172,24 @@ export default function Approvals() {
               <div>
                 <div className="mb-3 flex items-center justify-between">
                   <h3 className="font-display font-bold text-mist-900">Approval types</h3>
-                  <Button variant="soft" onClick={() => { setTf({ name: "", module: "", description: "", workflowId: workflows[0]?.id ?? "" }); setTypeOpen(true); }}><Plus size={14} /> New approval type</Button>
+                  <Button variant="soft" onClick={() => { setTypeEditId(null); setTf({ name: "", module: "", description: "", workflowId: workflows[0]?.id ?? "" }); setTypeOpen(true); }}><Plus size={14} /> New approval type</Button>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {types.map((tp) => {
                     const wf = workflows.find((w) => w.id === tp.workflowId);
                     return (
                       <Card key={tp.id}>
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-2">
                           <p className="font-semibold text-mist-900">{tp.name}</p>
-                          <Badge tone="mist">{tp.module}</Badge>
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            <Badge tone="mist">{tp.module}</Badge>
+                            <button
+                              onClick={() => { setTypeEditId(tp.id); setTf({ name: tp.name, module: tp.module, description: tp.description, workflowId: tp.workflowId }); setTypeOpen(true); }}
+                              className="btn-ghost px-2 py-1 text-xs"
+                            >
+                              <Pencil size={12} />
+                            </button>
+                          </div>
                         </div>
                         <p className="mt-1 text-xs text-mist-500">{tp.description}</p>
                         <p className="mt-2 text-[11px] font-semibold uppercase text-mist-400">Workflow: {wf?.name ?? "—"}</p>
@@ -190,12 +202,20 @@ export default function Approvals() {
               <div>
                 <div className="mb-3 flex items-center justify-between">
                   <h3 className="font-display font-bold text-mist-900">Workflows</h3>
-                  <Button variant="soft" onClick={() => { setWfName(""); setWfSteps([{ name: "Line Manager approval", approverType: "Line Manager" }]); setWfOpen(true); }}><Plus size={14} /> New workflow</Button>
+                  <Button variant="soft" onClick={() => { setWfEditId(null); setWfName(""); setWfSteps([{ id: rid(), name: "Line Manager approval", approverType: "Line Manager" }]); setWfOpen(true); }}><Plus size={14} /> New workflow</Button>
                 </div>
                 <div className="space-y-3">
                   {workflows.map((w) => (
                     <Card key={w.id}>
-                      <p className="mb-2 font-semibold text-mist-900">{w.name}</p>
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <p className="font-semibold text-mist-900">{w.name}</p>
+                        <button
+                          onClick={() => { setWfEditId(w.id); setWfName(w.name); setWfSteps(w.steps.map((st) => ({ id: st.id, name: st.name, approverType: st.approverType, approverId: st.approverId }))); setWfOpen(true); }}
+                          className="btn-ghost px-2 py-1 text-xs"
+                        >
+                          <Pencil size={12} /> Edit
+                        </button>
+                      </div>
                       <div className="flex flex-wrap items-center gap-1.5">
                         {w.steps.map((st, i) => (
                           <span key={st.id} className="flex items-center gap-1.5">
@@ -259,9 +279,18 @@ export default function Approvals() {
       <Modal
         open={typeOpen}
         onClose={() => setTypeOpen(false)}
-        title="New approval type"
+        title={typeEditId ? "Edit approval type" : "New approval type"}
         footer={<><Button variant="ghost" onClick={() => setTypeOpen(false)}>Cancel</Button>
-          <Button disabled={!tf.name.trim() || !tf.workflowId} onClick={() => { addApprovalType(tf); setTypeOpen(false); }}>Create</Button></>}
+          <Button
+            disabled={!tf.name.trim() || !tf.workflowId}
+            onClick={() => {
+              if (typeEditId) updateApprovalType(typeEditId, tf);
+              else addApprovalType(tf);
+              setTypeOpen(false);
+            }}
+          >
+            {typeEditId ? "Save changes" : "Create"}
+          </Button></>}
       >
         <div className="space-y-4">
           <Field label="Name"><Input value={tf.name} onChange={(e) => setTf({ ...tf, name: e.target.value })} placeholder="e.g. Leave Request" /></Field>
@@ -276,17 +305,26 @@ export default function Approvals() {
       <Modal
         open={wfOpen}
         onClose={() => setWfOpen(false)}
-        title="New approval workflow"
+        title={wfEditId ? "Edit approval workflow" : "New approval workflow"}
         wide
         footer={<><Button variant="ghost" onClick={() => setWfOpen(false)}>Cancel</Button>
-          <Button disabled={!wfName.trim() || wfSteps.length === 0} onClick={() => { addWorkflow(wfName.trim(), wfSteps); setWfOpen(false); }}>Create workflow</Button></>}
+          <Button
+            disabled={!wfName.trim() || wfSteps.length === 0}
+            onClick={() => {
+              if (wfEditId) updateWorkflow(wfEditId, wfName.trim(), wfSteps);
+              else addWorkflow(wfName.trim(), wfSteps);
+              setWfOpen(false);
+            }}
+          >
+            {wfEditId ? "Save changes" : "Create workflow"}
+          </Button></>}
       >
         <div className="space-y-4">
           <Field label="Workflow name"><Input value={wfName} onChange={(e) => setWfName(e.target.value)} placeholder="e.g. Line Manager → Department Head → HR" /></Field>
           <div className="space-y-2">
             <span className="label">Approval chain, in order</span>
             {wfSteps.map((st, i) => (
-              <div key={i} className="flex items-center gap-2 rounded-xl bg-mist-50 p-2.5">
+              <div key={st.id} className="flex items-center gap-2 rounded-xl bg-mist-50 p-2.5">
                 <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-mist-200 text-[11px] font-bold text-mist-600">{i + 1}</span>
                 <Input className="flex-1" value={st.name} onChange={(e) => setWfSteps(wfSteps.map((s2, i2) => (i2 === i ? { ...s2, name: e.target.value } : s2)))} placeholder="Step name" />
                 <Select
@@ -306,7 +344,7 @@ export default function Approvals() {
                 <button onClick={() => setWfSteps(wfSteps.filter((_, i2) => i2 !== i))} className="btn-ghost px-2 py-1.5 text-xs text-action-500"><X size={13} /></button>
               </div>
             ))}
-            <Button variant="ghost" onClick={() => setWfSteps([...wfSteps, { name: "", approverType: "HR Administrator" }])}><Plus size={14} /> Add step</Button>
+            <Button variant="ghost" onClick={() => setWfSteps([...wfSteps, { id: rid(), name: "", approverType: "HR Administrator" }])}><Plus size={14} /> Add step</Button>
           </div>
         </div>
       </Modal>

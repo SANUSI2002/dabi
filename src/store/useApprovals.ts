@@ -24,7 +24,9 @@ type ApprovalsState = {
   requests: ApprovalRequest[];
 
   addWorkflow: (name: string, steps: Omit<ApprovalStepDef, "id" | "order">[]) => string;
+  updateWorkflow: (id: string, name: string, steps: Omit<ApprovalStepDef, "order">[]) => void;
   addApprovalType: (t: { name: string; module: string; description: string; workflowId: string }) => void;
+  updateApprovalType: (id: string, t: { name: string; module: string; description: string; workflowId: string }) => void;
 
   submitRequest: (approvalTypeId: string, input: { subjectLabel: string; requestedBy: string; requestedFor?: string; reference?: string }) => string;
   decideStep: (requestId: string, decision: "Approved" | "Rejected", comment?: string) => void;
@@ -49,9 +51,21 @@ export const useApprovals = create<ApprovalsState>((set, get) => ({
     return id;
   },
 
+  updateWorkflow: (id, name, steps) => {
+    audit("updated approval workflow", `hr/approvals/workflow/${name}`);
+    set((s) => ({
+      workflows: s.workflows.map((w) => (w.id === id ? { ...w, name, steps: steps.map((st, i) => ({ ...st, order: i + 1 })) } : w)),
+    }));
+  },
+
   addApprovalType: (t) => {
     audit("created approval type", `hr/approvals/type/${t.name}`);
     set((s) => ({ types: [{ ...t, id: rid() }, ...s.types] }));
+  },
+
+  updateApprovalType: (id, t) => {
+    audit("updated approval type", `hr/approvals/type/${t.name}`);
+    set((s) => ({ types: s.types.map((x) => (x.id === id ? { ...x, ...t } : x)) }));
   },
 
   submitRequest: (approvalTypeId, input) => {
