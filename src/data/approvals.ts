@@ -79,6 +79,7 @@ export const approvalTypes: ApprovalType[] = [
   { id: "at3", name: "Disciplinary Query", module: "Discipline", description: "A query raised by a line manager is countersigned by HR before it is sent.", workflowId: "wf1" },
   { id: "at4", name: "Offer Letter", module: "Recruitment", description: "HR approval before an offer letter is generated and sent to a candidate.", workflowId: "wf2" },
   { id: "at5", name: "Promotion Approval", module: "Performance", description: "A proposed promotion is approved by the line manager, then HR, before it takes effect.", workflowId: "wf1" },
+  { id: "at6", name: "Branch Transfer Approval", module: "HR", description: "A proposed move to a different branch is approved by the line manager, then HR, before it takes effect.", workflowId: "wf1" },
 ];
 
 export const requests: ApprovalRequest[] = [

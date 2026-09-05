@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Building2, Plus } from "lucide-react";
 import { PageHeader, Card, Button, Badge, StatCard } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
@@ -10,10 +11,12 @@ import { useOrg } from "@/store/useOrg";
 export default function OrgSetup() {
   const {
     companies, departments, jobPositions, jobRoles, employeeTypes, tags,
-    addDepartment, addJobPosition, addJobRole, addEmployeeType, addTag,
+    addCompany, addDepartment, addJobPosition, addJobRole, addEmployeeType, addTag,
     departmentName, jobPositionName,
   } = useOrg();
 
+  const [branchOpen, setBranchOpen] = useState(false);
+  const [bf, setBf] = useState({ name: "", code: "", address: "", lga: "", state: "", country: "Nigeria" });
   const [deptOpen, setDeptOpen] = useState(false);
   const [deptName, setDeptName] = useState("");
   const [posOpen, setPosOpen] = useState(false);
@@ -39,20 +42,25 @@ export default function OrgSetup() {
       <Tabs tabs={["Company", "Departments", "Job Positions", "Job Roles", "Employee Types", "Tags"]}>
         {(t) =>
           t === "Company" ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {companies.map((c) => (
-                <Card key={c.id}>
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="font-display font-bold text-mist-900">{c.name}</p>
-                    {c.isHeadquarters && <Badge tone="brand">Headquarters</Badge>}
-                  </div>
-                  <p className="text-sm text-mist-500">{c.address}, {c.lga} LGA, {c.state} State, {c.country}</p>
-                  <p className="mt-1 font-mono text-xs text-mist-400">{c.code}</p>
-                </Card>
-              ))}
-              <div className="card grid place-items-center border-2 border-dashed border-mist-200 bg-transparent text-sm text-mist-400 shadow-none">
-                Multi-company support is built in — add a second facility/branch when the deployment grows.
+            <div>
+              <div className="mb-3 flex justify-end"><Button variant="soft" onClick={() => { setBf({ name: "", code: "", address: "", lga: "", state: "", country: "Nigeria" }); setBranchOpen(true); }}><Plus size={14} /> Add branch</Button></div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {companies.map((c) => (
+                  <Card key={c.id}>
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="font-display font-bold text-mist-900">{c.name}</p>
+                      {c.isHeadquarters && <Badge tone="brand">Headquarters</Badge>}
+                    </div>
+                    <p className="text-sm text-mist-500">{c.address}, {c.lga} LGA, {c.state} State, {c.country}</p>
+                    <p className="mt-1 font-mono text-xs text-mist-400">{c.code}</p>
+                  </Card>
+                ))}
               </div>
+              {companies.length > 1 && (
+                <p className="mt-4 text-xs text-mist-400">
+                  Multiple branches are set up — employees can now be moved between them from <Link to="/hr/branch-transfers" className="text-brand-600 hover:underline">Branch Transfers</Link>.
+                </p>
+              )}
             </div>
           ) : t === "Departments" ? (
             <>
@@ -111,6 +119,21 @@ export default function OrgSetup() {
           )
         }
       </Tabs>
+
+      <Modal open={branchOpen} onClose={() => setBranchOpen(false)} title="Add branch / facility"
+        footer={<><Button variant="ghost" onClick={() => setBranchOpen(false)}>Cancel</Button>
+          <Button disabled={!bf.name.trim() || !bf.code.trim()} onClick={() => { addCompany(bf); setBranchOpen(false); }}>Add branch</Button></>}>
+        <div className="space-y-4">
+          <Field label="Branch name"><Input value={bf.name} onChange={(e) => setBf({ ...bf, name: e.target.value })} placeholder="e.g. Sabi Health Post — Apapa" /></Field>
+          <Field label="Facility code"><Input value={bf.code} onChange={(e) => setBf({ ...bf, code: e.target.value })} placeholder="e.g. PHC-SABI-021" /></Field>
+          <Field label="Address"><Input value={bf.address} onChange={(e) => setBf({ ...bf, address: e.target.value })} /></Field>
+          <div className="grid grid-cols-3 gap-4">
+            <Field label="LGA"><Input value={bf.lga} onChange={(e) => setBf({ ...bf, lga: e.target.value })} /></Field>
+            <Field label="State"><Input value={bf.state} onChange={(e) => setBf({ ...bf, state: e.target.value })} /></Field>
+            <Field label="Country"><Input value={bf.country} onChange={(e) => setBf({ ...bf, country: e.target.value })} /></Field>
+          </div>
+        </div>
+      </Modal>
 
       <Modal open={deptOpen} onClose={() => setDeptOpen(false)} title="Add department"
         footer={<><Button variant="ghost" onClick={() => setDeptOpen(false)}>Cancel</Button><Button disabled={!deptName.trim()} onClick={() => { addDepartment({ name: deptName.trim(), companyIds: [companies[0]?.id ?? "co1"] }); setDeptOpen(false); }}>Add</Button></>}>

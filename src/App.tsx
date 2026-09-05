@@ -65,6 +65,7 @@ const Payroll = lazy(() => import("@/pages/hr/Payroll"));
 const HrReports = lazy(() => import("@/pages/hr/Reports"));
 const HrApprovals = lazy(() => import("@/pages/hr/Approvals"));
 const Promotions = lazy(() => import("@/pages/hr/Promotions"));
+const BranchTransfers = lazy(() => import("@/pages/hr/BranchTransfers"));
 
 function Loader() {
   return (
@@ -150,6 +151,7 @@ export default function App() {
           <Route path="/hr/payroll" element={<Payroll />} />
           <Route path="/hr/approvals" element={<HrApprovals />} />
           <Route path="/hr/promotions" element={<Promotions />} />
+          <Route path="/hr/branch-transfers" element={<BranchTransfers />} />
           <Route path="/hr/reports" element={<HrReports />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

@@ -13,12 +13,14 @@ type OrgState = {
   employeeTypes: EmployeeType[];
   tags: OrgTag[];
 
+  addCompany: (c: Omit<Company, "id" | "isHeadquarters">) => void;
   addDepartment: (d: Omit<Department, "id">) => void;
   addJobPosition: (p: Omit<JobPosition, "id">) => void;
   addJobRole: (r: Omit<JobRole, "id">) => void;
   addEmployeeType: (t: Omit<EmployeeType, "id">) => void;
   addTag: (t: Omit<OrgTag, "id">) => void;
 
+  companyName: (id?: string) => string;
   departmentName: (id?: string) => string;
   jobPositionName: (id?: string) => string;
   jobRoleName: (id?: string) => string;
@@ -35,6 +37,10 @@ export const useOrg = create<OrgState>((set, get) => ({
   employeeTypes: seed.employeeTypes,
   tags: seed.orgTags,
 
+  addCompany: (c) => {
+    audit("added company / branch", `hr/org/company/${c.name}`);
+    set((s) => ({ companies: [...s.companies, { ...c, id: rid(), isHeadquarters: false }] }));
+  },
   addDepartment: (d) => {
     audit("added department", `hr/org/department/${d.name}`);
     set((s) => ({ departments: [{ ...d, id: rid() }, ...s.departments] }));
@@ -56,6 +62,7 @@ export const useOrg = create<OrgState>((set, get) => ({
     set((s) => ({ tags: [{ ...t, id: rid() }, ...s.tags] }));
   },
 
+  companyName: (id) => get().companies.find((c) => c.id === id)?.name ?? "—",
   departmentName: (id) => get().departments.find((d) => d.id === id)?.name ?? "—",
   jobPositionName: (id) => get().jobPositions.find((p) => p.id === id)?.name ?? "—",
   jobRoleName: (id) => get().jobRoles.find((r) => r.id === id)?.name ?? "—",
