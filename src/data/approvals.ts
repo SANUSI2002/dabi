@@ -78,6 +78,7 @@ export const approvalTypes: ApprovalType[] = [
   { id: "at2", name: "Loan / Salary Advance", module: "Payroll", description: "Requests above the auto-approve threshold route through the line manager, then HR.", workflowId: "wf1" },
   { id: "at3", name: "Disciplinary Query", module: "Discipline", description: "A query raised by a line manager is countersigned by HR before it is sent.", workflowId: "wf1" },
   { id: "at4", name: "Offer Letter", module: "Recruitment", description: "HR approval before an offer letter is generated and sent to a candidate.", workflowId: "wf2" },
+  { id: "at5", name: "Promotion Approval", module: "Performance", description: "A proposed promotion is approved by the line manager, then HR, before it takes effect.", workflowId: "wf1" },
 ];
 
 export const requests: ApprovalRequest[] = [
