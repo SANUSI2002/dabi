@@ -92,6 +92,15 @@ export type BonusPoints = {
   history: BonusEntry[];
 };
 
+export type Qualification = {
+  id: string;
+  employeeId: string;
+  title: string;
+  issuingBody: string;
+  dateObtained: string;
+  certificateRef?: string;
+};
+
 export const profiles: EmployeeProfile[] = [
   { id: "s1", dob: day(38 * 365), gender: "Female", maritalStatus: "Married", address: "14 Marine Road", lga: "Amuwo-Odofin", state: "Lagos", emergencyContactName: "Chuka Okonjo", emergencyContactPhone: "0803 111 2222", emergencyContactRelation: "Spouse", qualification: "MBBS, MPH", companyId: "co1", departmentId: "d2", jobPositionId: "jp2", jobRoleId: "jr3", employeeTypeId: "et1", dateJoining: day(1400), workEmail: "adaeze.okonjo@sabihealth.ng", workPhone: "0803 000 0001", tagIds: ["tg4"], bankName: "GTBank", accountNumber: "0123456789", bankBranch: "Festac" },
   { id: "s2", dob: day(34 * 365), gender: "Female", maritalStatus: "Married", address: "22 Church Street", lga: "Amuwo-Odofin", state: "Lagos", emergencyContactName: "Emeka Nwangbo", emergencyContactPhone: "0805 222 3333", emergencyContactRelation: "Spouse", qualification: "RN, RM", companyId: "co1", departmentId: "d1", jobPositionId: "jp1", jobRoleId: "jr1", employeeTypeId: "et1", reportingManagerId: "s1", dateJoining: day(1000), workEmail: "grace.nwangbo@sabihealth.ng", workPhone: "0803 000 0002", tagIds: ["tg1", "tg2"], bankName: "Access Bank", accountNumber: "0223456789", bankBranch: "Mile 2" },
@@ -157,6 +166,14 @@ export const disciplinaryActions: DisciplinaryAction[] = [
 
 export const notes: EmployeeNote[] = [
   { id: "n1", employeeId: "s3", note: "Completed the neonatal resuscitation refresher — recommend for the next mentorship cohort.", by: "Nurse Grace Nwangbo", at: day(15) },
+];
+
+export const qualifications: Qualification[] = [
+  { id: "q1", employeeId: "s1", title: "MBBS", issuingBody: "University of Lagos", dateObtained: day(4000) },
+  { id: "q2", employeeId: "s1", title: "Master of Public Health (MPH)", issuingBody: "University of Ibadan", dateObtained: day(2200) },
+  { id: "q3", employeeId: "s2", title: "Registered Nurse (RN)", issuingBody: "School of Nursing, Lagos", dateObtained: day(3600) },
+  { id: "q4", employeeId: "s2", title: "Registered Midwife (RM)", issuingBody: "School of Midwifery, Lagos", dateObtained: day(3000) },
+  { id: "q5", employeeId: "s7", title: "AMLSCN Certification", issuingBody: "Association of Medical Laboratory Scientists of Nigeria", dateObtained: day(1500) },
 ];
 
 export const bonusPoints: BonusPoints[] = [

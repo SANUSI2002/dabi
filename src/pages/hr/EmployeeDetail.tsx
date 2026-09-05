@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft, Mail, Phone, Building2, Award, FileWarning, StickyNote,
-  Plus, Check, X, Upload, ShieldAlert, TrendingUp, TrendingDown, History as HistoryIcon, Package, Wallet,
+  Plus, Check, X, Upload, ShieldAlert, TrendingUp, TrendingDown, History as HistoryIcon, Package, Wallet, GraduationCap,
 } from "lucide-react";
 import { PageHeader, Card, Button, Badge, statusTone } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
@@ -29,6 +29,7 @@ export default function EmployeeDetail() {
   const {
     profileFor, upsertProfile, documents, requestDocument, uploadDocument, reviewDocument,
     actionTypes, disciplinaryActions, addDisciplinaryAction, notes, addNote, bonusPoints, adjustBonus,
+    qualificationsFor, addQualification,
   } = useEmployees();
   const { departments, positionsFor, rolesFor, employeeTypes, departmentName, jobPositionName, jobRoleName, employeeTypeName, companies, companyName } = useOrg();
   const { assets: companyAssets, allocations, categories: assetCategories } = useCompanyAssets();
@@ -46,6 +47,10 @@ export default function EmployeeDetail() {
   const myHistory = emp
     ? auditEvents.filter((e) => e.resource.includes(id ?? " ") || e.resource.includes(emp.name) || e.user === emp.name)
     : [];
+  const myQualifications = qualificationsFor(id ?? "");
+
+  const [qualOpen, setQualOpen] = useState(false);
+  const [qf, setQf] = useState({ title: "", issuingBody: "", dateObtained: "" });
 
   const [editOpen, setEditOpen] = useState(false);
   const [ef, setEf] = useState(() => ({
@@ -108,7 +113,7 @@ export default function EmployeeDetail() {
         </div>
       </Card>
 
-      <Tabs tabs={["Overview", `Documents (${myDocs.length})`, `Disciplinary (${myActions.length})`, "Notes", "Bonus Points", "Assets", "Payroll", "History"]}>
+      <Tabs tabs={["Overview", `Qualifications (${myQualifications.length})`, `Documents (${myDocs.length})`, `Disciplinary (${myActions.length})`, "Notes", "Bonus Points", "Assets", "Payroll", "History"]}>
         {(t) =>
           t === "Overview" ? (
             <div className="grid gap-5 lg:grid-cols-2">
@@ -168,6 +173,31 @@ export default function EmployeeDetail() {
                 <h3 className="mb-3 flex items-center gap-2 font-display font-bold text-mist-900"><Link to="/hris" className="hover:underline">HRIS record →</Link></h3>
                 <p className="text-sm text-mist-500">Username <b className="text-mist-700">@{emp.username}</b> · Cadre {emp.cadre || "—"} · License <span className="font-mono">{emp.license ?? "—"}</span> · Hired {shortDate(emp.hireDate)}</p>
               </Card>
+            </div>
+          ) : t.startsWith("Qualifications") ? (
+            <div className="space-y-3">
+              <div className="flex justify-end">
+                <Button variant="soft" onClick={() => { setQf({ title: "", issuingBody: "", dateObtained: "" }); setQualOpen(true); }}><Plus size={14} /> Add qualification</Button>
+              </div>
+              {myQualifications.length === 0 ? (
+                <Card className="text-center text-mist-400">No professional qualifications on file yet.</Card>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {myQualifications.map((q) => (
+                    <Card key={q.id} className="flex items-start gap-3">
+                      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-gradient text-white"><GraduationCap size={20} /></span>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-mist-900">{q.title}</p>
+                        <p className="text-xs text-mist-500">{q.issuingBody}</p>
+                        <p className="mt-1 text-[11px] text-mist-400">Obtained {shortDate(q.dateObtained)}</p>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+              {myQualifications.length > 0 && (
+                <p className="text-center text-xs text-mist-400">{myQualifications.length} credential{myQualifications.length > 1 ? "s" : ""} on file — a well-rounded professional history.</p>
+              )}
             </div>
           ) : t.startsWith("Documents") ? (
             <div className="space-y-3">
@@ -348,6 +378,28 @@ export default function EmployeeDetail() {
           )
         }
       </Tabs>
+
+      <Modal
+        open={qualOpen}
+        onClose={() => setQualOpen(false)}
+        title="Add qualification"
+        footer={<><Button variant="ghost" onClick={() => setQualOpen(false)}>Cancel</Button>
+          <Button
+            disabled={!qf.title.trim() || !qf.issuingBody.trim() || !qf.dateObtained}
+            onClick={() => {
+              addQualification({ employeeId: id!, title: qf.title.trim(), issuingBody: qf.issuingBody.trim(), dateObtained: new Date(qf.dateObtained).toISOString() });
+              setQualOpen(false);
+            }}
+          >
+            Add
+          </Button></>}
+      >
+        <div className="space-y-4">
+          <Field label="Qualification / certification title"><Input value={qf.title} onChange={(e) => setQf({ ...qf, title: e.target.value })} placeholder="e.g. Postgraduate Diploma in Public Health" /></Field>
+          <Field label="Issuing institution / body"><Input value={qf.issuingBody} onChange={(e) => setQf({ ...qf, issuingBody: e.target.value })} /></Field>
+          <Field label="Date obtained"><Input type="date" value={qf.dateObtained} onChange={(e) => setQf({ ...qf, dateObtained: e.target.value })} /></Field>
+        </div>
+      </Modal>
 
       <Modal
         open={editOpen}

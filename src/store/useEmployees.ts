@@ -3,7 +3,7 @@ import { differenceInCalendarDays } from "date-fns";
 import * as seed from "@/data/hrProfile";
 import { audit } from "@/store/useAudit";
 import { useIdentity } from "@/store/useIdentity";
-import type { EmployeeProfile, EmployeeDocument, DisciplinaryAction, EmployeeNote, BonusPoints, DocumentCategory, Policy, PolicyCategory } from "@/data/hrProfile";
+import type { EmployeeProfile, EmployeeDocument, DisciplinaryAction, EmployeeNote, BonusPoints, DocumentCategory, Policy, PolicyCategory, Qualification } from "@/data/hrProfile";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 const me = () => useIdentity.getState().user.name;
@@ -15,6 +15,7 @@ type EmployeesState = {
   disciplinaryActions: DisciplinaryAction[];
   notes: EmployeeNote[];
   bonusPoints: BonusPoints[];
+  qualifications: Qualification[];
   policies: Policy[];
   addPolicy: (p: { category: PolicyCategory; title: string; purpose: string; body: string }) => void;
   addActionType: (name: string, blockOption: boolean) => void;
@@ -31,6 +32,9 @@ type EmployeesState = {
   addNote: (employeeId: string, note: string) => void;
   adjustBonus: (employeeId: string, delta: number, reason: string) => void;
   bonusFor: (employeeId: string) => number;
+
+  qualificationsFor: (employeeId: string) => Qualification[];
+  addQualification: (q: Omit<Qualification, "id">) => void;
 };
 
 export const useEmployees = create<EmployeesState>((set, get) => ({
@@ -40,6 +44,7 @@ export const useEmployees = create<EmployeesState>((set, get) => ({
   disciplinaryActions: seed.disciplinaryActions,
   notes: seed.notes,
   bonusPoints: seed.bonusPoints,
+  qualifications: seed.qualifications,
   policies: seed.policies,
 
   addPolicy: (p) => {
@@ -123,4 +128,11 @@ export const useEmployees = create<EmployeesState>((set, get) => ({
   },
 
   bonusFor: (employeeId) => get().bonusPoints.find((b) => b.employeeId === employeeId)?.points ?? 0,
+
+  qualificationsFor: (employeeId) => get().qualifications.filter((q) => q.employeeId === employeeId),
+
+  addQualification: (q) => {
+    audit("added qualification", `hr/qualification/${q.employeeId}/${q.title}`);
+    set((s) => ({ qualifications: [{ ...q, id: rid() }, ...s.qualifications] }));
+  },
 }));
