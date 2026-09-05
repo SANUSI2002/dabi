@@ -15,6 +15,9 @@ import { useAR } from "@/store/accounting/useAR";
 import { useAP } from "@/store/accounting/useAP";
 import { useExpenses } from "@/store/accounting/useExpenses";
 import { useBanking } from "@/store/accounting/useBanking";
+import { useFixedAssets } from "@/store/accounting/useFixedAssets";
+import { useBudgets } from "@/store/accounting/useBudgets";
+import { useInventoryAccounting } from "@/store/accounting/useInventoryAccounting";
 
 useLedger.getState();
 useTax.getState();
@@ -23,3 +26,6 @@ useAR.getState();
 useAP.getState();
 useExpenses.getState();
 useBanking.getState();
+useFixedAssets.getState();
+useBudgets.getState();
+useInventoryAccounting.getState();

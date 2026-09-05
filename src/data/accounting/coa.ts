@@ -192,6 +192,8 @@ export const ACCT = {
   cogsSupplies: 5010,
   salaries: 5100,
   employerPension: 5110,
+  depreciationExpense: 5500,
   bankCharges: 5600,
   badDebt: 5700,
+  miscExpense: 5900,
 } as const;
