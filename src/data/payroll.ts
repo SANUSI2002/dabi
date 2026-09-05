@@ -46,7 +46,8 @@ export type Contract = {
 };
 
 export type LoanType = "Loan" | "Salary Advance";
-export type LoanStatus = "Requested" | "Approved" | "Rejected" | "Repaying" | "Settled";
+export type LoanStatus = "Requested" | "Approved" | "Rejected" | "Repaying" | "Overdue" | "Settled";
+export type RepaymentMethod = "Manual" | "Salary Auto-Debit";
 export type Loan = {
   id: string;
   employeeId: string;
@@ -54,10 +55,40 @@ export type Loan = {
   amount: number;
   installments: number;
   installmentAmount: number;
-  installmentsPaid: number;
+  installmentsPaid: number; // count of fully-settled periods
   requestedDate: string;
   status: LoanStatus;
   reason: string;
+  repaymentMethod: RepaymentMethod;
+  currentPeriodDue: number; // installmentAmount + any shortfall carried from a missed period
+  currentPeriodPaid: number;
+  periodStartDate?: string; // when the current collection window opened
+  missedPeriods: number; // drives escalation severity
+  totalPaid: number;
+};
+
+export type LoanPayment = {
+  id: string;
+  loanId: string;
+  amount: number;
+  date: string;
+};
+
+export type EscalationLetter = {
+  id: string;
+  loanId: string;
+  level: 1 | 2;
+  issuedDate: string;
+  amountOwed: number;
+  sent: boolean;
+  sentAt?: string;
+};
+
+export type LoanEligibilityTier = {
+  id: string;
+  minMonthlySalary: number;
+  maxMonthlySalary: number | null; // null = no upper bound
+  maxLoanAmount: number;
 };
 
 export type ReimbursementType = "Expense Claim" | "Leave Encashment";
@@ -121,7 +152,23 @@ export const contracts: Contract[] = [
 ];
 
 export const loans: Loan[] = [
-  { id: "ln1", employeeId: "s8", type: "Salary Advance", amount: 50000, installments: 2, installmentAmount: 25000, installmentsPaid: 1, requestedDate: day(40), status: "Repaying", reason: "Rent shortfall this month" },
+  {
+    id: "ln1", employeeId: "s8", type: "Salary Advance", amount: 50000, installments: 2, installmentAmount: 25000,
+    installmentsPaid: 1, requestedDate: day(40), status: "Repaying", reason: "Rent shortfall this month",
+    repaymentMethod: "Manual", currentPeriodDue: 25000, currentPeriodPaid: 0, periodStartDate: day(10), missedPeriods: 0, totalPaid: 25000,
+  },
+];
+
+export const loanPayments: LoanPayment[] = [
+  { id: "lp1", loanId: "ln1", amount: 25000, date: day(38) },
+];
+
+export const escalationLetters: EscalationLetter[] = [];
+
+export const loanEligibilityTiers: LoanEligibilityTier[] = [
+  { id: "tier1", minMonthlySalary: 0, maxMonthlySalary: 150000, maxLoanAmount: 300000 },
+  { id: "tier2", minMonthlySalary: 150001, maxMonthlySalary: 300000, maxLoanAmount: 800000 },
+  { id: "tier3", minMonthlySalary: 300001, maxMonthlySalary: null, maxLoanAmount: 2000000 },
 ];
 
 export const reimbursements: Reimbursement[] = [

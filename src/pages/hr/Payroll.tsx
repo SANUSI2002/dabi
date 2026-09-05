@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Wallet, Plus, ArrowRight, Banknote, ReceiptText, HandCoins } from "lucide-react";
-import { PageHeader, Card, Button, Badge, StatCard, statusTone, Progress } from "@/components/ui/primitives";
+import { Wallet, Plus, ArrowRight, Banknote, ReceiptText, HandCoins, AlertTriangle, Send, RefreshCcw, Settings2 } from "lucide-react";
+import { PageHeader, Card, Button, Badge, StatCard, statusTone, Progress, EmptyState } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
@@ -8,13 +8,17 @@ import { Field, Input, Select, Checkbox } from "@/components/ui/form";
 import { usePayroll } from "@/store/usePayroll";
 import { useHr } from "@/store/useHr";
 import { naira, shortDate } from "@/lib/format";
-import type { LoanType, ReimbursementType } from "@/data/payroll";
+import type { LoanType, ReimbursementType, RepaymentMethod } from "@/data/payroll";
+
+const money = (n: number) => "₦" + n.toLocaleString("en-NG", { maximumFractionDigits: 0 });
 
 export default function Payroll() {
   const {
     salaryStructures, payslips, contracts, loans, reimbursements,
     setStructure, runBatch, advancePayslip, confirmBatch,
-    addContract, requestLoan, decideLoan, payInstallment,
+    addContract, requestLoan, decideLoan, recordPayment, checkOverdue,
+    sendEscalationLetter, paymentsFor, lettersFor, requiresEscalation, maxLoanFor,
+    loanEligibilityTiers, addEligibilityTier,
     requestReimbursement, decideReimbursement,
   } = usePayroll();
   const staff = useHr((s) => s.staff);
@@ -33,7 +37,13 @@ export default function Payroll() {
   const [cf, setCf] = useState({ employeeId: staff[0]?.id ?? "", title: "", startDate: "", endDate: "", basicSalary: 0 });
 
   const [loanOpen, setLoanOpen] = useState(false);
-  const [lf, setLf] = useState({ employeeId: staff[0]?.id ?? "", type: "Salary Advance" as LoanType, amount: 0, installments: 1, reason: "" });
+  const [lf, setLf] = useState({ employeeId: staff[0]?.id ?? "", type: "Salary Advance" as LoanType, amount: 0, installments: 1, reason: "", repaymentMethod: "Manual" as RepaymentMethod });
+
+  const [payFor, setPayFor] = useState<string | null>(null);
+  const [pf, setPf] = useState({ amount: 0, date: new Date().toISOString().slice(0, 10) });
+
+  const [tierOpen, setTierOpen] = useState(false);
+  const [tf2, setTf2] = useState({ minMonthlySalary: 0, maxMonthlySalary: "" as number | "", maxLoanAmount: 0 });
 
   const [rbOpen, setRbOpen] = useState(false);
   const [rbf, setRbf] = useState({ employeeId: staff[0]?.id ?? "", type: "Expense Claim" as ReimbursementType, title: "", amount: 0 });
@@ -145,36 +155,91 @@ export default function Payroll() {
               </Table>
             </div>
           ) : t === "Loans & Advances" ? (
-            <div className="space-y-3">
-              <div className="flex justify-end"><Button variant="soft" onClick={() => { setLf({ employeeId: staff[0]?.id ?? "", type: "Salary Advance", amount: 0, installments: 1, reason: "" }); setLoanOpen(true); }}><Plus size={14} /> Request</Button></div>
-              <Table columns={["Employee", "Type", "Amount", "Reason", "Progress", "Status", ""]}>
-                {loans.map((l, i) => (
-                  <Row key={l.id} index={i}>
-                    <Cell className="font-semibold">{name(l.employeeId)}</Cell>
-                    <Cell><Badge tone="mist">{l.type}</Badge></Cell>
-                    <Cell>{naira(l.amount)}</Cell>
-                    <Cell className="max-w-[220px] text-mist-500">{l.reason}</Cell>
-                    <Cell>
-                      {l.status === "Repaying" || l.status === "Settled" ? (
-                        <div className="w-28"><Progress value={l.installmentsPaid} target={l.installments} /><span className="text-[11px] text-mist-400">{l.installmentsPaid}/{l.installments}</span></div>
-                      ) : "—"}
-                    </Cell>
-                    <Cell><Badge tone={statusTone(l.status)}>{l.status}</Badge></Cell>
-                    <Cell>
-                      <div className="flex justify-end gap-1.5">
-                        {l.status === "Requested" && (
-                          <>
-                            <button onClick={() => decideLoan(l.id, "Rejected")} className="btn-ghost px-2 py-1 text-xs">Reject</button>
-                            <button onClick={() => decideLoan(l.id, "Approved")} className="btn-primary px-2.5 py-1 text-xs">Approve</button>
-                          </>
-                        )}
-                        {l.status === "Repaying" && <button onClick={() => payInstallment(l.id)} className="btn-soft px-2.5 py-1 text-xs"><Banknote size={12} /> Record instalment</button>}
+            <div className="space-y-4">
+              <Card>
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="flex items-center gap-2 font-display font-bold text-mist-900"><Settings2 size={15} className="text-brand-600" /> Loan eligibility tiers</h3>
+                  <Button variant="ghost" onClick={() => { setTf2({ minMonthlySalary: 0, maxMonthlySalary: "", maxLoanAmount: 0 }); setTierOpen(true); }}><Plus size={13} /> Add tier</Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {loanEligibilityTiers.map((tier) => (
+                    <span key={tier.id} className="rounded-full bg-mist-100 px-3 py-1.5 text-xs font-semibold text-mist-600">
+                      {money(tier.minMonthlySalary)}–{tier.maxMonthlySalary ? money(tier.maxMonthlySalary) : "∞"} /mo → max {money(tier.maxLoanAmount)}
+                    </span>
+                  ))}
+                </div>
+              </Card>
+
+              <div className="flex justify-end"><Button variant="soft" onClick={() => { setLf({ employeeId: staff[0]?.id ?? "", type: "Salary Advance", amount: 0, installments: 1, reason: "", repaymentMethod: "Manual" }); setLoanOpen(true); }}><Plus size={14} /> Request</Button></div>
+
+              {loans.length === 0 && <EmptyState title="No loans or advances" hint="Requests raised for employees will show up here." />}
+              {loans.map((l) => {
+                const escalates = requiresEscalation(l);
+                const letters = lettersFor(l.id);
+                const payments = paymentsFor(l.id);
+                return (
+                  <Card key={l.id}>
+                    <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="font-display font-bold text-mist-900">{name(l.employeeId)} <span className="ml-1 text-xs font-normal text-mist-400">{l.type}</span></p>
+                        <p className="text-xs text-mist-500">{l.reason}</p>
                       </div>
-                    </Cell>
-                  </Row>
-                ))}
-                {loans.length === 0 && <Row><Cell className="text-mist-400">No loans or advances.</Cell><Cell /><Cell /><Cell /><Cell /><Cell /><Cell /></Row>}
-              </Table>
+                      <div className="flex items-center gap-1.5">
+                        {escalates && <Badge tone="action"><AlertTriangle size={11} /> Above annual salary</Badge>}
+                        <Badge tone="mist">{l.repaymentMethod}</Badge>
+                        <Badge tone={statusTone(l.status)}>{l.status}</Badge>
+                      </div>
+                    </div>
+
+                    <div className="mb-2 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+                      <div><p className="text-[10px] font-bold uppercase text-mist-400">Amount</p><p className="font-semibold text-mist-800">{money(l.amount)}</p></div>
+                      <div><p className="text-[10px] font-bold uppercase text-mist-400">Instalment</p><p className="font-semibold text-mist-800">{money(l.installmentAmount)}</p></div>
+                      <div><p className="text-[10px] font-bold uppercase text-mist-400">Paid so far</p><p className="font-semibold text-brand-600">{money(l.totalPaid)}</p></div>
+                      <div><p className="text-[10px] font-bold uppercase text-mist-400">Periods</p><p className="font-semibold text-mist-800">{l.installmentsPaid}/{l.installments}</p></div>
+                    </div>
+
+                    {(l.status === "Repaying" || l.status === "Overdue") && (
+                      <div className="mb-2">
+                        <div className="mb-1 flex items-center justify-between text-[11px] text-mist-400">
+                          <span>This period: {money(l.currentPeriodPaid)} of {money(l.currentPeriodDue)}</span>
+                          {l.currentPeriodPaid > 0 && l.currentPeriodPaid < l.currentPeriodDue && <Badge tone="amber">Partial payment</Badge>}
+                        </div>
+                        <Progress value={l.currentPeriodPaid} target={l.currentPeriodDue} tone={l.status === "Overdue" ? "action" : "brand"} />
+                      </div>
+                    )}
+
+                    {letters.length > 0 && (
+                      <div className="mb-2 space-y-1.5">
+                        {letters.map((letter) => (
+                          <div key={letter.id} className="flex items-center justify-between rounded-xl bg-action-50 px-3 py-2 text-xs text-action-700">
+                            <span>Level {letter.level} escalation letter — {money(letter.amountOwed)} owed · issued {shortDate(letter.issuedDate)}{letter.sent && ` · sent ${shortDate(letter.sentAt!)}`}</span>
+                            {!letter.sent && <button onClick={() => sendEscalationLetter(letter.id)} className="btn-action px-2 py-1 text-[11px]"><Send size={11} /> Send</button>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {payments.length > 0 && (
+                      <p className="mb-2 text-[11px] text-mist-400">{payments.length} payment{payments.length > 1 ? "s" : ""} recorded — last {money(payments[0].amount)} on {shortDate(payments[0].date)}</p>
+                    )}
+
+                    <div className="flex flex-wrap justify-end gap-1.5">
+                      {l.status === "Requested" && (
+                        <>
+                          <button onClick={() => decideLoan(l.id, "Rejected")} className="btn-ghost px-2 py-1 text-xs">Reject</button>
+                          <button onClick={() => decideLoan(l.id, "Approved")} className="btn-primary px-2.5 py-1 text-xs">Approve</button>
+                        </>
+                      )}
+                      {(l.status === "Repaying" || l.status === "Overdue") && l.repaymentMethod === "Manual" && (
+                        <>
+                          <button onClick={() => checkOverdue(l.id)} className="btn-ghost px-2.5 py-1 text-xs"><RefreshCcw size={12} /> Check overdue</button>
+                          <button onClick={() => { setPf({ amount: l.currentPeriodDue - l.currentPeriodPaid, date: new Date().toISOString().slice(0, 10) }); setPayFor(l.id); }} className="btn-soft px-2.5 py-1 text-xs"><Banknote size={12} /> Record payment</button>
+                        </>
+                      )}
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
           ) : (
             <div className="space-y-3">
@@ -260,7 +325,7 @@ export default function Payroll() {
 
       <Modal open={loanOpen} onClose={() => setLoanOpen(false)} title="Request loan / advance"
         footer={<><Button variant="ghost" onClick={() => setLoanOpen(false)}>Cancel</Button>
-          <Button disabled={!lf.reason.trim() || lf.amount <= 0} onClick={() => { requestLoan(lf.employeeId, lf.type, lf.amount, lf.installments, lf.reason.trim()); setLoanOpen(false); }}>Request</Button></>}>
+          <Button disabled={!lf.reason.trim() || lf.amount <= 0} onClick={() => { requestLoan(lf.employeeId, lf.type, lf.amount, lf.installments, lf.reason.trim(), lf.repaymentMethod); setLoanOpen(false); }}>Request</Button></>}>
         <div className="space-y-4">
           <Field label="Employee"><Select value={lf.employeeId} onChange={(e) => setLf({ ...lf, employeeId: e.target.value })} options={staff.map((s) => ({ value: s.id, label: s.name }))} /></Field>
           <div className="grid grid-cols-3 gap-4">
@@ -268,7 +333,42 @@ export default function Payroll() {
             <Field label="Amount"><Input type="number" value={lf.amount} onChange={(e) => setLf({ ...lf, amount: +e.target.value })} /></Field>
             <Field label="Instalments"><Input type="number" min="1" value={lf.installments} onChange={(e) => setLf({ ...lf, installments: +e.target.value })} /></Field>
           </div>
+          <Field label="Repayment method"><Select value={lf.repaymentMethod} onChange={(e) => setLf({ ...lf, repaymentMethod: e.target.value as RepaymentMethod })} options={["Manual", "Salary Auto-Debit"]} /></Field>
           <Field label="Reason"><Input value={lf.reason} onChange={(e) => setLf({ ...lf, reason: e.target.value })} /></Field>
+          {(() => {
+            const cap = maxLoanFor(lf.employeeId);
+            const annualSalary = (salaryStructures.find((s) => s.employeeId === lf.employeeId)?.basicSalary ?? 0) * 12;
+            return (
+              <p className="rounded-xl bg-mist-50 px-3 py-2 text-xs text-mist-500">
+                {cap !== null && <>Eligible up to <b className="text-mist-700">{money(cap)}</b> based on their salary tier. </>}
+                {lf.amount > annualSalary && annualSalary > 0 && (
+                  <span className="block mt-1 font-semibold text-action-600">This exceeds their annual salary ({money(annualSalary)}) — overdue periods will auto-generate escalation letters.</span>
+                )}
+              </p>
+            );
+          })()}
+        </div>
+      </Modal>
+
+      <Modal open={!!payFor} onClose={() => setPayFor(null)} title="Record payment"
+        footer={<><Button variant="ghost" onClick={() => setPayFor(null)}>Cancel</Button>
+          <Button disabled={pf.amount <= 0 || !pf.date} onClick={() => { if (payFor) recordPayment(payFor, pf.amount, new Date(pf.date).toISOString()); setPayFor(null); }}>Record payment</Button></>}>
+        <div className="space-y-4">
+          <Field label="Amount paid"><Input type="number" value={pf.amount} onChange={(e) => setPf({ ...pf, amount: +e.target.value })} /></Field>
+          <Field label="Date"><Input type="date" value={pf.date} onChange={(e) => setPf({ ...pf, date: e.target.value })} /></Field>
+          <p className="rounded-xl bg-mist-50 px-3 py-2 text-xs text-mist-500">Paying less than the period's amount due records as a partial payment — the shortfall carries forward if the period closes before it's made up.</p>
+        </div>
+      </Modal>
+
+      <Modal open={tierOpen} onClose={() => setTierOpen(false)} title="Add eligibility tier"
+        footer={<><Button variant="ghost" onClick={() => setTierOpen(false)}>Cancel</Button>
+          <Button disabled={tf2.maxLoanAmount <= 0} onClick={() => { addEligibilityTier({ minMonthlySalary: tf2.minMonthlySalary, maxMonthlySalary: tf2.maxMonthlySalary === "" ? null : tf2.maxMonthlySalary, maxLoanAmount: tf2.maxLoanAmount }); setTierOpen(false); }}>Add tier</Button></>}>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Min monthly salary"><Input type="number" value={tf2.minMonthlySalary} onChange={(e) => setTf2({ ...tf2, minMonthlySalary: +e.target.value })} /></Field>
+            <Field label="Max monthly salary (blank = no cap)"><Input type="number" value={tf2.maxMonthlySalary} onChange={(e) => setTf2({ ...tf2, maxMonthlySalary: e.target.value === "" ? "" : +e.target.value })} /></Field>
+          </div>
+          <Field label="Max loan amount for this tier"><Input type="number" value={tf2.maxLoanAmount} onChange={(e) => setTf2({ ...tf2, maxLoanAmount: +e.target.value })} /></Field>
         </div>
       </Modal>
 
