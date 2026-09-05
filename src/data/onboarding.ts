@@ -71,7 +71,7 @@ OFFER OF EMPLOYMENT — {{job_position}}
 
 We are pleased to offer you the position of {{job_position}} in the {{department}} department of Sabi Health Post, reporting to {{reporting_manager}}.
 
-Basic salary: {{basic_salary}} per annum, paid monthly, subject to statutory deductions.
+Basic salary: {{basic_salary}} per month, subject to statutory deductions.
 Resumption date: {{resumption_date}}
 Probation period: 90 days from resumption.
 

@@ -111,7 +111,7 @@ export default function Onboarding() {
               {stage.isFinal && (!review || review.status === "Rejected") && (
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <Field label="Resumption date"><Input type="date" value={p.resumptionDate ?? ""} onChange={(e) => setResumptionDate(p.id, e.target.value)} /></Field>
-                  <Field label="Basic salary (per annum)"><Input type="number" value={p.basicSalary ?? ""} onChange={(e) => setBasicSalary(p.id, +e.target.value)} placeholder="e.g. 1800000" /></Field>
+                  <Field label="Basic salary (per month)"><Input type="number" value={p.basicSalary ?? ""} onChange={(e) => setBasicSalary(p.id, +e.target.value)} placeholder="e.g. 180000" /></Field>
                 </div>
               )}
 
