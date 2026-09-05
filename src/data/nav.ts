@@ -50,6 +50,7 @@ import {
   Wallet,
   ShieldCheck,
   TrendingUp,
+  BookOpenCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -58,6 +59,8 @@ export type NavItem = {
   label: string;
   icon: LucideIcon;
   badge?: "queue" | "lab" | "rx";
+  /** one level of nesting — a collapsible sub-section (keeps big modules like Accounting off a jam-packed flat list) */
+  children?: { to: string; label: string }[];
 };
 
 export type NavGroup = { title: string; items: NavItem[] };
@@ -139,6 +142,23 @@ export const NAV: NavGroup[] = [
       { to: "/hr/approvals", label: "Approval Workflows", icon: ShieldCheck },
       { to: "/hr/reports", label: "HR Reports", icon: BarChart3 },
       { to: "/hr/org-setup", label: "Organisation Setup", icon: Building2 },
+    ],
+  },
+  {
+    title: "Accounting",
+    items: [
+      { to: "/accounting", label: "Dashboard", icon: LayoutDashboard },
+      {
+        to: "/accounting/chart-of-accounts",
+        label: "General Ledger",
+        icon: BookOpenCheck,
+        children: [
+          { to: "/accounting/chart-of-accounts", label: "Chart of Accounts" },
+          { to: "/accounting/journals", label: "Journal Entries" },
+          { to: "/accounting/general-ledger", label: "General Ledger" },
+          { to: "/accounting/trial-balance", label: "Trial Balance" },
+        ],
+      },
     ],
   },
   {

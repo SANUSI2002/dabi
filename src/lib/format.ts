@@ -3,6 +3,23 @@ import { format, formatDistanceToNow, differenceInYears, differenceInMonths } fr
 export const naira = (n: number) =>
   n === 0 ? "Free" : "₦" + n.toLocaleString("en-NG", { maximumFractionDigits: 0 });
 
+/**
+ * Accounting money formatter — always shows the currency and 2 dp (so ₦0.00, not
+ * "Free"), negatives in accountancy parentheses. Use for ledgers, statements and
+ * anything in the Accounting module.
+ */
+export const money = (n: number, opts?: { currency?: string; dp?: number; blankZero?: boolean }) => {
+  const { currency = "₦", dp = 2, blankZero = false } = opts ?? {};
+  if (blankZero && Math.abs(n) < 0.005) return "";
+  const abs = Math.abs(n).toLocaleString("en-NG", { minimumFractionDigits: dp, maximumFractionDigits: dp });
+  return n < -0.005 ? `(${currency}${abs})` : `${currency}${abs}`;
+};
+
+export const signedMoney = (n: number, currency = "₦") =>
+  `${n < 0 ? "-" : ""}${currency}${Math.abs(n).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+export const isoDate = (d: string | Date) => format(new Date(d), "yyyy-MM-dd");
+
 export const shortDate = (d: string | Date) => format(new Date(d), "dd MMM yyyy");
 export const dateTime = (d: string | Date) => format(new Date(d), "dd MMM yyyy, HH:mm");
 export const timeAgo = (d: string | Date) => formatDistanceToNow(new Date(d), { addSuffix: true });

@@ -1,10 +1,90 @@
-import { NavLink } from "react-router-dom";
-import { motion } from "framer-motion";
-import { NAV } from "@/data/nav";
-import { ShieldPlus } from "lucide-react";
+import { useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import { ChevronDown, ShieldPlus } from "lucide-react";
+import { NAV, type NavItem } from "@/data/nav";
 import { useEmr } from "@/store/useEmr";
 import { FACILITY } from "@/data/mock";
 import { cn } from "@/lib/cn";
+
+function LeafLink({
+  to,
+  label,
+  icon: Icon,
+  badge,
+  onNavigate,
+}: {
+  to: string;
+  label: string;
+  icon?: NavItem["icon"];
+  badge?: number;
+  onNavigate?: () => void;
+}) {
+  return (
+    <NavLink
+      to={to}
+      end={to === "/"}
+      onClick={onNavigate}
+      className={({ isActive }) => cn("nav-link", isActive && "nav-link-active")}
+    >
+      {({ isActive }) => (
+        <>
+          {Icon ? <Icon size={17} className="shrink-0" /> : <span className="ml-1 h-1.5 w-1.5 shrink-0 rounded-full bg-mist-300" />}
+          <span className="flex-1 truncate">{label}</span>
+          {badge && badge > 0 ? (
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className={cn(
+                "grid h-5 min-w-[20px] place-items-center rounded-full px-1 text-[10px] font-bold",
+                isActive ? "bg-white/25 text-white" : "bg-action-gradient text-white",
+              )}
+            >
+              {badge}
+            </motion.span>
+          ) : null}
+        </>
+      )}
+    </NavLink>
+  );
+}
+
+function NestedItem({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
+  const loc = useLocation();
+  const childActive = item.children!.some((c) => loc.pathname === c.to || loc.pathname.startsWith(c.to + "/"));
+  const [open, setOpen] = useState(childActive);
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={cn("nav-link w-full", childActive && !open && "text-brand-700")}
+      >
+        <item.icon size={17} className="shrink-0" />
+        <span className="flex-1 truncate text-left">{item.label}</span>
+        <ChevronDown size={14} className={cn("shrink-0 transition-transform", open && "rotate-180")} />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="overflow-hidden"
+          >
+            <div className="ml-4 mt-0.5 space-y-0.5 border-l border-mist-200 pl-2">
+              {item.children!.map((c) => (
+                <LeafLink key={c.to} to={c.to} label={c.label} onNavigate={onNavigate} />
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const queue = useEmr((s) => s.queue);
@@ -34,41 +114,22 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-6">
         {NAV.map((group) => (
           <div key={group.title}>
-            <p className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-mist-300">
-              {group.title}
-            </p>
+            <p className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-mist-300">{group.title}</p>
             <div className="space-y-0.5">
-              {group.items.map((item) => {
-                const b = item.badge ? badges[item.badge] : 0;
-                return (
-                  <NavLink
+              {group.items.map((item) =>
+                item.children ? (
+                  <NestedItem key={item.label} item={item} onNavigate={onNavigate} />
+                ) : (
+                  <LeafLink
                     key={item.to}
                     to={item.to}
-                    end={item.to === "/"}
-                    onClick={onNavigate}
-                    className={({ isActive }) => cn("nav-link", isActive && "nav-link-active")}
-                  >
-                    {({ isActive }) => (
-                      <>
-                        <item.icon size={17} className="shrink-0" />
-                        <span className="flex-1 truncate">{item.label}</span>
-                        {b > 0 && (
-                          <motion.span
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            className={cn(
-                              "grid h-5 min-w-[20px] place-items-center rounded-full px-1 text-[10px] font-bold",
-                              isActive ? "bg-white/25 text-white" : "bg-action-gradient text-white",
-                            )}
-                          >
-                            {b}
-                          </motion.span>
-                        )}
-                      </>
-                    )}
-                  </NavLink>
-                );
-              })}
+                    label={item.label}
+                    icon={item.icon}
+                    badge={item.badge ? badges[item.badge] : 0}
+                    onNavigate={onNavigate}
+                  />
+                ),
+              )}
             </div>
           </div>
         ))}
