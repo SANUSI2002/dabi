@@ -3,7 +3,8 @@ import * as seed from "@/data/onboarding";
 import { audit } from "@/store/useAudit";
 import { useHr } from "@/store/useHr";
 import { useEmployees } from "@/store/useEmployees";
-import type { OnboardingProgress } from "@/data/onboarding";
+import { usePayroll } from "@/store/usePayroll";
+import type { OnboardingProgress, OnboardingDocument } from "@/data/onboarding";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 
@@ -11,9 +12,16 @@ type OnboardingState = {
   stages: typeof seed.stages;
   tasks: typeof seed.tasks;
   progress: OnboardingProgress[];
+  documents: OnboardingDocument[];
+  offerLetterTemplate: string;
 
   startOnboarding: (input: { candidateId: string; candidateName: string; requisitionId: string; jobPositionId: string; departmentId: string }) => void;
   toggleTask: (progressId: string, taskId: string) => void;
+  uploadTaskDocument: (progressId: string, taskId: string, title: string) => void;
+  documentsFor: (progressId: string) => OnboardingDocument[];
+  setResumptionDate: (progressId: string, date: string) => void;
+  setBasicSalary: (progressId: string, amount: number) => void;
+  setOfferLetterTemplate: (text: string) => void;
   canAdvance: (progressId: string) => boolean;
   advanceStage: (progressId: string) => void;
   convertToEmployee: (progressId: string, role: string, cadre: string) => string | undefined;
@@ -23,6 +31,8 @@ export const useOnboarding = create<OnboardingState>((set, get) => ({
   stages: seed.stages,
   tasks: seed.tasks,
   progress: [],
+  documents: [],
+  offerLetterTemplate: seed.defaultOfferLetterTemplate,
 
   startOnboarding: (input) => {
     if (get().progress.some((p) => p.candidateId === input.candidateId)) return;
@@ -43,6 +53,31 @@ export const useOnboarding = create<OnboardingState>((set, get) => ({
         p.id === progressId ? { ...p, taskDone: { ...p.taskDone, [taskId]: !p.taskDone[taskId] } } : p,
       ),
     }));
+  },
+
+  uploadTaskDocument: (progressId, taskId, title) => {
+    const task = get().tasks.find((t) => t.id === taskId);
+    const p = get().progress.find((x) => x.id === progressId);
+    audit("uploaded onboarding document", `hr/onboarding/${p?.candidateName ?? progressId}/${task?.title ?? taskId}`);
+    set((s) => ({
+      documents: [{ id: rid(), progressId, taskId, title, uploadedAt: new Date().toISOString() }, ...s.documents],
+      progress: s.progress.map((x) => (x.id === progressId ? { ...x, taskDone: { ...x.taskDone, [taskId]: true } } : x)),
+    }));
+  },
+
+  documentsFor: (progressId) => get().documents.filter((d) => d.progressId === progressId),
+
+  setResumptionDate: (progressId, date) => {
+    set((s) => ({ progress: s.progress.map((x) => (x.id === progressId ? { ...x, resumptionDate: date } : x)) }));
+  },
+
+  setBasicSalary: (progressId, amount) => {
+    set((s) => ({ progress: s.progress.map((x) => (x.id === progressId ? { ...x, basicSalary: amount } : x)) }));
+  },
+
+  setOfferLetterTemplate: (text) => {
+    audit("updated offer letter template", "hr/onboarding/offer-letter-template");
+    set({ offerLetterTemplate: text });
   },
 
   canAdvance: (progressId) => {
@@ -81,6 +116,17 @@ export const useOnboarding = create<OnboardingState>((set, get) => ({
       useEmployees.getState().upsertProfile(created.id, {
         companyId: "co1", departmentId: p.departmentId, jobPositionId: p.jobPositionId,
         employeeTypeId: "et1", dateJoining: new Date().toISOString(),
+      });
+      if (p.basicSalary) {
+        usePayroll.getState().setStructure(created.id, p.basicSalary, [], []);
+      }
+      get().documentsFor(progressId).forEach((d) => {
+        useEmployees.getState().requestDocument([created.id], d.title, "Other");
+        const doc = useEmployees.getState().documents.find((x) => x.employeeId === created.id && x.title === d.title);
+        if (doc) {
+          useEmployees.getState().uploadDocument(doc.id, { issueDate: d.uploadedAt });
+          useEmployees.getState().reviewDocument(doc.id, "Approved");
+        }
       });
     }
     set((s) => ({ progress: s.progress.map((x) => (x.id === progressId ? { ...x, employeeId: created?.id } : x)) }));
