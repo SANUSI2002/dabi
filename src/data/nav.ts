@@ -208,6 +208,7 @@ export const NAV: NavGroup[] = [
       { to: "/accounting/tax", label: "Tax", icon: Percent },
       { to: "/accounting/reports", label: "Financial Reports", icon: BarChart3 },
       { to: "/accounting/approvals", label: "Approvals", icon: ShieldCheck },
+      { to: "/accounting/integrations", label: "Integrations", icon: RefreshCw },
       { to: "/accounting/settings", label: "Settings", icon: Settings },
     ],
   },

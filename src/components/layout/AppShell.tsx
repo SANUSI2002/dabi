@@ -1,13 +1,24 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { PageTransition } from "@/components/motion/Reveal";
+import { useIntegrations } from "@/store/useIntegrations";
 
 export function AppShell() {
   const [mobileNav, setMobileNav] = useState(false);
   const loc = useLocation();
+
+  // Platform integration layer: mirror EMR billing + payroll into Accounting.
+  // Runs on load and whenever the app route changes, so the ledger stays current
+  // without EMR/HR knowing accounting exists. No-op when nothing is pending.
+  const autoSync = useIntegrations((s) => s.autoSync);
+  useEffect(() => {
+    if (!autoSync) return;
+    const c = useIntegrations.getState().pendingCounts();
+    if (c.emrBilling || c.payrollAccrual || c.payrollSettlement || c.pharmacy) useIntegrations.getState().syncAll();
+  }, [autoSync, loc.pathname]);
 
   return (
     <div className="flex h-full bg-mist-50">

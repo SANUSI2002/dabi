@@ -52,8 +52,9 @@ export type InventoryMovement = {
 const daysAgo = (n: number) => new Date(Date.now() - n * 864e5).toISOString();
 
 export const seedInventoryItems: InventoryItem[] = [
-  { id: "itm-act", sku: "DRG-ACT-001", name: "Artemether/Lumefantrine 20/120 (ACT)", category: "Drugs", unit: "pack", valuationMethod: "FIFO", inventoryAccountNumber: 1200, cogsAccountNumber: 5000, currentQty: 420, averageCost: 1_150, reorderLevel: 120, active: true },
-  { id: "itm-amox", sku: "DRG-AMX-002", name: "Amoxicillin 500mg caps", category: "Drugs", unit: "pack", valuationMethod: "Weighted Average", inventoryAccountNumber: 1200, cogsAccountNumber: 5000, currentQty: 300, averageCost: 850, reorderLevel: 100, active: true },
+  { id: "itm-act", sku: "DRG-ACT-001", name: "Artemether/Lumefantrine 20/120 (ACT)", category: "Drugs", unit: "pack", valuationMethod: "FIFO", inventoryAccountNumber: 1200, cogsAccountNumber: 5000, currentQty: 420, averageCost: 1_150, reorderLevel: 120, linkedDrugId: "artemether/lumefantrine", active: true },
+  { id: "itm-amox", sku: "DRG-AMX-002", name: "Amoxicillin 500mg caps", category: "Drugs", unit: "pack", valuationMethod: "Weighted Average", inventoryAccountNumber: 1200, cogsAccountNumber: 5000, currentQty: 300, averageCost: 850, reorderLevel: 100, linkedDrugId: "amoxicillin", active: true },
+  { id: "itm-para", sku: "DRG-PCM-003", name: "Paracetamol 500mg tabs", category: "Drugs", unit: "pack", valuationMethod: "Weighted Average", inventoryAccountNumber: 1200, cogsAccountNumber: 5000, currentQty: 500, averageCost: 220, reorderLevel: 150, linkedDrugId: "paracetamol", active: true },
   { id: "itm-glove", sku: "CON-GLV-010", name: "Examination gloves (box of 100)", category: "Consumables", unit: "box", valuationMethod: "Weighted Average", inventoryAccountNumber: 1210, cogsAccountNumber: 5010, currentQty: 180, averageCost: 3_200, reorderLevel: 60, active: true },
   { id: "itm-rdt", sku: "RGT-RDT-020", name: "Malaria RDT kits", category: "Reagents", unit: "kit", valuationMethod: "FIFO", inventoryAccountNumber: 1210, cogsAccountNumber: 5010, currentQty: 95, averageCost: 480, reorderLevel: 150, active: true },
 ];

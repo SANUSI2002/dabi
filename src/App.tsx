@@ -94,6 +94,7 @@ const AcctBudgets = lazy(() => import("@/pages/accounting/Budgets"));
 const AcctTax = lazy(() => import("@/pages/accounting/TaxCenter"));
 const AcctReports = lazy(() => import("@/pages/accounting/AccountingReports"));
 const AcctApprovals = lazy(() => import("@/pages/accounting/AccountingApprovals"));
+const AcctIntegrations = lazy(() => import("@/pages/accounting/Integrations"));
 const AcctSettings = lazy(() => import("@/pages/accounting/AccountingSettings"));
 
 function Loader() {
@@ -210,6 +211,7 @@ export default function App() {
           <Route path="/accounting/tax" element={<AcctTax />} />
           <Route path="/accounting/reports" element={<AcctReports />} />
           <Route path="/accounting/approvals" element={<AcctApprovals />} />
+          <Route path="/accounting/integrations" element={<AcctIntegrations />} />
           <Route path="/accounting/settings" element={<AcctSettings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
