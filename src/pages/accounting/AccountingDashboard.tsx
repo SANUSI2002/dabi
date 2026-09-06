@@ -1,10 +1,21 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Wallet, TrendingUp, TrendingDown, Scale, ArrowRight, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown, Scale, ArrowRight, CheckCircle2, AlertTriangle, FileText, ShoppingCart, BarChart3, ShieldCheck, Percent, RefreshCw } from "lucide-react";
 import { PageHeader, Card, StatCard, Badge, statusTone } from "@/components/ui/primitives";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { money, shortDate } from "@/lib/format";
 import { useLedger } from "@/store/accounting/useLedger";
+import { useAR } from "@/store/accounting/useAR";
+import { useAP } from "@/store/accounting/useAP";
+
+const QUICK = [
+  { to: "/accounting/invoices", label: "Invoices", icon: FileText },
+  { to: "/accounting/bills", label: "Bills", icon: ShoppingCart },
+  { to: "/accounting/reports", label: "Reports", icon: BarChart3 },
+  { to: "/accounting/approvals", label: "Approvals", icon: ShieldCheck },
+  { to: "/accounting/tax", label: "Tax", icon: Percent },
+  { to: "/accounting/integrations", label: "Integrations", icon: RefreshCw },
+];
 
 const startOfMonth = () => {
   const d = new Date();
@@ -15,6 +26,8 @@ const todayIso = () => new Date().toISOString();
 
 export default function AccountingDashboard() {
   const { accounts, entries, balanceOf, activityOf, isInBalance, booksLockedBefore } = useLedger();
+  const arInvoices = useAR((s) => s.invoices);
+  const apBills = useAP((s) => s.bills);
 
   const m = useMemo(() => {
     const som = startOfMonth();
@@ -60,8 +73,8 @@ export default function AccountingDashboard() {
         <Card>
           <h3 className="mb-3 font-display text-sm font-bold uppercase tracking-wide text-mist-500">Working capital</h3>
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><span className="text-mist-500">Accounts receivable</span><span className="font-mono font-semibold">{money(m.ar)}</span></div>
-            <div className="flex justify-between"><span className="text-mist-500">Accounts payable</span><span className="font-mono font-semibold">{money(m.ap)}</span></div>
+            <div className="flex justify-between"><span className="text-mist-500">Receivable · {arInvoices.filter((i) => i.status === "Open" || i.status === "Partially Paid" || i.status === "Overdue").length} open</span><span className="font-mono font-semibold">{money(m.ar)}</span></div>
+            <div className="flex justify-between"><span className="text-mist-500">Payable · {apBills.filter((b) => b.status === "Awaiting Payment" || b.status === "Partially Paid" || b.status === "Overdue").length} open</span><span className="font-mono font-semibold">{money(m.ap)}</span></div>
             <div className="flex justify-between border-t border-mist-200 pt-2 font-bold"><span>Net</span><span className="font-mono">{money(m.ar - m.ap)}</span></div>
           </div>
         </Card>
@@ -82,6 +95,15 @@ export default function AccountingDashboard() {
             Open trial balance <ArrowRight size={14} />
           </Link>
         </Card>
+      </div>
+
+      <div className="mb-5 grid grid-cols-3 gap-2 sm:grid-cols-6">
+        {QUICK.map((q) => (
+          <Link key={q.to} to={q.to} className="flex flex-col items-center gap-1.5 rounded-xl border border-mist-200 bg-white px-2 py-3 text-center text-xs font-semibold text-mist-600 transition hover:border-brand-300 hover:text-brand-700">
+            <q.icon size={17} />
+            {q.label}
+          </Link>
+        ))}
       </div>
 
       <Card className="p-0">
