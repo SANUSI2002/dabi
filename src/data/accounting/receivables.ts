@@ -16,6 +16,7 @@ export type Customer = {
   address?: string;
   city?: string;
   arAccountNumber: number; // 1100 patients / 1110 NHIS / 1120 HMO
+  currency?: string; // default invoicing currency (ISO); NGN when unset
   paymentTermsDays: number; // net days
   creditLimit: number;
   creditHold: boolean;
@@ -88,12 +89,36 @@ export type Invoice = {
   notes?: string;
   status: Extract<SalesDocStatus, "Draft" | "Open" | "Partially Paid" | "Paid" | "Overdue" | "Void">;
   journalEntryId?: string;
-  amountPaid: number; // cash receipts + credit-note applications
+  amountPaid: number; // in the invoice's currency — cash receipts + credit-note applications
+  currency: string; // ISO — the currency the document is denominated in
+  exchangeRate: number; // NGN per unit of currency, at booking (revalued in place by an FX revaluation)
   createdBy: string;
   createdAt: string;
   issuedAt?: string;
   source?: "Manual" | "EMR Billing";
   emrInvoiceId?: string;
+  isRecurring?: boolean;
+  recurrenceEveryMonths?: number;
+  recurrenceNextDate?: string;
+  recurrenceEndDate?: string;
+  recurringTemplate?: boolean; // this row is a template, not a live invoice
+  revenueScheduleId?: string;
+};
+
+export type RevenueScheduleEntry = { id: string; period: string; amount: number; recognized: boolean; recognizedAt?: string; journalEntryId?: string };
+
+export type RevenueSchedule = {
+  id: string;
+  invoiceId: string;
+  customerId: string;
+  totalAmount: number; // NGN
+  method: "Straight Line";
+  startPeriod: string; // YYYY-MM
+  months: number;
+  deferredAccountNumber: number; // 2400
+  revenueAccountNumber: number;
+  entries: RevenueScheduleEntry[];
+  createdAt: string;
 };
 
 export type ReceiptAllocation = { invoiceId: string; amount: number };
@@ -105,8 +130,9 @@ export type CustomerReceipt = {
   date: string;
   method: "Cash" | "Bank Transfer" | "POS" | "Cheque" | "NHIS Remittance";
   depositAccountNumber: number; // 1000 cash / 1010 bank / 1090 undeposited
-  amount: number;
-  allocations: ReceiptAllocation[];
+  amount: number; // NGN reaching the bank
+  allocations: ReceiptAllocation[]; // amounts in each invoice's own currency
+  settlementRate?: number; // NGN per FX unit on the day of settlement (foreign receipts)
   reference?: string;
   notes?: string;
   journalEntryId?: string;
@@ -142,6 +168,7 @@ export const seedCustomers: Customer[] = [
   { id: "cust-nhis", name: "NHIS — National Scheme", type: "NHIS", email: "capitation@nhis.example", city: "Abuja", arAccountNumber: 1110, paymentTermsDays: 60, creditLimit: 50_000_000, creditHold: false, openingBalance: 0, createdAt: daysAgo(365) },
   { id: "cust-dangote", name: "Dangote Cement Plc (Staff Scheme)", type: "Corporate", email: "hr.medicals@dangote.example", city: "Lagos", arAccountNumber: 1100, paymentTermsDays: 30, creditLimit: 8_000_000, creditHold: false, openingBalance: 1_300_000, createdAt: daysAgo(200) },
   { id: "cust-walkin", name: "Walk-in Patients", type: "Walk-in", arAccountNumber: 1100, paymentTermsDays: 0, creditLimit: 0, creditHold: false, openingBalance: 0, createdAt: daysAgo(365) },
+  { id: "cust-mercy", name: "Mercy Ships (Referral Partner)", type: "Corporate", email: "referrals@mercyships.example", city: "Cotonou", arAccountNumber: 1100, currency: "USD", paymentTermsDays: 30, creditLimit: 60_000, creditHold: false, openingBalance: 0, createdAt: daysAgo(120) },
 ];
 
 const svc = (accountNumber: number, description: string, qty: number, unitPrice: number, taxRateId = "tax-vat-exempt"): SalesLine => ({
@@ -164,6 +191,8 @@ export const seedInvoices: Invoice[] = [
     status: "Partially Paid",
     journalEntryId: undefined,
     amountPaid: 800_000,
+    currency: "NGN",
+    exchangeRate: 1,
     createdBy: "s1",
     createdAt: daysAgo(38),
     issuedAt: daysAgo(38),
@@ -178,6 +207,8 @@ export const seedInvoices: Invoice[] = [
     lines: [svc(4000, "Executive medicals — 12 staff", 12, 45_000), svc(4050, "Chest X-ray & ECG", 12, 18_000)],
     status: "Open",
     amountPaid: 0,
+    currency: "NGN",
+    exchangeRate: 1,
     createdBy: "s1",
     createdAt: daysAgo(15),
     issuedAt: daysAgo(15),
@@ -192,9 +223,27 @@ export const seedInvoices: Invoice[] = [
     lines: [svc(4040, "Admission & bed — 3 enrollees", 1, 520_000), svc(4030, "Minor procedures", 1, 240_000)],
     status: "Overdue",
     amountPaid: 0,
+    currency: "NGN",
+    exchangeRate: 1,
     createdBy: "s1",
     createdAt: daysAgo(72),
     issuedAt: daysAgo(72),
+    source: "Manual",
+  },
+  {
+    id: "inv-1005",
+    number: "INV-2026-001005",
+    customerId: "cust-mercy",
+    date: daysAgo(18),
+    dueDate: daysAhead(12),
+    lines: [svc(4030, "Reconstructive surgery — referral package", 1, 8_000, "tax-vat-exempt"), svc(4040, "Post-op admission (5 nights)", 5, 400, "tax-vat-exempt")],
+    status: "Open",
+    amountPaid: 0,
+    currency: "USD",
+    exchangeRate: 1_540, // booked when USD was 1,540
+    createdBy: "s1",
+    createdAt: daysAgo(18),
+    issuedAt: daysAgo(18),
     source: "Manual",
   },
 ];
@@ -232,3 +281,4 @@ export const seedEstimates: Estimate[] = [
 
 export const seedSalesOrders: SalesOrder[] = [];
 export const seedCreditNotes: CreditNote[] = [];
+export const seedRevenueSchedules: RevenueSchedule[] = [];

@@ -27,30 +27,52 @@ import {
 const rid = () => Math.random().toString(36).slice(2, 9);
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 const daysAdd = (iso: string, d: number) => new Date(new Date(iso).getTime() + d * 864e5).toISOString();
+const monthsAdd = (iso: string, m: number) => { const d = new Date(iso); return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + m, d.getUTCDate())).toISOString(); };
 
 const lineAmt = (l: PurchaseLine) => round2(l.qty * l.unitPrice);
 export const purchaseSubtotal = (lines: PurchaseLine[]) => round2(lines.reduce((n, l) => n + lineAmt(l), 0));
 export const purchaseTax = (lines: PurchaseLine[]) => round2(lines.reduce((n, l) => n + useTax.getState().taxOn(lineAmt(l), l.taxRateId), 0));
 export const purchaseTotal = (lines: PurchaseLine[]) => round2(purchaseSubtotal(lines) + purchaseTax(lines));
 
+export const fxOfBill = (b: Pick<Bill, "exchangeRate">) => b.exchangeRate || 1;
+export const billBalanceNgn = (b: Bill) => round2((purchaseTotal(b.lines) - b.amountPaid) * fxOfBill(b));
+
 function postBillJE(bill: Bill, vendor: Vendor) {
-  const total = purchaseTotal(bill.lines);
-  const tax = purchaseTax(bill.lines);
+  const rate = fxOfBill(bill);
+  const total = round2(purchaseTotal(bill.lines) * rate);
+  const tax = round2(purchaseTax(bill.lines) * rate);
+  const suffix = bill.currency !== "NGN" ? ` (${bill.currency} ${purchaseTotal(bill.lines).toLocaleString()} @ ${rate})` : "";
   const lines = [
-    ...bill.lines.map((l) => ({ accountNumber: l.accountNumber, debit: lineAmt(l), credit: 0, description: l.description, vendorId: vendor.id })),
+    ...bill.lines.map((l) => ({ accountNumber: l.accountNumber, debit: round2(lineAmt(l) * rate), credit: 0, description: l.description, vendorId: vendor.id })),
   ];
   if (tax > 0) lines.push({ accountNumber: ACCT.vatPayable, debit: tax, credit: 0, description: `Recoverable input VAT — ${bill.number}`, vendorId: vendor.id });
-  lines.push({ accountNumber: vendor.apAccountNumber, debit: 0, credit: total, description: `${bill.number} — ${vendor.name}`, vendorId: vendor.id });
+  lines.push({ accountNumber: vendor.apAccountNumber, debit: 0, credit: total, description: `${bill.number} — ${vendor.name}${suffix}`, vendorId: vendor.id });
   return useLedger.getState().postJournal({ date: bill.date, source: "Bill", memo: `Bill ${bill.number} — ${vendor.name}`, reference: bill.number, lines });
 }
 
-function postVendorPaymentJE(vp: VendorPayment, vendor: Vendor) {
+function postVendorPaymentJE(vp: VendorPayment, vendor: Vendor, billLookup: (id: string) => Bill | undefined) {
   const withheld = round2(vp.withheldTax ?? 0);
+  let apReliefNgn = 0;
+  let fxDiff = 0;
+  let bankFromAlloc = 0;
+  for (const a of vp.allocations) {
+    const bill = billLookup(a.billId);
+    const bookRate = bill ? fxOfBill(bill) : 1;
+    const setRate = bill && bill.currency !== "NGN" ? vp.settlementRate ?? bookRate : 1;
+    apReliefNgn += a.amount * bookRate;
+    fxDiff += a.amount * (bookRate - setRate); // paying LESS NGN than booked = gain
+    bankFromAlloc += a.amount * setRate;
+  }
+  const unallocatedNgn = round2(vp.amount - bankFromAlloc);
+  const debitAp = round2(apReliefNgn + Math.max(unallocatedNgn, 0) + withheld);
+  fxDiff = round2(fxDiff);
   const lines: { accountNumber: number; debit: number; credit: number; description?: string; vendorId?: string }[] = [
-    { accountNumber: vendor.apAccountNumber, debit: round2(vp.amount + withheld), credit: 0, description: `Settle ${vp.allocations.length} bill(s) — ${vendor.name}`, vendorId: vendor.id },
+    { accountNumber: vendor.apAccountNumber, debit: debitAp, credit: 0, description: `Settle ${vp.allocations.length} bill(s) — ${vendor.name}`, vendorId: vendor.id },
     { accountNumber: vp.fromAccountNumber, debit: 0, credit: vp.amount, description: `${vp.method} to ${vendor.name}` },
   ];
   if (withheld > 0) lines.push({ accountNumber: ACCT.whtPayable, debit: 0, credit: withheld, description: `WHT withheld — ${vendor.name}` });
+  if (fxDiff > 0.005) lines.push({ accountNumber: ACCT.fxGain, debit: 0, credit: fxDiff, description: "Realised FX gain on settlement" });
+  else if (fxDiff < -0.005) lines.push({ accountNumber: ACCT.fxLoss, debit: -fxDiff, credit: 0, description: "Realised FX loss on settlement" });
   return useLedger.getState().postJournal({ date: vp.date, source: "Vendor Payment", memo: `Payment ${vp.number} — ${vendor.name}`, reference: vp.number, lines });
 }
 
@@ -101,7 +123,7 @@ type APState = {
   convertPOToBill: (id: string) => string | undefined;
 
   // bills
-  createBill: (input: { vendorId: string; vendorInvoiceNumber?: string; date: string; dueDate?: string; lines: PurchaseLine[]; notes?: string; purchaseOrderId?: string }) => string;
+  createBill: (input: { vendorId: string; vendorInvoiceNumber?: string; date: string; dueDate?: string; lines: PurchaseLine[]; notes?: string; purchaseOrderId?: string; currency?: string; exchangeRate?: number; recurEveryMonths?: number; recurEndDate?: string }) => string;
   updateBill: (id: string, patch: Partial<Pick<Bill, "date" | "dueDate" | "lines" | "notes" | "vendorInvoiceNumber">>) => void;
   submitBill: (id: string) => void;
   decideBill: (id: string, decision: "Approved" | "Rejected", comment?: string) => void;
@@ -109,7 +131,9 @@ type APState = {
   voidBill: (id: string) => { ok: boolean; error?: string };
 
   // payments
-  payVendor: (input: { vendorId: string; date: string; method: VendorPayment["method"]; fromAccountNumber: number; amount: number; allocations: BillPaymentAllocation[]; reference?: string; withheldTax?: number }) => { ok: boolean; error?: string };
+  payVendor: (input: { vendorId: string; date: string; method: VendorPayment["method"]; fromAccountNumber: number; amount: number; allocations: BillPaymentAllocation[]; settlementRate?: number; reference?: string; withheldTax?: number }) => { ok: boolean; error?: string };
+  revalueForeignAp: (asOf: string, rates: Record<string, number>) => { module: string; adjusted: number; net: number };
+  runRecurringBills: (asOf: string) => { created: string[] };
 
   // vendor credits
   createVendorCredit: (input: { vendorId: string; billId?: string; date: string; lines: PurchaseLine[]; reason: string }) => string;
@@ -132,9 +156,10 @@ export const useAP = create<APState>((set, get) => {
     const je = postBillJE(b, vOf(b.vendorId));
     return { ...b, journalEntryId: je.entry?.id, status: billStatus(b) };
   });
+  const billById = (id: string) => bills.find((b) => b.id === id);
   const vendorPayments = seedVendorPayments.map((vp) => {
     if (vp.journalEntryId) return vp;
-    const je = postVendorPaymentJE(vp, vOf(vp.vendorId));
+    const je = postVendorPaymentJE(vp, vOf(vp.vendorId), billById);
     return { ...vp, journalEntryId: je.entry?.id };
   });
 
@@ -275,6 +300,8 @@ export const useAP = create<APState>((set, get) => {
       const id = `bill-${rid()}`;
       const n = get().bills.length + 7001;
       const vendor = get().vendorById(input.vendorId);
+      const currency = input.currency ?? vendor?.currency ?? "NGN";
+      const rate = currency === "NGN" ? 1 : input.exchangeRate ?? (useLedger.getState().fxRates.find((r) => r.code === currency)?.rateToNgn ?? 1);
       const bill: Bill = {
         id,
         number: `BILL-2026-${String(n).padStart(6, "0")}`,
@@ -288,8 +315,11 @@ export const useAP = create<APState>((set, get) => {
         status: "Draft",
         approval: { status: "Not Required", currentLevel: 0, steps: [] },
         amountPaid: 0,
+        currency,
+        exchangeRate: rate,
         createdBy: useIdentity.getState().user.id,
         createdAt: new Date().toISOString(),
+        ...(input.recurEveryMonths ? { isRecurring: true, recurrenceEveryMonths: input.recurEveryMonths, recurrenceNextDate: monthsAdd(input.date, input.recurEveryMonths), recurrenceEndDate: input.recurEndDate } : {}),
       };
       set((s) => ({ bills: [bill, ...s.bills] }));
       audit(`entered bill ${bill.number}`, `accounting/bills/${bill.number}`);
@@ -357,13 +387,14 @@ export const useAP = create<APState>((set, get) => {
         fromAccountNumber: input.fromAccountNumber,
         amount: input.amount,
         allocations: input.allocations.filter((a) => a.amount > 0),
+        settlementRate: input.settlementRate,
         reference: input.reference,
         withheldTax: input.withheldTax,
         approval: { status: "Not Required", currentLevel: 0, steps: [] },
         createdBy: useIdentity.getState().user.id,
         createdAt: new Date().toISOString(),
       };
-      const je = postVendorPaymentJE(vp, vendor);
+      const je = postVendorPaymentJE(vp, vendor, (bid) => get().bills.find((b) => b.id === bid));
       if (!je.ok) return { ok: false, error: je.error };
       vp.journalEntryId = je.entry?.id;
       set((s) => ({
@@ -420,12 +451,55 @@ export const useAP = create<APState>((set, get) => {
       audit(`applied vendor credit to bill`, `accounting/vendor-credits/${vcId}`);
     },
 
+    revalueForeignAp: (asOf, rates) => {
+      const led = useLedger.getState();
+      const open = get().bills.filter((b) => b.currency !== "NGN" && (b.status === "Awaiting Payment" || b.status === "Partially Paid" || b.status === "Overdue"));
+      let adjusted = 0;
+      let net = 0;
+      for (const bill of open) {
+        const newRate = rates[bill.currency];
+        if (!newRate || Math.abs(newRate - fxOfBill(bill)) < 0.005) continue;
+        const balForeign = round2(purchaseTotal(bill.lines) - bill.amountPaid);
+        const delta = round2(balForeign * (newRate - fxOfBill(bill))); // AP owed goes up when rate rises
+        if (Math.abs(delta) < 0.005) continue;
+        const vendor = get().vendorById(bill.vendorId)!;
+        led.postJournal({
+          date: asOf,
+          source: "FX Revaluation",
+          memo: `FX revaluation — ${bill.number} (${bill.currency} ${fxOfBill(bill)} → ${newRate})`,
+          reference: bill.number,
+          lines: delta > 0
+            ? [{ accountNumber: ACCT.fxLoss, debit: delta, credit: 0, description: "Unrealised FX loss" }, { accountNumber: vendor.apAccountNumber, debit: 0, credit: delta, vendorId: vendor.id }]
+            : [{ accountNumber: vendor.apAccountNumber, debit: -delta, credit: 0, vendorId: vendor.id }, { accountNumber: ACCT.fxGain, debit: 0, credit: -delta, description: "Unrealised FX gain" }],
+        });
+        set((s) => ({ bills: s.bills.map((x) => (x.id === bill.id ? { ...x, exchangeRate: newRate } : x)) }));
+        adjusted++;
+        net = round2(net + delta);
+      }
+      audit(`revalued ${adjusted} foreign AP balance(s) — net ${net.toLocaleString()}`, "accounting/fx/revaluation");
+      return { module: "AP", adjusted, net };
+    },
+
+    runRecurringBills: (asOf) => {
+      const t = new Date(asOf).getTime();
+      const created: string[] = [];
+      for (const src of get().bills.filter((b) => b.isRecurring && b.recurrenceNextDate && new Date(b.recurrenceNextDate).getTime() <= t)) {
+        if (src.recurrenceEndDate && new Date(src.recurrenceNextDate!).getTime() > new Date(src.recurrenceEndDate).getTime()) continue;
+        const newId = get().createBill({ vendorId: src.vendorId, date: src.recurrenceNextDate!, lines: src.lines, notes: `Recurring from ${src.number}`, currency: src.currency, exchangeRate: src.exchangeRate });
+        get().postBill(newId);
+        created.push(newId);
+        set((s) => ({ bills: s.bills.map((x) => (x.id === src.id ? { ...x, recurrenceNextDate: monthsAdd(x.recurrenceNextDate!, x.recurrenceEveryMonths ?? 1) } : x)) }));
+      }
+      if (created.length) audit(`generated ${created.length} recurring bill(s)`, "accounting/bills/recurring");
+      return { created };
+    },
+
     billsOf: (vendorId) => get().bills.filter((b) => b.vendorId === vendorId),
     openBillsOf: (vendorId) => get().bills.filter((b) => b.vendorId === vendorId && (b.status === "Awaiting Payment" || b.status === "Partially Paid" || b.status === "Overdue")),
     billBalance: (b) => round2(purchaseTotal(b.lines) - b.amountPaid),
     vendorBalance: (vendorId) => {
       const open = get().bills.filter((b) => b.vendorId === vendorId && b.status !== "Draft" && b.status !== "Pending Approval" && b.status !== "Void");
-      return round2(open.reduce((n, b) => n + round2(purchaseTotal(b.lines) - b.amountPaid), 0));
+      return round2(open.reduce((n, b) => n + billBalanceNgn(b), 0));
     },
     apAgingFor: (asOf) => {
       const now = new Date(asOf).getTime();
@@ -434,7 +508,7 @@ export const useAP = create<APState>((set, get) => {
         get()
           .bills.filter((b) => b.vendorId === vendor.id && (b.status === "Awaiting Payment" || b.status === "Partially Paid" || b.status === "Overdue"))
           .forEach((b) => {
-            const bal = round2(purchaseTotal(b.lines) - b.amountPaid);
+            const bal = billBalanceNgn(b);
             const od = Math.floor((now - new Date(b.dueDate).getTime()) / 864e5);
             if (od <= 0) bucket.current += bal;
             else if (od <= 30) bucket.d1_30 += bal;

@@ -207,6 +207,7 @@ export const NAV: NavGroup[] = [
       { to: "/accounting/budgets", label: "Budgets & Cost Centres", icon: PiggyBank },
       { to: "/accounting/tax", label: "Tax", icon: Percent },
       { to: "/accounting/reports", label: "Financial Reports", icon: BarChart3 },
+      { to: "/accounting/period-end", label: "Period-End Routines", icon: CalendarRange },
       { to: "/accounting/approvals", label: "Approvals", icon: ShieldCheck },
       { to: "/accounting/integrations", label: "Integrations", icon: RefreshCw },
       { to: "/accounting/settings", label: "Settings", icon: Settings },

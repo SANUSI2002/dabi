@@ -16,6 +16,7 @@ export type Vendor = {
   address?: string;
   taxId?: string;
   category: "Pharmaceuticals" | "Medical Supplies" | "Equipment" | "Utilities" | "Services" | "Facilities" | "Other";
+  currency?: string;
   paymentTermsDays: number;
   apAccountNumber: number; // 2000
   openingBalance: number;
@@ -93,11 +94,17 @@ export type Bill = {
   notes?: string;
   status: BillStatus;
   approval: DocApproval;
-  amountPaid: number;
+  amountPaid: number; // in the bill's currency
+  currency: string;
+  exchangeRate: number;
   journalEntryId?: string;
   createdBy: string;
   createdAt: string;
   postedAt?: string;
+  isRecurring?: boolean;
+  recurrenceEveryMonths?: number;
+  recurrenceNextDate?: string;
+  recurrenceEndDate?: string;
 };
 
 export type BillPaymentAllocation = { billId: string; amount: number };
@@ -109,8 +116,9 @@ export type VendorPayment = {
   date: string;
   method: "Bank Transfer" | "Cheque" | "Cash";
   fromAccountNumber: number;
-  amount: number;
-  allocations: BillPaymentAllocation[];
+  amount: number; // NGN leaving the bank
+  allocations: BillPaymentAllocation[]; // amounts in each bill's currency
+  settlementRate?: number;
   reference?: string;
   withheldTax?: number;
   journalEntryId?: string;
@@ -146,6 +154,7 @@ export const seedVendors: Vendor[] = [
   { id: "ven-medred", name: "MedReed Diagnostics Supplies", email: "orders@medreed.example", category: "Medical Supplies", paymentTermsDays: 21, apAccountNumber: 2000, openingBalance: 0, active: true, createdAt: daysAgo(200) },
   { id: "ven-ikeja", name: "Ikeja Electric", email: "business@ikejaelectric.example", category: "Utilities", paymentTermsDays: 7, apAccountNumber: 2000, openingBalance: 0, active: true, createdAt: daysAgo(365) },
   { id: "ven-total", name: "TotalEnergies (Diesel Supply)", category: "Facilities", paymentTermsDays: 14, apAccountNumber: 2000, openingBalance: 0, active: true, createdAt: daysAgo(365) },
+  { id: "ven-siemens", name: "Siemens Healthineers (DE)", email: "service.emea@siemens-healthineers.example", taxId: "DE811234567", category: "Equipment", paymentTermsDays: 30, apAccountNumber: 2000, currency: "EUR", openingBalance: 0, active: true, createdAt: daysAgo(160) },
 ];
 
 const pl = (accountNumber: number, description: string, qty: number, unitPrice: number, taxRateId?: string): PurchaseLine => ({
@@ -169,6 +178,8 @@ export const seedBills: Bill[] = [
     status: "Awaiting Payment",
     approval: noAppr,
     amountPaid: 0,
+    currency: "NGN",
+    exchangeRate: 1,
     createdBy: "s6",
     createdAt: daysAgo(24),
     postedAt: daysAgo(24),
@@ -184,6 +195,11 @@ export const seedBills: Bill[] = [
     status: "Awaiting Payment",
     approval: noAppr,
     amountPaid: 0,
+    currency: "NGN",
+    exchangeRate: 1,
+    isRecurring: true,
+    recurrenceEveryMonths: 1,
+    recurrenceNextDate: daysAhead(22),
     createdBy: "s6",
     createdAt: daysAgo(9),
     postedAt: daysAgo(9),
@@ -199,9 +215,28 @@ export const seedBills: Bill[] = [
     status: "Overdue",
     approval: noAppr,
     amountPaid: 200_000,
+    currency: "NGN",
+    exchangeRate: 1,
     createdBy: "s6",
     createdAt: daysAgo(50),
     postedAt: daysAgo(50),
+  },
+  {
+    id: "bill-7004",
+    number: "BILL-2026-007004",
+    vendorInvoiceNumber: "SIEMENS-DE-88412",
+    vendorId: "ven-siemens",
+    date: daysAgo(14),
+    dueDate: daysAhead(16),
+    lines: [pl(1510, "X-ray tube replacement + calibration", 1, 9_500), pl(5230, "Engineer travel & per diem", 1, 1_800)],
+    status: "Awaiting Payment",
+    approval: noAppr,
+    amountPaid: 0,
+    currency: "EUR",
+    exchangeRate: 1_680,
+    createdBy: "s6",
+    createdAt: daysAgo(14),
+    postedAt: daysAgo(14),
   },
 ];
 

@@ -106,7 +106,8 @@ export const useFixedAssets = create<FAState>((set, get) => ({
     if (get().runs.some((r) => r.period === period)) return { ok: false, error: `Depreciation for ${period} has already been run.` };
     const { entries, total } = get().previewRun(period);
     if (!entries.length) return { ok: false, error: "Nothing to depreciate for that period." };
-    const periodDate = new Date(`${period}-15T12:00:00Z`).toISOString();
+    const [py, pm] = period.split("-").map(Number);
+    const periodDate = new Date(Math.min(Date.UTC(py, pm, 0, 12), Date.now())).toISOString();
     const lock = useLedger.getState().isDateLocked(periodDate);
     if (lock.locked) return { ok: false, error: lock.reason };
 

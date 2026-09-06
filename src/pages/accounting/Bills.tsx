@@ -26,16 +26,17 @@ export default function Bills() {
   const [pay, setPay] = useState<Bill | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  const [f, setF] = useState<{ vendorId: string; vendorInvoiceNumber: string; date: string; dueDate: string; notes: string; lines: EditableLine[] }>({
-    vendorId: vendors[0]?.id ?? "", vendorInvoiceNumber: "", date: isoDate(new Date()), dueDate: isoDate(new Date(Date.now() + 30 * 864e5)), notes: "",
+  const fxRates = useLedger((s) => s.fxRates);
+  const [f, setF] = useState<{ vendorId: string; vendorInvoiceNumber: string; date: string; dueDate: string; notes: string; currency: string; exchangeRate: number; recurMonths: number; lines: EditableLine[] }>({
+    vendorId: vendors[0]?.id ?? "", vendorInvoiceNumber: "", date: isoDate(new Date()), dueDate: isoDate(new Date(Date.now() + 30 * 864e5)), notes: "", currency: "NGN", exchangeRate: 1, recurMonths: 0,
     lines: [{ accountNumber: 5100, description: "", qty: 1, unitPrice: 0, taxRateId: "tax-vat-exempt" }],
   });
-  const [payF, setPayF] = useState({ date: isoDate(new Date()), method: "Bank Transfer" as const, account: 1010, amount: 0, reference: "", wht: 0 });
+  const [payF, setPayF] = useState({ date: isoDate(new Date()), method: "Bank Transfer" as const, account: 1010, amount: 0, reference: "", wht: 0, settlementRate: 0 });
 
   function submitCreate(submitForApproval: boolean) {
     setErr(null);
     if (!f.vendorId) return setErr("Pick a vendor.");
-    const id = createBill({ vendorId: f.vendorId, vendorInvoiceNumber: f.vendorInvoiceNumber || undefined, date: new Date(f.date + "T12:00:00Z").toISOString(), dueDate: new Date(f.dueDate + "T12:00:00Z").toISOString(), lines: f.lines.map((l) => ({ ...l, id: `pl-${Math.random().toString(36).slice(2, 7)}` })), notes: f.notes || undefined });
+    const id = createBill({ vendorId: f.vendorId, vendorInvoiceNumber: f.vendorInvoiceNumber || undefined, date: new Date(f.date + "T12:00:00Z").toISOString(), dueDate: new Date(f.dueDate + "T12:00:00Z").toISOString(), lines: f.lines.map((l) => ({ ...l, id: `pl-${Math.random().toString(36).slice(2, 7)}` })), notes: f.notes || undefined, currency: f.currency, exchangeRate: f.currency === "NGN" ? 1 : f.exchangeRate, recurEveryMonths: f.recurMonths || undefined });
     if (submitForApproval) submitBill(id);
     setCreate(false);
   }
@@ -43,6 +44,9 @@ export default function Bills() {
   function submitPay() {
     if (!pay) return;
     setErr(null);
+    const foreign = pay.currency !== "NGN";
+    const setRate = foreign ? payF.settlementRate || pay.exchangeRate : 1;
+    const allocForeign = foreign ? Math.min((payF.amount + (payF.wht || 0)) / setRate, billBalance(pay)) : Math.min(payF.amount + (payF.wht || 0), billBalance(pay));
     const r = payVendor({
       vendorId: pay.vendorId,
       date: new Date(payF.date + "T12:00:00Z").toISOString(),
@@ -50,7 +54,8 @@ export default function Bills() {
       fromAccountNumber: payF.account,
       amount: payF.amount,
       withheldTax: payF.wht || undefined,
-      allocations: [{ billId: pay.id, amount: Math.min(payF.amount + (payF.wht || 0), billBalance(pay)) }],
+      settlementRate: foreign ? setRate : undefined,
+      allocations: [{ billId: pay.id, amount: allocForeign }],
       reference: payF.reference || undefined,
     });
     if (!r.ok) return setErr(r.error ?? "Could not pay");
@@ -110,12 +115,12 @@ export default function Bills() {
                 {list.map((b, i) => (
                   <Row key={b.id} index={i} onClick={() => setView(b)}>
                     <Cell className="font-mono text-xs">{b.number}</Cell>
-                    <Cell className="font-semibold">{vendorById(b.vendorId)?.name}</Cell>
+                    <Cell className="font-semibold">{vendorById(b.vendorId)?.name}{b.currency !== "NGN" && <Badge tone="amber">{b.currency}</Badge>}{b.isRecurring && <Badge tone="mist">recurring</Badge>}</Cell>
                     <Cell className="text-xs text-mist-500">{b.vendorInvoiceNumber ?? "—"}</Cell>
                     <Cell>{shortDate(b.date)}</Cell>
                     <Cell>{shortDate(b.dueDate)}</Cell>
-                    <Cell className="font-mono">{money(purchaseTotal(b.lines))}</Cell>
-                    <Cell className="font-mono">{money(billBalance(b))}</Cell>
+                    <Cell className="font-mono">{b.currency !== "NGN" ? `${b.currency} ${purchaseTotal(b.lines).toLocaleString()}` : money(purchaseTotal(b.lines))}</Cell>
+                    <Cell className="font-mono">{b.currency !== "NGN" ? `${b.currency} ${billBalance(b).toLocaleString()}` : money(billBalance(b))}</Cell>
                     <Cell><Badge tone={statusTone(b.status)}>{b.status}</Badge></Cell>
                     <Cell>
                       <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
@@ -137,13 +142,19 @@ export default function Bills() {
         <div className="space-y-4">
           {err && <p className="rounded-lg bg-action-50 px-3 py-2 text-sm text-action-700 ring-1 ring-action-200">{err}</p>}
           <div className="grid gap-3 sm:grid-cols-4">
-            <Field label="Vendor"><Select value={f.vendorId} onChange={(e) => setF({ ...f, vendorId: e.target.value })} options={vendors.map((v) => ({ value: v.id, label: v.name }))} /></Field>
+            <Field label="Vendor"><Select value={f.vendorId} onChange={(e) => { const v = vendors.find((x) => x.id === e.target.value); setF({ ...f, vendorId: e.target.value, currency: v?.currency ?? "NGN", exchangeRate: v?.currency && v.currency !== "NGN" ? (fxRates.find((r) => r.code === v.currency)?.rateToNgn ?? 1) : 1 }); }} options={vendors.map((v) => ({ value: v.id, label: v.name }))} /></Field>
             <Field label="Vendor invoice #"><Input value={f.vendorInvoiceNumber} onChange={(e) => setF({ ...f, vendorInvoiceNumber: e.target.value })} /></Field>
             <Field label="Bill date"><Input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
             <Field label="Due date"><Input type="date" value={f.dueDate} onChange={(e) => setF({ ...f, dueDate: e.target.value })} /></Field>
           </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label="Currency"><Select value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value, exchangeRate: e.target.value === "NGN" ? 1 : (fxRates.find((r) => r.code === e.target.value)?.rateToNgn ?? 1) })} options={fxRates.map((r) => ({ value: r.code, label: r.code }))} /></Field>
+            {f.currency !== "NGN" && <Field label="Rate → NGN"><Input type="number" value={f.exchangeRate} onChange={(e) => setF({ ...f, exchangeRate: +e.target.value })} /></Field>}
+            <Field label="Repeat every (mo)" hint="0 = one-off"><Input type="number" value={f.recurMonths || ""} onChange={(e) => setF({ ...f, recurMonths: +e.target.value })} /></Field>
+          </div>
           <LineEditor lines={f.lines} onChange={(lines) => setF({ ...f, lines })} accountFilter={purchaseAcct} accountLabel="Expense / item" />
           <DocTotals subtotal={purchaseSubtotal(f.lines as never)} tax={purchaseTax(f.lines as never)} total={purchaseTotal(f.lines as never)} />
+          {f.currency !== "NGN" && <p className="text-right text-xs text-mist-400">≈ {money(purchaseTotal(f.lines as never) * f.exchangeRate)} at {f.exchangeRate}/{f.currency}</p>}
           <Field label="Notes"><Textarea value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field>
           <p className="text-xs text-mist-400">Approval rules may route this bill for sign-off before it posts to the ledger.</p>
         </div>
@@ -204,10 +215,11 @@ export default function Bills() {
         {pay && (
           <div className="space-y-3">
             {err && <p className="rounded-lg bg-action-50 px-3 py-2 text-sm text-action-700 ring-1 ring-action-200">{err}</p>}
-            <p className="text-sm text-mist-600">Balance owing: <b>{money(billBalance(pay))}</b></p>
+            <p className="text-sm text-mist-600">Balance owing: <b>{pay.currency !== "NGN" ? `${pay.currency} ${billBalance(pay).toLocaleString()}` : money(billBalance(pay))}</b>{pay.currency !== "NGN" && ` (booked @ ${pay.exchangeRate})`}</p>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Date"><Input type="date" value={payF.date} onChange={(e) => setPayF({ ...payF, date: e.target.value })} /></Field>
-              <Field label="Amount paid"><Input type="number" value={payF.amount || ""} onChange={(e) => setPayF({ ...payF, amount: +e.target.value })} /></Field>
+              <Field label={pay.currency !== "NGN" ? "NGN paid from bank" : "Amount paid"}><Input type="number" value={payF.amount || ""} onChange={(e) => setPayF({ ...payF, amount: +e.target.value })} /></Field>
+              {pay.currency !== "NGN" && <Field label={`Settlement rate (${pay.currency}→NGN)`}><Input type="number" value={payF.settlementRate || pay.exchangeRate} onChange={(e) => setPayF({ ...payF, settlementRate: +e.target.value })} /></Field>}
               <Field label="WHT withheld"><Input type="number" value={payF.wht || ""} onChange={(e) => setPayF({ ...payF, wht: +e.target.value })} /></Field>
               <Field label="Method"><Select value={payF.method} onChange={(e) => setPayF({ ...payF, method: e.target.value as never })} options={["Bank Transfer", "Cheque", "Cash"]} /></Field>
               <Field label="Pay from"><Select value={String(payF.account)} onChange={(e) => setPayF({ ...payF, account: +e.target.value })} options={cashAccts.map((a) => ({ value: String(a.number), label: `${a.number} — ${a.name}` }))} /></Field>

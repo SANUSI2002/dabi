@@ -11,6 +11,7 @@ import {
   seedEstimates,
   seedSalesOrders,
   seedCreditNotes,
+  seedRevenueSchedules,
   type Customer,
   type CustomerType,
   type SalesLine,
@@ -20,42 +21,69 @@ import {
   type CustomerReceipt,
   type ReceiptAllocation,
   type CreditNote,
+  type RevenueSchedule,
 } from "@/data/accounting/receivables";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 const daysAdd = (iso: string, d: number) => new Date(new Date(iso).getTime() + d * 864e5).toISOString();
+const monthsAdd = (iso: string, m: number) => { const d = new Date(iso); return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + m, d.getUTCDate())).toISOString(); };
+const ym = (iso: string) => { const d = new Date(iso); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`; };
 
 const lineAmount = (l: SalesLine) => round2(l.qty * l.unitPrice);
 export const docSubtotal = (lines: SalesLine[]) => round2(lines.reduce((n, l) => n + lineAmount(l), 0));
 export const docTax = (lines: SalesLine[]) => round2(lines.reduce((n, l) => n + useTax.getState().taxOn(lineAmount(l), l.taxRateId), 0));
 export const docTotal = (lines: SalesLine[]) => round2(docSubtotal(lines) + docTax(lines));
 
+/** the FX rate a document was booked at; NGN documents are 1:1 */
+export const fxOf = (inv: Pick<Invoice, "exchangeRate">) => inv.exchangeRate || 1;
+/** an invoice's outstanding balance, converted to the reporting currency */
+export const invoiceBalanceNgn = (inv: Invoice) => round2((docTotal(inv.lines) - inv.amountPaid) * fxOf(inv));
+
 const arAccountForType = (t: CustomerType) => (t === "NHIS" ? ACCT.arNhis : t === "HMO" ? ACCT.arHmo : ACCT.arPatients);
 
-function postInvoiceJE(inv: Invoice, cust: Customer) {
+function postInvoiceJE(inv: Invoice, cust: Customer, schedule?: RevenueSchedule) {
   const led = useLedger.getState();
-  const total = docTotal(inv.lines);
-  const tax = docTax(inv.lines);
+  const rate = fxOf(inv);
+  const total = round2(docTotal(inv.lines) * rate);
+  const tax = round2(docTax(inv.lines) * rate);
+  const net = round2(total - tax);
+  const suffix = inv.currency !== "NGN" ? ` (${inv.currency} ${docTotal(inv.lines).toLocaleString()} @ ${rate})` : "";
   const lines = [
-    { accountNumber: cust.arAccountNumber, debit: total, credit: 0, description: `${inv.number} — ${cust.name}`, customerId: cust.id },
-    ...inv.lines.map((l) => ({ accountNumber: l.accountNumber, debit: 0, credit: lineAmount(l), description: l.description, customerId: cust.id })),
+    { accountNumber: cust.arAccountNumber, debit: total, credit: 0, description: `${inv.number} — ${cust.name}${suffix}`, customerId: cust.id },
   ];
+  if (schedule) {
+    lines.push({ accountNumber: schedule.deferredAccountNumber, debit: 0, credit: net, description: `Deferred revenue — ${inv.number}`, customerId: cust.id });
+  } else {
+    for (const l of inv.lines) lines.push({ accountNumber: l.accountNumber, debit: 0, credit: round2(lineAmount(l) * rate), description: l.description, customerId: cust.id });
+  }
   if (tax > 0) lines.push({ accountNumber: ACCT.vatPayable, debit: 0, credit: tax, description: `Output VAT — ${inv.number}`, customerId: cust.id });
   return led.postJournal({ date: inv.date, source: "Invoice", memo: `Invoice ${inv.number} — ${cust.name}`, reference: inv.number, lines });
 }
 
-function postReceiptJE(r: CustomerReceipt, cust: Customer) {
-  return useLedger.getState().postJournal({
-    date: r.date,
-    source: "Customer Payment",
-    memo: `Receipt ${r.number} — ${cust.name}`,
-    reference: r.number,
-    lines: [
-      { accountNumber: r.depositAccountNumber, debit: r.amount, credit: 0, description: `${r.method} — ${cust.name}` },
-      { accountNumber: cust.arAccountNumber, debit: 0, credit: r.amount, description: `Applied to ${r.allocations.map((a) => a.invoiceId).length} invoice(s)`, customerId: cust.id },
-    ],
-  });
+/** posts a customer receipt with realised FX gain/loss on foreign settlements */
+function postReceiptJE(r: CustomerReceipt, cust: Customer, invLookup: (id: string) => Invoice | undefined) {
+  let arReliefNgn = 0;
+  let fxDiff = 0;
+  let bankFromAlloc = 0;
+  for (const a of r.allocations) {
+    const inv = invLookup(a.invoiceId);
+    const bookRate = inv ? fxOf(inv) : 1;
+    const setRate = inv && inv.currency !== "NGN" ? r.settlementRate ?? bookRate : 1;
+    arReliefNgn += a.amount * bookRate;
+    fxDiff += a.amount * (setRate - bookRate);
+    bankFromAlloc += a.amount * setRate;
+  }
+  const unallocatedNgn = round2(r.amount - bankFromAlloc);
+  const creditAr = round2(arReliefNgn + Math.max(unallocatedNgn, 0));
+  fxDiff = round2(fxDiff);
+  const lines: { accountNumber: number; debit: number; credit: number; description?: string; customerId?: string }[] = [
+    { accountNumber: r.depositAccountNumber, debit: r.amount, credit: 0, description: `${r.method} — ${cust.name}` },
+    { accountNumber: cust.arAccountNumber, debit: 0, credit: creditAr, description: `Applied to ${r.allocations.length} invoice(s)`, customerId: cust.id },
+  ];
+  if (fxDiff > 0.005) lines.push({ accountNumber: ACCT.fxGain, debit: 0, credit: fxDiff, description: "Realised FX gain on settlement" });
+  else if (fxDiff < -0.005) lines.push({ accountNumber: ACCT.fxLoss, debit: -fxDiff, credit: 0, description: "Realised FX loss on settlement" });
+  return useLedger.getState().postJournal({ date: r.date, source: "Customer Payment", memo: `Receipt ${r.number} — ${cust.name}`, reference: r.number, lines });
 }
 
 function postCreditNoteJE(cn: CreditNote, cust: Customer) {
@@ -86,6 +114,7 @@ type ARState = {
   invoices: Invoice[];
   receipts: CustomerReceipt[];
   creditNotes: CreditNote[];
+  revenueSchedules: RevenueSchedule[];
 
   // customers
   addCustomer: (c: Omit<Customer, "id" | "createdAt" | "arAccountNumber" | "creditHold" | "openingBalance"> & { openingBalance?: number }) => string;
@@ -106,13 +135,19 @@ type ARState = {
   convertOrderToInvoice: (id: string) => string | undefined;
 
   // invoices
-  createInvoice: (input: { customerId: string; date: string; dueDate?: string; lines: SalesLine[]; notes?: string; salesOrderId?: string; source?: Invoice["source"]; emrInvoiceId?: string }) => string;
+  createInvoice: (input: { customerId: string; date: string; dueDate?: string; lines: SalesLine[]; notes?: string; salesOrderId?: string; source?: Invoice["source"]; emrInvoiceId?: string; currency?: string; exchangeRate?: number; deferOverMonths?: number; recurEveryMonths?: number; recurEndDate?: string }) => string;
   updateInvoice: (id: string, patch: Partial<Pick<Invoice, "date" | "dueDate" | "lines" | "notes">>) => void;
   issueInvoice: (id: string) => { ok: boolean; error?: string };
   voidInvoice: (id: string) => { ok: boolean; error?: string };
 
   // receipts
-  recordReceipt: (input: { customerId: string; date: string; method: CustomerReceipt["method"]; depositAccountNumber: number; amount: number; allocations: ReceiptAllocation[]; reference?: string; notes?: string }) => { ok: boolean; error?: string };
+  recordReceipt: (input: { customerId: string; date: string; method: CustomerReceipt["method"]; depositAccountNumber: number; amount: number; allocations: ReceiptAllocation[]; settlementRate?: number; reference?: string; notes?: string }) => { ok: boolean; error?: string };
+
+  // multi-currency / recurring / revenue recognition
+  revalueForeignAr: (asOf: string, rates: Record<string, number>) => { module: string; adjusted: number; net: number };
+  runRecurringInvoices: (asOf: string) => { created: string[] };
+  recognizeRevenue: (scheduleId: string, period: string) => { ok: boolean; error?: string };
+  revenueScheduleFor: (invoiceId: string) => RevenueSchedule | undefined;
 
   // credit notes
   createCreditNote: (input: { customerId: string; invoiceId?: string; date: string; lines: SalesLine[]; reason: string; notes?: string }) => string;
@@ -122,8 +157,8 @@ type ARState = {
   // selectors
   invoicesOf: (customerId: string) => Invoice[];
   openInvoicesOf: (customerId: string) => Invoice[];
-  invoiceBalance: (inv: Invoice) => number;
-  customerBalance: (customerId: string) => number;
+  invoiceBalance: (inv: Invoice) => number; // in the invoice's own currency
+  customerBalance: (customerId: string) => number; // NGN
   agingFor: (asOf: string) => { customer: Customer; current: number; d1_30: number; d31_60: number; d61_90: number; d90plus: number; total: number }[];
 };
 
@@ -137,9 +172,10 @@ export const useAR = create<ARState>((set, get) => {
     const je = postInvoiceJE(inv, custOf(inv.customerId));
     return { ...inv, journalEntryId: je.entry?.id, status: recomputeStatus(inv) };
   });
+  const invById = (id: string) => invoices.find((i) => i.id === id);
   const receipts = seedReceipts.map((r) => {
     if (r.journalEntryId) return r;
-    const je = postReceiptJE(r, custOf(r.customerId));
+    const je = postReceiptJE(r, custOf(r.customerId), invById);
     return { ...r, journalEntryId: je.entry?.id };
   });
 
@@ -150,6 +186,7 @@ export const useAR = create<ARState>((set, get) => {
     invoices,
     receipts,
     creditNotes: seedCreditNotes,
+    revenueSchedules: seedRevenueSchedules,
 
     addCustomer: (c) => {
       const id = `cust-${rid()}`;
@@ -257,6 +294,8 @@ export const useAR = create<ARState>((set, get) => {
       const id = `inv-${rid()}`;
       const n = get().invoices.length + 1001;
       const cust = get().customerById(input.customerId);
+      const currency = input.currency ?? cust?.currency ?? "NGN";
+      const rate = currency === "NGN" ? 1 : input.exchangeRate ?? (useLedger.getState().fxRates.find((r) => r.code === currency)?.rateToNgn ?? 1);
       const inv: Invoice = {
         id,
         number: `INV-2026-${String(n).padStart(6, "0")}`,
@@ -268,13 +307,31 @@ export const useAR = create<ARState>((set, get) => {
         notes: input.notes,
         status: "Draft",
         amountPaid: 0,
+        currency,
+        exchangeRate: rate,
         createdBy: useIdentity.getState().user.id,
         createdAt: new Date().toISOString(),
         source: input.source ?? "Manual",
         emrInvoiceId: input.emrInvoiceId,
+        ...(input.recurEveryMonths ? { isRecurring: true, recurringTemplate: false, recurrenceEveryMonths: input.recurEveryMonths, recurrenceNextDate: monthsAdd(input.date, input.recurEveryMonths), recurrenceEndDate: input.recurEndDate } : {}),
       };
       set((s) => ({ invoices: [inv, ...s.invoices] }));
       audit(`created invoice ${inv.number}`, `accounting/invoices/${inv.number}`);
+
+      const defer = input.deferOverMonths ?? 0;
+      if (defer > 1) {
+        const net = round2(docSubtotal(input.lines) * rate);
+        const per = round2(net / defer);
+        const revAcct = input.lines[0]?.accountNumber ?? ACCT.consultationRevenue;
+        const entries = Array.from({ length: defer }, (_, i) => ({
+          id: `rse-${rid()}`,
+          period: ym(monthsAdd(input.date, i)),
+          amount: i === defer - 1 ? round2(net - per * (defer - 1)) : per,
+          recognized: false,
+        }));
+        const sch: RevenueSchedule = { id: `rsch-${rid()}`, invoiceId: id, customerId: input.customerId, totalAmount: net, method: "Straight Line", startPeriod: ym(input.date), months: defer, deferredAccountNumber: ACCT.deferredRevenue, revenueAccountNumber: revAcct, entries, createdAt: new Date().toISOString() };
+        set((s) => ({ revenueSchedules: [sch, ...s.revenueSchedules], invoices: s.invoices.map((x) => (x.id === id ? { ...x, revenueScheduleId: sch.id } : x)) }));
+      }
       return id;
     },
     updateInvoice: (id, patch) => set((s) => ({ invoices: s.invoices.map((i) => (i.id === id && i.status === "Draft" ? { ...i, ...patch } : i)) })),
@@ -285,7 +342,8 @@ export const useAR = create<ARState>((set, get) => {
       const cust = get().customerById(inv.customerId);
       if (!cust) return { ok: false, error: "Customer not found." };
       if (!inv.lines.length || docTotal(inv.lines) <= 0) return { ok: false, error: "Add at least one line with an amount." };
-      const je = postInvoiceJE(inv, cust);
+      const schedule = inv.revenueScheduleId ? get().revenueSchedules.find((x) => x.id === inv.revenueScheduleId) : undefined;
+      const je = postInvoiceJE(inv, cust, schedule);
       if (!je.ok) return { ok: false, error: je.error };
       set((s) => ({
         invoices: s.invoices.map((i) => (i.id === id ? { ...i, status: recomputeStatus({ ...i, status: "Open" }), journalEntryId: je.entry?.id, issuedAt: new Date().toISOString() } : i)),
@@ -310,8 +368,6 @@ export const useAR = create<ARState>((set, get) => {
     recordReceipt: (input) => {
       const cust = get().customerById(input.customerId);
       if (!cust) return { ok: false, error: "Customer not found." };
-      const allocTotal = round2(input.allocations.reduce((n, a) => n + a.amount, 0));
-      if (allocTotal > input.amount + 0.01) return { ok: false, error: "Allocations exceed the amount received." };
       const id = `rcpt-${rid()}`;
       const n = get().receipts.length + 2001;
       const receipt: CustomerReceipt = {
@@ -323,12 +379,13 @@ export const useAR = create<ARState>((set, get) => {
         depositAccountNumber: input.depositAccountNumber,
         amount: input.amount,
         allocations: input.allocations.filter((a) => a.amount > 0),
+        settlementRate: input.settlementRate,
         reference: input.reference,
         notes: input.notes,
         createdBy: useIdentity.getState().user.id,
         createdAt: new Date().toISOString(),
       };
-      const je = postReceiptJE(receipt, cust);
+      const je = postReceiptJE(receipt, cust, (iid) => get().invoices.find((i) => i.id === iid));
       if (!je.ok) return { ok: false, error: je.error };
       receipt.journalEntryId = je.entry?.id;
       set((s) => ({
@@ -415,6 +472,75 @@ export const useAR = create<ARState>((set, get) => {
       audit(`refunded credit note ${cn.number}`, `accounting/credit-notes/${cn.number}`);
     },
 
+    revalueForeignAr: (asOf, rates) => {
+      const led = useLedger.getState();
+      const open = get().invoices.filter((i) => i.currency !== "NGN" && (i.status === "Open" || i.status === "Partially Paid" || i.status === "Overdue"));
+      let adjusted = 0;
+      let net = 0;
+      for (const inv of open) {
+        const newRate = rates[inv.currency];
+        if (!newRate || Math.abs(newRate - fxOf(inv)) < 0.005) continue;
+        const balForeign = round2(docTotal(inv.lines) - inv.amountPaid);
+        const delta = round2(balForeign * (newRate - fxOf(inv)));
+        if (Math.abs(delta) < 0.005) continue;
+        const cust = get().customerById(inv.customerId)!;
+        led.postJournal({
+          date: asOf,
+          source: "FX Revaluation",
+          memo: `FX revaluation — ${inv.number} (${inv.currency} ${fxOf(inv)} → ${newRate})`,
+          reference: inv.number,
+          lines: delta > 0
+            ? [{ accountNumber: cust.arAccountNumber, debit: delta, credit: 0, customerId: cust.id }, { accountNumber: ACCT.fxGain, debit: 0, credit: delta, description: "Unrealised FX gain" }]
+            : [{ accountNumber: ACCT.fxLoss, debit: -delta, credit: 0, description: "Unrealised FX loss" }, { accountNumber: cust.arAccountNumber, debit: 0, credit: -delta, customerId: cust.id }],
+        });
+        set((s) => ({ invoices: s.invoices.map((x) => (x.id === inv.id ? { ...x, exchangeRate: newRate } : x)) }));
+        adjusted++;
+        net = round2(net + delta);
+      }
+      audit(`revalued ${adjusted} foreign AR balance(s) — net ${net.toLocaleString()}`, "accounting/fx/revaluation");
+      return { module: "AR", adjusted, net };
+    },
+
+    runRecurringInvoices: (asOf) => {
+      const t = new Date(asOf).getTime();
+      const created: string[] = [];
+      for (const src of get().invoices.filter((i) => i.isRecurring && i.recurrenceNextDate && new Date(i.recurrenceNextDate).getTime() <= t)) {
+        if (src.recurrenceEndDate && new Date(src.recurrenceNextDate!).getTime() > new Date(src.recurrenceEndDate).getTime()) continue;
+        const newId = get().createInvoice({ customerId: src.customerId, date: src.recurrenceNextDate!, lines: src.lines, notes: `Recurring from ${src.number}`, currency: src.currency, exchangeRate: src.exchangeRate });
+        get().issueInvoice(newId);
+        created.push(newId);
+        set((s) => ({ invoices: s.invoices.map((x) => (x.id === src.id ? { ...x, recurrenceNextDate: monthsAdd(x.recurrenceNextDate!, x.recurrenceEveryMonths ?? 1) } : x)) }));
+      }
+      if (created.length) audit(`generated ${created.length} recurring invoice(s)`, "accounting/invoices/recurring");
+      return { created };
+    },
+
+    recognizeRevenue: (scheduleId, period) => {
+      const sch = get().revenueSchedules.find((x) => x.id === scheduleId);
+      if (!sch) return { ok: false, error: "Schedule not found." };
+      const entry = sch.entries.find((e) => e.period === period && !e.recognized);
+      if (!entry) return { ok: false, error: "Nothing to recognise for that period." };
+      const cust = get().customerById(sch.customerId)!;
+      const [py, pm] = period.split("-").map(Number);
+      const periodEnd = new Date(Date.UTC(py, pm, 0, 12)).getTime();
+      const je = useLedger.getState().postJournal({
+        date: new Date(Math.min(periodEnd, Date.now())).toISOString(),
+        source: "Manual",
+        memo: `Revenue recognised — ${period} (sched ${sch.id.slice(-4)})`,
+        reference: sch.invoiceId,
+        lines: [
+          { accountNumber: sch.deferredAccountNumber, debit: entry.amount, credit: 0, description: "Release deferred revenue", customerId: cust.id },
+          { accountNumber: sch.revenueAccountNumber, debit: 0, credit: entry.amount, description: `Recognised revenue — ${period}`, customerId: cust.id },
+        ],
+      });
+      if (!je.ok) return { ok: false, error: je.error };
+      set((s) => ({ revenueSchedules: s.revenueSchedules.map((x) => (x.id === scheduleId ? { ...x, entries: x.entries.map((e) => (e === entry ? { ...e, recognized: true, recognizedAt: new Date().toISOString(), journalEntryId: je.entry?.id } : e)) } : x)) }));
+      audit(`recognised revenue for ${period}`, `accounting/revenue-schedules/${scheduleId}`);
+      return { ok: true };
+    },
+
+    revenueScheduleFor: (invoiceId) => get().revenueSchedules.find((x) => x.invoiceId === invoiceId),
+
     invoicesOf: (customerId) => get().invoices.filter((i) => i.customerId === customerId),
     openInvoicesOf: (customerId) => get().invoices.filter((i) => i.customerId === customerId && (i.status === "Open" || i.status === "Partially Paid" || i.status === "Overdue")),
     invoiceBalance: (inv) => round2(docTotal(inv.lines) - inv.amountPaid),
@@ -422,7 +548,7 @@ export const useAR = create<ARState>((set, get) => {
       const cust = get().customerById(customerId);
       if (!cust) return 0;
       const open = get().invoices.filter((i) => i.customerId === customerId && i.status !== "Draft" && i.status !== "Void");
-      const invBal = open.reduce((n, i) => n + round2(docTotal(i.lines) - i.amountPaid), 0);
+      const invBal = open.reduce((n, i) => n + invoiceBalanceNgn(i), 0);
       return round2(invBal);
     },
     agingFor: (asOf) => {
@@ -432,7 +558,7 @@ export const useAR = create<ARState>((set, get) => {
         get()
           .invoices.filter((i) => i.customerId === customer.id && (i.status === "Open" || i.status === "Partially Paid" || i.status === "Overdue"))
           .forEach((i) => {
-            const bal = round2(docTotal(i.lines) - i.amountPaid);
+            const bal = invoiceBalanceNgn(i);
             const overdueDays = Math.floor((now - new Date(i.dueDate).getTime()) / 864e5);
             if (overdueDays <= 0) bucket.current += bal;
             else if (overdueDays <= 30) bucket.d1_30 += bal;

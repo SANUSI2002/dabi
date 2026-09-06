@@ -107,6 +107,7 @@ const SEED: Seed[] = [
   [4040, "Admission & Bed Revenue", "revenue", "operating_revenue", 0],
   [4050, "Radiology & Imaging Revenue", "revenue", "operating_revenue", 0],
   [4100, "Other Income", "revenue", "other_income", 0],
+  [4110, "Foreign Exchange Gain", "revenue", "other_income", 0],
   [4900, "Discounts & Waivers", "revenue", "contra_revenue", 0],
 
   // ---- Cost of goods sold 5000–5099 ----
@@ -128,6 +129,7 @@ const SEED: Seed[] = [
   [5400, "Professional Fees", "expense", "operating_expense", 0],
   [5500, "Depreciation Expense", "expense", "depreciation_expense", 0],
   [5600, "Bank Charges", "expense", "other_expense", 0],
+  [5610, "Foreign Exchange Loss", "expense", "other_expense", 0],
   [5700, "Bad Debt Expense", "expense", "other_expense", 0],
   [5900, "Miscellaneous Expense", "expense", "other_expense", 0],
 ];
@@ -187,6 +189,7 @@ export const ACCT = {
   admissionRevenue: 4040,
   radiologyRevenue: 4050,
   otherIncome: 4100,
+  fxGain: 4110,
   discountsWaivers: 4900,
   cogsDrugs: 5000,
   cogsSupplies: 5010,
@@ -194,6 +197,7 @@ export const ACCT = {
   employerPension: 5110,
   depreciationExpense: 5500,
   bankCharges: 5600,
+  fxLoss: 5610,
   badDebt: 5700,
   miscExpense: 5900,
 } as const;

@@ -144,6 +144,19 @@ export function cashFlow(from: string, to: string) {
   };
 }
 
+export function statementOfChangesInEquity(from: string, to: string) {
+  const led = useLedger.getState();
+  const equityAccts = led.accounts.filter((a) => a.type === "equity");
+  const priorDay = from;
+  const opening = round2(equityAccts.reduce((n, a) => n + balanceAsOf(a.number, priorDay), 0)) + retainedEarnings(priorDay);
+  const closing = round2(equityAccts.reduce((n, a) => n + balanceAsOf(a.number, to), 0)) + retainedEarnings(to);
+  const movements = equityAccts
+    .map((a) => ({ account: a, amount: round2(balanceAsOf(a.number, to) - balanceAsOf(a.number, priorDay)) }))
+    .filter((r) => Math.abs(r.amount) > 0.005);
+  const profit = profitAndLoss(from, to).netIncome;
+  return { from, to, opening, movements, profitForPeriod: profit, closing, ties: Math.abs(round2(opening + profit + movements.reduce((n, m) => n + m.amount, 0)) - closing) < 1 };
+}
+
 export function generalLedgerReport(from: string, to: string) {
   const led = useLedger.getState();
   return led.accounts

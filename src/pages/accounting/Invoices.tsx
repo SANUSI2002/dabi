@@ -23,20 +23,35 @@ export default function Invoices() {
   const [print, setPrint] = useState<Invoice | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  const [f, setF] = useState<{ customerId: string; date: string; dueDate: string; notes: string; lines: EditableLine[] }>({
+  const fxRates = useLedger((s) => s.fxRates);
+  const [f, setF] = useState<{ customerId: string; date: string; dueDate: string; notes: string; currency: string; exchangeRate: number; deferMonths: number; recurMonths: number; lines: EditableLine[] }>({
     customerId: customers[0]?.id ?? "",
     date: isoDate(new Date()),
     dueDate: isoDate(new Date(Date.now() + 30 * 864e5)),
     notes: "",
+    currency: "NGN",
+    exchangeRate: 1,
+    deferMonths: 0,
+    recurMonths: 0,
     lines: [{ accountNumber: 4000, description: "", qty: 1, unitPrice: 0, taxRateId: "tax-vat-exempt" }],
   });
 
-  const [payF, setPayF] = useState({ date: isoDate(new Date()), method: "Bank Transfer" as const, account: 1010, amount: 0, reference: "" });
+  const [payF, setPayF] = useState({ date: isoDate(new Date()), method: "Bank Transfer" as const, account: 1010, amount: 0, reference: "", settlementRate: 0 });
 
   function submitCreate(issue: boolean) {
     setErr(null);
     if (!f.customerId) return setErr("Pick a customer.");
-    const id = createInvoice({ customerId: f.customerId, date: new Date(f.date + "T12:00:00Z").toISOString(), dueDate: new Date(f.dueDate + "T12:00:00Z").toISOString(), lines: f.lines.map((l) => ({ ...l, id: `sl-${Math.random().toString(36).slice(2, 7)}` })), notes: f.notes || undefined });
+    const id = createInvoice({
+      customerId: f.customerId,
+      date: new Date(f.date + "T12:00:00Z").toISOString(),
+      dueDate: new Date(f.dueDate + "T12:00:00Z").toISOString(),
+      lines: f.lines.map((l) => ({ ...l, id: `sl-${Math.random().toString(36).slice(2, 7)}` })),
+      notes: f.notes || undefined,
+      currency: f.currency,
+      exchangeRate: f.currency === "NGN" ? 1 : f.exchangeRate,
+      deferOverMonths: f.deferMonths || undefined,
+      recurEveryMonths: f.recurMonths || undefined,
+    });
     if (issue) {
       const r = issueInvoice(id);
       if (!r.ok) return setErr(r.error ?? "Could not issue");
@@ -47,13 +62,18 @@ export default function Invoices() {
   function submitPay() {
     if (!pay) return;
     setErr(null);
+    const foreign = pay.currency !== "NGN";
+    const setRate = foreign ? payF.settlementRate || pay.exchangeRate : 1;
+    // allocation is in the invoice's currency; for a foreign invoice payF.amount is the NGN deposited
+    const allocForeign = foreign ? Math.min(payF.amount / setRate, invoiceBalance(pay)) : Math.min(payF.amount, invoiceBalance(pay));
     const r = recordReceipt({
       customerId: pay.customerId,
       date: new Date(payF.date + "T12:00:00Z").toISOString(),
       method: payF.method,
       depositAccountNumber: payF.account,
       amount: payF.amount,
-      allocations: [{ invoiceId: pay.id, amount: Math.min(payF.amount, invoiceBalance(pay)) }],
+      allocations: [{ invoiceId: pay.id, amount: allocForeign }],
+      settlementRate: foreign ? setRate : undefined,
       reference: payF.reference || undefined,
     });
     if (!r.ok) return setErr(r.error ?? "Could not record payment");
@@ -94,11 +114,11 @@ export default function Invoices() {
                 {list.map((inv, i) => (
                   <Row key={inv.id} index={i} onClick={() => setView(inv)}>
                     <Cell className="font-mono text-xs">{inv.number}{inv.source === "EMR Billing" && <Badge tone="mist">EMR</Badge>}</Cell>
-                    <Cell className="font-semibold">{customerById(inv.customerId)?.name}</Cell>
+                    <Cell className="font-semibold">{customerById(inv.customerId)?.name}{inv.currency !== "NGN" && <Badge tone="amber">{inv.currency}</Badge>}{inv.revenueScheduleId && <Badge tone="mist">deferred</Badge>}{inv.isRecurring && <Badge tone="mist">recurring</Badge>}</Cell>
                     <Cell>{shortDate(inv.date)}</Cell>
                     <Cell>{shortDate(inv.dueDate)}</Cell>
-                    <Cell className="font-mono">{money(docTotal(inv.lines))}</Cell>
-                    <Cell className="font-mono">{money(invoiceBalance(inv))}</Cell>
+                    <Cell className="font-mono">{inv.currency !== "NGN" ? `${inv.currency} ${docTotal(inv.lines).toLocaleString()}` : money(docTotal(inv.lines))}</Cell>
+                    <Cell className="font-mono">{inv.currency !== "NGN" ? `${inv.currency} ${invoiceBalance(inv).toLocaleString()}` : money(invoiceBalance(inv))}</Cell>
                     <Cell><Badge tone={statusTone(inv.status)}>{inv.status}</Badge></Cell>
                     <Cell>
                       <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
@@ -121,12 +141,19 @@ export default function Invoices() {
         <div className="space-y-4">
           {err && <p className="rounded-lg bg-action-50 px-3 py-2 text-sm text-action-700 ring-1 ring-action-200">{err}</p>}
           <div className="grid gap-3 sm:grid-cols-3">
-            <Field label="Customer"><Select value={f.customerId} onChange={(e) => setF({ ...f, customerId: e.target.value })} options={customers.map((c) => ({ value: c.id, label: c.name }))} /></Field>
+            <Field label="Customer"><Select value={f.customerId} onChange={(e) => { const c = customers.find((x) => x.id === e.target.value); setF({ ...f, customerId: e.target.value, currency: c?.currency ?? "NGN", exchangeRate: c?.currency && c.currency !== "NGN" ? (fxRates.find((r) => r.code === c.currency)?.rateToNgn ?? 1) : 1 }); }} options={customers.map((c) => ({ value: c.id, label: c.name }))} /></Field>
             <Field label="Invoice date"><Input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
             <Field label="Due date"><Input type="date" value={f.dueDate} onChange={(e) => setF({ ...f, dueDate: e.target.value })} /></Field>
           </div>
+          <div className="grid gap-3 sm:grid-cols-4">
+            <Field label="Currency"><Select value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value, exchangeRate: e.target.value === "NGN" ? 1 : (fxRates.find((r) => r.code === e.target.value)?.rateToNgn ?? 1) })} options={fxRates.map((r) => ({ value: r.code, label: r.code }))} /></Field>
+            {f.currency !== "NGN" && <Field label="Rate → NGN"><Input type="number" value={f.exchangeRate} onChange={(e) => setF({ ...f, exchangeRate: +e.target.value })} /></Field>}
+            <Field label="Recognise over (mo)" hint="0 = now"><Input type="number" value={f.deferMonths || ""} onChange={(e) => setF({ ...f, deferMonths: +e.target.value })} /></Field>
+            <Field label="Repeat every (mo)" hint="0 = one-off"><Input type="number" value={f.recurMonths || ""} onChange={(e) => setF({ ...f, recurMonths: +e.target.value })} /></Field>
+          </div>
           <LineEditor lines={f.lines} onChange={(lines) => setF({ ...f, lines })} />
           <DocTotals subtotal={docSubtotal(f.lines as never)} tax={docTax(f.lines as never)} total={docTotal(f.lines as never)} />
+          {f.currency !== "NGN" && <p className="text-right text-xs text-mist-400">≈ {money(docTotal(f.lines as never) * f.exchangeRate)} at {f.exchangeRate}/{f.currency}</p>}
           <Field label="Notes"><Textarea value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field>
         </div>
       </Modal>
@@ -172,15 +199,16 @@ export default function Invoices() {
         {pay && (
           <div className="space-y-3">
             {err && <p className="rounded-lg bg-action-50 px-3 py-2 text-sm text-action-700 ring-1 ring-action-200">{err}</p>}
-            <p className="text-sm text-mist-600">Balance due: <b>{money(invoiceBalance(pay))}</b></p>
+            <p className="text-sm text-mist-600">Balance due: <b>{pay.currency !== "NGN" ? `${pay.currency} ${invoiceBalance(pay).toLocaleString()}` : money(invoiceBalance(pay))}</b>{pay.currency !== "NGN" && ` (booked @ ${pay.exchangeRate})`}</p>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Date"><Input type="date" value={payF.date} onChange={(e) => setPayF({ ...payF, date: e.target.value })} /></Field>
-              <Field label="Amount"><Input type="number" value={payF.amount || ""} onChange={(e) => setPayF({ ...payF, amount: +e.target.value })} /></Field>
+              <Field label={pay.currency !== "NGN" ? "NGN received to bank" : "Amount"}><Input type="number" value={payF.amount || ""} onChange={(e) => setPayF({ ...payF, amount: +e.target.value })} /></Field>
+              {pay.currency !== "NGN" && <Field label={`Settlement rate (${pay.currency}→NGN)`} hint="rate on the day the money arrived"><Input type="number" value={payF.settlementRate || pay.exchangeRate} onChange={(e) => setPayF({ ...payF, settlementRate: +e.target.value })} /></Field>}
               <Field label="Method"><Select value={payF.method} onChange={(e) => setPayF({ ...payF, method: e.target.value as never })} options={["Cash", "Bank Transfer", "POS", "Cheque", "NHIS Remittance"]} /></Field>
               <Field label="Deposit to"><Select value={String(payF.account)} onChange={(e) => setPayF({ ...payF, account: +e.target.value })} options={cashAccts.map((a) => ({ value: String(a.number), label: `${a.number} — ${a.name}` }))} /></Field>
             </div>
             <Field label="Reference"><Input value={payF.reference} onChange={(e) => setPayF({ ...payF, reference: e.target.value })} /></Field>
-            <p className="text-xs text-mist-400">Posts Dr {payF.account} / Cr {customerById(pay.customerId)?.arAccountNumber} Accounts Receivable.</p>
+            <p className="text-xs text-mist-400">{pay.currency !== "NGN" ? "AR relieved at the booked rate; the difference vs the settlement rate posts to FX gain / loss." : `Posts Dr ${payF.account} / Cr ${customerById(pay.customerId)?.arAccountNumber} Accounts Receivable.`}</p>
           </div>
         )}
       </Modal>

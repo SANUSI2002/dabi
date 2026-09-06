@@ -7,15 +7,16 @@ import { PrintDoc, Section, Line } from "@/components/print/PrintFrame";
 import { money, shortDate, isoDate } from "@/lib/format";
 import {
   profitAndLoss, balanceSheet, cashFlow, generalLedgerReport, inventoryValuationReport,
-  fixedAssetRegisterReport, arAgingReport, apAgingReport,
+  fixedAssetRegisterReport, arAgingReport, apAgingReport, statementOfChangesInEquity,
 } from "@/store/accounting/useAccountingReports";
 import { useLedger } from "@/store/accounting/useLedger";
 
-type ReportKey = "pl" | "bs" | "cf" | "tb" | "gl" | "ar-aging" | "ap-aging" | "inv-val" | "fa-reg";
+type ReportKey = "pl" | "bs" | "cf" | "tb" | "soce" | "gl" | "ar-aging" | "ap-aging" | "inv-val" | "fa-reg";
 const REPORTS: { key: ReportKey; name: string; group: string; icon: typeof Scale }[] = [
   { key: "pl", name: "Profit & Loss", group: "Financial statements", icon: TrendingUp },
   { key: "bs", name: "Balance Sheet", group: "Financial statements", icon: Scale },
   { key: "cf", name: "Cash Flow Statement", group: "Financial statements", icon: Wallet },
+  { key: "soce", name: "Changes in Equity", group: "Financial statements", icon: Scale },
   { key: "tb", name: "Trial Balance", group: "Financial statements", icon: FileBarChart },
   { key: "gl", name: "General Ledger", group: "Detail", icon: FileBarChart },
   { key: "ar-aging", name: "AR Aging", group: "Receivables & Payables", icon: Users },
@@ -40,6 +41,7 @@ export default function AccountingReports() {
       case "pl": return profitAndLoss(fromIso, toIso);
       case "bs": return balanceSheet(toIso);
       case "cf": return cashFlow(fromIso, toIso);
+      case "soce": return statementOfChangesInEquity(fromIso, toIso);
       case "tb": return trialBalance(toIso);
       case "gl": return generalLedgerReport(fromIso, toIso);
       case "ar-aging": return arAgingReport();
@@ -50,7 +52,7 @@ export default function AccountingReports() {
   }, [key, fromIso, toIso, trialBalance]);
 
   const current = REPORTS.find((r) => r.key === key)!;
-  const needsPeriod = ["pl", "cf", "gl"].includes(key);
+  const needsPeriod = ["pl", "cf", "gl", "soce"].includes(key);
 
   return (
     <div>
@@ -153,6 +155,23 @@ function ReportView({ reportKey, data, print }: { reportKey: ReportKey; data: un
           </tbody>
         </table>
       </>
+    );
+  }
+
+  if (reportKey === "soce") {
+    const d = data as ReturnType<typeof statementOfChangesInEquity>;
+    return (
+      <table className={`w-full ${wrap}`}>
+        <tbody>
+          <tr className="font-semibold"><td className="py-2">Opening equity</td><td className="py-2 text-right font-mono">{money(d.opening)}</td></tr>
+          <tr className="border-b border-mist-100"><td className="py-1.5 pl-3">Profit for the period</td><td className="py-1.5 text-right font-mono">{money(d.profitForPeriod)}</td></tr>
+          {d.movements.map((m) => (
+            <tr key={m.account.number} className="border-b border-mist-100"><td className="py-1.5 pl-3">{m.account.number} — {m.account.name}</td><td className="py-1.5 text-right font-mono">{money(m.amount)}</td></tr>
+          ))}
+          <tr className="border-t-2 border-brand-600 text-base font-extrabold"><td className="py-2">Closing equity</td><td className="py-2 text-right font-mono">{money(d.closing)}</td></tr>
+          {!d.ties && <tr><td colSpan={2} className="pt-1 text-xs text-action-600">Does not reconcile — investigate.</td></tr>}
+        </tbody>
+      </table>
     );
   }
 
