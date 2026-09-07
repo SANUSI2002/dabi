@@ -23,6 +23,7 @@ import { useAccountingSettings } from "@/store/accounting/useAccountingSettings"
 useLedger.getState();
 useTax.getState();
 useAcctControl.getState();
+useAccountingSettings.getState();
 useAR.getState();
 useAP.getState();
 useExpenses.getState();
@@ -30,4 +31,3 @@ useBanking.getState();
 useFixedAssets.getState();
 useBudgets.getState();
 useInventoryAccounting.getState();
-useAccountingSettings.getState();

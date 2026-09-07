@@ -3,6 +3,7 @@ import { audit } from "@/store/useAudit";
 import { useIdentity } from "@/store/useIdentity";
 import { useLedger } from "@/store/accounting/useLedger";
 import { useTax } from "@/store/accounting/useTax";
+import { useAccountingSettings } from "@/store/accounting/useAccountingSettings";
 import { ACCT } from "@/data/accounting/coa";
 import {
   seedCustomers,
@@ -292,13 +293,12 @@ export const useAR = create<ARState>((set, get) => {
 
     createInvoice: (input) => {
       const id = `inv-${rid()}`;
-      const n = get().invoices.length + 1001;
       const cust = get().customerById(input.customerId);
       const currency = input.currency ?? cust?.currency ?? "NGN";
       const rate = currency === "NGN" ? 1 : input.exchangeRate ?? (useLedger.getState().fxRates.find((r) => r.code === currency)?.rateToNgn ?? 1);
       const inv: Invoice = {
         id,
-        number: `INV-2026-${String(n).padStart(6, "0")}`,
+        number: useAccountingSettings.getState().nextDocNumber("invoice"),
         customerId: input.customerId,
         salesOrderId: input.salesOrderId,
         date: input.date,
@@ -369,10 +369,9 @@ export const useAR = create<ARState>((set, get) => {
       const cust = get().customerById(input.customerId);
       if (!cust) return { ok: false, error: "Customer not found." };
       const id = `rcpt-${rid()}`;
-      const n = get().receipts.length + 2001;
       const receipt: CustomerReceipt = {
         id,
-        number: `RCT-2026-${String(n).padStart(6, "0")}`,
+        number: useAccountingSettings.getState().nextDocNumber("receipt"),
         customerId: input.customerId,
         date: input.date,
         method: input.method,
@@ -404,10 +403,9 @@ export const useAR = create<ARState>((set, get) => {
     createCreditNote: (input) => {
       const cust = get().customerById(input.customerId)!;
       const id = `cn-${rid()}`;
-      const n = get().creditNotes.length + 5001;
       const cn: CreditNote = {
         id,
-        number: `CN-2026-${String(n).padStart(6, "0")}`,
+        number: useAccountingSettings.getState().nextDocNumber("credit-note"),
         customerId: input.customerId,
         invoiceId: input.invoiceId,
         date: input.date,

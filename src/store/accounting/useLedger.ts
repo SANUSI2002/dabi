@@ -25,9 +25,11 @@ import {
   type FiscalYear,
   type AccountingPeriod,
 } from "@/data/accounting/fiscal";
+import { seedBranches, seedConsolidationGroups, DEFAULT_BRANCH, type Branch, type ConsolidationGroup } from "@/data/accounting/branches";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+const BRANCH_KEY = "sabi-acct-branch";
 
 export type DraftLine = { accountNumber: number; debit: number; credit: number; description?: string; costCenter?: string; customerId?: string; vendorId?: string };
 
@@ -40,6 +42,7 @@ export type PostInput = {
   createdBy?: string;
   status?: Extract<JournalStatus, "Draft" | "Posted" | "Pending Approval">;
   approvalRef?: string;
+  branchId?: string;
 };
 
 export type LockCheck = { locked: boolean; reason?: string };
@@ -51,19 +54,27 @@ type LedgerState = {
   periods: AccountingPeriod[];
   booksLockedBefore: string | null;
   fxRates: { code: string; name: string; symbol: string; rateToNgn: number }[];
+  branches: Branch[];
+  consolidationGroups: ConsolidationGroup[];
+  activeBranchId: string;
 
   // ---- lookups ----
   accountByNumber: (n: number) => Account | undefined;
   accountById: (id: string) => Account | undefined;
+  branchById: (id: string) => Branch | undefined;
   periodFor: (date: string) => AccountingPeriod | undefined;
   isDateLocked: (date: string) => LockCheck;
+  setActiveBranch: (id: string) => void;
+  addBranch: (b: { code: string; name: string }) => void;
+  addConsolidationGroup: (name: string, branchIds: string[]) => void;
 
   // ---- balances (all computed from POSTED lines — the GL is the source of truth) ----
-  linesFor: (accountNumber: number) => { entry: JournalEntry; line: JournalLine }[];
-  balanceOf: (accountNumber: number, asOf?: string) => number; // signed in the account's normal direction
-  debitCreditOf: (accountNumber: number, opts?: { asOf?: string; from?: string }) => { debit: number; credit: number };
-  activityOf: (accountNumber: number, from: string, to: string) => number;
-  trialBalance: (asOf: string) => { account: Account; debit: number; credit: number }[];
+  // `branch`: undefined = all branches (consolidated), a branch id = that entity only
+  linesFor: (accountNumber: number, branch?: string) => { entry: JournalEntry; line: JournalLine }[];
+  balanceOf: (accountNumber: number, asOf?: string, branch?: string) => number; // signed in the account's normal direction
+  debitCreditOf: (accountNumber: number, opts?: { asOf?: string; from?: string; branch?: string }) => { debit: number; credit: number };
+  activityOf: (accountNumber: number, from: string, to: string, branch?: string) => number;
+  trialBalance: (asOf: string, branch?: string) => { account: Account; debit: number; credit: number }[];
   isInBalance: (asOf: string) => boolean;
 
   // ---- journal ----
@@ -100,6 +111,8 @@ const toLines = (draft: DraftLine[]): JournalLine[] =>
       vendorId: l.vendorId,
     }));
 
+const loadBranch = () => { try { return localStorage.getItem(BRANCH_KEY) || DEFAULT_BRANCH; } catch { return DEFAULT_BRANCH; } };
+
 export const useLedger = create<LedgerState>((set, get) => ({
   accounts: seedAccounts,
   entries: seedJournalEntries,
@@ -107,9 +120,27 @@ export const useLedger = create<LedgerState>((set, get) => ({
   periods: seedPeriods,
   booksLockedBefore: seedBooksLockedBefore,
   fxRates: seedFxRates,
+  branches: seedBranches,
+  consolidationGroups: seedConsolidationGroups,
+  activeBranchId: loadBranch(),
 
   accountByNumber: (n) => get().accounts.find((a) => a.number === n),
   accountById: (id) => get().accounts.find((a) => a.id === id),
+  branchById: (id) => get().branches.find((b) => b.id === id),
+
+  setActiveBranch: (id) => {
+    try { localStorage.setItem(BRANCH_KEY, id); } catch { /* ignore */ }
+    set({ activeBranchId: id });
+    audit(`switched to ${get().branchById(id)?.name ?? id}`, "accounting/branches/switch");
+  },
+  addBranch: (b) => {
+    set((s) => ({ branches: [...s.branches, { id: `br-${rid()}`, code: b.code, name: b.name, isHeadOffice: false, baseCurrency: "NGN", active: true }] }));
+    audit(`created branch ${b.name}`, `accounting/branches/${b.code}`);
+  },
+  addConsolidationGroup: (name, branchIds) => {
+    set((s) => ({ consolidationGroups: [...s.consolidationGroups, { id: `cg-${rid()}`, name, branchIds, eliminate: [{ receivable: 1150, payable: 2150 }] }] }));
+    audit(`created consolidation group ${name}`, `accounting/consolidation/${name}`);
+  },
 
   periodFor: (date) => {
     const t = new Date(date).getTime();
@@ -128,9 +159,9 @@ export const useLedger = create<LedgerState>((set, get) => ({
     return { locked: false };
   },
 
-  linesFor: (accountNumber) =>
+  linesFor: (accountNumber, branch) =>
     get()
-      .entries.filter((e) => e.status === "Posted")
+      .entries.filter((e) => e.status === "Posted" && (!branch || e.branchId === branch))
       .flatMap((entry) => entry.lines.filter((l) => l.accountNumber === accountNumber).map((line) => ({ entry, line }))),
 
   debitCreditOf: (accountNumber, opts) => {
@@ -138,7 +169,7 @@ export const useLedger = create<LedgerState>((set, get) => ({
     const from = opts?.from ? new Date(opts.from).getTime() : undefined;
     let debit = 0;
     let credit = 0;
-    for (const { entry, line } of get().linesFor(accountNumber)) {
+    for (const { entry, line } of get().linesFor(accountNumber, opts?.branch)) {
       const t = new Date(entry.date).getTime();
       if (asOf !== undefined && t > asOf) continue;
       if (from !== undefined && t < from) continue;
@@ -148,21 +179,21 @@ export const useLedger = create<LedgerState>((set, get) => ({
     return { debit: round2(debit), credit: round2(credit) };
   },
 
-  balanceOf: (accountNumber, asOf) => {
+  balanceOf: (accountNumber, asOf, branch) => {
     const acct = get().accountByNumber(accountNumber);
     if (!acct) return 0;
-    const { debit, credit } = get().debitCreditOf(accountNumber, { asOf });
+    const { debit, credit } = get().debitCreditOf(accountNumber, { asOf, branch });
     return round2(isDebitNormal(acct) ? debit - credit : credit - debit);
   },
 
-  activityOf: (accountNumber, from, to) => {
+  activityOf: (accountNumber, from, to, branch) => {
     const acct = get().accountByNumber(accountNumber);
     if (!acct) return 0;
     const lo = new Date(from).getTime();
     const hi = new Date(to).getTime();
     let debit = 0;
     let credit = 0;
-    for (const { entry, line } of get().linesFor(accountNumber)) {
+    for (const { entry, line } of get().linesFor(accountNumber, branch)) {
       const t = new Date(entry.date).getTime();
       if (t < lo || t > hi) continue;
       debit += line.debit;
@@ -171,10 +202,10 @@ export const useLedger = create<LedgerState>((set, get) => ({
     return round2(isDebitNormal(acct) ? debit - credit : credit - debit);
   },
 
-  trialBalance: (asOf) =>
+  trialBalance: (asOf, branch) =>
     get()
       .accounts.map((account) => {
-        const bal = get().balanceOf(account.number, asOf);
+        const bal = get().balanceOf(account.number, asOf, branch);
         const debitNormal = isDebitNormal(account);
         // A positive balance sits in its normal column; a negative (contra) balance flips.
         const debit = debitNormal ? Math.max(bal, 0) : Math.max(-bal, 0);
@@ -231,6 +262,7 @@ export const useLedger = create<LedgerState>((set, get) => ({
       id: `je-${rid()}`,
       number: get().nextEntryNumber(input.date),
       date: input.date,
+      branchId: input.branchId ?? get().activeBranchId,
       source: input.source,
       reference: input.reference,
       memo: input.memo,
@@ -300,6 +332,7 @@ export const useLedger = create<LedgerState>((set, get) => ({
       id: `je-${rid()}`,
       number: get().nextEntryNumber(date),
       date,
+      branchId: orig.branchId,
       source: "Reversal",
       reference: orig.number,
       memo: opts?.memo ?? `Reversal of ${orig.number} — ${orig.memo}`,

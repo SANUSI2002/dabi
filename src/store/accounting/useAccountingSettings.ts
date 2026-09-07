@@ -27,7 +27,7 @@ const seqSeed: Omit<NumberSequence, "example">[] = [
   { key: "invoice", label: "Sales Invoice", prefix: "INV-", padding: 6, next: 1004 },
   { key: "receipt", label: "Customer Receipt", prefix: "RCT-", padding: 6, next: 2002 },
   { key: "credit-note", label: "Credit Note", prefix: "CN-", padding: 6, next: 5001 },
-  { key: "bill", label: "Vendor Bill", prefix: "BILL-", padding: 6, next: 7004 },
+  { key: "bill", label: "Vendor Bill", prefix: "BILL-", padding: 6, next: 7005 },
   { key: "payment", label: "Vendor Payment", prefix: "PMT-", padding: 6, next: 8002 },
   { key: "po", label: "Purchase Order", prefix: "PO-", padding: 6, next: 9001 },
   { key: "requisition", label: "Purchase Requisition", prefix: "PR-", padding: 6, next: 6002 },
@@ -39,9 +39,12 @@ type SettingsState = {
   sequences: NumberSequence[];
   updateOrg: (patch: Partial<OrgSettings>) => void;
   updateSequence: (key: string, patch: Partial<Pick<NumberSequence, "prefix" | "padding" | "next">>) => void;
+  /** allocate the next document number for a sequence and advance it */
+  nextDocNumber: (key: string) => string;
+  peekDocNumber: (key: string) => string;
 };
 
-export const useAccountingSettings = create<SettingsState>((set) => ({
+export const useAccountingSettings = create<SettingsState>((set, get) => ({
   org: {
     legalName: "Sabi Health Post Limited",
     tradingName: "Sabi Health Post",
@@ -66,5 +69,19 @@ export const useAccountingSettings = create<SettingsState>((set) => ({
       }),
     }));
     audit(`updated ${key} numbering`, "accounting/settings/numbering");
+  },
+
+  peekDocNumber: (key) => {
+    const s = get().sequences.find((x) => x.key === key);
+    if (!s) return key.toUpperCase();
+    return `${s.prefix}${new Date().getUTCFullYear()}-${String(s.next).padStart(s.padding, "0")}`;
+  },
+
+  nextDocNumber: (key) => {
+    const s = get().sequences.find((x) => x.key === key);
+    if (!s) return `${key.toUpperCase()}-${Date.now()}`;
+    const num = `${s.prefix}${new Date().getUTCFullYear()}-${String(s.next).padStart(s.padding, "0")}`;
+    set((st) => ({ sequences: st.sequences.map((x) => (x.key === key ? { ...x, next: x.next + 1, example: buildExample({ ...x, next: x.next + 1 }) } : x)) }));
+    return num;
   },
 }));

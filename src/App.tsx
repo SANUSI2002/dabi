@@ -95,6 +95,7 @@ const AcctTax = lazy(() => import("@/pages/accounting/TaxCenter"));
 const AcctReports = lazy(() => import("@/pages/accounting/AccountingReports"));
 const AcctApprovals = lazy(() => import("@/pages/accounting/AccountingApprovals"));
 const AcctPeriodEnd = lazy(() => import("@/pages/accounting/PeriodEnd"));
+const AcctConsolidation = lazy(() => import("@/pages/accounting/Consolidation"));
 const AcctIntegrations = lazy(() => import("@/pages/accounting/Integrations"));
 const AcctSettings = lazy(() => import("@/pages/accounting/AccountingSettings"));
 
@@ -213,6 +214,7 @@ export default function App() {
           <Route path="/accounting/reports" element={<AcctReports />} />
           <Route path="/accounting/approvals" element={<AcctApprovals />} />
           <Route path="/accounting/period-end" element={<AcctPeriodEnd />} />
+          <Route path="/accounting/consolidation" element={<AcctConsolidation />} />
           <Route path="/accounting/integrations" element={<AcctIntegrations />} />
           <Route path="/accounting/settings" element={<AcctSettings />} />
           <Route path="*" element={<Navigate to="/" replace />} />

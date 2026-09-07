@@ -4,6 +4,7 @@ import { useIdentity } from "@/store/useIdentity";
 import { useLedger } from "@/store/accounting/useLedger";
 import { useTax } from "@/store/accounting/useTax";
 import { useAcctControl } from "@/store/accounting/useAcctControl";
+import { useAccountingSettings } from "@/store/accounting/useAccountingSettings";
 import { ACCT } from "@/data/accounting/coa";
 import {
   seedVendors,
@@ -298,13 +299,12 @@ export const useAP = create<APState>((set, get) => {
 
     createBill: (input) => {
       const id = `bill-${rid()}`;
-      const n = get().bills.length + 7001;
       const vendor = get().vendorById(input.vendorId);
       const currency = input.currency ?? vendor?.currency ?? "NGN";
       const rate = currency === "NGN" ? 1 : input.exchangeRate ?? (useLedger.getState().fxRates.find((r) => r.code === currency)?.rateToNgn ?? 1);
       const bill: Bill = {
         id,
-        number: `BILL-2026-${String(n).padStart(6, "0")}`,
+        number: useAccountingSettings.getState().nextDocNumber("bill"),
         vendorInvoiceNumber: input.vendorInvoiceNumber,
         vendorId: input.vendorId,
         purchaseOrderId: input.purchaseOrderId,
@@ -377,10 +377,9 @@ export const useAP = create<APState>((set, get) => {
       const allocTotal = round2(input.allocations.reduce((n, a) => n + a.amount, 0));
       if (allocTotal > input.amount + round2(input.withheldTax ?? 0) + 0.01) return { ok: false, error: "Allocations exceed the payment." };
       const id = `vp-${rid()}`;
-      const n = get().vendorPayments.length + 8001;
       const vp: VendorPayment = {
         id,
-        number: `PMT-2026-${String(n).padStart(6, "0")}`,
+        number: useAccountingSettings.getState().nextDocNumber("payment"),
         vendorId: input.vendorId,
         date: input.date,
         method: input.method,

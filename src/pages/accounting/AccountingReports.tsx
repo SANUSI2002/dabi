@@ -2,12 +2,12 @@ import { useMemo, useState } from "react";
 import { Printer, FileBarChart, Scale, TrendingUp, Wallet, Boxes, Building2, Users, Truck } from "lucide-react";
 import { PageHeader, Button, Card, Badge } from "@/components/ui/primitives";
 import { Table, Row, Cell } from "@/components/ui/Table";
-import { Field, Input } from "@/components/ui/form";
+import { Field, Input, Select } from "@/components/ui/form";
 import { PrintDoc, Section, Line } from "@/components/print/PrintFrame";
 import { money, shortDate, isoDate } from "@/lib/format";
 import {
   profitAndLoss, balanceSheet, cashFlow, generalLedgerReport, inventoryValuationReport,
-  fixedAssetRegisterReport, arAgingReport, apAgingReport, statementOfChangesInEquity,
+  fixedAssetRegisterReport, arAgingReport, apAgingReport, statementOfChangesInEquity, withBranch,
 } from "@/store/accounting/useAccountingReports";
 import { useLedger } from "@/store/accounting/useLedger";
 
@@ -29,27 +29,30 @@ export default function AccountingReports() {
   const [key, setKey] = useState<ReportKey>("pl");
   const [from, setFrom] = useState(isoDate(new Date(Date.UTC(new Date().getUTCFullYear(), 0, 1))));
   const [to, setTo] = useState(isoDate(new Date()));
+  const [branch, setBranch] = useState<string>("");
   const [print, setPrint] = useState(false);
   const trialBalance = useLedger((s) => s.trialBalance);
+  const branches = useLedger((s) => s.branches);
   useLedger((s) => s.entries); // re-render when the ledger changes
 
   const fromIso = new Date(from + "T00:00:00Z").toISOString();
   const toIso = new Date(to + "T23:59:59Z").toISOString();
+  const scoped = branch || undefined;
 
-  const data = useMemo(() => {
+  const data = useMemo(() => withBranch(scoped, () => {
     switch (key) {
       case "pl": return profitAndLoss(fromIso, toIso);
       case "bs": return balanceSheet(toIso);
       case "cf": return cashFlow(fromIso, toIso);
       case "soce": return statementOfChangesInEquity(fromIso, toIso);
-      case "tb": return trialBalance(toIso);
+      case "tb": return trialBalance(toIso, scoped);
       case "gl": return generalLedgerReport(fromIso, toIso);
       case "ar-aging": return arAgingReport();
       case "ap-aging": return apAgingReport();
       case "inv-val": return inventoryValuationReport();
       case "fa-reg": return fixedAssetRegisterReport(toIso);
     }
-  }, [key, fromIso, toIso, trialBalance]);
+  }), [key, fromIso, toIso, trialBalance, scoped]);
 
   const current = REPORTS.find((r) => r.key === key)!;
   const needsPeriod = ["pl", "cf", "gl", "soce"].includes(key);
@@ -84,6 +87,7 @@ export default function AccountingReports() {
               ) : (
                 <Field label="As at"><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></Field>
               )}
+              <Field label="Entity"><Select value={branch} onChange={(e) => setBranch(e.target.value)} options={[{ value: "", label: "All branches (consolidated)" }, ...branches.map((b) => ({ value: b.id, label: b.name }))]} /></Field>
             </div>
           </Card>
           <Card><ReportView reportKey={key} data={data} /></Card>

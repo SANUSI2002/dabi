@@ -11,12 +11,25 @@ const INCEPTION = "2000-01-01T00:00:00.000Z";
 export type StatementLine = { account: Account; amount: number };
 export type StatementGroup = { title: string; lines: StatementLine[]; total: number };
 
+// A branch id scopes every figure to that operating entity; undefined = the
+// whole business (all branches).
+let scopeBranch: string | undefined;
+export function withBranch<T>(branch: string | undefined, fn: () => T): T {
+  const prev = scopeBranch;
+  scopeBranch = branch;
+  try {
+    return fn();
+  } finally {
+    scopeBranch = prev;
+  }
+}
+
 /** movement of an account over a window, signed in its normal direction */
 function periodActivity(accountNumber: number, from: string, to: string) {
-  return useLedger.getState().activityOf(accountNumber, from, to);
+  return useLedger.getState().activityOf(accountNumber, from, to, scopeBranch);
 }
 function balanceAsOf(accountNumber: number, asOf: string) {
-  return useLedger.getState().balanceOf(accountNumber, asOf);
+  return useLedger.getState().balanceOf(accountNumber, asOf, scopeBranch);
 }
 
 export function profitAndLoss(from: string, to: string) {
@@ -28,7 +41,7 @@ export function profitAndLoss(from: string, to: string) {
     const lines = accts
       .filter((a) => types.includes(a.type))
       .map((a) => {
-        const dc = led.debitCreditOf(a.number, { from, asOf: to });
+        const dc = led.debitCreditOf(a.number, { from, asOf: to, branch: scopeBranch });
         const amount = round2(side === "credit" ? dc.credit - dc.debit : dc.debit - dc.credit);
         return { account: a, amount };
       })
@@ -162,9 +175,9 @@ export function generalLedgerReport(from: string, to: string) {
   return led.accounts
     .filter((a) => a.isActive)
     .map((a) => {
-      const opening = led.balanceOf(a.number, new Date(new Date(from).getTime() - 1).toISOString());
-      const dc = led.debitCreditOf(a.number, { from, asOf: to });
-      const closing = led.balanceOf(a.number, to);
+      const opening = led.balanceOf(a.number, new Date(new Date(from).getTime() - 1).toISOString(), scopeBranch);
+      const dc = led.debitCreditOf(a.number, { from, asOf: to, branch: scopeBranch });
+      const closing = led.balanceOf(a.number, to, scopeBranch);
       return { account: a, opening, debit: dc.debit, credit: dc.credit, closing };
     })
     .filter((r) => Math.abs(r.opening) > 0.005 || r.debit > 0.005 || r.credit > 0.005 || Math.abs(r.closing) > 0.005);
