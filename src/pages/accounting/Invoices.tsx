@@ -13,7 +13,7 @@ import { LineEditor, DocTotals, type EditableLine } from "./_components";
 import type { Invoice } from "@/data/accounting/receivables";
 
 export default function Invoices() {
-  const { customers, invoices, customerById, createInvoice, issueInvoice, voidInvoice, recordReceipt, invoiceBalance } = useAR();
+  const { customers, invoices, customerById, createInvoice, issueInvoice, voidInvoice, recordReceipt, invoiceBalance, reminderDue, sendReminder, runReminderRun, reminders } = useAR();
   const accounts = useLedger((s) => s.accounts);
   const cashAccts = accounts.filter((a) => a.subtype === "cash" || a.subtype === "bank");
 
@@ -99,8 +99,29 @@ export default function Invoices() {
         <StatCard label="Outstanding" value={money(stats.outstanding)} tone="brand" icon={<FileText size={18} />} />
         <StatCard label="Overdue" value={money(stats.overdue)} tone="action" delay={0.05} />
         <StatCard label="Drafts" value={stats.draft} tone="amber" delay={0.1} />
-        <StatCard label="Billed this month" value={money(stats.thisMonth)} tone="mist" delay={0.15} />
+        <StatCard label="Reminders sent" value={reminders.length} tone="mist" delay={0.15} />
       </div>
+
+      {(() => {
+        const dueList = invoices.map((i) => ({ inv: i, due: reminderDue(i) })).filter((x) => x.due);
+        if (!dueList.length) return null;
+        return (
+          <Card className="mb-4 border-l-4 border-l-amber-400">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-amber-700">Payment reminders due ({dueList.length})</h3>
+              <Button variant="soft" onClick={() => { const r = runReminderRun(); alert(`Sent ${r.sent} reminder(s).`); }}>Send all</Button>
+            </div>
+            <div className="space-y-1.5">
+              {dueList.slice(0, 6).map(({ inv, due }) => (
+                <div key={inv.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-mist-50 px-3 py-1.5 text-sm">
+                  <span>{inv.number} · {customerById(inv.customerId)?.name} · <b>{money(invoiceBalance(inv))}</b> · <Badge tone={due!.level === 3 ? "action" : "amber"}>{due!.tone}</Badge></span>
+                  <button className="btn-primary px-2 py-1 text-xs" onClick={() => sendReminder(inv.id)}><Send size={11} /> Send</button>
+                </div>
+              ))}
+            </div>
+          </Card>
+        );
+      })()}
 
       <Tabs tabs={["All", "Open", "Overdue", "Draft", "Paid"]}>
         {(t) => {

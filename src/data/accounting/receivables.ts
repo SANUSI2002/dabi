@@ -282,3 +282,14 @@ export const seedEstimates: Estimate[] = [
 export const seedSalesOrders: SalesOrder[] = [];
 export const seedCreditNotes: CreditNote[] = [];
 export const seedRevenueSchedules: RevenueSchedule[] = [];
+
+export type ReminderLevel = { level: number; daysOverdue: number; tone: "Friendly" | "Firm" | "Final Notice" };
+
+export const REMINDER_LADDER: ReminderLevel[] = [
+  { level: 1, daysOverdue: 3, tone: "Friendly" },
+  { level: 2, daysOverdue: 14, tone: "Firm" },
+  { level: 3, daysOverdue: 30, tone: "Final Notice" },
+];
+
+export type InvoiceReminder = { invoiceId: string; level: number; tone: string; sentAt: string; sentBy: string };
+export const seedReminders: InvoiceReminder[] = [];

@@ -13,7 +13,10 @@ import {
   seedSalesOrders,
   seedCreditNotes,
   seedRevenueSchedules,
+  seedReminders,
+  REMINDER_LADDER,
   type Customer,
+  type InvoiceReminder,
   type CustomerType,
   type SalesLine,
   type Estimate,
@@ -116,6 +119,7 @@ type ARState = {
   receipts: CustomerReceipt[];
   creditNotes: CreditNote[];
   revenueSchedules: RevenueSchedule[];
+  reminders: InvoiceReminder[];
 
   // customers
   addCustomer: (c: Omit<Customer, "id" | "createdAt" | "arAccountNumber" | "creditHold" | "openingBalance"> & { openingBalance?: number }) => string;
@@ -149,6 +153,11 @@ type ARState = {
   runRecurringInvoices: (asOf: string) => { created: string[] };
   recognizeRevenue: (scheduleId: string, period: string) => { ok: boolean; error?: string };
   revenueScheduleFor: (invoiceId: string) => RevenueSchedule | undefined;
+
+  // dunning
+  reminderDue: (inv: Invoice) => { level: number; tone: string } | undefined;
+  sendReminder: (invoiceId: string) => { ok: boolean; level?: number };
+  runReminderRun: () => { sent: number };
 
   // credit notes
   createCreditNote: (input: { customerId: string; invoiceId?: string; date: string; lines: SalesLine[]; reason: string; notes?: string }) => string;
@@ -188,6 +197,7 @@ export const useAR = create<ARState>((set, get) => {
     receipts,
     creditNotes: seedCreditNotes,
     revenueSchedules: seedRevenueSchedules,
+    reminders: seedReminders,
 
     addCustomer: (c) => {
       const id = `cust-${rid()}`;
@@ -536,6 +546,35 @@ export const useAR = create<ARState>((set, get) => {
     },
 
     revenueScheduleFor: (invoiceId) => get().revenueSchedules.find((x) => x.invoiceId === invoiceId),
+
+    reminderDue: (inv) => {
+      if (!(inv.status === "Overdue" || inv.status === "Partially Paid")) return undefined;
+      const overdueDays = Math.floor((Date.now() - new Date(inv.dueDate).getTime()) / 864e5);
+      if (overdueDays <= 0) return undefined;
+      const alreadySent = get().reminders.filter((r) => r.invoiceId === inv.id).reduce((mx, r) => Math.max(mx, r.level), 0);
+      const eligible = REMINDER_LADDER.filter((l) => l.daysOverdue <= overdueDays && l.level > alreadySent).sort((a, b) => b.level - a.level)[0];
+      return eligible ? { level: eligible.level, tone: eligible.tone } : undefined;
+    },
+
+    sendReminder: (invoiceId) => {
+      const inv = get().invoices.find((i) => i.id === invoiceId);
+      if (!inv) return { ok: false };
+      const due = get().reminderDue(inv);
+      if (!due) return { ok: false };
+      const cust = get().customerById(inv.customerId);
+      set((s) => ({ reminders: [{ invoiceId, level: due.level, tone: due.tone, sentAt: new Date().toISOString(), sentBy: useIdentity.getState().user.id }, ...s.reminders] }));
+      audit(`sent ${due.tone.toLowerCase()} payment reminder — ${inv.number} to ${cust?.name}`, `accounting/invoices/${inv.number}`);
+      return { ok: true, level: due.level };
+    },
+
+    runReminderRun: () => {
+      let sent = 0;
+      for (const inv of get().invoices) {
+        const r = get().sendReminder(inv.id);
+        if (r.ok) sent++;
+      }
+      return { sent };
+    },
 
     invoicesOf: (customerId) => get().invoices.filter((i) => i.customerId === customerId),
     openInvoicesOf: (customerId) => get().invoices.filter((i) => i.customerId === customerId && (i.status === "Open" || i.status === "Partially Paid" || i.status === "Overdue")),
