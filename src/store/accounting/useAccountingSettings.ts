@@ -24,13 +24,17 @@ const buildExample = (s: Omit<NumberSequence, "example">) => `${s.prefix}${new D
 
 const seqSeed: Omit<NumberSequence, "example">[] = [
   { key: "journal", label: "Journal Entry", prefix: "JE-", padding: 6, next: 1 },
+  { key: "estimate", label: "Quotation / Estimate", prefix: "EST-", padding: 6, next: 3002 },
+  { key: "sales-order", label: "Sales Order", prefix: "SO-", padding: 6, next: 4001 },
   { key: "invoice", label: "Sales Invoice", prefix: "INV-", padding: 6, next: 1004 },
   { key: "receipt", label: "Customer Receipt", prefix: "RCT-", padding: 6, next: 2002 },
   { key: "credit-note", label: "Credit Note", prefix: "CN-", padding: 6, next: 5001 },
+  { key: "requisition", label: "Purchase Requisition", prefix: "PR-", padding: 6, next: 6002 },
+  { key: "po", label: "Purchase Order", prefix: "PO-", padding: 6, next: 9001 },
+  { key: "goods-receipt", label: "Goods Receipt Note", prefix: "GRN-", padding: 6, next: 1 },
   { key: "bill", label: "Vendor Bill", prefix: "BILL-", padding: 6, next: 7005 },
   { key: "payment", label: "Vendor Payment", prefix: "PMT-", padding: 6, next: 8002 },
-  { key: "po", label: "Purchase Order", prefix: "PO-", padding: 6, next: 9001 },
-  { key: "requisition", label: "Purchase Requisition", prefix: "PR-", padding: 6, next: 6002 },
+  { key: "vendor-credit", label: "Vendor Credit", prefix: "VC-", padding: 6, next: 1 },
   { key: "expense", label: "Expense Claim", prefix: "EXP-", padding: 6, next: 3 },
 ];
 

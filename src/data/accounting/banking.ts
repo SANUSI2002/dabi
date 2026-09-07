@@ -26,6 +26,30 @@ export type BankStatementLine = {
   reconciled: boolean;
   matchedJournalEntryId?: string;
   importedAt: string;
+  origin?: "import" | "feed";
+  ruleApplied?: string; // reconciliation rule id that auto-cleared it
+};
+
+export type BankConnection = {
+  id: string;
+  accountNumber: number;
+  provider: "Mono" | "Okra" | "Stitch" | "Manual";
+  institution: string;
+  status: "Connected" | "Disconnected" | "Error";
+  connectedAt: string;
+  lastSyncAt?: string;
+  cursor: number; // how many synthetic feed rows already delivered
+};
+
+export type ReconciliationRule = {
+  id: string;
+  accountNumber: number;
+  name: string;
+  descriptionContains?: string;
+  direction?: "in" | "out";
+  contraAccount: number; // where the auto-posted contra lands
+  memo?: string;
+  active: boolean;
 };
 
 export type BankReconciliation = {
@@ -58,3 +82,13 @@ export const seedStatementLines: BankStatementLine[] = [
 ];
 
 export const seedReconciliations: BankReconciliation[] = [];
+
+export const seedBankConnections: BankConnection[] = [
+  { id: "conn-gtb", accountNumber: 1010, provider: "Mono", institution: "GTBank", status: "Connected", connectedAt: daysAgo(35), lastSyncAt: daysAgo(2), cursor: 0 },
+];
+
+export const seedReconciliationRules: ReconciliationRule[] = [
+  { id: "rr-charges", accountNumber: 1010, name: "Bank charges & COT", descriptionContains: "COMMISSION", direction: "out", contraAccount: 5600, memo: "Bank charges (auto)", active: true },
+  { id: "rr-pos", accountNumber: 1010, name: "POS settlement", descriptionContains: "POS SETTLEMENT", direction: "in", contraAccount: 4000, memo: "Card takings settled to bank", active: true },
+  { id: "rr-airtime", accountNumber: 1010, name: "Airtime / data", descriptionContains: "AIRTIME", direction: "out", contraAccount: 5310, memo: "Telephone & internet (auto)", active: true },
+];

@@ -87,6 +87,7 @@ const AcctVendorCredits = lazy(() => import("@/pages/accounting/VendorCredits"))
 const AcctBankAccounts = lazy(() => import("@/pages/accounting/BankAccounts"));
 const AcctBankTransactions = lazy(() => import("@/pages/accounting/BankTransactions"));
 const AcctReconciliation = lazy(() => import("@/pages/accounting/BankReconciliation"));
+const AcctBankFeeds = lazy(() => import("@/pages/accounting/BankFeeds"));
 const AcctExpenses = lazy(() => import("@/pages/accounting/Expenses"));
 const AcctFixedAssets = lazy(() => import("@/pages/accounting/FixedAssets"));
 const AcctInventory = lazy(() => import("@/pages/accounting/InventoryAccounting"));
@@ -206,6 +207,7 @@ export default function App() {
           <Route path="/accounting/bank-accounts" element={<AcctBankAccounts />} />
           <Route path="/accounting/bank-transactions" element={<AcctBankTransactions />} />
           <Route path="/accounting/reconciliation" element={<AcctReconciliation />} />
+          <Route path="/accounting/bank-feeds" element={<AcctBankFeeds />} />
           <Route path="/accounting/expenses" element={<AcctExpenses />} />
           <Route path="/accounting/fixed-assets" element={<AcctFixedAssets />} />
           <Route path="/accounting/inventory" element={<AcctInventory />} />

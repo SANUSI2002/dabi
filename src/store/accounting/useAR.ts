@@ -222,10 +222,9 @@ export const useAR = create<ARState>((set, get) => {
 
     createEstimate: (input) => {
       const id = `est-${rid()}`;
-      const n = get().estimates.length + 3001;
       const est: Estimate = {
         id,
-        number: `EST-2026-${String(n).padStart(6, "0")}`,
+        number: useAccountingSettings.getState().nextDocNumber("estimate"),
         customerId: input.customerId,
         date: input.date,
         expiryDate: daysAdd(input.date, input.expiryDays),
@@ -261,10 +260,9 @@ export const useAR = create<ARState>((set, get) => {
 
     createSalesOrder: (input) => {
       const id = `so-${rid()}`;
-      const n = get().salesOrders.length + 4001;
       const so: SalesOrder = {
         id,
-        number: `SO-2026-${String(n).padStart(6, "0")}`,
+        number: useAccountingSettings.getState().nextDocNumber("sales-order"),
         customerId: input.customerId,
         estimateId: input.estimateId,
         date: input.date,

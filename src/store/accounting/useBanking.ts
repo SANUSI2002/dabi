@@ -4,7 +4,7 @@ import { useIdentity } from "@/store/useIdentity";
 import { useLedger } from "@/store/accounting/useLedger";
 import { ACCT, type AccountSubtype } from "@/data/accounting/coa";
 import type { JournalEntry } from "@/data/accounting/journal";
-import { seedBankAccounts, seedStatementLines, seedReconciliations, type BankAccountMeta, type BankStatementLine, type BankReconciliation } from "@/data/accounting/banking";
+import { seedBankAccounts, seedStatementLines, seedReconciliations, seedBankConnections, seedReconciliationRules, type BankAccountMeta, type BankStatementLine, type BankReconciliation, type BankConnection, type ReconciliationRule } from "@/data/accounting/banking";
 
 type PostResult = { ok: boolean; error?: string; entry?: JournalEntry };
 
@@ -17,8 +17,17 @@ type BankingState = {
   accounts: BankAccountMeta[];
   statementLines: BankStatementLine[];
   reconciliations: BankReconciliation[];
+  connections: BankConnection[];
+  reconciliationRules: ReconciliationRule[];
 
   metaFor: (accountNumber: number) => BankAccountMeta | undefined;
+  connectBank: (accountNumber: number, provider: BankConnection["provider"]) => void;
+  disconnectBank: (id: string) => void;
+  syncFeed: (connectionId: string) => { imported: number; autoMatched: number };
+  addRule: (r: Omit<ReconciliationRule, "id" | "active">) => void;
+  updateRule: (id: string, patch: Partial<ReconciliationRule>) => void;
+  removeRule: (id: string) => void;
+  applyRulesTo: (accountNumber: number) => { matched: number };
   addBankAccount: (input: { number: number; name: string; bankName: string; accountName: string; accountNo: string; currency: string; subtype: Extract<AccountSubtype, "bank" | "cash">; openingBalance?: number }) => { ok: boolean; error?: string };
 
   bookBalance: (accountNumber: number, asOf?: string) => number;
@@ -38,12 +47,104 @@ type BankingState = {
   completeReconciliation: (reconId: string) => { ok: boolean; error?: string };
 };
 
+// Synthetic feed rows a "bank connection" delivers on each sync — realistic
+// day-to-day movement that isn't already booked from AR/AP.
+const FEED_TEMPLATES: { desc: string; amount: number; ref: () => string }[] = [
+  { desc: "POS SETTLEMENT — INTERSWITCH", amount: 184_500, ref: () => `ISW/${Math.floor(Math.random() * 1e6)}` },
+  { desc: "POS SETTLEMENT — INTERSWITCH", amount: 92_300, ref: () => `ISW/${Math.floor(Math.random() * 1e6)}` },
+  { desc: "TRF FRM WALK-IN — USSD", amount: 45_000, ref: () => `USSD/${Math.floor(Math.random() * 1e6)}` },
+  { desc: "COMMISSION ON TURNOVER & VAT", amount: -3_120, ref: () => "COT" },
+  { desc: "AIRTIME PURCHASE — MTN", amount: -10_000, ref: () => "AIRT" },
+  { desc: "SMS ALERT CHARGES", amount: -1_050, ref: () => "SMS" },
+  { desc: "TRF TO STAFF — SALARY TOPUP", amount: -60_000, ref: () => `NIP/${Math.floor(Math.random() * 1e6)}` },
+];
+
 export const useBanking = create<BankingState>((set, get) => ({
   accounts: seedBankAccounts,
   statementLines: seedStatementLines,
   reconciliations: seedReconciliations,
+  connections: seedBankConnections,
+  reconciliationRules: seedReconciliationRules,
 
   metaFor: (accountNumber) => get().accounts.find((a) => a.accountNumber === accountNumber),
+
+  connectBank: (accountNumber, provider) => {
+    const meta = get().metaFor(accountNumber);
+    set((s) => ({
+      connections: [
+        { id: `conn-${rid()}`, accountNumber, provider, institution: meta?.bankName ?? "Bank", status: "Connected", connectedAt: new Date().toISOString(), cursor: 0 },
+        ...s.connections.filter((c) => c.accountNumber !== accountNumber),
+      ],
+    }));
+    audit(`connected ${provider} feed for ${meta?.accountName ?? accountNumber}`, "accounting/banking/feed");
+  },
+  disconnectBank: (id) => {
+    set((s) => ({ connections: s.connections.map((c) => (c.id === id ? { ...c, status: "Disconnected" } : c)) }));
+    audit("disconnected a bank feed", "accounting/banking/feed");
+  },
+
+  syncFeed: (connectionId) => {
+    const conn = get().connections.find((c) => c.id === connectionId);
+    if (!conn || conn.status !== "Connected") return { imported: 0, autoMatched: 0 };
+    const count = 3 + Math.floor(Math.random() * 3);
+    const rows: BankStatementLine[] = Array.from({ length: count }, (_, i) => {
+      const tpl = FEED_TEMPLATES[(conn.cursor + i) % FEED_TEMPLATES.length];
+      return {
+        id: `feed-${rid()}`,
+        accountNumber: conn.accountNumber,
+        date: new Date(Date.now() - (count - i) * 864e5).toISOString(),
+        description: tpl.desc,
+        amount: tpl.amount,
+        reference: tpl.ref(),
+        reconciled: false,
+        importedAt: new Date().toISOString(),
+        origin: "feed",
+      };
+    });
+    set((s) => ({
+      statementLines: [...rows, ...s.statementLines],
+      connections: s.connections.map((c) => (c.id === connectionId ? { ...c, cursor: c.cursor + count, lastSyncAt: new Date().toISOString() } : c)),
+    }));
+    audit(`synced ${count} feed transaction(s) from ${conn.provider}`, "accounting/banking/feed");
+    const { matched } = get().applyRulesTo(conn.accountNumber);
+    return { imported: count, autoMatched: matched };
+  },
+
+  addRule: (r) => {
+    set((s) => ({ reconciliationRules: [...s.reconciliationRules, { ...r, id: `rr-${rid()}`, active: true }] }));
+    audit(`created reconciliation rule ${r.name}`, "accounting/banking/rules");
+  },
+  updateRule: (id, patch) => set((s) => ({ reconciliationRules: s.reconciliationRules.map((r) => (r.id === id ? { ...r, ...patch } : r)) })),
+  removeRule: (id) => set((s) => ({ reconciliationRules: s.reconciliationRules.filter((r) => r.id !== id) })),
+
+  applyRulesTo: (accountNumber) => {
+    const rules = get().reconciliationRules.filter((r) => r.active && r.accountNumber === accountNumber);
+    let matched = 0;
+    for (const line of get().statementLines.filter((l) => l.accountNumber === accountNumber && !l.reconciled)) {
+      const rule = rules.find((r) => {
+        if (r.descriptionContains && !line.description.toUpperCase().includes(r.descriptionContains.toUpperCase())) return false;
+        if (r.direction === "in" && line.amount <= 0) return false;
+        if (r.direction === "out" && line.amount >= 0) return false;
+        return true;
+      });
+      if (!rule) continue;
+      const res = get().recordBankLine({
+        accountNumber,
+        contraAccount: rule.contraAccount,
+        direction: line.amount >= 0 ? "in" : "out",
+        amount: Math.abs(line.amount),
+        date: line.date,
+        description: rule.memo ?? line.description,
+        reference: line.reference,
+      });
+      if (res.ok) {
+        set((s) => ({ statementLines: s.statementLines.map((l) => (l.id === line.id ? { ...l, reconciled: true, matchedJournalEntryId: res.entry?.id, ruleApplied: rule.id } : l)) }));
+        matched++;
+      }
+    }
+    if (matched) audit(`auto-matched ${matched} bank line(s) by rule`, `accounting/banking/${accountNumber}`);
+    return { matched };
+  },
 
   addBankAccount: (input) => {
     const res = useLedger.getState().addAccount({

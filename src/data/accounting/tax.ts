@@ -17,17 +17,23 @@ export type TaxRate = {
 };
 
 export type TaxReturnStatus = "Open" | "Filed" | "Paid";
+export type ReturnType = "VAT" | "WHT" | "PAYE";
 
 export type TaxReturn = {
   id: string;
   reference: string; // VAT-2026-08
   kind: TaxKind;
+  returnType: ReturnType;
+  authority: "FIRS" | "State IRS";
+  liabilityAccount: number;
   periodStart: string;
   periodEnd: string;
-  outputTax: number; // collected on sales
-  inputTax: number; // reclaimable on purchases
+  outputTax: number; // collected / withheld
+  inputTax: number; // reclaimable (VAT only)
   netPayable: number;
   status: TaxReturnStatus;
+  submissionRef?: string; // e-filing acknowledgement
+  filedVia?: string;
   filedAt?: string;
   paidAt?: string;
   journalEntryId?: string;

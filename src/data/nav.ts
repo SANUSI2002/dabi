@@ -198,6 +198,7 @@ export const NAV: NavGroup[] = [
         children: [
           { to: "/accounting/bank-accounts", label: "Bank Accounts" },
           { to: "/accounting/bank-transactions", label: "Bank Transactions" },
+          { to: "/accounting/bank-feeds", label: "Feeds & Rules" },
           { to: "/accounting/reconciliation", label: "Reconciliation" },
         ],
       },

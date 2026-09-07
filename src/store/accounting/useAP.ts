@@ -199,10 +199,9 @@ export const useAP = create<APState>((set, get) => {
 
     createRequisition: (input) => {
       const id = `pr-${rid()}`;
-      const n = get().requisitions.length + 6001;
       const pr: PurchaseRequisition = {
         id,
-        number: `PR-2026-${String(n).padStart(6, "0")}`,
+        number: useAccountingSettings.getState().nextDocNumber("requisition"),
         vendorId: input.vendorId,
         requestedBy: useIdentity.getState().user.id,
         department: input.department,
@@ -245,10 +244,9 @@ export const useAP = create<APState>((set, get) => {
 
     createPurchaseOrder: (input) => {
       const id = `po-${rid()}`;
-      const n = get().purchaseOrders.length + 9001;
       const po: PurchaseOrder = {
         id,
-        number: `PO-2026-${String(n).padStart(6, "0")}`,
+        number: useAccountingSettings.getState().nextDocNumber("po"),
         vendorId: input.vendorId,
         requisitionId: input.requisitionId,
         date: input.date,
@@ -270,10 +268,9 @@ export const useAP = create<APState>((set, get) => {
       const po = get().purchaseOrders.find((x) => x.id === poId);
       if (!po) return;
       const grId = `gr-${rid()}`;
-      const n = get().goodsReceipts.length + 1;
       const gr: GoodsReceipt = {
         id: grId,
-        number: `GRN-2026-${String(n).padStart(6, "0")}`,
+        number: useAccountingSettings.getState().nextDocNumber("goods-receipt"),
         purchaseOrderId: poId,
         vendorId: po.vendorId,
         date: new Date().toISOString(),
@@ -412,10 +409,9 @@ export const useAP = create<APState>((set, get) => {
     createVendorCredit: (input) => {
       const vendor = get().vendorById(input.vendorId)!;
       const id = `vc-${rid()}`;
-      const n = get().vendorCredits.length + 1;
       const vc: VendorCredit = {
         id,
-        number: `VC-2026-${String(n).padStart(6, "0")}`,
+        number: useAccountingSettings.getState().nextDocNumber("vendor-credit"),
         vendorId: input.vendorId,
         billId: input.billId,
         date: input.date,
