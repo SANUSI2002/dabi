@@ -136,7 +136,7 @@ export default function OrgSetup() {
       </Modal>
 
       <Modal open={deptOpen} onClose={() => setDeptOpen(false)} title="Add department"
-        footer={<><Button variant="ghost" onClick={() => setDeptOpen(false)}>Cancel</Button><Button disabled={!deptName.trim()} onClick={() => { addDepartment({ name: deptName.trim(), companyIds: [companies[0]?.id ?? "co1"] }); setDeptOpen(false); }}>Add</Button></>}>
+        footer={<><Button variant="ghost" onClick={() => setDeptOpen(false)}>Cancel</Button><Button disabled={!deptName.trim()} onClick={() => { addDepartment({ name: deptName.trim(), code: deptName.trim().slice(0,3).toUpperCase(), companyIds: [companies[0]?.id ?? "co1"] }); setDeptOpen(false); }}>Add</Button></>}>
         <Field label="Name"><Input value={deptName} onChange={(e) => setDeptName(e.target.value)} /></Field>
       </Modal>
 

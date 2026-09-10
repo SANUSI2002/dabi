@@ -56,6 +56,7 @@ const OnboardingHr = lazy(() => import("@/pages/hr/Onboarding"));
 const Offboarding = lazy(() => import("@/pages/hr/Offboarding"));
 const Performance = lazy(() => import("@/pages/hr/Performance"));
 const OrgChart = lazy(() => import("@/pages/hr/OrgChart"));
+const Departments = lazy(() => import("@/pages/hr/Departments"));
 const PoliciesDiscipline = lazy(() => import("@/pages/hr/PoliciesDiscipline"));
 const TalentPool = lazy(() => import("@/pages/hr/TalentPool"));
 const CompanyAssets = lazy(() => import("@/pages/hr/CompanyAssets"));
@@ -192,6 +193,8 @@ export default function App() {
           <Route path="/hr/offboarding" element={<Offboarding />} />
           <Route path="/hr/performance" element={<Performance />} />
           <Route path="/hr/org-chart" element={<OrgChart />} />
+          <Route path="/hr/departments" element={<Departments />} />
+          <Route path="/hr/departments/:id" element={<Departments />} />
           <Route path="/hr/policies-discipline" element={<PoliciesDiscipline />} />
           <Route path="/hr/talent-pool" element={<TalentPool />} />
           <Route path="/hr/assets" element={<CompanyAssets />} />

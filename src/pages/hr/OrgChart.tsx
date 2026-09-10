@@ -218,7 +218,7 @@ export default function OrgChart() {
         onClose={() => setDeptModal(false)}
         title="New department"
         footer={<><Button variant="ghost" onClick={() => setDeptModal(false)}>Cancel</Button>
-          <Button disabled={!deptName.trim()} onClick={() => { addDepartment({ name: deptName.trim(), companyIds: ["co1"] }); setDeptModal(false); }}>Add department</Button></>}
+          <Button disabled={!deptName.trim()} onClick={() => { addDepartment({ name: deptName.trim(), code: deptName.trim().slice(0,3).toUpperCase(), companyIds: ["co1"] }); setDeptModal(false); }}>Add department</Button></>}
       >
         <Field label="Department name"><Input value={deptName} onChange={(e) => setDeptName(e.target.value)} placeholder="e.g. Radiology" /></Field>
       </Modal>

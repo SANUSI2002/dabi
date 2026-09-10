@@ -14,10 +14,33 @@ export type Company = {
   country: string;
 };
 
+export type DepartmentStatus = "Active" | "Inactive" | "Merging" | "Dissolved";
+
 export type Department = {
   id: string;
   name: string;
-  companyIds: string[];
+  code: string;
+  description?: string;
+  companyIds: string[]; // branches this department operates in
+  status: DepartmentStatus;
+  hodId?: string; // staff id
+  deputyHodId?: string;
+  staffIds: string[]; // explicitly assigned members (beyond position-based)
+  parentDepartmentId?: string; // sub-departments / units
+  createdAt: string;
+};
+
+/** an immutable record every time a department's leadership changes */
+export type HodChange = {
+  id: string;
+  departmentId: string;
+  role: "hod" | "deputy-hod";
+  previousStaffId?: string;
+  newStaffId?: string;
+  effectiveDate: string;
+  reason?: string;
+  changedBy: string;
+  at: string;
 };
 
 export type JobPosition = {
@@ -47,15 +70,21 @@ export const companies: Company[] = [
   { id: "co1", name: "Sabi Health Post", code: "PHC-SABI-014", isHeadquarters: true, address: "12 Kirikiri Road", lga: "Amuwo-Odofin", state: "Lagos", country: "Nigeria" },
 ];
 
+const d = (id: string, name: string, code: string, hodId: string | undefined, deputyHodId: string | undefined, staffIds: string[], description: string): Department => ({
+  id, name, code, description, companyIds: ["co1"], status: "Active", hodId, deputyHodId, staffIds, createdAt: "2025-01-01T00:00:00.000Z",
+});
+
 export const departments: Department[] = [
-  { id: "d1", name: "Nursing", companyIds: ["co1"] },
-  { id: "d2", name: "Medical", companyIds: ["co1"] },
-  { id: "d3", name: "Laboratory", companyIds: ["co1"] },
-  { id: "d4", name: "Pharmacy", companyIds: ["co1"] },
-  { id: "d5", name: "Records & HMIS", companyIds: ["co1"] },
-  { id: "d6", name: "Administration", companyIds: ["co1"] },
-  { id: "d7", name: "Community Health", companyIds: ["co1"] },
+  d("d1", "Nursing", "NUR", "s2", "s3", ["s2", "s3", "s5", "s8"], "Ward and clinic nursing across all service points."),
+  d("d2", "Medical", "MED", "s1", undefined, ["s1"], "Medical officers, consultations, admissions."),
+  d("d3", "Laboratory", "LAB", "s7", undefined, ["s7"], "Diagnostic testing, sample workflow and results."),
+  d("d4", "Pharmacy", "PHM", undefined, undefined, [], "Dispensing and drug inventory."),
+  d("d5", "Records & HMIS", "REC", "s6", undefined, ["s4", "s6"], "Health records, M&E and statutory reporting."),
+  d("d6", "Administration", "ADM", "s1", undefined, [], "HR, front office, facilities and finance liaison."),
+  d("d7", "Community Health", "CHW", undefined, undefined, [], "Outreach, CHW programmes and referrals."),
 ];
+
+export const hodChanges: HodChange[] = [];
 
 export const jobPositions: JobPosition[] = [
   { id: "jp1", name: "Nurse", departmentId: "d1" },
