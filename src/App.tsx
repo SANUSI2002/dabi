@@ -105,6 +105,7 @@ const TerminologySettings = lazy(() => import("@/pages/platform/TerminologySetti
 const MasterDataSettings = lazy(() => import("@/pages/platform/MasterDataSettings"));
 const WorkflowBuilder = lazy(() => import("@/pages/platform/WorkflowBuilder"));
 const WorkflowInbox = lazy(() => import("@/pages/platform/WorkflowInbox"));
+const LetterTemplates = lazy(() => import("@/pages/platform/LetterTemplates"));
 const AcctTax = lazy(() => import("@/pages/accounting/TaxCenter"));
 const AcctReports = lazy(() => import("@/pages/accounting/AccountingReports"));
 const AcctApprovals = lazy(() => import("@/pages/accounting/AccountingApprovals"));
@@ -174,6 +175,7 @@ export default function App() {
           <Route path="/settings/terminology" element={<TerminologySettings />} />
           <Route path="/settings/master-data" element={<MasterDataSettings />} />
           <Route path="/settings/workflows" element={<WorkflowBuilder />} />
+          <Route path="/settings/letters" element={<LetterTemplates />} />
           <Route path="/workflows/inbox" element={<WorkflowInbox />} />
           <Route path="/workforce" element={<WorkforceLayout />}>
             <Route index element={<WorkforceDashboard />} />

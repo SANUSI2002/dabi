@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ListChecks, CheckCircle2, ArrowRight, UserPlus, ShieldCheck, Clock, XCircle, Upload, FileText, FileCheck2 } from "lucide-react";
+import { ListChecks, CheckCircle2, ArrowRight, UserPlus, ShieldCheck, Clock, XCircle, Upload, FileText, FileCheck2, MailWarning } from "lucide-react";
 import { PageHeader, Card, Button, Badge, StatCard } from "@/components/ui/primitives";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Textarea } from "@/components/ui/form";
+import { LetterDoc } from "@/components/print/LetterDoc";
 import { useOnboarding } from "@/store/useOnboarding";
+import { useLetters } from "@/platform/useLetters";
 import { useOrg } from "@/store/useOrg";
 import { useApprovals } from "@/store/useApprovals";
 import { useIdentity } from "@/store/useIdentity";
@@ -12,10 +14,15 @@ import { timeAgo, initials } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 export default function Onboarding() {
-  const { stages, tasks, progress, toggleTask, canAdvance, advanceStage, convertToEmployee, uploadTaskDocument, documentsFor, setResumptionDate, setBasicSalary, offerLetterTemplate, setOfferLetterTemplate } = useOnboarding();
+  const { stages, tasks, progress, toggleTask, canAdvance, advanceStage, convertToEmployee, uploadTaskDocument, documentsFor, setResumptionDate, setBasicSalary, offerLetterTemplate, setOfferLetterTemplate, outstandingRequiredDocs, raiseMissingDocumentLetter } = useOnboarding();
   const { jobPositionName, departmentName } = useOrg();
   const { requests: approvalRequests, submitRequest } = useApprovals();
   const user = useIdentity((s) => s.user);
+  const letterById = useLetters((s) => s.letterById);
+  const templates = useLetters((s) => s.templates);
+  const [noticeFor, setNoticeFor] = useState<{ progressId: string; deadline: string } | null>(null);
+  const [viewLetterId, setViewLetterId] = useState<string | null>(null);
+  const viewLetter = viewLetterId ? letterById(viewLetterId) : null;
   const [convertFor, setConvertFor] = useState<string | null>(null);
   const [cf, setCf] = useState({ role: "", cadre: "" });
   const [newEmployeeId, setNewEmployeeId] = useState<string | null>(null);
@@ -115,7 +122,12 @@ export default function Onboarding() {
                 </div>
               )}
 
-              <div className="mt-3 flex items-center justify-end gap-3">
+              <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
+                {outstandingRequiredDocs(p.id).length > 0 && (
+                  <Button variant="ghost" onClick={() => setNoticeFor({ progressId: p.id, deadline: "" })}>
+                    <MailWarning size={14} /> Outstanding-document notice ({outstandingRequiredDocs(p.id).length})
+                  </Button>
+                )}
                 {stage.isFinal ? (
                   !review || review.status === "Rejected" ? (
                     <>
@@ -201,6 +213,46 @@ export default function Onboarding() {
       >
         <Field label="Document reference / file name"><Input value={uploadTitle} onChange={(e) => setUploadTitle(e.target.value)} placeholder="e.g. NIN-Slip-Ngozi-Umeh.pdf" /></Field>
       </Modal>
+
+      <Modal
+        open={!!noticeFor}
+        onClose={() => setNoticeFor(null)}
+        title="Outstanding-document notice"
+        footer={<><Button variant="ghost" onClick={() => setNoticeFor(null)}>Cancel</Button>
+          <Button onClick={() => {
+            if (!noticeFor) return;
+            const id = raiseMissingDocumentLetter(noticeFor.progressId, { deadline: noticeFor.deadline || undefined });
+            setNoticeFor(null);
+            if (id) setViewLetterId(id);
+          }}>Generate letter</Button></>}
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-mist-600">
+            The following required documents are still outstanding and will be listed in the letter:
+          </p>
+          <ul className="rounded-xl bg-mist-50 px-4 py-3 text-sm text-mist-700">
+            {noticeFor && outstandingRequiredDocs(noticeFor.progressId).map((d) => <li key={d}>• {d}</li>)}
+          </ul>
+          <Field label="Submission deadline (optional)">
+            <Input type="date" value={noticeFor?.deadline ?? ""} onChange={(e) => setNoticeFor((n) => (n ? { ...n, deadline: e.target.value } : n))} />
+          </Field>
+          <p className="text-xs text-mist-400">The generated letter is logged under Platform → Letters &amp; Documents and can be printed or saved as PDF.</p>
+        </div>
+      </Modal>
+
+      {viewLetter && (
+        <LetterDoc
+          open
+          onClose={() => setViewLetterId(null)}
+          title={viewLetter.title}
+          body={viewLetter.rendered}
+          signatories={(templates.find((t) => t.key === viewLetter.templateKey)?.signatories ?? []).map((s) =>
+            s.replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (_, k) => viewLetter.data[k] || "________"),
+          )}
+          reference={viewLetter.reference}
+          date={viewLetter.generatedAt}
+        />
+      )}
 
       <Modal
         open={templateOpen}

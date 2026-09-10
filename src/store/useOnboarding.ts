@@ -4,6 +4,10 @@ import { audit } from "@/store/useAudit";
 import { useHr } from "@/store/useHr";
 import { useEmployees } from "@/store/useEmployees";
 import { usePayroll } from "@/store/usePayroll";
+import { useOrg } from "@/store/useOrg";
+import { useLetters } from "@/platform/useLetters";
+import { useIdentity } from "@/store/useIdentity";
+import { term } from "@/platform/useTerminology";
 import type { OnboardingProgress, OnboardingDocument } from "@/data/onboarding";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
@@ -19,6 +23,8 @@ type OnboardingState = {
   toggleTask: (progressId: string, taskId: string) => void;
   uploadTaskDocument: (progressId: string, taskId: string, title: string) => void;
   documentsFor: (progressId: string) => OnboardingDocument[];
+  outstandingRequiredDocs: (progressId: string) => string[];
+  raiseMissingDocumentLetter: (progressId: string, opts?: { deadline?: string }) => string | undefined;
   setResumptionDate: (progressId: string, date: string) => void;
   setBasicSalary: (progressId: string, amount: number) => void;
   setOfferLetterTemplate: (text: string) => void;
@@ -66,6 +72,38 @@ export const useOnboarding = create<OnboardingState>((set, get) => ({
   },
 
   documentsFor: (progressId) => get().documents.filter((d) => d.progressId === progressId),
+
+  outstandingRequiredDocs: (progressId) => {
+    const p = get().progress.find((x) => x.id === progressId);
+    if (!p) return [];
+    return get().tasks
+      .filter((t) => t.requiresUpload && t.isRequired && !p.taskDone[t.id])
+      .map((t) => t.title);
+  },
+
+  raiseMissingDocumentLetter: (progressId, opts) => {
+    const p = get().progress.find((x) => x.id === progressId);
+    if (!p) return undefined;
+    const missing = get().outstandingRequiredDocs(progressId);
+    if (missing.length === 0) return undefined;
+    const issuer = useIdentity.getState().user;
+    const id = useLetters.getState().generate({
+      templateKey: "missing-document",
+      title: `Outstanding Document Notice — ${p.candidateName}`,
+      reference: p.id,
+      data: {
+        employee_name: p.candidateName,
+        document_list: missing.map((m) => `• ${m}`).join("\n"),
+        department: useOrg.getState().departmentName(p.departmentId),
+        deadline: opts?.deadline ?? "________",
+        issued_by: issuer.name,
+        issuer_role: term("hod", "singular"),
+        organisation: term("organisation", "singular"),
+      },
+    });
+    audit("generated outstanding-document notice", `hr/onboarding/${p.candidateName}`);
+    return id;
+  },
 
   setResumptionDate: (progressId, date) => {
     set((s) => ({ progress: s.progress.map((x) => (x.id === progressId ? { ...x, resumptionDate: date } : x)) }));

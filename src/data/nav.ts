@@ -60,6 +60,7 @@ import {
   Bell,
   Languages,
   Database,
+  FileText,
   type LucideIcon,
 } from "lucide-react";
 
@@ -247,6 +248,7 @@ export const NAV: NavGroup[] = [
       { to: "/platform", label: "Platform & Modules", icon: Boxes },
       { to: "/workflows/inbox", label: "Approvals Inbox", icon: CheckSquare },
       { to: "/settings/workflows", label: "Workflow Builder", icon: Network },
+      { to: "/settings/letters", label: "Letters & Documents", icon: FileText },
       { to: "/settings/terminology", label: "Terminology", icon: Languages },
       { to: "/settings/master-data", label: "Master Data", icon: Database },
     ],
