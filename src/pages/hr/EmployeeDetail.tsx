@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft, Mail, Phone, Building2, Award, FileWarning, StickyNote,
@@ -15,11 +15,12 @@ import { useOrg } from "@/store/useOrg";
 import { useCompanyAssets } from "@/store/useCompanyAssets";
 import { usePayroll } from "@/store/usePayroll";
 import { useAudit } from "@/store/useAudit";
+import { useMasterData } from "@/platform/useMasterData";
 import { shortDate, timeAgo, initials, ageFromDob, naira } from "@/lib/format";
 import { differenceInCalendarDays } from "date-fns";
 import type { DocumentCategory } from "@/data/hrProfile";
 
-const DOC_CATEGORIES: DocumentCategory[] = ["License / Certification", "Contract", "ID", "Academic", "Other"];
+const DOC_CATEGORIES_FALLBACK = ["Signed Offer Letter", "Degree Certificate", "Professional Practising Licence", "Reference Letter"];
 
 export default function EmployeeDetail() {
   const { id } = useParams();
@@ -35,6 +36,11 @@ export default function EmployeeDetail() {
   const { assets: companyAssets, allocations, categories: assetCategories } = useCompanyAssets();
   const { payslips, structureFor } = usePayroll();
   const auditEvents = useAudit((s) => s.events);
+  const masterData = useMasterData((s) => s.data);
+  const docCategories = useMemo(() => {
+    const items = (masterData["document-types"] ?? []).filter((i) => i.active).map((i) => i.label);
+    return items.length ? items : DOC_CATEGORIES_FALLBACK;
+  }, [masterData]);
 
   const p = profileFor(id ?? "");
   const myDocs = documents.filter((d) => d.employeeId === id);
@@ -62,7 +68,7 @@ export default function EmployeeDetail() {
   }));
 
   const [reqOpen, setReqOpen] = useState(false);
-  const [rf, setRf] = useState<{ title: string; category: DocumentCategory }>({ title: "", category: "License / Certification" });
+  const [rf, setRf] = useState<{ title: string; category: DocumentCategory }>({ title: "", category: "" });
   const [uploadFor, setUploadFor] = useState<string | null>(null);
   const [uf, setUf] = useState({ issueDate: "", expiryDate: "" });
   const [rejectFor, setRejectFor] = useState<string | null>(null);
@@ -457,11 +463,11 @@ export default function EmployeeDetail() {
         onClose={() => setReqOpen(false)}
         title="Request document"
         footer={<><Button variant="ghost" onClick={() => setReqOpen(false)}>Cancel</Button>
-          <Button disabled={!rf.title.trim()} onClick={() => { requestDocument([id!], rf.title.trim(), rf.category); setReqOpen(false); }}>Request</Button></>}
+          <Button disabled={!rf.title.trim()} onClick={() => { requestDocument([id!], rf.title.trim(), rf.category || docCategories[0]); setReqOpen(false); }}>Request</Button></>}
       >
         <div className="space-y-4">
           <Field label="Title"><Input value={rf.title} onChange={(e) => setRf({ ...rf, title: e.target.value })} placeholder="e.g. MDCN Practising License" /></Field>
-          <Field label="Category"><Select value={rf.category} onChange={(e) => setRf({ ...rf, category: e.target.value as DocumentCategory })} options={DOC_CATEGORIES} /></Field>
+          <Field label="Category"><Select value={rf.category || docCategories[0]} onChange={(e) => setRf({ ...rf, category: e.target.value as DocumentCategory })} options={docCategories} /></Field>
         </div>
       </Modal>
 

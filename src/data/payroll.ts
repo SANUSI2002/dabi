@@ -45,7 +45,8 @@ export type Contract = {
   status: ContractStatus;
 };
 
-export type LoanType = "Loan" | "Salary Advance";
+/** master-data "loan-types" label (configurable) */
+export type LoanType = string;
 export type LoanStatus = "Requested" | "Approved" | "Rejected" | "Repaying" | "Overdue" | "Settled";
 export type RepaymentMethod = "Manual" | "Salary Auto-Debit";
 export type Loan = {

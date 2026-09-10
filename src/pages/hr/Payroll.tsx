@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Wallet, Plus, ArrowRight, Banknote, ReceiptText, HandCoins, AlertTriangle, Send, RefreshCcw, Settings2 } from "lucide-react";
 import { PageHeader, Card, Button, Badge, StatCard, statusTone, Progress, EmptyState } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
@@ -7,6 +7,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Checkbox } from "@/components/ui/form";
 import { usePayroll } from "@/store/usePayroll";
 import { useHr } from "@/store/useHr";
+import { useMasterData } from "@/platform/useMasterData";
 import { naira, shortDate } from "@/lib/format";
 import type { LoanType, ReimbursementType, RepaymentMethod } from "@/data/payroll";
 
@@ -23,6 +24,9 @@ export default function Payroll() {
   } = usePayroll();
   const staff = useHr((s) => s.staff);
   const name = (id: string) => staff.find((s) => s.id === id)?.name ?? id;
+  const masterData = useMasterData((s) => s.data);
+  const loanTypes = useMemo(() => (masterData["loan-types"] ?? []).filter((i) => i.active), [masterData]);
+  const loanTypeOptions = loanTypes.length ? loanTypes.map((t) => t.label) : ["Staff Advance", "Personal Loan"];
 
   const batches = [...new Set(payslips.map((p) => p.batch))];
   const totalNetThisMonth = payslips.filter((p) => p.batch === batches[0]).reduce((n, p) => n + p.netPay, 0);
@@ -37,7 +41,7 @@ export default function Payroll() {
   const [cf, setCf] = useState({ employeeId: staff[0]?.id ?? "", title: "", startDate: "", endDate: "", basicSalary: 0 });
 
   const [loanOpen, setLoanOpen] = useState(false);
-  const [lf, setLf] = useState({ employeeId: staff[0]?.id ?? "", type: "Salary Advance" as LoanType, amount: 0, installments: 1, reason: "", repaymentMethod: "Manual" as RepaymentMethod });
+  const [lf, setLf] = useState({ employeeId: staff[0]?.id ?? "", type: "Staff Advance" as LoanType, amount: 0, installments: 1, reason: "", repaymentMethod: "Manual" as RepaymentMethod });
 
   const [payFor, setPayFor] = useState<string | null>(null);
   const [pf, setPf] = useState({ amount: 0, date: new Date().toISOString().slice(0, 10) });
@@ -170,7 +174,7 @@ export default function Payroll() {
                 </div>
               </Card>
 
-              <div className="flex justify-end"><Button variant="soft" onClick={() => { setLf({ employeeId: staff[0]?.id ?? "", type: "Salary Advance", amount: 0, installments: 1, reason: "", repaymentMethod: "Manual" }); setLoanOpen(true); }}><Plus size={14} /> Request</Button></div>
+              <div className="flex justify-end"><Button variant="soft" onClick={() => { setLf({ employeeId: staff[0]?.id ?? "", type: loanTypeOptions[0], amount: 0, installments: 1, reason: "", repaymentMethod: "Manual" }); setLoanOpen(true); }}><Plus size={14} /> Request</Button></div>
 
               {loans.length === 0 && <EmptyState title="No loans or advances" hint="Requests raised for employees will show up here." />}
               {loans.map((l) => {
@@ -329,7 +333,15 @@ export default function Payroll() {
         <div className="space-y-4">
           <Field label="Employee"><Select value={lf.employeeId} onChange={(e) => setLf({ ...lf, employeeId: e.target.value })} options={staff.map((s) => ({ value: s.id, label: s.name }))} /></Field>
           <div className="grid grid-cols-3 gap-4">
-            <Field label="Type"><Select value={lf.type} onChange={(e) => setLf({ ...lf, type: e.target.value as LoanType })} options={["Salary Advance", "Loan"]} /></Field>
+            <Field label="Type"><Select
+              value={lf.type}
+              onChange={(e) => {
+                const it = loanTypes.find((t) => t.label === e.target.value);
+                const auto = it?.meta?.autoDebit === true;
+                setLf({ ...lf, type: e.target.value, repaymentMethod: auto ? "Salary Auto-Debit" : lf.repaymentMethod });
+              }}
+              options={loanTypeOptions}
+            /></Field>
             <Field label="Amount"><Input type="number" value={lf.amount} onChange={(e) => setLf({ ...lf, amount: +e.target.value })} /></Field>
             <Field label="Instalments"><Input type="number" min="1" value={lf.installments} onChange={(e) => setLf({ ...lf, installments: +e.target.value })} /></Field>
           </div>

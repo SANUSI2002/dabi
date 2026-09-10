@@ -35,7 +35,8 @@ export type EmployeeProfile = {
   bankBranch?: string;
 };
 
-export type DocumentCategory = "License / Certification" | "Contract" | "ID" | "Academic" | "Other";
+/** master-data "document-types" label (configurable) — seeds use the values below */
+export type DocumentCategory = string;
 export type DocumentStatus = "Requested" | "Uploaded" | "Approved" | "Rejected";
 
 export type EmployeeDocument = {
