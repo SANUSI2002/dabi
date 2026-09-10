@@ -137,15 +137,67 @@ export function statusTone(s: string): "brand" | "action" | "mist" | "amber" {
   return "mist";
 }
 
-/* ---------- Empty state ---------- */
-export function EmptyState({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
+/* ---------- Empty state ----------
+ * `variant` keeps two very different meanings apart:
+ *   "empty"       — nothing has been recorded yet (a normal, expected state)
+ *   "unavailable" — the information exists elsewhere but cannot be shown here
+ *   "error"       — something went wrong loading it
+ */
+export function EmptyState({
+  title,
+  hint,
+  action,
+  variant = "empty",
+  compact = false,
+}: {
+  title: string;
+  hint?: string;
+  action?: ReactNode;
+  variant?: "empty" | "unavailable" | "error";
+  compact?: boolean;
+}) {
+  const mark = {
+    empty: "bg-brand-gradient-soft",
+    unavailable: "bg-mist-200",
+    error: "bg-action-100 ring-1 ring-action-200",
+  }[variant];
   return (
-    <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-mist-300 bg-mist-50/60 px-6 py-14 text-center">
-      <div className="h-10 w-10 rounded-xl bg-brand-gradient-soft" />
+    <div
+      role={variant === "error" ? "alert" : "status"}
+      className={cn(
+        "flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed text-center",
+        variant === "error" ? "border-action-200 bg-action-50/50" : "border-mist-300 bg-mist-50/60",
+        compact ? "px-4 py-8" : "px-6 py-14",
+      )}
+    >
+      <div className={cn("h-10 w-10 rounded-xl", mark)} />
       <p className="font-semibold text-mist-700">{title}</p>
       {hint && <p className="max-w-sm text-sm text-mist-400">{hint}</p>}
       {action && <div className="mt-2">{action}</div>}
     </div>
+  );
+}
+
+/* ---------- Section note ----------
+ * Inline honest placeholder for a panel that genuinely has nothing to show —
+ * distinguishes "none recorded" from "unavailable" without a full empty state.
+ */
+export function SectionNote({
+  children,
+  tone = "empty",
+}: {
+  children: ReactNode;
+  tone?: "empty" | "unavailable";
+}) {
+  return (
+    <p
+      className={cn(
+        "rounded-xl px-3 py-2 text-sm",
+        tone === "unavailable" ? "bg-mist-100 text-mist-500" : "bg-mist-50 text-mist-400",
+      )}
+    >
+      {children}
+    </p>
   );
 }
 
