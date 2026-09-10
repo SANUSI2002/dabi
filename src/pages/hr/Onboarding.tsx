@@ -8,16 +8,20 @@ import { LetterDoc } from "@/components/print/LetterDoc";
 import { useOnboarding } from "@/store/useOnboarding";
 import { useLetters } from "@/platform/useLetters";
 import { useOrg } from "@/store/useOrg";
-import { useApprovals } from "@/store/useApprovals";
+import { useWorkflow } from "@/platform/workflow/useWorkflow";
 import { useIdentity } from "@/store/useIdentity";
+import { ACCOUNTS } from "@/data/accounts";
 import { timeAgo, initials } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 export default function Onboarding() {
   const { stages, tasks, progress, toggleTask, canAdvance, advanceStage, convertToEmployee, uploadTaskDocument, documentsFor, setResumptionDate, setBasicSalary, offerLetterTemplate, setOfferLetterTemplate, outstandingRequiredDocs, raiseMissingDocumentLetter } = useOnboarding();
   const { jobPositionName, departmentName } = useOrg();
-  const { requests: approvalRequests, submitRequest } = useApprovals();
+  const startWorkflow = useWorkflow((s) => s.start);
+  const instanceFor = useWorkflow((s) => s.instanceFor);
+  useWorkflow((s) => s.instances); // re-render when any instance changes
   const user = useIdentity((s) => s.user);
+  const HR_ADMIN = ACCOUNTS.find((a) => a.wfRole === "Tenant HR Administrator")?.id ?? "s1";
   const letterById = useLetters((s) => s.letterById);
   const templates = useLetters((s) => s.templates);
   const [noticeFor, setNoticeFor] = useState<{ progressId: string; deadline: string } | null>(null);
@@ -54,7 +58,8 @@ export default function Onboarding() {
           const stage = stages.find((s) => s.id === p.currentStageId)!;
           const stageTasks = tasks.filter((t) => t.stageId === stage.id);
           const ready = canAdvance(p.id);
-          const review = approvalRequests.find((r) => r.reference === p.id);
+          const inst = instanceFor(p.id);
+          const reviewState = !inst || inst.status === "Cancelled" ? "none" : inst.status; // "none" | "Running" | "Approved" | "Rejected"
           const myDocs = documentsFor(p.id);
           const finalReady = ready && !!p.resumptionDate && !!p.basicSalary;
           return (
@@ -115,7 +120,7 @@ export default function Onboarding() {
                 })}
               </div>
 
-              {stage.isFinal && (!review || review.status === "Rejected") && (
+              {stage.isFinal && (reviewState === "none" || reviewState === "Rejected") && (
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <Field label="Resumption date"><Input type="date" value={p.resumptionDate ?? ""} onChange={(e) => setResumptionDate(p.id, e.target.value)} /></Field>
                   <Field label="Basic salary (per month)"><Input type="number" value={p.basicSalary ?? ""} onChange={(e) => setBasicSalary(p.id, +e.target.value)} placeholder="e.g. 180000" /></Field>
@@ -129,18 +134,18 @@ export default function Onboarding() {
                   </Button>
                 )}
                 {stage.isFinal ? (
-                  !review || review.status === "Rejected" ? (
+                  reviewState === "none" || reviewState === "Rejected" ? (
                     <>
-                      {review?.status === "Rejected" && <Badge tone="action"><XCircle size={11} /> Review rejected — resubmit below</Badge>}
+                      {reviewState === "Rejected" && <Badge tone="action"><XCircle size={11} /> Review sent back — resubmit below</Badge>}
                       <Button
                         disabled={!finalReady}
-                        onClick={() => submitRequest("at1", { subjectLabel: `Convert ${p.candidateName} to employee`, requestedBy: user.id, reference: p.id })}
+                        onClick={() => startWorkflow({ triggerType: "onboarding", subject: `Convert ${p.candidateName} to employee`, reference: p.id, context: { initiatorId: user.id, "roleHolder:HR Administrator": HR_ADMIN } })}
                       >
                         <ShieldCheck size={14} /> Submit for HR review
                       </Button>
                     </>
-                  ) : review.status === "Pending" ? (
-                    <Badge tone="amber"><Clock size={11} /> Awaiting HR review — see <Link to="/hr/approvals" className="underline">Approval Workflows</Link></Badge>
+                  ) : reviewState === "Running" ? (
+                    <Badge tone="amber"><Clock size={11} /> Awaiting HR review — see the <Link to="/workflows/inbox" className="underline">Approvals Inbox</Link></Badge>
                   ) : (
                     <Button onClick={() => { setCf({ role: jobPositionName(p.jobPositionId), cadre: "" }); setConvertFor(p.id); }}>
                       <UserPlus size={14} /> Convert to employee

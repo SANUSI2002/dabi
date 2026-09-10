@@ -102,6 +102,24 @@ export const seedWorkflowDefs: WorkflowDef[] = [
   },
   {
     ...base,
+    id: "wf-onboarding",
+    name: "New-Hire Conversion",
+    description: "HR reviews a completed onboarding checklist before the candidate becomes an employee.",
+    triggerType: "onboarding",
+    nodes: [
+      { id: "o1", type: "start", label: "Submitted for review", x: 60, y: 150 },
+      { id: "o2", type: "approval", label: "HR review", x: 280, y: 150, approverType: "role", approverRef: "HR Administrator" },
+      { id: "o3", type: "end", label: "Cleared to convert", x: 500, y: 150, outcome: "approved" },
+      { id: "o4", type: "end", label: "Sent back", x: 280, y: 300, outcome: "rejected" },
+    ],
+    edges: [
+      { id: "oe1", from: "o1", to: "o2", branch: "default" },
+      { id: "oe2", from: "o2", to: "o3", branch: "approve" },
+      { id: "oe3", from: "o2", to: "o4", branch: "reject" },
+    ],
+  },
+  {
+    ...base,
     id: "wf-vacancy",
     name: "Vacancy Request",
     description: "HOD raises, HR approves. If HR does not act within 48 hours it escalates to an executive.",
