@@ -72,3 +72,14 @@ export const useTerminology = create<TerminologyState>(
 
 /** non-hook accessor for use inside data builders / other stores */
 export const term = (key: TermKey, form: "singular" | "plural" = "singular") => useTerminology.getState().label(key, form);
+
+/**
+ * Reactive hook for components: returns a `t(key, form?)` that re-renders when an
+ * admin renames a term. Subscribes to `overrides` (the raw map) so the label
+ * function alone doesn't have to be a dependency.
+ */
+export function useTerm() {
+  const overrides = useTerminology((s) => s.overrides);
+  return (key: TermKey, form: "singular" | "plural" = "singular") =>
+    (overrides[key] && overrides[key]![form]) || DEFAULTS[key][form];
+}

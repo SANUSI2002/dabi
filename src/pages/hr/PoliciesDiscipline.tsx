@@ -10,6 +10,7 @@ import { useHr } from "@/store/useHr";
 import { useQueries } from "@/store/useQueries";
 import { useApprovals } from "@/store/useApprovals";
 import { useIdentity } from "@/store/useIdentity";
+import { useTerm } from "@/platform/useTerminology";
 import { ACCOUNTS } from "@/data/accounts";
 import { QueryLetterDoc } from "@/components/print/documents";
 import { shortDate, timeAgo } from "@/lib/format";
@@ -22,6 +23,7 @@ export default function PoliciesDiscipline() {
   const staff = useHr((s) => s.staff);
   const byId = useHr((s) => s.byId);
   const name = (id: string) => staff.find((s) => s.id === id)?.name ?? id;
+  const orgTerm = useTerm();
   const { queries, raiseQuery, markSent } = useQueries();
   const { requestFor } = useApprovals();
   const user = useIdentity((s) => s.user);
@@ -80,7 +82,7 @@ export default function PoliciesDiscipline() {
               <div className="flex justify-end">
                 <Button onClick={() => { setQf({ employeeId: staff[0]?.id ?? "", subject: "", body: "", responseDeadlineDays: 3 }); setQueryOpen(true); }}><Plus size={14} /> Raise query</Button>
               </div>
-              {queries.length === 0 && <EmptyState title="No queries raised" hint="A line manager raising a query against an employee will show up here, routed to HR for signature." />}
+              {queries.length === 0 && <EmptyState title="No queries raised" hint={`A ${orgTerm("lineManager").toLowerCase()} raising a query against an employee will show up here, routed to HR for signature.`} />}
               {queries.map((q) => {
                 const st = queryStatusFor(q.id);
                 const req = requestFor(q.id);
@@ -200,7 +202,7 @@ export default function PoliciesDiscipline() {
           <Field label="Subject"><Input value={qf.subject} onChange={(e) => setQf({ ...qf, subject: e.target.value })} placeholder="e.g. Unexplained absence from duty" /></Field>
           <Field label="Query letter body"><Textarea className="min-h-[160px]" value={qf.body} onChange={(e) => setQf({ ...qf, body: e.target.value })} placeholder="State the facts, the policy or expectation breached, and what is being asked of the employee…" /></Field>
           <Field label="Response deadline (days)"><Input type="number" min="1" value={qf.responseDeadlineDays} onChange={(e) => setQf({ ...qf, responseDeadlineDays: +e.target.value })} /></Field>
-          <p className="rounded-xl bg-mist-50 px-3 py-2 text-xs text-mist-500">Routes to the employee's line manager to confirm and escalate, then to HR for signature, before it can be sent.</p>
+          <p className="rounded-xl bg-mist-50 px-3 py-2 text-xs text-mist-500">Routes to the employee's {orgTerm("lineManager").toLowerCase()} to confirm and escalate, then to HR for signature, before it can be sent.</p>
         </div>
       </Modal>
 

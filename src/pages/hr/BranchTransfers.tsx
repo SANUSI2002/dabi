@@ -10,9 +10,11 @@ import { useEmployees } from "@/store/useEmployees";
 import { useOrg } from "@/store/useOrg";
 import { useApprovals } from "@/store/useApprovals";
 import { useIdentity } from "@/store/useIdentity";
+import { useTerm } from "@/platform/useTerminology";
 import { shortDate, initials } from "@/lib/format";
 
 export default function BranchTransfers() {
+  const orgTerm = useTerm();
   const { transfers, propose, applyTransfer, resubmit, setSuccessor, completeHandover } = useBranchTransfers();
   const staff = useHr((s) => s.staff);
   const byId = useHr((s) => s.byId);
@@ -40,10 +42,10 @@ export default function BranchTransfers() {
   if (companies.length < 2) {
     return (
       <div>
-        <PageHeader title="Branch Transfers" subtitle="Move an employee from one branch or facility to another" />
+        <PageHeader title={`${orgTerm("branch")} Transfers`} subtitle={`Move an employee from one ${orgTerm("branch").toLowerCase()} or facility to another`} />
         <EmptyState
-          title="Only one branch is set up"
-          hint="Add a second facility in Organisation Setup → Company to enable transfers between branches."
+          title={`Only one ${orgTerm("branch").toLowerCase()} is set up`}
+          hint={`Add a second facility in Organisation Setup → Company to enable transfers between ${orgTerm("branch", "plural").toLowerCase()}.`}
           action={<Link to="/hr/org-setup" className="btn-primary"><Building2 size={14} /> Go to Organisation Setup</Link>}
         />
       </div>
@@ -53,8 +55,8 @@ export default function BranchTransfers() {
   return (
     <div>
       <PageHeader
-        title="Branch Transfers"
-        subtitle="Move an employee from one branch to another, with a sign-off gate and a tracked handover"
+        title={`${orgTerm("branch")} Transfers`}
+        subtitle={`Move an employee from one ${orgTerm("branch").toLowerCase()} to another, with a sign-off gate and a tracked handover`}
         actions={<Button onClick={() => { setF({ employeeId: "", toCompanyId: "", effectiveDate: "", reason: "" }); setOpen(true); }}><Plus size={15} /> Propose transfer</Button>}
       />
 
@@ -62,7 +64,7 @@ export default function BranchTransfers() {
         <StatCard label="Proposed" value={transfers.filter((t) => t.status === "Proposed").length} tone="amber" icon={<Clock size={18} />} />
         <StatCard label="Effective" value={transfers.filter((t) => t.status === "Effective").length} tone="brand" delay={0.05} icon={<Building2 size={18} />} />
         <StatCard label="Handovers pending" value={transfers.filter((t) => t.successorId && t.handoverStatus !== "Complete").length} tone="amber" delay={0.1} icon={<Users2 size={18} />} />
-        <StatCard label="Branches" value={companies.length} tone="mist" delay={0.15} />
+        <StatCard label={orgTerm("branch", "plural")} value={companies.length} tone="mist" delay={0.15} />
       </div>
 
       <div className="space-y-4">
@@ -103,7 +105,7 @@ export default function BranchTransfers() {
 
               {t.status === "Effective" && (
                 <div className="rounded-xl border border-dashed border-mist-200 p-3">
-                  <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase text-mist-400"><Users2 size={13} /> Handover at the outgoing branch</p>
+                  <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase text-mist-400"><Users2 size={13} /> Handover at the outgoing {orgTerm("branch").toLowerCase()}</p>
                   {t.successorId ? (
                     <div className="space-y-2">
                       <p className="text-sm text-mist-700">
@@ -122,13 +124,13 @@ export default function BranchTransfers() {
             </Card>
           );
         })}
-        {transfers.length === 0 && <Card className="text-center text-mist-400">No branch transfers recorded yet.</Card>}
+        {transfers.length === 0 && <Card className="text-center text-mist-400">No {orgTerm("branch").toLowerCase()} transfers recorded yet.</Card>}
       </div>
 
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title="Propose branch transfer"
+        title={`Propose ${orgTerm("branch").toLowerCase()} transfer`}
         footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
           <Button
             disabled={!f.employeeId || !f.toCompanyId || !f.effectiveDate || !f.reason.trim()}
@@ -142,10 +144,10 @@ export default function BranchTransfers() {
       >
         <div className="space-y-4">
           <Field label="Employee"><Select value={f.employeeId} onChange={(e) => setF({ ...f, employeeId: e.target.value })} options={[{ value: "", label: "Choose…" }, ...active.map((s) => ({ value: s.id, label: `${s.name} — currently ${companyName(profileFor(s.id)?.companyId)}` }))]} /></Field>
-          <Field label="Destination branch"><Select value={f.toCompanyId} onChange={(e) => setF({ ...f, toCompanyId: e.target.value })} options={[{ value: "", label: "Choose…" }, ...companies.map((c) => ({ value: c.id, label: c.name }))]} /></Field>
+          <Field label={`Destination ${orgTerm("branch").toLowerCase()}`}><Select value={f.toCompanyId} onChange={(e) => setF({ ...f, toCompanyId: e.target.value })} options={[{ value: "", label: "Choose…" }, ...companies.map((c) => ({ value: c.id, label: c.name }))]} /></Field>
           <Field label="Effective date"><Input type="date" value={f.effectiveDate} onChange={(e) => setF({ ...f, effectiveDate: e.target.value })} /></Field>
           <Field label="Reason / justification"><Textarea value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} /></Field>
-          <p className="rounded-xl bg-mist-50 px-3 py-2 text-xs text-mist-500">Routes through the same Line Manager → HR chain as other HR approvals — see <Link to="/hr/approvals" className="text-brand-600 hover:underline">Approval Workflows</Link>.</p>
+          <p className="rounded-xl bg-mist-50 px-3 py-2 text-xs text-mist-500">Routes through the same {orgTerm("lineManager")} → HR chain as other HR approvals — see <Link to="/hr/approvals" className="text-brand-600 hover:underline">Approval Workflows</Link>.</p>
         </div>
       </Modal>
 
@@ -157,7 +159,7 @@ export default function BranchTransfers() {
           <Button disabled={!hf.successorId} onClick={() => { if (handoverFor) setSuccessor(handoverFor, hf.successorId, hf.notes.trim()); setHandoverFor(null); }}>Save</Button></>}
       >
         <div className="space-y-4">
-          <Field label="Successor at the outgoing branch"><Select value={hf.successorId} onChange={(e) => setHf({ ...hf, successorId: e.target.value })} options={[{ value: "", label: "Choose…" }, ...active.map((s) => ({ value: s.id, label: s.name }))]} /></Field>
+          <Field label={`Successor at the outgoing ${orgTerm("branch").toLowerCase()}`}><Select value={hf.successorId} onChange={(e) => setHf({ ...hf, successorId: e.target.value })} options={[{ value: "", label: "Choose…" }, ...active.map((s) => ({ value: s.id, label: s.name }))]} /></Field>
           <Field label="Handover notes"><Textarea value={hf.notes} onChange={(e) => setHf({ ...hf, notes: e.target.value })} placeholder="Open items, ongoing patients/cases, access to transfer…" /></Field>
         </div>
       </Modal>

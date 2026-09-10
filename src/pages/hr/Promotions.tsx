@@ -10,9 +10,11 @@ import { useEmployees } from "@/store/useEmployees";
 import { useOrg } from "@/store/useOrg";
 import { useApprovals } from "@/store/useApprovals";
 import { useIdentity } from "@/store/useIdentity";
+import { useTerm } from "@/platform/useTerminology";
 import { shortDate, initials } from "@/lib/format";
 
 export default function Promotions() {
+  const orgTerm = useTerm();
   const { promotions, propose, applyPromotion, resubmit, setSuccessor, completeHandover } = usePromotions();
   const staff = useHr((s) => s.staff);
   const byId = useHr((s) => s.byId);
@@ -136,7 +138,7 @@ export default function Promotions() {
         <div className="space-y-4">
           <Field label="Employee"><Select value={f.employeeId} onChange={(e) => setF({ ...f, employeeId: e.target.value })} options={[{ value: "", label: "Choose…" }, ...active.map((s) => ({ value: s.id, label: s.name }))]} /></Field>
           <Grid cols={2}>
-            <Field label="Department (for the new position)"><Select value={f.departmentId} onChange={(e) => setF({ ...f, departmentId: e.target.value, toJobPositionId: "" })} options={[{ value: "", label: "—" }, ...departments.map((d) => ({ value: d.id, label: d.name }))]} /></Field>
+            <Field label={`${orgTerm("department")} (for the new position)`}><Select value={f.departmentId} onChange={(e) => setF({ ...f, departmentId: e.target.value, toJobPositionId: "" })} options={[{ value: "", label: "—" }, ...departments.map((d) => ({ value: d.id, label: d.name }))]} /></Field>
             <Field label="New job position"><Select value={f.toJobPositionId} onChange={(e) => setF({ ...f, toJobPositionId: e.target.value })} options={[{ value: "", label: "—" }, ...positionsFor(f.departmentId).map((p) => ({ value: p.id, label: p.name }))]} /></Field>
           </Grid>
           <Grid cols={2}>
@@ -145,7 +147,7 @@ export default function Promotions() {
           </Grid>
           <Field label="Effective date"><Input type="date" value={f.effectiveDate} onChange={(e) => setF({ ...f, effectiveDate: e.target.value })} /></Field>
           <Field label="Reason / justification"><Textarea value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} /></Field>
-          <p className="rounded-xl bg-mist-50 px-3 py-2 text-xs text-mist-500">Routes through the same Line Manager → HR chain as other HR approvals — see <Link to="/hr/approvals" className="text-brand-600 hover:underline">Approval Workflows</Link>.</p>
+          <p className="rounded-xl bg-mist-50 px-3 py-2 text-xs text-mist-500">Routes through the same {orgTerm("lineManager")} → HR chain as other HR approvals — see <Link to="/hr/approvals" className="text-brand-600 hover:underline">Approval Workflows</Link>.</p>
         </div>
       </Modal>
 
