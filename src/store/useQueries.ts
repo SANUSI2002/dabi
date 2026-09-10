@@ -2,11 +2,14 @@ import { create } from "zustand";
 import * as seed from "@/data/queries";
 import { audit } from "@/store/useAudit";
 import { useHr } from "@/store/useHr";
-import { useApprovals } from "@/store/useApprovals";
+import { useEmployees } from "@/store/useEmployees";
+import { useOrg } from "@/store/useOrg";
+import { useWorkflow } from "@/platform/workflow/useWorkflow";
+import { ACCOUNTS } from "@/data/accounts";
 import type { Query } from "@/data/queries";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
-const QUERY_APPROVAL_TYPE = "at3"; // "Disciplinary Query" — Line Manager -> HR
+const HR_ADMIN = ACCOUNTS.find((a) => a.wfRole === "Tenant HR Administrator")?.id ?? "s1";
 
 type QueriesState = {
   queries: Query[];
@@ -15,6 +18,20 @@ type QueriesState = {
   markSent: (id: string) => void;
   queriesFor: (employeeId: string) => Query[];
 };
+
+/** context bag the "query" workflow expects */
+function queryContext(employeeId: string, raisedBy: string) {
+  const profile = useEmployees.getState().profileFor(employeeId);
+  const dept = useOrg.getState().deptById(profile?.departmentId);
+  return {
+    initiatorId: raisedBy,
+    departmentId: profile?.departmentId,
+    lineManagerId: profile?.reportingManagerId,
+    hodId: dept?.hodId,
+    deputyHodId: dept?.deputyHodId,
+    "roleHolder:HR Administrator": HR_ADMIN,
+  };
+}
 
 export const useQueries = create<QueriesState>((set, get) => ({
   queries: seed.queries,
@@ -29,17 +46,18 @@ export const useQueries = create<QueriesState>((set, get) => ({
         ...s.queries,
       ],
     }));
-    useApprovals.getState().submitRequest(QUERY_APPROVAL_TYPE, {
-      subjectLabel: `Query — ${input.subject} (${emp?.name ?? "employee"})`,
-      requestedBy: input.raisedBy,
-      requestedFor: input.employeeId,
+    useWorkflow.getState().start({
+      triggerType: "query",
+      subject: `Query — ${input.subject} (${emp?.name ?? "employee"})`,
       reference: id,
+      context: queryContext(input.employeeId, input.raisedBy),
     });
     return id;
   },
 
   markSent: (id) => {
     const q = get().queries.find((x) => x.id === id);
+    if (!useWorkflow.getState().isApproved(id)) return;
     audit("sent disciplinary query", `hr/query/${q?.employeeId ?? id}`);
     set((s) => ({ queries: s.queries.map((x) => (x.id === id ? { ...x, status: "Sent", sentAt: new Date().toISOString() } : x)) }));
   },

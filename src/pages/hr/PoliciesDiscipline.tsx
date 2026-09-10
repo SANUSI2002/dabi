@@ -8,7 +8,7 @@ import { Field, Input, Select, Textarea, Checkbox } from "@/components/ui/form";
 import { useEmployees } from "@/store/useEmployees";
 import { useHr } from "@/store/useHr";
 import { useQueries } from "@/store/useQueries";
-import { useApprovals } from "@/store/useApprovals";
+import { useWorkflow } from "@/platform/workflow/useWorkflow";
 import { useIdentity } from "@/store/useIdentity";
 import { useTerm } from "@/platform/useTerminology";
 import { ACCOUNTS } from "@/data/accounts";
@@ -25,7 +25,8 @@ export default function PoliciesDiscipline() {
   const name = (id: string) => staff.find((s) => s.id === id)?.name ?? id;
   const orgTerm = useTerm();
   const { queries, raiseQuery, markSent } = useQueries();
-  const { requestFor } = useApprovals();
+  const instanceFor = useWorkflow((s) => s.instanceFor);
+  useWorkflow((s) => s.instances); // re-render when any instance changes
   const user = useIdentity((s) => s.user);
   const hrAdmin = ACCOUNTS.find((a) => a.wfRole === "Tenant HR Administrator");
 
@@ -40,10 +41,13 @@ export default function PoliciesDiscipline() {
   const [printQuery, setPrintQuery] = useState<string | null>(null);
 
   function queryStatusFor(queryId: string) {
-    const req = requestFor(queryId);
-    if (!req) return { label: "Not submitted", tone: "mist" as const };
-    if (req.status === "Pending") return { label: `Awaiting ${req.steps[req.currentStepIndex]?.approverType === "Line Manager" ? "manager escalation" : "HR signature"}`, tone: "amber" as const };
-    if (req.status === "Rejected") return { label: "Rejected", tone: "action" as const };
+    const inst = instanceFor(queryId);
+    if (!inst || inst.status === "Cancelled") return { label: "Not submitted", tone: "mist" as const };
+    if (inst.status === "Running") {
+      const step = inst.active[0]?.approverLabel ?? "sign-off";
+      return { label: `Awaiting ${step}`, tone: "amber" as const };
+    }
+    if (inst.status === "Rejected") return { label: "Withdrawn", tone: "action" as const };
     return { label: "HR signed", tone: "brand" as const };
   }
 
@@ -85,8 +89,7 @@ export default function PoliciesDiscipline() {
               {queries.length === 0 && <EmptyState title="No queries raised" hint={`A ${orgTerm("lineManager").toLowerCase()} raising a query against an employee will show up here, routed to HR for signature.`} />}
               {queries.map((q) => {
                 const st = queryStatusFor(q.id);
-                const req = requestFor(q.id);
-                const approved = req?.status === "Approved";
+                const approved = instanceFor(q.id)?.status === "Approved";
                 return (
                   <Card key={q.id}>
                     <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
@@ -103,7 +106,7 @@ export default function PoliciesDiscipline() {
                     <p className="mb-3 whitespace-pre-line rounded-xl bg-mist-50 px-3 py-2 text-sm text-mist-600">{q.body}</p>
                     <div className="flex flex-wrap justify-end gap-2">
                       {!approved && q.status === "Drafted" && (
-                        <p className="text-xs text-mist-400">See <a href="/hr/approvals" className="text-brand-600 hover:underline">Approval Workflows</a> for the sign-off queue.</p>
+                        <p className="text-xs text-mist-400">See the <a href="/workflows/inbox" className="text-brand-600 hover:underline">Approvals Inbox</a> for the sign-off queue.</p>
                       )}
                       {approved && q.status === "Drafted" && (
                         <Button variant="soft" onClick={() => markSent(q.id)}><Send size={14} /> Mark sent</Button>

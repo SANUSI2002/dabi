@@ -81,6 +81,27 @@ export const seedWorkflowDefs: WorkflowDef[] = [
   },
   {
     ...base,
+    id: "wf-query",
+    name: "Disciplinary Query",
+    description: "The line manager confirms and escalates the query, then HR countersigns it before it can be sent.",
+    triggerType: "query",
+    nodes: [
+      { id: "q1", type: "start", label: "Query raised", x: 60, y: 150 },
+      { id: "q2", type: "approval", label: "Line manager confirms", x: 260, y: 150, approverType: "line-manager" },
+      { id: "q3", type: "approval", label: "HR countersignature", x: 480, y: 150, approverType: "role", approverRef: "HR Administrator" },
+      { id: "q4", type: "end", label: "Signed", x: 700, y: 150, outcome: "approved" },
+      { id: "q5", type: "end", label: "Withdrawn", x: 480, y: 300, outcome: "rejected" },
+    ],
+    edges: [
+      { id: "qe1", from: "q1", to: "q2", branch: "default" },
+      { id: "qe2", from: "q2", to: "q3", branch: "approve" },
+      { id: "qe3", from: "q2", to: "q5", branch: "reject" },
+      { id: "qe4", from: "q3", to: "q4", branch: "approve" },
+      { id: "qe5", from: "q3", to: "q5", branch: "reject" },
+    ],
+  },
+  {
+    ...base,
     id: "wf-vacancy",
     name: "Vacancy Request",
     description: "HOD raises, HR approves. If HR does not act within 48 hours it escalates to an executive.",
