@@ -55,6 +55,13 @@ export type InterviewSchedule = {
   feedback?: string;
 };
 
+export type ApplicantDoc = { id: string; type: string; filename: string; sizeKb: number; dataUrl?: string; uploadedAt: string };
+export type ApplicantEducation = { id: string; institution: string; qualification: string; field?: string; year?: string };
+export type ApplicantExperience = { id: string; employer: string; role: string; from: string; to?: string; summary?: string };
+export type ApplicantQualification = { id: string; name: string; body: string; obtained?: string; expires?: string; verified?: boolean };
+export type ApplicantNote = { id: string; text: string; by: string; at: string };
+export type ApplicantHistoryItem = { id: string; event: string; detail?: string; at: string };
+
 export type TalentPoolEntry = {
   id: string;
   skillZone: string;
@@ -63,6 +70,19 @@ export type TalentPoolEntry = {
   phone: string;
   reason: string;
   addedAt: string;
+  fromCandidateId?: string;
+  // rich profile (Phase 19)
+  dob?: string;
+  address?: string;
+  headline?: string; // "Senior Midwife · 8 yrs"
+  skills?: string[];
+  education?: ApplicantEducation[];
+  experience?: ApplicantExperience[];
+  qualifications?: ApplicantQualification[];
+  documents?: ApplicantDoc[];
+  notes?: ApplicantNote[];
+  history?: ApplicantHistoryItem[];
+  takenToRecruitment?: { requisitionId: string; candidateId: string; statusCode: string; at: string };
 };
 
 export const SKILL_ZONES = ["Clinical — Nursing", "Clinical — Medical", "Laboratory", "Records & HMIS", "Administration", "Community Health"];
@@ -92,7 +112,35 @@ export const candidates: Candidate[] = [
 ];
 
 export const talentPool: TalentPoolEntry[] = [
-  { id: "tp1", skillZone: "Clinical — Nursing", candidateName: "Grace Osei", email: "grace.osei@example.com", phone: "0803 222 3344", reason: "Strong midwifery background; no vacancy open when she applied", addedAt: day(40) },
+  {
+    id: "tp1", skillZone: "Clinical — Nursing", candidateName: "Grace Osei", email: "grace.osei@example.com", phone: "0803 222 3344",
+    reason: "Strong midwifery background; no vacancy open when she applied", addedAt: day(40),
+    dob: "1991-06-14", address: "24 Bode Thomas St, Surulere, Lagos", headline: "Senior Midwife · 8 years",
+    skills: ["Midwifery", "Neonatal resuscitation", "IUCD insertion", "Antenatal counselling", "EmONC"],
+    education: [
+      { id: "ed1", institution: "University of Ibadan", qualification: "BNSc Nursing Science", field: "Nursing", year: "2013" },
+      { id: "ed2", institution: "School of Midwifery, LUTH", qualification: "RM (Registered Midwife)", year: "2015" },
+    ],
+    experience: [
+      { id: "ex1", employer: "Lagoon Hospitals", role: "Senior Staff Midwife", from: "2018", to: "2026", summary: "Labour ward lead, ~40 deliveries/month, precepted 6 student midwives." },
+      { id: "ex2", employer: "Reddington Hospital", role: "Staff Nurse/Midwife", from: "2015", to: "2018" },
+    ],
+    qualifications: [
+      { id: "q1", name: "NMCN Practising Licence", body: "Nursing & Midwifery Council of Nigeria", obtained: "2024-01-10", expires: "2027-01-09", verified: true },
+      { id: "q2", name: "Basic Life Support (BLS)", body: "AHA", obtained: "2025-03-01", expires: "2027-03-01" },
+    ],
+    documents: [
+      { id: "d1", type: "Curriculum Vitae", filename: "grace-osei-cv.pdf", sizeKb: 180, uploadedAt: day(40) },
+      { id: "d2", type: "Degree Certificate", filename: "bnsc-certificate.pdf", sizeKb: 420, uploadedAt: day(40) },
+      { id: "d3", type: "Professional Practising Licence", filename: "nmcn-licence-2024.pdf", sizeKb: 96, uploadedAt: day(40) },
+    ],
+    notes: [{ id: "n1", text: "Interviewed well for the Sept maternity role; lost out only on years-in-grade. Keep warm.", by: "s2", at: day(38) }],
+    history: [
+      { id: "h1", event: "Applied", detail: "Staff Nurse — Maternity Ward", at: day(45) },
+      { id: "h2", event: "Interviewed", at: day(41) },
+      { id: "h3", event: "Added to talent pool", detail: "Clinical — Nursing", at: day(40) },
+    ],
+  },
 ];
 
 export const interviews: InterviewSchedule[] = [

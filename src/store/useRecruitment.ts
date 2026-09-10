@@ -2,7 +2,9 @@ import { create } from "zustand";
 import * as seed from "@/data/recruitment";
 import { audit } from "@/store/useAudit";
 import { useHr } from "@/store/useHr";
-import type { JobRequisition, PipelineStage, Candidate, InterviewSchedule, StageType, TalentPoolEntry } from "@/data/recruitment";
+import { useIdentity } from "@/store/useIdentity";
+import { useMasterData } from "@/platform/useMasterData";
+import type { JobRequisition, PipelineStage, Candidate, InterviewSchedule, StageType, TalentPoolEntry, ApplicantNote } from "@/data/recruitment";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 const who = (id?: string) => (id ? useHr.getState().byId(id)?.name ?? id : undefined);
@@ -29,6 +31,13 @@ type RecruitmentState = {
   completeInterview: (id: string, feedback: string) => void;
 
   addToTalentPool: (candidateId: string, skillZone: string, reason: string) => void;
+
+  // Phase 19-20
+  talentEntryById: (id?: string) => TalentPoolEntry | undefined;
+  addTalentNote: (entryId: string, text: string) => void;
+  addTalentDocument: (entryId: string, doc: { type: string; filename: string; sizeKb: number; dataUrl?: string }) => void;
+  /** move a talent-pool applicant into an active requisition at a configured recruitment status */
+  takeToRecruitment: (entryId: string, requisitionId: string, statusCode: string) => { ok: boolean; error?: string; candidateId?: string };
 };
 
 export const useRecruitment = create<RecruitmentState>((set, get) => ({
@@ -104,7 +113,54 @@ export const useRecruitment = create<RecruitmentState>((set, get) => ({
     if (!c) return;
     audit("added to talent pool", `hr/recruitment/talent-pool/${c.name}`);
     set((s) => ({
-      talentPool: [{ id: rid(), skillZone, candidateName: c.name, email: c.email, phone: c.phone, reason, addedAt: new Date().toISOString() }, ...s.talentPool],
+      talentPool: [{ id: rid(), skillZone, candidateName: c.name, email: c.email, phone: c.phone, reason, addedAt: new Date().toISOString(), fromCandidateId: c.id, history: [{ id: rid(), event: "Added to talent pool", detail: skillZone, at: new Date().toISOString() }] }, ...s.talentPool],
     }));
+  },
+
+  talentEntryById: (id) => get().talentPool.find((t) => t.id === id),
+  addTalentNote: (entryId, text) => {
+    const note: ApplicantNote = { id: rid(), text, by: useIdentity.getState().user.id, at: new Date().toISOString() };
+    set((s) => ({ talentPool: s.talentPool.map((t) => (t.id === entryId ? { ...t, notes: [note, ...(t.notes ?? [])] } : t)) }));
+    audit("added talent-pool note", `hr/recruitment/talent-pool/${entryId}`);
+  },
+  addTalentDocument: (entryId, doc) => {
+    set((s) => ({ talentPool: s.talentPool.map((t) => (t.id === entryId ? { ...t, documents: [{ id: rid(), ...doc, uploadedAt: new Date().toISOString() }, ...(t.documents ?? [])] } : t)) }));
+    audit(`attached ${doc.filename} to a talent-pool profile`, `hr/recruitment/talent-pool/${entryId}`);
+  },
+
+  takeToRecruitment: (entryId, requisitionId, statusCode) => {
+    const entry = get().talentEntryById(entryId);
+    const req = get().requisitions.find((r) => r.id === requisitionId);
+    if (!entry || !req) return { ok: false, error: "Applicant or requisition not found." };
+    const status = useMasterData.getState().byCode("recruitment-statuses", statusCode);
+    if (!status) return { ok: false, error: "Unknown recruitment status." };
+
+    // map the status to a pipeline stage on this requisition, creating one if needed
+    let stage = get().stages.find((st) => st.requisitionId === requisitionId && st.name.toLowerCase() === status.label.toLowerCase());
+    const candidateId = rid();
+    set((s) => {
+      let stages = s.stages;
+      if (!stage) {
+        const maxSeq = Math.max(-1, ...stages.filter((x) => x.requisitionId === requisitionId).map((x) => x.sequence));
+        const type: StageType = status.meta?.terminal ? (status.code === "HIRED" ? "Hired" : "Cancelled") : status.code === "INTERVIEW" ? "Interview" : "Test";
+        stage = { id: `${requisitionId}-st${maxSeq + 1}`, requisitionId, name: status.label, type, sequence: maxSeq + 1 };
+        stages = [...stages, stage];
+      }
+      const candidate: Candidate = {
+        id: candidateId, requisitionId, stageId: stage.id, name: entry.candidateName, email: entry.email, phone: entry.phone,
+        source: "Inside software", appliedAt: new Date().toISOString(), rating: 0, hired: status.code === "HIRED", canceled: false,
+      };
+      return {
+        stages,
+        candidates: [candidate, ...s.candidates],
+        talentPool: s.talentPool.map((t) =>
+          t.id === entryId
+            ? { ...t, takenToRecruitment: { requisitionId, candidateId, statusCode, at: new Date().toISOString() }, history: [{ id: rid(), event: "Moved to recruitment", detail: `${req.title} — ${status.label}`, at: new Date().toISOString() }, ...(t.history ?? [])] }
+            : t,
+        ),
+      };
+    });
+    audit(`moved talent-pool applicant "${entry.candidateName}" to recruitment (${status.label})`, `hr/recruitment/${req.title}`);
+    return { ok: true, candidateId };
   },
 }));
