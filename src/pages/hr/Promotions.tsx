@@ -8,7 +8,7 @@ import { usePromotions } from "@/store/usePromotions";
 import { useHr } from "@/store/useHr";
 import { useEmployees } from "@/store/useEmployees";
 import { useOrg } from "@/store/useOrg";
-import { useApprovals } from "@/store/useApprovals";
+import { useWorkflow } from "@/platform/workflow/useWorkflow";
 import { useIdentity } from "@/store/useIdentity";
 import { useTerm } from "@/platform/useTerminology";
 import { shortDate, initials } from "@/lib/format";
@@ -20,11 +20,12 @@ export default function Promotions() {
   const byId = useHr((s) => s.byId);
   const { profileFor } = useEmployees();
   const { departments, positionsFor, rolesFor, jobPositionName, jobRoleName } = useOrg();
-  const { requestFor } = useApprovals();
+  const instanceFor = useWorkflow((s) => s.instanceFor);
+  useWorkflow((s) => s.instances); // re-render when any instance changes
   const user = useIdentity((s) => s.user);
 
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState({ employeeId: "", departmentId: "", toJobPositionId: "", toJobRoleId: "", toCadre: "", effectiveDate: "", reason: "" });
+  const [f, setF] = useState({ employeeId: "", departmentId: "", toJobPositionId: "", toJobRoleId: "", toCadre: "", newSalary: "", effectiveDate: "", reason: "" });
 
   const [handoverFor, setHandoverFor] = useState<string | null>(null);
   const [hf, setHf] = useState({ successorId: "", notes: "" });
@@ -34,10 +35,10 @@ export default function Promotions() {
   const proposed = promotions.filter((p) => p.status === "Proposed");
 
   function statusFor(promotionId: string) {
-    const req = requestFor(promotionId);
-    if (!req) return { label: "Not submitted", tone: "mist" as const };
-    if (req.status === "Pending") return { label: "Awaiting approval", tone: "amber" as const };
-    if (req.status === "Rejected") return { label: "Rejected", tone: "action" as const };
+    const inst = instanceFor(promotionId);
+    if (!inst || inst.status === "Cancelled") return { label: "Not submitted", tone: "mist" as const };
+    if (inst.status === "Running") return { label: "Awaiting approval", tone: "amber" as const };
+    if (inst.status === "Rejected") return { label: "Rejected", tone: "action" as const };
     return { label: "Approved", tone: "brand" as const };
   }
 
@@ -46,7 +47,7 @@ export default function Promotions() {
       <PageHeader
         title="Promotions"
         subtitle="Role changes with a sign-off gate and a tracked handover of the outgoing responsibilities"
-        actions={<Button onClick={() => { setF({ employeeId: "", departmentId: "", toJobPositionId: "", toJobRoleId: "", toCadre: "", effectiveDate: "", reason: "" }); setOpen(true); }}><Plus size={15} /> Propose promotion</Button>}
+        actions={<Button onClick={() => { setF({ employeeId: "", departmentId: "", toJobPositionId: "", toJobRoleId: "", toCadre: "", newSalary: "", effectiveDate: "", reason: "" }); setOpen(true); }}><Plus size={15} /> Propose promotion</Button>}
       />
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -90,7 +91,7 @@ export default function Promotions() {
                   ) : st.label === "Approved" ? (
                     <Button onClick={() => applyPromotion(p.id)}><ShieldCheck size={14} /> Apply promotion</Button>
                   ) : (
-                    <p className="text-xs text-mist-400">See <Link to="/hr/approvals" className="text-brand-600 hover:underline">Approval Workflows</Link> for the sign-off queue.</p>
+                    <p className="text-xs text-mist-400">See the <Link to="/workflows/inbox" className="text-brand-600 hover:underline">Approvals Inbox</Link> for the sign-off queue.</p>
                   )}
                 </div>
               )}
@@ -128,7 +129,7 @@ export default function Promotions() {
           <Button
             disabled={!f.employeeId || !f.effectiveDate || !f.reason.trim() || (!f.toJobPositionId && !f.toCadre.trim())}
             onClick={() => {
-              propose({ employeeId: f.employeeId, toJobPositionId: f.toJobPositionId || undefined, toJobRoleId: f.toJobRoleId || undefined, toCadre: f.toCadre.trim() || undefined, effectiveDate: new Date(f.effectiveDate).toISOString(), reason: f.reason.trim(), requestedBy: user.id });
+              propose({ employeeId: f.employeeId, toJobPositionId: f.toJobPositionId || undefined, toJobRoleId: f.toJobRoleId || undefined, toCadre: f.toCadre.trim() || undefined, newSalary: f.newSalary ? +f.newSalary : undefined, effectiveDate: new Date(f.effectiveDate).toISOString(), reason: f.reason.trim(), requestedBy: user.id });
               setOpen(false);
             }}
           >
@@ -145,9 +146,12 @@ export default function Promotions() {
             <Field label="New job role (optional)"><Select value={f.toJobRoleId} onChange={(e) => setF({ ...f, toJobRoleId: e.target.value })} options={[{ value: "", label: "—" }, ...rolesFor(f.toJobPositionId).map((r) => ({ value: r.id, label: r.name }))]} /></Field>
             <Field label="New cadre / grade" hint="Use this if there's no matching job position, e.g. a grade-level bump"><Input value={f.toCadre} onChange={(e) => setF({ ...f, toCadre: e.target.value })} placeholder="e.g. Grade Level 10" /></Field>
           </Grid>
-          <Field label="Effective date"><Input type="date" value={f.effectiveDate} onChange={(e) => setF({ ...f, effectiveDate: e.target.value })} /></Field>
+          <Grid cols={2}>
+            <Field label="Effective date"><Input type="date" value={f.effectiveDate} onChange={(e) => setF({ ...f, effectiveDate: e.target.value })} /></Field>
+            <Field label="New basic salary / month (optional)" hint="Above ₦500k routes an extra executive sign-off"><Input type="number" value={f.newSalary} onChange={(e) => setF({ ...f, newSalary: e.target.value })} placeholder="e.g. 480000" /></Field>
+          </Grid>
           <Field label="Reason / justification"><Textarea value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} /></Field>
-          <p className="rounded-xl bg-mist-50 px-3 py-2 text-xs text-mist-500">Routes through the same {orgTerm("lineManager")} → HR chain as other HR approvals — see <Link to="/hr/approvals" className="text-brand-600 hover:underline">Approval Workflows</Link>.</p>
+          <p className="rounded-xl bg-mist-50 px-3 py-2 text-xs text-mist-500">Routes through the <b>Promotion</b> workflow ({orgTerm("hod")} → HR, plus executive sign-off for high salaries) — track it in the <Link to="/workflows/inbox" className="text-brand-600 hover:underline">Approvals Inbox</Link>.</p>
         </div>
       </Modal>
 
