@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import * as seed from "@/data/branchTransfers";
+import { persisted } from "@/platform/persist";
 import { audit } from "@/store/useAudit";
 import { useHr } from "@/store/useHr";
 import { useEmployees } from "@/store/useEmployees";
@@ -43,7 +44,10 @@ function transferContext(employeeId: string, requestedBy: string) {
   };
 }
 
-export const useBranchTransfers = create<BranchTransfersState>((set, get) => ({
+export const useBranchTransfers = create<BranchTransfersState>(
+  persisted<BranchTransfersState>(
+    "branch-transfers",
+    (set, get) => ({
   transfers: seed.branchTransfers,
 
   propose: (input) => {
@@ -113,4 +117,7 @@ export const useBranchTransfers = create<BranchTransfersState>((set, get) => ({
   },
 
   transfersFor: (employeeId) => get().transfers.filter((t) => t.employeeId === employeeId),
-}));
+    }),
+    { pick: (s) => ({ transfers: s.transfers.slice(0, 200) }) },
+  ),
+);

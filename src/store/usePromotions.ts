@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import * as seed from "@/data/promotions";
+import { persisted } from "@/platform/persist";
 import { audit } from "@/store/useAudit";
 import { useHr } from "@/store/useHr";
 import { useEmployees } from "@/store/useEmployees";
@@ -49,7 +50,10 @@ type PromotionsState = {
   promotionsFor: (employeeId: string) => Promotion[];
 };
 
-export const usePromotions = create<PromotionsState>((set, get) => ({
+export const usePromotions = create<PromotionsState>(
+  persisted<PromotionsState>(
+    "promotions",
+    (set, get) => ({
   promotions: seed.promotions,
 
   propose: (input) => {
@@ -133,4 +137,7 @@ export const usePromotions = create<PromotionsState>((set, get) => ({
   },
 
   promotionsFor: (employeeId) => get().promotions.filter((p) => p.employeeId === employeeId),
-}));
+    }),
+    { pick: (s) => ({ promotions: s.promotions.slice(0, 200) }) },
+  ),
+);

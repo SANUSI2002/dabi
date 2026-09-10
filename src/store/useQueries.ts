@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import * as seed from "@/data/queries";
+import { persisted } from "@/platform/persist";
 import { audit } from "@/store/useAudit";
 import { useHr } from "@/store/useHr";
 import { useEmployees } from "@/store/useEmployees";
@@ -33,7 +34,10 @@ function queryContext(employeeId: string, raisedBy: string) {
   };
 }
 
-export const useQueries = create<QueriesState>((set, get) => ({
+export const useQueries = create<QueriesState>(
+  persisted<QueriesState>(
+    "queries",
+    (set, get) => ({
   queries: seed.queries,
 
   raiseQuery: (input) => {
@@ -63,4 +67,7 @@ export const useQueries = create<QueriesState>((set, get) => ({
   },
 
   queriesFor: (employeeId) => get().queries.filter((q) => q.employeeId === employeeId),
-}));
+    }),
+    { pick: (s) => ({ queries: s.queries.slice(0, 200) }) },
+  ),
+);
