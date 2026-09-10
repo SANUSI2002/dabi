@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import * as seed from "@/data/orgStructure";
-import { audit } from "@/store/useAudit";
+import { audit, auditChange, diffFields } from "@/store/useAudit";
 import { useIdentity } from "@/store/useIdentity";
 import type { Company, Department, JobPosition, JobRole, EmployeeType, OrgTag, HodChange } from "@/data/orgStructure";
 
@@ -65,8 +65,13 @@ export const useOrg = create<OrgState>((set, get) => ({
     return id;
   },
   updateDepartment: (id, patch) => {
+    const before = get().deptById(id);
     set((s) => ({ departments: s.departments.map((x) => (x.id === id ? { ...x, ...patch } : x)) }));
-    audit(`updated department ${get().departmentName(id)}`, `hr/org/department/${id}`);
+    auditChange(
+      `updated department ${get().departmentName(id)}`,
+      `hr/org/department/${id}`,
+      diffFields(before, patch, ["name", "code", "description", "status", "companyIds", "parentDepartmentId"]),
+    );
   },
   deptById: (id) => get().departments.find((d) => d.id === id),
 

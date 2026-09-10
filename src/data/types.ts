@@ -236,6 +236,12 @@ export type ChildVisit = {
   feeding: string;
 };
 
+export type AuditFieldChange = {
+  field: string;
+  from: unknown;
+  to: unknown;
+};
+
 export type AuditEvent = {
   id: string;
   ts: string;
@@ -244,6 +250,10 @@ export type AuditEvent = {
   action: string;
   resource: string;
   ip: string;
+  /** field-level before/after diff (Phase 46) */
+  changes?: AuditFieldChange[];
+  /** extra structured context (approval ref, reason, workflow instance…) */
+  meta?: Record<string, unknown>;
 };
 
 export type Delivery = {

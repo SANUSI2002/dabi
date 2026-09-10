@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persisted } from "./persist";
-import { audit } from "@/store/useAudit";
+import { audit, auditChange, diffFields } from "@/store/useAudit";
 import { useIdentity } from "@/store/useIdentity";
 import { LETTER_TEMPLATES, type LetterTemplate, type GeneratedLetter } from "./letters";
 
@@ -45,8 +45,13 @@ export const useLetters = create<LettersState>(
 
       templateByKey: (key) => get().templates.find((t) => t.key === key),
       saveTemplate: (key, patch) => {
+        const before = get().templateByKey(key);
         set((s) => ({ templates: s.templates.map((t) => (t.key === key ? { ...t, ...patch } : t)) }));
-        audit(`edited letter template "${get().templateByKey(key)?.name ?? key}"`, `platform/letters/${key}`);
+        auditChange(
+          `edited letter template "${before?.name ?? key}"`,
+          `platform/letters/${key}`,
+          diffFields(before, patch, ["name", "body", "signatories", "active", "category"]),
+        );
       },
       addTemplate: (t) => {
         set((s) => ({ templates: [...s.templates, { ...t, active: true }] }));
