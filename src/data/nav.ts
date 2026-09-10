@@ -139,6 +139,7 @@ export const NAV: NavGroup[] = [
       { to: "/hr/departments", label: "Departments", icon: Building2 },
       { to: "/hr/org-chart", label: "Organization Chart", icon: Network },
       { to: "/hr/policies-discipline", label: "Policies & Discipline", icon: BookOpen },
+      { to: "/hr/vacancies", label: "Vacancy Requests", icon: ClipboardList },
       { to: "/hr/recruitment", label: "Recruitment", icon: Briefcase },
       { to: "/hr/talent-pool", label: "Talent Pool", icon: Users2 },
       { to: "/hr/onboarding", label: "Onboarding", icon: OnboardIcon },

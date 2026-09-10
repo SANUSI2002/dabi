@@ -236,7 +236,7 @@ export const useWorkflow = create<WorkflowState>(
       isApproved: (reference) => get().instanceFor(reference)?.status === "Approved",
       outcomeOf: (reference) => get().instanceFor(reference)?.status,
     }),
-    { pick: (s) => ({ defs: s.defs }) }, // only definitions persist; running instances stay in memory
+    { pick: (s) => ({ defs: s.defs, instances: s.instances.slice(0, 300) }) },
   ),
 );
 
