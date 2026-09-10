@@ -33,6 +33,7 @@ export type JournalLine = {
   costCenter?: string;
   customerId?: string;
   vendorId?: string;
+  projectId?: string;
 };
 
 export type JournalStatus = "Draft" | "Pending Approval" | "Posted" | "Reversed" | "Void";

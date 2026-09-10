@@ -31,7 +31,7 @@ const rid = () => Math.random().toString(36).slice(2, 9);
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 const BRANCH_KEY = "sabi-acct-branch";
 
-export type DraftLine = { accountNumber: number; debit: number; credit: number; description?: string; costCenter?: string; customerId?: string; vendorId?: string };
+export type DraftLine = { accountNumber: number; debit: number; credit: number; description?: string; costCenter?: string; customerId?: string; vendorId?: string; projectId?: string };
 
 export type PostInput = {
   date: string;
@@ -109,6 +109,7 @@ const toLines = (draft: DraftLine[]): JournalLine[] =>
       costCenter: l.costCenter,
       customerId: l.customerId,
       vendorId: l.vendorId,
+      projectId: l.projectId,
     }));
 
 const loadBranch = () => { try { return localStorage.getItem(BRANCH_KEY) || DEFAULT_BRANCH; } catch { return DEFAULT_BRANCH; } };

@@ -19,11 +19,13 @@ import { useFixedAssets } from "@/store/accounting/useFixedAssets";
 import { useBudgets } from "@/store/accounting/useBudgets";
 import { useInventoryAccounting } from "@/store/accounting/useInventoryAccounting";
 import { useAccountingSettings } from "@/store/accounting/useAccountingSettings";
+import { useProjects } from "@/store/accounting/useProjects";
 
 useLedger.getState();
 useTax.getState();
 useAcctControl.getState();
 useAccountingSettings.getState();
+useProjects.getState();
 useAR.getState();
 useAP.getState();
 useExpenses.getState();

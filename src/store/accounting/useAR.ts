@@ -4,6 +4,7 @@ import { useIdentity } from "@/store/useIdentity";
 import { useLedger } from "@/store/accounting/useLedger";
 import { useTax } from "@/store/accounting/useTax";
 import { useAccountingSettings } from "@/store/accounting/useAccountingSettings";
+import { useProjects } from "@/store/accounting/useProjects";
 import { ACCT } from "@/data/accounting/coa";
 import {
   seedCustomers,
@@ -58,13 +59,14 @@ function postInvoiceJE(inv: Invoice, cust: Customer, schedule?: RevenueSchedule)
   const tax = round2(docTax(inv.lines) * rate);
   const net = round2(total - tax);
   const suffix = inv.currency !== "NGN" ? ` (${inv.currency} ${docTotal(inv.lines).toLocaleString()} @ ${rate})` : "";
+  const pj = inv.projectId;
   const lines = [
     { accountNumber: cust.arAccountNumber, debit: total, credit: 0, description: `${inv.number} — ${cust.name}${suffix}`, customerId: cust.id },
-  ];
+  ] as { accountNumber: number; debit: number; credit: number; description?: string; customerId?: string; projectId?: string }[];
   if (schedule) {
-    lines.push({ accountNumber: schedule.deferredAccountNumber, debit: 0, credit: net, description: `Deferred revenue — ${inv.number}`, customerId: cust.id });
+    lines.push({ accountNumber: schedule.deferredAccountNumber, debit: 0, credit: net, description: `Deferred revenue — ${inv.number}`, customerId: cust.id, projectId: pj });
   } else {
-    for (const l of inv.lines) lines.push({ accountNumber: l.accountNumber, debit: 0, credit: round2(lineAmount(l) * rate), description: l.description, customerId: cust.id });
+    for (const l of inv.lines) lines.push({ accountNumber: l.accountNumber, debit: 0, credit: round2(lineAmount(l) * rate), description: l.description, customerId: cust.id, projectId: pj });
   }
   if (tax > 0) lines.push({ accountNumber: ACCT.vatPayable, debit: 0, credit: tax, description: `Output VAT — ${inv.number}`, customerId: cust.id });
   return led.postJournal({ date: inv.date, source: "Invoice", memo: `Invoice ${inv.number} — ${cust.name}`, reference: inv.number, lines });
@@ -176,7 +178,7 @@ type ARState = {
   convertOrderToInvoice: (id: string) => string | undefined;
 
   // invoices
-  createInvoice: (input: { customerId: string; date: string; dueDate?: string; lines: SalesLine[]; notes?: string; salesOrderId?: string; source?: Invoice["source"]; emrInvoiceId?: string; currency?: string; exchangeRate?: number; deferOverMonths?: number; recurEveryMonths?: number; recurEndDate?: string; delayedChargeIds?: string[] }) => string;
+  createInvoice: (input: { customerId: string; date: string; dueDate?: string; lines: SalesLine[]; notes?: string; salesOrderId?: string; source?: Invoice["source"]; emrInvoiceId?: string; currency?: string; exchangeRate?: number; deferOverMonths?: number; recurEveryMonths?: number; recurEndDate?: string; delayedChargeIds?: string[]; projectId?: string; timeEntryIds?: string[] }) => string;
   updateInvoice: (id: string, patch: Partial<Pick<Invoice, "date" | "dueDate" | "lines" | "notes">>) => void;
   issueInvoice: (id: string, opts?: { overrideCredit?: boolean }) => { ok: boolean; error?: string; creditWarning?: string };
   voidInvoice: (id: string) => { ok: boolean; error?: string };
@@ -374,7 +376,11 @@ export const useAR = create<ARState>((set, get) => {
         .map((cid) => get().delayedCharges.find((d) => d.id === cid && d.status === "Unbilled"))
         .filter((d): d is DelayedCharge => !!d);
       const chargeLines: SalesLine[] = pulledCharges.map((d) => ({ id: `sl-${rid()}`, accountNumber: d.accountNumber, description: d.description, qty: d.qty, unitPrice: d.unitPrice, taxRateId: d.taxRateId }));
-      const allLines = [...input.lines, ...chargeLines];
+      const timeLines: SalesLine[] = (input.timeEntryIds ?? [])
+        .map((tid) => useProjects.getState().timeEntries.find((t) => t.id === tid && t.status === "Unbilled"))
+        .filter((t): t is NonNullable<typeof t> => !!t)
+        .map((t) => ({ id: `sl-${rid()}`, accountNumber: t.revenueAccount, description: `${t.description} (${t.hours}h)`, qty: t.hours, unitPrice: t.rate ?? 0, taxRateId: "tax-vat-exempt" }));
+      const allLines = [...input.lines, ...chargeLines, ...timeLines];
       const inv: Invoice = {
         id,
         number: useAccountingSettings.getState().nextDocNumber("invoice"),
@@ -392,6 +398,7 @@ export const useAR = create<ARState>((set, get) => {
         createdAt: new Date().toISOString(),
         source: input.source ?? "Manual",
         emrInvoiceId: input.emrInvoiceId,
+        projectId: input.projectId,
         ...(input.recurEveryMonths ? { isRecurring: true, recurringTemplate: false, recurrenceEveryMonths: input.recurEveryMonths, recurrenceNextDate: monthsAdd(input.date, input.recurEveryMonths), recurrenceEndDate: input.recurEndDate } : {}),
       };
       set((s) => ({
@@ -400,6 +407,7 @@ export const useAR = create<ARState>((set, get) => {
           ? s.delayedCharges.map((d) => (pulledCharges.some((p) => p.id === d.id) ? { ...d, status: "Invoiced" as const, invoiceId: id } : d))
           : s.delayedCharges,
       }));
+      if (input.timeEntryIds?.length) useProjects.getState().markTimeInvoiced(input.timeEntryIds, id);
       audit(`created invoice ${inv.number}`, `accounting/invoices/${inv.number}`);
 
       const defer = input.deferOverMonths ?? 0;

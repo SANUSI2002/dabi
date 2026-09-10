@@ -104,6 +104,7 @@ export type Invoice = {
   recurrenceEndDate?: string;
   recurringTemplate?: boolean; // this row is a template, not a live invoice
   revenueScheduleId?: string;
+  projectId?: string; // B8 — tags this invoice's revenue lines to a project
 };
 
 export type RevenueScheduleEntry = { id: string; period: string; amount: number; recognized: boolean; recognizedAt?: string; journalEntryId?: string };

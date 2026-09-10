@@ -8,6 +8,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/form";
 import { PrintDoc, Section, Line } from "@/components/print/PrintFrame";
 import { money, shortDate, dateTime, isoDate } from "@/lib/format";
 import { useAR, docSubtotal, docTax, docTotal } from "@/store/accounting/useAR";
+import { useProjects } from "@/store/accounting/useProjects";
 import { useLedger } from "@/store/accounting/useLedger";
 import { LineEditor, DocTotals, type EditableLine } from "./_components";
 import type { Invoice } from "@/data/accounting/receivables";
@@ -15,6 +16,7 @@ import type { Invoice } from "@/data/accounting/receivables";
 export default function Invoices() {
   const { customers, invoices, customerById, createInvoice, issueInvoice, voidInvoice, recordReceipt, invoiceBalance, reminderDue, sendReminder, runReminderRun, reminders, unbilledChargesOf, earlyPayDiscountFor } = useAR();
   const [takeDiscount, setTakeDiscount] = useState(true);
+  const projects = useProjects((s) => s.projects);
   const [pullCharges, setPullCharges] = useState(true);
   const accounts = useLedger((s) => s.accounts);
   const cashAccts = accounts.filter((a) => a.subtype === "cash" || a.subtype === "bank");
@@ -28,7 +30,7 @@ export default function Invoices() {
   const [creditBlock, setCreditBlock] = useState<string | null>(null);
 
   const fxRates = useLedger((s) => s.fxRates);
-  const [f, setF] = useState<{ customerId: string; date: string; dueDate: string; notes: string; currency: string; exchangeRate: number; deferMonths: number; recurMonths: number; lines: EditableLine[] }>({
+  const [f, setF] = useState<{ customerId: string; date: string; dueDate: string; notes: string; currency: string; exchangeRate: number; deferMonths: number; recurMonths: number; projectId: string; lines: EditableLine[] }>({
     customerId: customers[0]?.id ?? "",
     date: isoDate(new Date()),
     dueDate: isoDate(new Date(Date.now() + 30 * 864e5)),
@@ -37,6 +39,7 @@ export default function Invoices() {
     exchangeRate: 1,
     deferMonths: 0,
     recurMonths: 0,
+    projectId: "",
     lines: [{ accountNumber: 4000, description: "", qty: 1, unitPrice: 0, taxRateId: "tax-vat-exempt" }],
   });
 
@@ -56,6 +59,7 @@ export default function Invoices() {
         exchangeRate: f.currency === "NGN" ? 1 : f.exchangeRate,
         deferOverMonths: f.deferMonths || undefined,
         recurEveryMonths: f.recurMonths || undefined,
+        projectId: f.projectId || undefined,
         delayedChargeIds: pullCharges ? unbilledChargesOf(f.customerId).map((d) => d.id) : undefined,
       });
       setDraftId(id);
@@ -188,6 +192,7 @@ export default function Invoices() {
             <Field label="Recognise over (mo)" hint="0 = now"><Input type="number" value={f.deferMonths || ""} onChange={(e) => setF({ ...f, deferMonths: +e.target.value })} /></Field>
             <Field label="Repeat every (mo)" hint="0 = one-off"><Input type="number" value={f.recurMonths || ""} onChange={(e) => setF({ ...f, recurMonths: +e.target.value })} /></Field>
           </div>
+          {projects.length > 0 && <Field label="Project (optional)"><Select value={f.projectId} onChange={(e) => setF({ ...f, projectId: e.target.value })} options={[{ value: "", label: "— none —" }, ...projects.filter((p) => p.status === "Active").map((p) => ({ value: p.id, label: `${p.code} — ${p.name}` }))]} /></Field>}
           {f.customerId && unbilledChargesOf(f.customerId).length > 0 && (
             <label className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 ring-1 ring-amber-200">
               <input type="checkbox" checked={pullCharges} onChange={(e) => setPullCharges(e.target.checked)} />

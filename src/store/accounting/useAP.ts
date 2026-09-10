@@ -44,8 +44,8 @@ function postBillJE(bill: Bill, vendor: Vendor) {
   const tax = round2(purchaseTax(bill.lines) * rate);
   const suffix = bill.currency !== "NGN" ? ` (${bill.currency} ${purchaseTotal(bill.lines).toLocaleString()} @ ${rate})` : "";
   const lines = [
-    ...bill.lines.map((l) => ({ accountNumber: l.accountNumber, debit: round2(lineAmt(l) * rate), credit: 0, description: l.description, vendorId: vendor.id })),
-  ];
+    ...bill.lines.map((l) => ({ accountNumber: l.accountNumber, debit: round2(lineAmt(l) * rate), credit: 0, description: l.description, vendorId: vendor.id, projectId: bill.projectId })),
+  ] as { accountNumber: number; debit: number; credit: number; description?: string; vendorId?: string; projectId?: string }[];
   if (tax > 0) lines.push({ accountNumber: ACCT.vatPayable, debit: tax, credit: 0, description: `Recoverable input VAT — ${bill.number}`, vendorId: vendor.id });
   lines.push({ accountNumber: vendor.apAccountNumber, debit: 0, credit: total, description: `${bill.number} — ${vendor.name}${suffix}`, vendorId: vendor.id });
   return useLedger.getState().postJournal({ date: bill.date, source: "Bill", memo: `Bill ${bill.number} — ${vendor.name}`, reference: bill.number, lines });
@@ -124,7 +124,7 @@ type APState = {
   convertPOToBill: (id: string) => string | undefined;
 
   // bills
-  createBill: (input: { vendorId: string; vendorInvoiceNumber?: string; date: string; dueDate?: string; lines: PurchaseLine[]; notes?: string; purchaseOrderId?: string; currency?: string; exchangeRate?: number; recurEveryMonths?: number; recurEndDate?: string }) => string;
+  createBill: (input: { vendorId: string; vendorInvoiceNumber?: string; date: string; dueDate?: string; lines: PurchaseLine[]; notes?: string; purchaseOrderId?: string; currency?: string; exchangeRate?: number; recurEveryMonths?: number; recurEndDate?: string; projectId?: string }) => string;
   updateBill: (id: string, patch: Partial<Pick<Bill, "date" | "dueDate" | "lines" | "notes" | "vendorInvoiceNumber">>) => void;
   submitBill: (id: string) => void;
   decideBill: (id: string, decision: "Approved" | "Rejected", comment?: string) => void;
@@ -305,6 +305,7 @@ export const useAP = create<APState>((set, get) => {
         vendorInvoiceNumber: input.vendorInvoiceNumber,
         vendorId: input.vendorId,
         purchaseOrderId: input.purchaseOrderId,
+        projectId: input.projectId,
         date: input.date,
         dueDate: input.dueDate ?? useAccountingSettings.getState().dueDateFor(input.date, vendor?.paymentTermId, vendor?.paymentTermsDays ?? 30),
         lines: input.lines,

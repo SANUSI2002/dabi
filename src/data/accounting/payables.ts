@@ -89,6 +89,7 @@ export type Bill = {
   vendorInvoiceNumber?: string;
   vendorId: string;
   purchaseOrderId?: string;
+  projectId?: string; // B8 — tags this bill's cost lines to a project
   date: string;
   dueDate: string;
   lines: PurchaseLine[];
