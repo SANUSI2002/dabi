@@ -56,14 +56,18 @@ type ZGet<T> = () => T;
  * StateCreator so it drops straight into `create(...)`.
  *
  * `pick` selects the persisted subset (default: whole state minus functions).
+ * `merge` reconciles the freshly-built `base` with what was loaded from storage
+ * (default: `{ ...base, ...saved }`). Override it when new code ships seed data
+ * that a previously-persisted store would otherwise hide (e.g. new workflow defs).
  */
 export function persisted<T extends object>(
   key: string,
   init: (set: ZSet<T>, get: ZGet<T>) => T,
-  opts?: { pick?: (s: T) => Partial<T> },
+  opts?: { pick?: (s: T) => Partial<T>; merge?: (base: T, saved: Partial<T>) => T },
 ) {
   return ((set: any, get: any) => {
     const pick = opts?.pick ?? ((s: T) => stripFns(s));
+    const merge = opts?.merge ?? ((base: T, saved: Partial<T>) => ({ ...base, ...saved }));
 
     let timer: ReturnType<typeof setTimeout> | undefined;
     const save = () => {
@@ -78,7 +82,7 @@ export function persisted<T extends object>(
 
     const base = init(wrappedSet, get);
     const saved = backend.read<Partial<T>>(key);
-    return saved ? { ...base, ...saved } : base;
+    return saved ? merge(base, saved) : base;
   }) as any;
 }
 

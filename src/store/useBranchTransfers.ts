@@ -3,12 +3,13 @@ import * as seed from "@/data/branchTransfers";
 import { audit } from "@/store/useAudit";
 import { useHr } from "@/store/useHr";
 import { useEmployees } from "@/store/useEmployees";
-import { useApprovals } from "@/store/useApprovals";
 import { useOrg } from "@/store/useOrg";
+import { useWorkflow } from "@/platform/workflow/useWorkflow";
+import { ACCOUNTS } from "@/data/accounts";
 import type { BranchTransfer } from "@/data/branchTransfers";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
-const TRANSFER_APPROVAL_TYPE = "at6";
+const HR_ADMIN = ACCOUNTS.find((a) => a.wfRole === "Tenant HR Administrator")?.id ?? "s1";
 
 type BranchTransfersState = {
   transfers: BranchTransfer[];
@@ -26,6 +27,20 @@ function subjectLabel(employeeId: string, toCompanyId: string) {
   const emp = useHr.getState().byId(employeeId);
   const company = useOrg.getState().companies.find((c) => c.id === toCompanyId);
   return `Transfer ${emp?.name ?? "employee"} to ${company?.name ?? "another branch"}`;
+}
+
+/** context bag the "transfer" workflow expects */
+function transferContext(employeeId: string, requestedBy: string) {
+  const profile = useEmployees.getState().profileFor(employeeId);
+  const dept = useOrg.getState().deptById(profile?.departmentId);
+  return {
+    initiatorId: requestedBy,
+    departmentId: profile?.departmentId,
+    lineManagerId: profile?.reportingManagerId,
+    hodId: dept?.hodId,
+    deputyHodId: dept?.deputyHodId,
+    "roleHolder:HR Administrator": HR_ADMIN,
+  };
 }
 
 export const useBranchTransfers = create<BranchTransfersState>((set, get) => ({
@@ -51,11 +66,11 @@ export const useBranchTransfers = create<BranchTransfersState>((set, get) => ({
         ...s.transfers,
       ],
     }));
-    useApprovals.getState().submitRequest(TRANSFER_APPROVAL_TYPE, {
-      subjectLabel: subjectLabel(input.employeeId, input.toCompanyId),
-      requestedBy: input.requestedBy,
-      requestedFor: input.employeeId,
+    useWorkflow.getState().start({
+      triggerType: "transfer",
+      subject: subjectLabel(input.employeeId, input.toCompanyId),
       reference: id,
+      context: transferContext(input.employeeId, input.requestedBy),
     });
     return id;
   },
@@ -64,18 +79,18 @@ export const useBranchTransfers = create<BranchTransfersState>((set, get) => ({
     const t = get().transfers.find((x) => x.id === id);
     if (!t || t.status !== "Proposed") return;
     audit("resubmitted branch transfer for approval", `hr/transfer/${t.employeeId}`);
-    useApprovals.getState().submitRequest(TRANSFER_APPROVAL_TYPE, {
-      subjectLabel: subjectLabel(t.employeeId, t.toCompanyId),
-      requestedBy,
-      requestedFor: t.employeeId,
+    useWorkflow.getState().start({
+      triggerType: "transfer",
+      subject: subjectLabel(t.employeeId, t.toCompanyId),
       reference: id,
+      context: transferContext(t.employeeId, requestedBy),
     });
   },
 
   applyTransfer: (id) => {
     const t = get().transfers.find((x) => x.id === id);
     if (!t || t.status !== "Proposed") return;
-    if (!useApprovals.getState().isApproved(id)) return;
+    if (!useWorkflow.getState().isApproved(id)) return;
     audit("applied branch transfer", `hr/transfer/${t.employeeId}`);
     useEmployees.getState().upsertProfile(t.employeeId, { companyId: t.toCompanyId });
     set((s) => ({

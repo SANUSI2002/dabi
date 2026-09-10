@@ -8,7 +8,7 @@ import { useBranchTransfers } from "@/store/useBranchTransfers";
 import { useHr } from "@/store/useHr";
 import { useEmployees } from "@/store/useEmployees";
 import { useOrg } from "@/store/useOrg";
-import { useApprovals } from "@/store/useApprovals";
+import { useWorkflow } from "@/platform/workflow/useWorkflow";
 import { useIdentity } from "@/store/useIdentity";
 import { useTerm } from "@/platform/useTerminology";
 import { shortDate, initials } from "@/lib/format";
@@ -20,7 +20,8 @@ export default function BranchTransfers() {
   const byId = useHr((s) => s.byId);
   const { profileFor } = useEmployees();
   const { companies } = useOrg();
-  const { requestFor } = useApprovals();
+  const instanceFor = useWorkflow((s) => s.instanceFor);
+  useWorkflow((s) => s.instances); // re-render when any instance changes
   const user = useIdentity((s) => s.user);
 
   const [open, setOpen] = useState(false);
@@ -32,10 +33,10 @@ export default function BranchTransfers() {
   const companyName = (id?: string) => companies.find((c) => c.id === id)?.name ?? "—";
 
   function statusFor(transferId: string) {
-    const req = requestFor(transferId);
-    if (!req) return { label: "Not submitted", tone: "mist" as const };
-    if (req.status === "Pending") return { label: "Awaiting approval", tone: "amber" as const };
-    if (req.status === "Rejected") return { label: "Rejected", tone: "action" as const };
+    const inst = instanceFor(transferId);
+    if (!inst || inst.status === "Cancelled") return { label: "Not submitted", tone: "mist" as const };
+    if (inst.status === "Running") return { label: "Awaiting approval", tone: "amber" as const };
+    if (inst.status === "Rejected") return { label: "Rejected", tone: "action" as const };
     return { label: "Approved", tone: "brand" as const };
   }
 
@@ -98,7 +99,7 @@ export default function BranchTransfers() {
                   ) : st.label === "Approved" ? (
                     <Button onClick={() => applyTransfer(t.id)}><ShieldCheck size={14} /> Apply transfer</Button>
                   ) : (
-                    <p className="text-xs text-mist-400">See <Link to="/hr/approvals" className="text-brand-600 hover:underline">Approval Workflows</Link> for the sign-off queue.</p>
+                    <p className="text-xs text-mist-400">See the <Link to="/workflows/inbox" className="text-brand-600 hover:underline">Approvals Inbox</Link> for the sign-off queue.</p>
                   )}
                 </div>
               )}
@@ -147,7 +148,7 @@ export default function BranchTransfers() {
           <Field label={`Destination ${orgTerm("branch").toLowerCase()}`}><Select value={f.toCompanyId} onChange={(e) => setF({ ...f, toCompanyId: e.target.value })} options={[{ value: "", label: "Choose…" }, ...companies.map((c) => ({ value: c.id, label: c.name }))]} /></Field>
           <Field label="Effective date"><Input type="date" value={f.effectiveDate} onChange={(e) => setF({ ...f, effectiveDate: e.target.value })} /></Field>
           <Field label="Reason / justification"><Textarea value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} /></Field>
-          <p className="rounded-xl bg-mist-50 px-3 py-2 text-xs text-mist-500">Routes through the same {orgTerm("lineManager")} → HR chain as other HR approvals — see <Link to="/hr/approvals" className="text-brand-600 hover:underline">Approval Workflows</Link>.</p>
+          <p className="rounded-xl bg-mist-50 px-3 py-2 text-xs text-mist-500">Routes through the <b>Branch Transfer</b> workflow ({orgTerm("lineManager")} → HR) — track it in the <Link to="/workflows/inbox" className="text-brand-600 hover:underline">Approvals Inbox</Link>.</p>
         </div>
       </Modal>
 

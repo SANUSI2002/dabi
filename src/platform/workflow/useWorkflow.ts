@@ -236,7 +236,17 @@ export const useWorkflow = create<WorkflowState>(
       isApproved: (reference) => get().instanceFor(reference)?.status === "Approved",
       outcomeOf: (reference) => get().instanceFor(reference)?.status,
     }),
-    { pick: (s) => ({ defs: s.defs, instances: s.instances.slice(0, 300) }) },
+    {
+      pick: (s) => ({ defs: s.defs, instances: s.instances.slice(0, 300) }),
+      // keep persisted defs, but add any seed def (by id) that shipped since the
+      // store was last saved — so new triggers like "transfer" work without a wipe
+      merge: (base, saved) => {
+        const savedDefs = (saved.defs ?? []) as WorkflowDef[];
+        const known = new Set(savedDefs.map((d) => d.id));
+        const missingSeeds = base.defs.filter((d) => !known.has(d.id));
+        return { ...base, ...saved, defs: [...savedDefs, ...missingSeeds] };
+      },
+    },
   ),
 );
 

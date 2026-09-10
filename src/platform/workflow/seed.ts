@@ -60,6 +60,27 @@ export const seedWorkflowDefs: WorkflowDef[] = [
   },
   {
     ...base,
+    id: "wf-transfer",
+    name: "Branch Transfer",
+    description: "Line manager confirms, then HR signs off, before an employee's branch/facility changes.",
+    triggerType: "transfer",
+    nodes: [
+      { id: "t1", type: "start", label: "Transfer proposed", x: 60, y: 150 },
+      { id: "t2", type: "approval", label: "Line manager", x: 260, y: 150, approverType: "line-manager" },
+      { id: "t3", type: "approval", label: "HR sign-off", x: 470, y: 150, approverType: "role", approverRef: "HR Administrator" },
+      { id: "t4", type: "end", label: "Approved", x: 690, y: 150, outcome: "approved" },
+      { id: "t5", type: "end", label: "Rejected", x: 470, y: 300, outcome: "rejected" },
+    ],
+    edges: [
+      { id: "te1", from: "t1", to: "t2", branch: "default" },
+      { id: "te2", from: "t2", to: "t3", branch: "approve" },
+      { id: "te3", from: "t2", to: "t5", branch: "reject" },
+      { id: "te4", from: "t3", to: "t4", branch: "approve" },
+      { id: "te5", from: "t3", to: "t5", branch: "reject" },
+    ],
+  },
+  {
+    ...base,
     id: "wf-vacancy",
     name: "Vacancy Request",
     description: "HOD raises, HR approves. If HR does not act within 48 hours it escalates to an executive.",
