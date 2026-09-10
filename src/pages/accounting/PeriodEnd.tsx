@@ -8,13 +8,15 @@ import { money, shortDate, isoDate } from "@/lib/format";
 import { useLedger } from "@/store/accounting/useLedger";
 import { useAR, fxOf } from "@/store/accounting/useAR";
 import { useAP, fxOfBill } from "@/store/accounting/useAP";
+import { useFixedAssets } from "@/store/accounting/useFixedAssets";
 
 const thisMonth = () => { const d = new Date(); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`; };
 
 export default function PeriodEnd() {
-  const { fxRates, recurringJournals, dueRecurringJournals, runRecurringJournals, accountByNumber } = useLedger();
+  const { fxRates, recurringJournals, dueRecurringJournals, runRecurringJournals, fiscalYears, previewYearEndClose, closeFiscalYear, yearEndClosings } = useLedger();
   const { invoices, revenueSchedules, revalueForeignAr, runRecurringInvoices, recognizeRevenue, customerById } = useAR();
   const { bills, revalueForeignAp, runRecurringBills, vendorById } = useAP();
+  const { pendingDepreciationPeriods, catchUpDepreciation } = useFixedAssets();
 
   const foreignCurrencies = useMemo(() => [...new Set([...invoices, ...bills].filter((d) => d.currency !== "NGN").map((d) => d.currency))], [invoices, bills]);
   const [rates, setRates] = useState<Record<string, number>>(() => Object.fromEntries(foreignCurrencies.map((c) => [c, fxRates.find((r) => r.code === c)?.rateToNgn ?? 1])));
@@ -27,6 +29,9 @@ export default function PeriodEnd() {
   const dueRecurringInv = invoices.filter((i) => i.isRecurring && i.recurrenceNextDate && new Date(i.recurrenceNextDate).getTime() <= new Date(asOf + "T23:59:59Z").getTime());
   const dueRecurringBill = bills.filter((b) => b.isRecurring && b.recurrenceNextDate && new Date(b.recurrenceNextDate).getTime() <= new Date(asOf + "T23:59:59Z").getTime());
   const dueSchedules = revenueSchedules.flatMap((s) => s.entries.filter((e) => !e.recognized && e.period <= period).map((e) => ({ s, e })));
+  const [closeYear, setCloseYear] = useState(new Date().getUTCFullYear() - 1);
+  const pendingDep = pendingDepreciationPeriods();
+  const closePreview = previewYearEndClose(closeYear);
 
   function revalue() {
     const iso = new Date(asOf + "T23:59:59Z").toISOString();
@@ -64,9 +69,45 @@ export default function PeriodEnd() {
         </div>
       </Card>
 
-      <Tabs tabs={["FX Revaluation", "Recurring", "Revenue Recognition"]}>
+      <Tabs tabs={["FX Revaluation", "Recurring", "Revenue Recognition", "Depreciation", "Year-End Close"]}>
         {(t) =>
-          t === "FX Revaluation" ? (
+          t === "Depreciation" ? (
+            <Card>
+              <p className="mb-3 text-sm text-mist-500">Months with fixed-asset activity that haven't been depreciated yet. Running this posts one Dr Depreciation Expense / Cr Accumulated Depreciation entry per month.</p>
+              {pendingDep.length === 0 ? <EmptyState title="Depreciation is up to date" /> : (
+                <>
+                  <div className="flex flex-wrap gap-1.5">{pendingDep.map((p) => <Badge key={p} tone="amber">{p}</Badge>)}</div>
+                  <div className="mt-3 flex justify-end"><Button onClick={() => { const r = catchUpDepreciation(); setMsg(`Ran depreciation for ${r.ran.length} month(s), total ${money(r.total)}.`); }}><CalendarClock size={15} /> Run all {pendingDep.length} month(s)</Button></div>
+                </>
+              )}
+            </Card>
+          ) : t === "Year-End Close" ? (
+            <Card>
+              <div className="mb-3 flex flex-wrap items-end gap-3">
+                <Field label="Fiscal year"><Input type="number" value={closeYear} onChange={(e) => setCloseYear(+e.target.value)} className="w-28" /></Field>
+                {yearEndClosings.some((c) => c.year === closeYear) && <Badge tone="brand">closed {new Date(yearEndClosings.find((c) => c.year === closeYear)!.closedAt).toLocaleDateString()}</Badge>}
+              </div>
+              <p className="mb-3 text-sm text-mist-500">Closing zeroes every revenue, expense and COGS account for the year into Retained Earnings (3200), locks the year and rolls the books-closed date to 1 Jan {closeYear + 1}.</p>
+              {closePreview.lines.length === 0 ? <EmptyState title="Nothing to close" hint={closePreview.reason} /> : (
+                <>
+                  <Table columns={["Account", "Debit", "Credit"]}>
+                    {closePreview.lines.map((l, i) => (
+                      <Row key={i} index={i}>
+                        <Cell className={l.accountNumber === 3200 ? "font-bold" : "font-semibold"}>{l.accountNumber} — {l.name}</Cell>
+                        <Cell className="font-mono">{l.debit ? money(l.debit) : ""}</Cell>
+                        <Cell className="font-mono">{l.credit ? money(l.credit) : ""}</Cell>
+                      </Row>
+                    ))}
+                  </Table>
+                  <div className="mt-3 flex items-center justify-between">
+                    <span className={`text-sm font-bold ${closePreview.netIncome >= 0 ? "text-brand-700" : "text-action-600"}`}>Net income for {closeYear}: {money(closePreview.netIncome)}</span>
+                    <Button disabled={!closePreview.canClose} onClick={() => { const r = closeFiscalYear(closeYear); setMsg(r.ok ? `${closeYear} closed — ${money(closePreview.netIncome)} to Retained Earnings.` : (r.error ?? "Could not close")); }}>Close {closeYear}</Button>
+                  </div>
+                  {!closePreview.canClose && closePreview.reason && <p className="mt-1 text-right text-xs text-amber-600">{closePreview.reason}</p>}
+                </>
+              )}
+            </Card>
+          ) : t === "FX Revaluation" ? (
             <Card>
               <p className="mb-3 text-sm text-mist-500">Enter today's closing rates. Open foreign balances are marked to market and the difference posts to Foreign Exchange Gain / Loss.</p>
               {foreignCurrencies.length === 0 ? <EmptyState title="No foreign-currency documents" /> : (

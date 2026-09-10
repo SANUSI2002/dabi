@@ -116,6 +116,11 @@ type LedgerState = {
   setPeriodStatus: (id: string, status: AccountingPeriod["status"]) => void;
   setBooksLockedBefore: (date: string | null) => void;
   openFiscalYear: (year: number) => void;
+  /** B22 — preview the closing entry for a year (P&L accounts -> Retained Earnings) */
+  previewYearEndClose: (year: number) => { lines: { accountNumber: number; name: string; debit: number; credit: number }[]; netIncome: number; canClose: boolean; reason?: string };
+  /** B22 — post the closing entry, lock the year, roll books forward, open next year */
+  closeFiscalYear: (year: number) => { ok: boolean; error?: string };
+  yearEndClosings: { year: number; closedAt: string; closedBy: string; netIncome: number; journalEntryId?: string }[];
 
   // ---- B13 recurring journals ----
   addRecurringJournal: (input: { memo: string; lines: DraftLine[]; everyMonths: number; startDate: string; endDate?: string }) => { ok: boolean; error?: string };
@@ -152,6 +157,7 @@ export const useLedger = create<LedgerState>((set, get) => ({
   branches: seedBranches,
   consolidationGroups: seedConsolidationGroups,
   activeBranchId: loadBranch(),
+  yearEndClosings: [],
   recurringJournals: [
     { id: "rj-rent", memo: "Monthly office rent accrual", lines: [{ accountNumber: 5200, debit: 400_000, credit: 0, description: "Rent for the month" }, { accountNumber: 2000, debit: 0, credit: 400_000, description: "Accrued rent payable" }], everyMonths: 1, nextDate: new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1, 12)).toISOString(), postedCount: 0, active: true, createdAt: "2026-01-01T00:00:00.000Z" },
   ],
@@ -487,6 +493,61 @@ export const useLedger = create<LedgerState>((set, get) => ({
       periods: [...s.periods, ...buildPeriods(year)],
     }));
     audit(`opened fiscal year ${year}`, `accounting/fiscal-year/${year}`);
+  },
+
+  previewYearEndClose: (year) => {
+    const yearEnd = new Date(Date.UTC(year, 11, 31, 23, 59, 59)).toISOString();
+    const retained = get().accountByNumber(3200);
+    const pnlAccounts = get().accounts.filter((a) => a.type === "revenue" || a.type === "expense" || a.type === "cogs");
+    const lines: { accountNumber: number; name: string; debit: number; credit: number }[] = [];
+    let net = 0;
+    for (const a of pnlAccounts) {
+      // period activity for the year only (opening balances are pre-year)
+      const bal = round2(get().activityOf(a.number, `${year}-01-01T00:00:00.000Z`, yearEnd));
+      if (Math.abs(bal) < 0.005) continue;
+      const isDebitNormal = a.type === "expense" || a.type === "cogs";
+      // close each account by posting the opposite of its balance
+      if (isDebitNormal) { lines.push({ accountNumber: a.number, name: a.name, debit: 0, credit: bal }); net -= bal; }
+      else { lines.push({ accountNumber: a.number, name: a.name, debit: bal, credit: 0 }); net += bal; }
+    }
+    net = round2(net);
+    if (retained) {
+      if (net >= 0) lines.push({ accountNumber: 3200, name: retained.name, debit: 0, credit: net });
+      else lines.push({ accountNumber: 3200, name: retained.name, debit: -net, credit: 0 });
+    }
+    const alreadyClosed = get().yearEndClosings.some((c) => c.year === year);
+    const priorOpen = get().fiscalYears.some((f) => f.year < year && f.status === "Open" && get().accounts.some((a) => (a.type === "revenue" || a.type === "expense" || a.type === "cogs") && Math.abs(get().activityOf(a.number, `${f.year}-01-01T00:00:00.000Z`, new Date(Date.UTC(f.year, 11, 31)).toISOString())) > 0.005) && !get().yearEndClosings.some((c) => c.year === f.year));
+    const canClose = !alreadyClosed && !priorOpen && get().isInBalance(yearEnd) && lines.length > 0;
+    const reason = alreadyClosed ? `${year} is already closed.` : priorOpen ? "Close the earlier open year first." : !get().isInBalance(yearEnd) ? "The trial balance is out at year end." : lines.length === 0 ? "No P&L activity to close." : undefined;
+    return { lines, netIncome: net, canClose, reason };
+  },
+
+  closeFiscalYear: (year) => {
+    const preview = get().previewYearEndClose(year);
+    if (!preview.canClose) return { ok: false, error: preview.reason ?? "Cannot close this year." };
+    const yearEndDate = new Date(Date.UTC(year, 11, 31, 12)).toISOString();
+    // the close entry itself must post ON the year-end date, so temporarily allow it
+    const priorLock = get().booksLockedBefore;
+    set({ booksLockedBefore: null });
+    const je = get().postJournal({
+      date: yearEndDate,
+      source: "Year-End Close",
+      memo: `Year-end close ${year} — P&L accounts to Retained Earnings`,
+      reference: `FY${year}`,
+      lines: preview.lines.map((l) => ({ accountNumber: l.accountNumber, debit: l.debit, credit: l.credit, description: `Close ${l.name}` })),
+    });
+    set({ booksLockedBefore: priorLock });
+    if (!je.ok) return { ok: false, error: je.error };
+    // lock the year, roll books forward, open next year if needed
+    set((s) => ({
+      periods: s.periods.map((p) => (new Date(p.startDate).getUTCFullYear() === year ? { ...p, status: "Locked" as const } : p)),
+      fiscalYears: s.fiscalYears.map((f) => (f.year === year ? { ...f, status: "Closed" as const } : f)),
+      yearEndClosings: [{ year, closedAt: new Date().toISOString(), closedBy: useIdentity.getState().user.id, netIncome: preview.netIncome, journalEntryId: je.entry?.id }, ...s.yearEndClosings],
+    }));
+    get().setBooksLockedBefore(new Date(Date.UTC(year + 1, 0, 1)).toISOString());
+    if (!get().fiscalYears.some((f) => f.year === year + 1)) get().openFiscalYear(year + 1);
+    audit(`closed fiscal year ${year} — net income ${preview.netIncome.toLocaleString()} to Retained Earnings`, `accounting/fiscal-year/${year}/close`);
+    return { ok: true };
   },
 
   addRecurringJournal: (input) => {

@@ -35,6 +35,9 @@ type FAState = {
 
   previewRun: (period: string) => { entries: DepreciationRunEntry[]; total: number };
   runDepreciation: (period: string) => { ok: boolean; error?: string };
+  /** B23 — months from the earliest un-depreciated asset through `throughPeriod` that have no run yet */
+  pendingDepreciationPeriods: (throughPeriod?: string) => string[];
+  catchUpDepreciation: (throughPeriod?: string) => { ran: string[]; total: number };
 
   disposeAsset: (id: string, input: { date: string; proceeds: number; proceedsAccount: number }) => { ok: boolean; error?: string };
 
@@ -137,6 +140,43 @@ export const useFixedAssets = create<FAState>((set, get) => ({
     }));
     audit(`ran depreciation for ${period} — ${total.toLocaleString()}`, `accounting/fixed-assets/depreciation/${period}`);
     return { ok: true };
+  },
+
+  pendingDepreciationPeriods: (throughPeriod) => {
+    const now = new Date();
+    const through = throughPeriod ?? `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+    const active = get().assets.filter((a) => a.status === "Active" || a.status === "Fully Depreciated");
+    if (!active.length) return [];
+    // don't try to depreciate into locked periods — start no earlier than the books-locked-before month
+    const lock = useLedger.getState().booksLockedBefore;
+    const lockMonth = lock ? lock.slice(0, 7) : "0000-00";
+    const starts = active.map((a) => a.acquisitionDate.slice(0, 7));
+    let cursor = [starts.sort()[0], lockMonth].sort().reverse()[0];
+    const done = new Set(get().runs.map((r) => r.period));
+    const out: string[] = [];
+    let guard = 0;
+    while (cursor <= through && guard++ < 240) {
+      if (!done.has(cursor)) {
+        const { entries } = get().previewRun(cursor);
+        if (entries.length) out.push(cursor);
+      }
+      const [y, m] = cursor.split("-").map(Number);
+      const d = new Date(Date.UTC(y, m, 1));
+      cursor = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+    }
+    return out;
+  },
+  catchUpDepreciation: (throughPeriod) => {
+    const pending = get().pendingDepreciationPeriods(throughPeriod);
+    const ran: string[] = [];
+    let total = 0;
+    for (const p of pending) {
+      const { total: t } = get().previewRun(p);
+      const res = get().runDepreciation(p);
+      if (res.ok) { ran.push(p); total = round2(total + t); }
+    }
+    if (ran.length) audit(`caught up ${ran.length} month(s) of depreciation — ${total.toLocaleString()}`, "accounting/fixed-assets/depreciation/catch-up");
+    return { ran, total };
   },
 
   disposeAsset: (id, input) => {
