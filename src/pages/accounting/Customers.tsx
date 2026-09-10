@@ -9,13 +9,14 @@ import { PrintDoc, Section, Line } from "@/components/print/PrintFrame";
 import { money, shortDate } from "@/lib/format";
 import { useAR, docTotal } from "@/store/accounting/useAR";
 import { useAccountingSettings } from "@/store/accounting/useAccountingSettings";
+import { ExportButton, ImportButton } from "./_csv";
 import type { CustomerType, Customer } from "@/data/accounting/receivables";
 
 const TYPES: CustomerType[] = ["Patient", "NHIS", "HMO", "Corporate", "Walk-in"];
 const blank = { name: "", type: "Corporate" as CustomerType, email: "", phone: "", address: "", city: "", paymentTermId: "pt-net30", creditLimit: 0, openingBalance: 0 };
 
 export default function Customers() {
-  const { customers, invoices, receipts, addCustomer, updateCustomer, customerBalance, invoicesOf, invoiceBalance, agingFor, markStatementSent, lastStatementSent } = useAR();
+  const { customers, invoices, receipts, addCustomer, updateCustomer, customerBalance, invoicesOf, invoiceBalance, agingFor, markStatementSent, lastStatementSent, importCustomers } = useAR();
   const paymentTerms = useAccountingSettings((s) => s.paymentTerms);
   const termById = useAccountingSettings((s) => s.termById);
   const termName = (id?: string) => termById(id)?.name ?? "Net 30";
@@ -41,7 +42,11 @@ export default function Customers() {
       <PageHeader
         title="Customers"
         subtitle="Payers, HMOs and corporate schemes — receivables and statements"
-        actions={<Button onClick={() => { setF(blank); setCreate(true); }}><Plus size={15} /> New Customer</Button>}
+        actions={<>
+          <ExportButton filename="customers" headers={["name", "type", "email", "phone", "city", "balance"]} rows={customers.map((c) => [c.name, c.type, c.email, c.phone, c.city, customerBalance(c.id)])} />
+          <ImportButton title="Import Customers" onImport={importCustomers} sample={"name,type,email,city,credit_limit,opening_balance\nLagoon Hospital HMO,HMO,claims@lagoon.example,Lagos,10000000,0\nAcme Corp Staff,Corporate,hr@acme.example,Abuja,5000000,250000"} />
+          <Button onClick={() => { setF(blank); setCreate(true); }}><Plus size={15} /> New Customer</Button>
+        </>}
       />
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">

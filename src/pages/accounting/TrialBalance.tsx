@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Printer, CheckCircle2, AlertTriangle } from "lucide-react";
 import { PageHeader, Button, Card } from "@/components/ui/primitives";
+import { ExportButton } from "./_csv";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Field, Input } from "@/components/ui/form";
 import { PrintDoc, Section, Line } from "@/components/print/PrintFrame";
@@ -28,6 +29,7 @@ export default function TrialBalance() {
             <Field label="As at">
               <Input type="date" value={asOf} onChange={(e) => setAsOf(e.target.value)} className="w-auto" />
             </Field>
+            <ExportButton filename={`trial-balance-${asOf}`} headers={["number", "account", "debit", "credit"]} rows={rows.map((r) => [r.account.number, r.account.name, r.debit || "", r.credit || ""])} />
             <Button variant="soft" onClick={() => setPrint(true)}><Printer size={15} /> Print</Button>
           </>
         }

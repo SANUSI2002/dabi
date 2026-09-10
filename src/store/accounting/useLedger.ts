@@ -107,6 +107,8 @@ type LedgerState = {
   addAccount: (a: { number: number; name: string; type: AccountType; subtype: AccountSubtype; parentNumber?: number; description?: string; openingBalance?: number; allowManualEntry?: boolean }) => { ok: boolean; error?: string };
   /** B15 — add any accounts from a CoA template that aren't already in the ledger */
   applyCoaTemplate: (templateId: string) => { added: number; skipped: number };
+  /** B16 — bulk import accounts from parsed CSV rows: {number,name,type,subtype,opening_balance?} */
+  importAccounts: (rows: Record<string, string>[]) => { added: number; errors: string[] };
   updateAccount: (id: string, patch: Partial<Pick<Account, "name" | "description" | "isActive" | "allowManualEntry" | "parentNumber" | "subtype">>) => void;
   archiveAccount: (id: string) => void;
 
@@ -430,6 +432,24 @@ export const useLedger = create<LedgerState>((set, get) => ({
     }
     audit(`applied CoA template "${tmpl.name}" — ${added} account(s) added`, "accounting/coa/template");
     return { added, skipped };
+  },
+
+  importAccounts: (rows) => {
+    const validTypes = ["asset", "liability", "equity", "revenue", "expense", "cogs"];
+    let added = 0;
+    const errors: string[] = [];
+    for (const [i, r] of rows.entries()) {
+      const number = Number(r.number ?? r["account number"] ?? r["account_number"]);
+      const name = r.name ?? r["account name"] ?? "";
+      const type = (r.type ?? "").toLowerCase() as AccountType;
+      const subtype = (r.subtype ?? "operating_expense").toLowerCase() as AccountSubtype;
+      if (!number || !name) { errors.push(`Row ${i + 2}: missing number or name`); continue; }
+      if (!validTypes.includes(type)) { errors.push(`Row ${i + 2}: bad type "${r.type}"`); continue; }
+      const res = get().addAccount({ number, name, type, subtype, openingBalance: Number(r.opening_balance ?? r["opening balance"] ?? 0) || 0 });
+      if (res.ok) added++; else errors.push(`Row ${i + 2}: ${res.error}`);
+    }
+    audit(`imported ${added} account(s) from CSV`, "accounting/coa/import");
+    return { added, errors };
   },
 
   updateAccount: (id, patch) => {

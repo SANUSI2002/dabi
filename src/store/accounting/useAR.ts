@@ -163,6 +163,8 @@ type ARState = {
   addCustomer: (c: Omit<Customer, "id" | "createdAt" | "arAccountNumber" | "creditHold" | "openingBalance"> & { openingBalance?: number }) => string;
   updateCustomer: (id: string, patch: Partial<Customer>) => void;
   customerById: (id?: string) => Customer | undefined;
+  /** B16 — bulk import customers from parsed CSV rows: {name,type?,email?,phone?,city?,credit_limit?,opening_balance?} */
+  importCustomers: (rows: Record<string, string>[]) => { added: number; errors: string[] };
 
   // estimates
   createEstimate: (input: { customerId: string; date: string; expiryDays: number; lines: SalesLine[]; notes?: string }) => string;
@@ -297,6 +299,27 @@ export const useAR = create<ARState>((set, get) => {
       audit(`updated customer`, `accounting/customers/${id}`);
     },
     customerById: (id) => get().customers.find((c) => c.id === id),
+
+    importCustomers: (rows) => {
+      const types = ["Patient", "NHIS", "HMO", "Corporate", "Walk-in"];
+      let added = 0;
+      const errors: string[] = [];
+      for (const [i, r] of rows.entries()) {
+        const name = (r.name ?? "").trim();
+        if (!name) { errors.push(`Row ${i + 2}: missing name`); continue; }
+        const type = (types.find((t) => t.toLowerCase() === (r.type ?? "").toLowerCase()) ?? "Corporate") as CustomerType;
+        get().addCustomer({
+          name, type,
+          email: r.email || undefined, phone: r.phone || undefined, city: r.city || undefined,
+          paymentTermsDays: Number(r.payment_terms_days ?? r["payment terms"] ?? 30) || 30,
+          creditLimit: Number(r.credit_limit ?? r["credit limit"] ?? 0) || 0,
+          openingBalance: Number(r.opening_balance ?? r["opening balance"] ?? 0) || 0,
+        });
+        added++;
+      }
+      audit(`imported ${added} customer(s) from CSV`, "accounting/customers/import");
+      return { added, errors };
+    },
 
     createEstimate: (input) => {
       const id = `est-${rid()}`;

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Plus, Trash2, RotateCcw, Check, Ban, Scale } from "lucide-react";
 import { PageHeader, Button, Badge, Card, StatCard, statusTone, EmptyState } from "@/components/ui/primitives";
+import { ExportButton } from "./_csv";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
@@ -87,7 +88,11 @@ export default function JournalEntries() {
       <PageHeader
         title="Journal Entries"
         subtitle="The double-entry record — every financial event lands here as a balanced entry"
-        actions={<Button onClick={() => { resetForm(); setCreate(true); }}><Plus size={15} /> New Journal Entry</Button>}
+        actions={<>
+          <ExportButton filename="journal-entries" headers={["number", "date", "status", "source", "reference", "memo", "account", "account_name", "debit", "credit"]}
+            rows={entries.flatMap((e) => e.lines.map((l) => [e.number, e.date.slice(0, 10), e.status, e.source, e.reference, e.memo, l.accountNumber, accounts.find((a) => a.number === l.accountNumber)?.name, l.debit || "", l.credit || ""]))} />
+          <Button onClick={() => { resetForm(); setCreate(true); }}><Plus size={15} /> New Journal Entry</Button>
+        </>}
       />
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">

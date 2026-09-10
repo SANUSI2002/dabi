@@ -5,6 +5,7 @@ import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Textarea, Grid, Checkbox } from "@/components/ui/form";
 import { coaTemplates } from "@/data/accounting/coaTemplates";
+import { ExportButton, ImportButton } from "./_csv";
 import { money } from "@/lib/format";
 import { useLedger } from "@/store/accounting/useLedger";
 import { isDebitNormal, type Account, type AccountType, type AccountSubtype } from "@/data/accounting/coa";
@@ -31,7 +32,7 @@ const SUBTYPES: Record<AccountType, AccountSubtype[]> = {
 const blankForm = { number: "", name: "", type: "expense" as AccountType, subtype: "operating_expense" as AccountSubtype, description: "", openingBalance: "", allowManualEntry: true };
 
 export default function ChartOfAccounts() {
-  const { accounts, balanceOf, addAccount, updateAccount, archiveAccount, applyCoaTemplate } = useLedger();
+  const { accounts, balanceOf, addAccount, updateAccount, archiveAccount, applyCoaTemplate, importAccounts } = useLedger();
   const [tmplModal, setTmplModal] = useState(false);
   const [tmplChoice, setTmplChoice] = useState("");
   const asOf = new Date().toISOString();
@@ -82,6 +83,8 @@ export default function ChartOfAccounts() {
         actions={
           <>
             <Checkbox label="Show archived" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
+            <ExportButton filename="chart-of-accounts" headers={["number", "name", "type", "subtype", "balance"]} rows={rows.map((a) => [a.number, a.name, a.type, a.subtype, balanceOf(a.number, asOf)])} />
+            <ImportButton title="Import Accounts" onImport={importAccounts} sample={"number,name,type,subtype,opening_balance\n6100,Marketing,expense,operating_expense,0\n4300,Grant Income,revenue,operating_revenue,0"} />
             <Button variant="soft" onClick={() => setTmplModal(true)}>Apply template</Button>
             <Button onClick={() => { setF(blankForm); setErr(null); setCreate(true); }}><Plus size={15} /> New Account</Button>
           </>

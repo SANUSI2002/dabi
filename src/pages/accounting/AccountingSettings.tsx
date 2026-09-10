@@ -19,7 +19,9 @@ const MONTHS = ["January", "February", "March", "April", "May", "June", "July", 
 export default function AccountingSettings() {
   const { org, sequences, updateOrg, updateSequence, paymentTerms, addPaymentTerm, updatePaymentTerm, reminderRules, addReminderRule, updateReminderRule, removeReminderRule } = useAccountingSettings();
   const { periods, fiscalYears, booksLockedBefore, setPeriodStatus, setBooksLockedBefore, openFiscalYear, fxRates } = useLedger();
-  const { rules, addRule, updateRule, removeRule } = useAcctControl();
+  const { rules, addRule, updateRule, removeRule, rulesFor } = useAcctControl();
+  const [testDoc, setTestDoc] = useState<ApprovableDoc>("Bill");
+  const [testAmt, setTestAmt] = useState(500000);
 
   const [orgForm, setOrgForm] = useState(org);
   const [lockDate, setLockDate] = useState(booksLockedBefore ? isoDate(booksLockedBefore) : "");
@@ -90,8 +92,25 @@ export default function AccountingSettings() {
           );
 
           if (t === "Approval Rules") return (
-            <Card className="p-0">
-              <div className="flex justify-end p-3"><Button variant="soft" onClick={() => setRuleModal(true)}><Plus size={13} /> Add Rule</Button></div>
+            <div className="space-y-4">
+              <Card>
+                <h3 className="mb-2 text-sm font-bold text-mist-700">Test the workflow</h3>
+                <div className="flex flex-wrap items-end gap-3">
+                  <Field label="Document"><Select value={testDoc} onChange={(e) => setTestDoc(e.target.value as ApprovableDoc)} options={DOC_TYPES} /></Field>
+                  <Field label="Amount"><Input type="number" value={testAmt} onChange={(e) => setTestAmt(+e.target.value)} className="w-40" /></Field>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+                  {rulesFor(testDoc, testAmt).length === 0 ? <Badge tone="mist">No approval required — posts straight through</Badge> :
+                    rulesFor(testDoc, testAmt).map((r, i, arr) => (
+                      <span key={r.id} className="flex items-center gap-2">
+                        <span className="rounded-lg bg-brand-50 px-2.5 py-1 font-semibold text-brand-700 ring-1 ring-brand-200">L{r.level} · {r.approverRole}</span>
+                        {i < arr.length - 1 && <span className="text-mist-300">→</span>}
+                      </span>
+                    ))}
+                </div>
+              </Card>
+              <Card className="p-0">
+              <div className="flex justify-end p-3"><Button variant="soft" onClick={() => setRuleModal(true)}><Plus size={13} /> Add Step</Button></div>
               <Table columns={["Document", "From", "To", "Approver role", "Level", ""]}>
                 {rules.sort((a, b) => a.docType.localeCompare(b.docType) || a.level - b.level).map((r, i) => (
                   <Row key={r.id} index={i}>
@@ -109,7 +128,8 @@ export default function AccountingSettings() {
                   </Row>
                 ))}
               </Table>
-            </Card>
+              </Card>
+            </div>
           );
 
           if (t === "Payment Terms") return (
