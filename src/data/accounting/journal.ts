@@ -8,6 +8,8 @@ export type JournalSource =
   | "Invoice"
   | "Customer Payment"
   | "Credit Note"
+  | "Sales Receipt"
+  | "Refund Receipt"
   | "Bill"
   | "Vendor Payment"
   | "Vendor Credit"

@@ -173,6 +173,8 @@ export const NAV: NavGroup[] = [
           { to: "/accounting/quotations", label: "Quotations" },
           { to: "/accounting/sales-orders", label: "Sales Orders" },
           { to: "/accounting/invoices", label: "Invoices" },
+          { to: "/accounting/sales-receipts", label: "Cash Sales & Refunds" },
+          { to: "/accounting/delayed-charges", label: "Delayed Charges" },
           { to: "/accounting/receipts", label: "Customer Receipts" },
           { to: "/accounting/credit-notes", label: "Credit Notes" },
         ],

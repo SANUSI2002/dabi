@@ -159,6 +159,56 @@ export type CreditNote = {
   createdAt: string;
 };
 
+// ---- B1 Sales Receipt: over-the-counter sale, settled immediately, no invoice/AR ----
+export type SalesReceipt = {
+  id: string;
+  number: string;
+  customerId?: string; // optional — walk-in cash sales need no customer
+  customerName?: string; // free-text when no customer record
+  date: string;
+  method: "Cash" | "Bank Transfer" | "POS" | "Cheque";
+  depositAccountNumber: number;
+  lines: SalesLine[];
+  notes?: string;
+  status: "Completed" | "Void";
+  journalEntryId?: string;
+  createdBy: string;
+  createdAt: string;
+};
+
+// ---- B2 Refund Receipt: money paid back to a customer for returned services / overpayment ----
+export type RefundReceipt = {
+  id: string;
+  number: string;
+  customerId: string;
+  date: string;
+  method: "Cash" | "Bank Transfer" | "POS" | "Cheque";
+  fromAccountNumber: number; // cash/bank the refund is paid from
+  lines: SalesLine[]; // what is being refunded (revenue accounts get debited)
+  reason: string;
+  notes?: string;
+  status: "Completed" | "Void";
+  journalEntryId?: string;
+  createdBy: string;
+  createdAt: string;
+};
+
+// ---- B3 Delayed Charge: billable item parked against a customer, no GL until invoiced ----
+export type DelayedCharge = {
+  id: string;
+  customerId: string;
+  date: string;
+  accountNumber: number;
+  description: string;
+  qty: number;
+  unitPrice: number;
+  taxRateId?: string;
+  status: "Unbilled" | "Invoiced";
+  invoiceId?: string;
+  createdBy: string;
+  createdAt: string;
+};
+
 const daysAgo = (n: number) => new Date(Date.now() - n * 864e5).toISOString();
 const daysAhead = (n: number) => new Date(Date.now() + n * 864e5).toISOString();
 
@@ -282,6 +332,28 @@ export const seedEstimates: Estimate[] = [
 export const seedSalesOrders: SalesOrder[] = [];
 export const seedCreditNotes: CreditNote[] = [];
 export const seedRevenueSchedules: RevenueSchedule[] = [];
+
+export const seedSalesReceipts: SalesReceipt[] = [
+  {
+    id: "srct-9001",
+    number: "SR-2026-009001",
+    customerName: "Walk-in — Mrs Adebayo",
+    date: daysAgo(4),
+    method: "POS",
+    depositAccountNumber: 1010,
+    lines: [svc(4000, "GP consultation", 1, 15_000), svc(4020, "Amoxicillin + Paracetamol", 1, 4_500)],
+    status: "Completed",
+    createdBy: "s1",
+    createdAt: daysAgo(4),
+  },
+];
+
+export const seedRefundReceipts: RefundReceipt[] = [];
+
+export const seedDelayedCharges: DelayedCharge[] = [
+  { id: "dc-8001", customerId: "cust-dangote", date: daysAgo(6), accountNumber: 4050, description: "Ad-hoc ECG — night shift supervisor", qty: 1, unitPrice: 18_000, taxRateId: "tax-vat-exempt", status: "Unbilled", createdBy: "s1", createdAt: daysAgo(6) },
+  { id: "dc-8002", customerId: "cust-dangote", date: daysAgo(3), accountNumber: 4010, description: "Urgent malaria RDT x2", qty: 2, unitPrice: 3_500, taxRateId: "tax-vat-exempt", status: "Unbilled", createdBy: "s1", createdAt: daysAgo(3) },
+];
 
 export type ReminderLevel = { level: number; daysOverdue: number; tone: "Friendly" | "Firm" | "Final Notice" };
 

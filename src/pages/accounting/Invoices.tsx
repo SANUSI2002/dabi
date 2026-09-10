@@ -13,7 +13,8 @@ import { LineEditor, DocTotals, type EditableLine } from "./_components";
 import type { Invoice } from "@/data/accounting/receivables";
 
 export default function Invoices() {
-  const { customers, invoices, customerById, createInvoice, issueInvoice, voidInvoice, recordReceipt, invoiceBalance, reminderDue, sendReminder, runReminderRun, reminders } = useAR();
+  const { customers, invoices, customerById, createInvoice, issueInvoice, voidInvoice, recordReceipt, invoiceBalance, reminderDue, sendReminder, runReminderRun, reminders, unbilledChargesOf } = useAR();
+  const [pullCharges, setPullCharges] = useState(true);
   const accounts = useLedger((s) => s.accounts);
   const cashAccts = accounts.filter((a) => a.subtype === "cash" || a.subtype === "bank");
 
@@ -51,6 +52,7 @@ export default function Invoices() {
       exchangeRate: f.currency === "NGN" ? 1 : f.exchangeRate,
       deferOverMonths: f.deferMonths || undefined,
       recurEveryMonths: f.recurMonths || undefined,
+      delayedChargeIds: pullCharges ? unbilledChargesOf(f.customerId).map((d) => d.id) : undefined,
     });
     if (issue) {
       const r = issueInvoice(id);
@@ -172,6 +174,12 @@ export default function Invoices() {
             <Field label="Recognise over (mo)" hint="0 = now"><Input type="number" value={f.deferMonths || ""} onChange={(e) => setF({ ...f, deferMonths: +e.target.value })} /></Field>
             <Field label="Repeat every (mo)" hint="0 = one-off"><Input type="number" value={f.recurMonths || ""} onChange={(e) => setF({ ...f, recurMonths: +e.target.value })} /></Field>
           </div>
+          {f.customerId && unbilledChargesOf(f.customerId).length > 0 && (
+            <label className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 ring-1 ring-amber-200">
+              <input type="checkbox" checked={pullCharges} onChange={(e) => setPullCharges(e.target.checked)} />
+              Add {unbilledChargesOf(f.customerId).length} unbilled delayed charge(s) — {money(unbilledChargesOf(f.customerId).reduce((n, d) => n + d.qty * d.unitPrice, 0))}
+            </label>
+          )}
           <LineEditor lines={f.lines} onChange={(lines) => setF({ ...f, lines })} />
           <DocTotals subtotal={docSubtotal(f.lines as never)} tax={docTax(f.lines as never)} total={docTotal(f.lines as never)} />
           {f.currency !== "NGN" && <p className="text-right text-xs text-mist-400">≈ {money(docTotal(f.lines as never) * f.exchangeRate)} at {f.exchangeRate}/{f.currency}</p>}

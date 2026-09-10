@@ -14,6 +14,9 @@ import {
   seedCreditNotes,
   seedRevenueSchedules,
   seedReminders,
+  seedSalesReceipts,
+  seedRefundReceipts,
+  seedDelayedCharges,
   REMINDER_LADDER,
   type Customer,
   type InvoiceReminder,
@@ -26,6 +29,9 @@ import {
   type ReceiptAllocation,
   type CreditNote,
   type RevenueSchedule,
+  type SalesReceipt,
+  type RefundReceipt,
+  type DelayedCharge,
 } from "@/data/accounting/receivables";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
@@ -90,6 +96,28 @@ function postReceiptJE(r: CustomerReceipt, cust: Customer, invLookup: (id: strin
   return useLedger.getState().postJournal({ date: r.date, source: "Customer Payment", memo: `Receipt ${r.number} — ${cust.name}`, reference: r.number, lines });
 }
 
+function postSalesReceiptJE(sr: SalesReceipt, who: string) {
+  const total = docTotal(sr.lines);
+  const tax = docTax(sr.lines);
+  const lines: { accountNumber: number; debit: number; credit: number; description?: string }[] = [
+    { accountNumber: sr.depositAccountNumber, debit: total, credit: 0, description: `${sr.method} — ${who}` },
+    ...sr.lines.map((l) => ({ accountNumber: l.accountNumber, debit: 0, credit: lineAmount(l), description: l.description })),
+  ];
+  if (tax > 0) lines.push({ accountNumber: ACCT.vatPayable, debit: 0, credit: tax, description: `Output VAT — ${sr.number}` });
+  return useLedger.getState().postJournal({ date: sr.date, source: "Sales Receipt", memo: `Sales receipt ${sr.number} — ${who}`, reference: sr.number, lines });
+}
+
+function postRefundReceiptJE(rr: RefundReceipt, cust: Customer) {
+  const total = docTotal(rr.lines);
+  const tax = docTax(rr.lines);
+  const lines: { accountNumber: number; debit: number; credit: number; description?: string; customerId?: string }[] = [
+    ...rr.lines.map((l) => ({ accountNumber: l.accountNumber, debit: lineAmount(l), credit: 0, description: l.description, customerId: cust.id })),
+  ];
+  if (tax > 0) lines.push({ accountNumber: ACCT.vatPayable, debit: tax, credit: 0, description: `VAT reversed — ${rr.number}`, customerId: cust.id });
+  lines.push({ accountNumber: rr.fromAccountNumber, debit: 0, credit: total, description: `Refund to ${cust.name}` });
+  return useLedger.getState().postJournal({ date: rr.date, source: "Refund Receipt", memo: `Refund ${rr.number} — ${cust.name}`, reference: rr.number, lines });
+}
+
 function postCreditNoteJE(cn: CreditNote, cust: Customer) {
   const led = useLedger.getState();
   const total = docTotal(cn.lines);
@@ -120,6 +148,9 @@ type ARState = {
   creditNotes: CreditNote[];
   revenueSchedules: RevenueSchedule[];
   reminders: InvoiceReminder[];
+  salesReceipts: SalesReceipt[];
+  refundReceipts: RefundReceipt[];
+  delayedCharges: DelayedCharge[];
 
   // customers
   addCustomer: (c: Omit<Customer, "id" | "createdAt" | "arAccountNumber" | "creditHold" | "openingBalance"> & { openingBalance?: number }) => string;
@@ -140,7 +171,7 @@ type ARState = {
   convertOrderToInvoice: (id: string) => string | undefined;
 
   // invoices
-  createInvoice: (input: { customerId: string; date: string; dueDate?: string; lines: SalesLine[]; notes?: string; salesOrderId?: string; source?: Invoice["source"]; emrInvoiceId?: string; currency?: string; exchangeRate?: number; deferOverMonths?: number; recurEveryMonths?: number; recurEndDate?: string }) => string;
+  createInvoice: (input: { customerId: string; date: string; dueDate?: string; lines: SalesLine[]; notes?: string; salesOrderId?: string; source?: Invoice["source"]; emrInvoiceId?: string; currency?: string; exchangeRate?: number; deferOverMonths?: number; recurEveryMonths?: number; recurEndDate?: string; delayedChargeIds?: string[] }) => string;
   updateInvoice: (id: string, patch: Partial<Pick<Invoice, "date" | "dueDate" | "lines" | "notes">>) => void;
   issueInvoice: (id: string) => { ok: boolean; error?: string };
   voidInvoice: (id: string) => { ok: boolean; error?: string };
@@ -163,6 +194,19 @@ type ARState = {
   createCreditNote: (input: { customerId: string; invoiceId?: string; date: string; lines: SalesLine[]; reason: string; notes?: string }) => string;
   applyCreditNote: (cnId: string, invoiceId: string, amount: number) => void;
   refundCreditNote: (cnId: string, amount: number, fromAccountNumber: number) => void;
+
+  // B1 sales receipts (cash sale, no invoice)
+  createSalesReceipt: (input: { customerId?: string; customerName?: string; date: string; method: SalesReceipt["method"]; depositAccountNumber: number; lines: SalesLine[]; notes?: string }) => { ok: boolean; error?: string; id?: string };
+  voidSalesReceipt: (id: string) => { ok: boolean; error?: string };
+
+  // B2 refund receipts
+  createRefundReceipt: (input: { customerId: string; date: string; method: RefundReceipt["method"]; fromAccountNumber: number; lines: SalesLine[]; reason: string; notes?: string }) => { ok: boolean; error?: string; id?: string };
+  voidRefundReceipt: (id: string) => { ok: boolean; error?: string };
+
+  // B3 delayed charges
+  addDelayedCharge: (input: { customerId: string; date: string; accountNumber: number; description: string; qty: number; unitPrice: number; taxRateId?: string }) => void;
+  removeDelayedCharge: (id: string) => void;
+  unbilledChargesOf: (customerId: string) => DelayedCharge[];
 
   // selectors
   invoicesOf: (customerId: string) => Invoice[];
@@ -188,6 +232,11 @@ export const useAR = create<ARState>((set, get) => {
     const je = postReceiptJE(r, custOf(r.customerId), invById);
     return { ...r, journalEntryId: je.entry?.id };
   });
+  const salesReceipts = seedSalesReceipts.map((sr) => {
+    if (sr.journalEntryId || sr.status === "Void") return sr;
+    const je = postSalesReceiptJE(sr, sr.customerName ?? custOf(sr.customerId ?? "")?.name ?? "Cash customer");
+    return { ...sr, journalEntryId: je.entry?.id };
+  });
 
   return {
     customers,
@@ -198,6 +247,9 @@ export const useAR = create<ARState>((set, get) => {
     creditNotes: seedCreditNotes,
     revenueSchedules: seedRevenueSchedules,
     reminders: seedReminders,
+    salesReceipts,
+    refundReceipts: seedRefundReceipts,
+    delayedCharges: seedDelayedCharges,
 
     addCustomer: (c) => {
       const id = `cust-${rid()}`;
@@ -304,6 +356,11 @@ export const useAR = create<ARState>((set, get) => {
       const cust = get().customerById(input.customerId);
       const currency = input.currency ?? cust?.currency ?? "NGN";
       const rate = currency === "NGN" ? 1 : input.exchangeRate ?? (useLedger.getState().fxRates.find((r) => r.code === currency)?.rateToNgn ?? 1);
+      const pulledCharges = (input.delayedChargeIds ?? [])
+        .map((cid) => get().delayedCharges.find((d) => d.id === cid && d.status === "Unbilled"))
+        .filter((d): d is DelayedCharge => !!d);
+      const chargeLines: SalesLine[] = pulledCharges.map((d) => ({ id: `sl-${rid()}`, accountNumber: d.accountNumber, description: d.description, qty: d.qty, unitPrice: d.unitPrice, taxRateId: d.taxRateId }));
+      const allLines = [...input.lines, ...chargeLines];
       const inv: Invoice = {
         id,
         number: useAccountingSettings.getState().nextDocNumber("invoice"),
@@ -311,7 +368,7 @@ export const useAR = create<ARState>((set, get) => {
         salesOrderId: input.salesOrderId,
         date: input.date,
         dueDate: input.dueDate ?? daysAdd(input.date, cust?.paymentTermsDays ?? 30),
-        lines: input.lines,
+        lines: allLines,
         notes: input.notes,
         status: "Draft",
         amountPaid: 0,
@@ -323,14 +380,19 @@ export const useAR = create<ARState>((set, get) => {
         emrInvoiceId: input.emrInvoiceId,
         ...(input.recurEveryMonths ? { isRecurring: true, recurringTemplate: false, recurrenceEveryMonths: input.recurEveryMonths, recurrenceNextDate: monthsAdd(input.date, input.recurEveryMonths), recurrenceEndDate: input.recurEndDate } : {}),
       };
-      set((s) => ({ invoices: [inv, ...s.invoices] }));
+      set((s) => ({
+        invoices: [inv, ...s.invoices],
+        delayedCharges: pulledCharges.length
+          ? s.delayedCharges.map((d) => (pulledCharges.some((p) => p.id === d.id) ? { ...d, status: "Invoiced" as const, invoiceId: id } : d))
+          : s.delayedCharges,
+      }));
       audit(`created invoice ${inv.number}`, `accounting/invoices/${inv.number}`);
 
       const defer = input.deferOverMonths ?? 0;
       if (defer > 1) {
-        const net = round2(docSubtotal(input.lines) * rate);
+        const net = round2(docSubtotal(allLines) * rate);
         const per = round2(net / defer);
-        const revAcct = input.lines[0]?.accountNumber ?? ACCT.consultationRevenue;
+        const revAcct = allLines[0]?.accountNumber ?? ACCT.consultationRevenue;
         const entries = Array.from({ length: defer }, (_, i) => ({
           id: `rse-${rid()}`,
           period: ym(monthsAdd(input.date, i)),
@@ -477,6 +539,89 @@ export const useAR = create<ARState>((set, get) => {
       }));
       audit(`refunded credit note ${cn.number}`, `accounting/credit-notes/${cn.number}`);
     },
+
+    createSalesReceipt: (input) => {
+      if (!input.lines.length || docTotal(input.lines) <= 0) return { ok: false, error: "Add at least one line with an amount." };
+      const who = input.customerName || get().customerById(input.customerId)?.name || "Cash customer";
+      const id = `srct-${rid()}`;
+      const sr: SalesReceipt = {
+        id,
+        number: useAccountingSettings.getState().nextDocNumber("sales-receipt"),
+        customerId: input.customerId,
+        customerName: input.customerId ? undefined : input.customerName,
+        date: input.date,
+        method: input.method,
+        depositAccountNumber: input.depositAccountNumber,
+        lines: input.lines,
+        notes: input.notes,
+        status: "Completed",
+        createdBy: useIdentity.getState().user.id,
+        createdAt: new Date().toISOString(),
+      };
+      const je = postSalesReceiptJE(sr, who);
+      if (!je.ok) return { ok: false, error: je.error };
+      sr.journalEntryId = je.entry?.id;
+      set((s) => ({ salesReceipts: [sr, ...s.salesReceipts] }));
+      audit(`recorded sales receipt ${sr.number} — ${who}`, `accounting/sales-receipts/${sr.number}`);
+      return { ok: true, id };
+    },
+    voidSalesReceipt: (id) => {
+      const sr = get().salesReceipts.find((x) => x.id === id);
+      if (!sr || sr.status === "Void") return { ok: false, error: "Not found." };
+      if (sr.journalEntryId) {
+        const r = useLedger.getState().reverseEntry(sr.journalEntryId, { memo: `Void sales receipt ${sr.number}` });
+        if (!r.ok) return { ok: false, error: r.error };
+      }
+      set((s) => ({ salesReceipts: s.salesReceipts.map((x) => (x.id === id ? { ...x, status: "Void" } : x)) }));
+      audit(`voided sales receipt ${sr.number}`, `accounting/sales-receipts/${sr.number}`);
+      return { ok: true };
+    },
+
+    createRefundReceipt: (input) => {
+      const cust = get().customerById(input.customerId);
+      if (!cust) return { ok: false, error: "Customer not found." };
+      if (!input.lines.length || docTotal(input.lines) <= 0) return { ok: false, error: "Add at least one line with an amount." };
+      const id = `rfnd-${rid()}`;
+      const rr: RefundReceipt = {
+        id,
+        number: useAccountingSettings.getState().nextDocNumber("refund-receipt"),
+        customerId: input.customerId,
+        date: input.date,
+        method: input.method,
+        fromAccountNumber: input.fromAccountNumber,
+        lines: input.lines,
+        reason: input.reason,
+        notes: input.notes,
+        status: "Completed",
+        createdBy: useIdentity.getState().user.id,
+        createdAt: new Date().toISOString(),
+      };
+      const je = postRefundReceiptJE(rr, cust);
+      if (!je.ok) return { ok: false, error: je.error };
+      rr.journalEntryId = je.entry?.id;
+      set((s) => ({ refundReceipts: [rr, ...s.refundReceipts] }));
+      audit(`issued refund receipt ${rr.number} — ${cust.name}`, `accounting/refund-receipts/${rr.number}`);
+      return { ok: true, id };
+    },
+    voidRefundReceipt: (id) => {
+      const rr = get().refundReceipts.find((x) => x.id === id);
+      if (!rr || rr.status === "Void") return { ok: false, error: "Not found." };
+      if (rr.journalEntryId) {
+        const r = useLedger.getState().reverseEntry(rr.journalEntryId, { memo: `Void refund receipt ${rr.number}` });
+        if (!r.ok) return { ok: false, error: r.error };
+      }
+      set((s) => ({ refundReceipts: s.refundReceipts.map((x) => (x.id === id ? { ...x, status: "Void" } : x)) }));
+      audit(`voided refund receipt ${rr.number}`, `accounting/refund-receipts/${rr.number}`);
+      return { ok: true };
+    },
+
+    addDelayedCharge: (input) => {
+      const dc: DelayedCharge = { id: `dc-${rid()}`, ...input, status: "Unbilled", createdBy: useIdentity.getState().user.id, createdAt: new Date().toISOString() };
+      set((s) => ({ delayedCharges: [dc, ...s.delayedCharges] }));
+      audit(`added delayed charge — ${input.description}`, `accounting/delayed-charges`);
+    },
+    removeDelayedCharge: (id) => set((s) => ({ delayedCharges: s.delayedCharges.filter((d) => d.id !== id || d.status === "Invoiced") })),
+    unbilledChargesOf: (customerId) => get().delayedCharges.filter((d) => d.customerId === customerId && d.status === "Unbilled"),
 
     revalueForeignAr: (asOf, rates) => {
       const led = useLedger.getState();
