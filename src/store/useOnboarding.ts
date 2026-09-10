@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import * as seed from "@/data/onboarding";
+import { persisted } from "@/platform/persist";
 import { audit } from "@/store/useAudit";
 import { useHr } from "@/store/useHr";
 import { useEmployees } from "@/store/useEmployees";
@@ -33,7 +34,10 @@ type OnboardingState = {
   convertToEmployee: (progressId: string, role: string, cadre: string) => string | undefined;
 };
 
-export const useOnboarding = create<OnboardingState>((set, get) => ({
+export const useOnboarding = create<OnboardingState>(
+  persisted<OnboardingState>(
+    "onboarding",
+    (set, get) => ({
   stages: seed.stages,
   tasks: seed.tasks,
   progress: [],
@@ -170,4 +174,13 @@ export const useOnboarding = create<OnboardingState>((set, get) => ({
     set((s) => ({ progress: s.progress.map((x) => (x.id === progressId ? { ...x, employeeId: created?.id } : x)) }));
     return created?.id;
   },
-}));
+    }),
+    {
+      pick: (s) => ({
+        progress: s.progress.slice(0, 100),
+        documents: s.documents.slice(0, 300),
+        offerLetterTemplate: s.offerLetterTemplate,
+      }),
+    },
+  ),
+);
