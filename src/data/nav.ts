@@ -243,6 +243,8 @@ export const NAV: NavGroup[] = [
     title: "Platform",
     items: [
       { to: "/platform", label: "Platform & Modules", icon: Boxes },
+      { to: "/workflows/inbox", label: "Approvals Inbox", icon: CheckSquare },
+      { to: "/settings/workflows", label: "Workflow Builder", icon: Network },
       { to: "/settings/terminology", label: "Terminology", icon: Languages },
       { to: "/settings/master-data", label: "Master Data", icon: Database },
     ],

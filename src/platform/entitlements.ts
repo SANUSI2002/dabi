@@ -102,7 +102,7 @@ export const MODULES: ModuleDef[] = [
 ];
 
 /** platform routes that render regardless of entitlements */
-export const ALWAYS_ON_ROUTES = ["/audit-log", "/settings", "/platform", "/hr/approval-workflows", "/settings/terminology", "/settings/master-data"];
+export const ALWAYS_ON_ROUTES = ["/audit-log", "/settings", "/platform", "/workflows"];
 
 const matches = (path: string, prefix: string) =>
   prefix === "/" ? path === "/" : path === prefix || path.startsWith(prefix + "/");
