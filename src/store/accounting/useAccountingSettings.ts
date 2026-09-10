@@ -78,11 +78,17 @@ const reminderSeed: ReminderRule[] = [
   { id: "rr-3", level: 3, daysOverdue: 30, tone: "Final Notice", subject: "FINAL NOTICE — invoice {number}", body: "Invoice {number} for {amount} is {daysOverdue} days overdue. Unless settled within 7 days the account will be placed on credit hold and referred for collection.", active: true },
 ];
 
+export type TaxRegistration = { vatTin: string; wht: boolean; payeStateId: string; vatRegistered: boolean };
+
 type SettingsState = {
   org: OrgSettings;
   sequences: NumberSequence[];
   paymentTerms: PaymentTerm[];
   reminderRules: ReminderRule[];
+  taxRegistration: TaxRegistration;
+  setup: { steps: Record<string, boolean> };
+  updateTaxRegistration: (patch: Partial<TaxRegistration>) => void;
+  markSetupStep: (step: string, done: boolean) => void;
   updateOrg: (patch: Partial<OrgSettings>) => void;
   updateSequence: (key: string, patch: Partial<Pick<NumberSequence, "prefix" | "padding" | "next">>) => void;
   /** allocate the next document number for a sequence and advance it */
@@ -113,6 +119,14 @@ export const useAccountingSettings = create<SettingsState>((set, get) => ({
   sequences: seqSeed.map((s) => ({ ...s, example: buildExample(s) })),
   paymentTerms: termSeed,
   reminderRules: reminderSeed,
+  taxRegistration: { vatTin: "20489317-0001", wht: true, payeStateId: "LA-PAYE-88213", vatRegistered: true },
+  setup: { steps: { company: true, fiscal: true, chart: true, opening: true, tax: true } },
+
+  updateTaxRegistration: (patch) => {
+    set((s) => ({ taxRegistration: { ...s.taxRegistration, ...patch } }));
+    audit("updated tax registration details", "accounting/settings/tax-registration");
+  },
+  markSetupStep: (step, done) => set((s) => ({ setup: { steps: { ...s.setup.steps, [step]: done } } })),
 
   updateOrg: (patch) => {
     set((st) => ({ org: { ...st.org, ...patch } }));

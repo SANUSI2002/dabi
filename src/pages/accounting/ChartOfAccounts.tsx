@@ -4,6 +4,7 @@ import { PageHeader, Button, Badge, StatCard, Card } from "@/components/ui/primi
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Textarea, Grid, Checkbox } from "@/components/ui/form";
+import { coaTemplates } from "@/data/accounting/coaTemplates";
 import { money } from "@/lib/format";
 import { useLedger } from "@/store/accounting/useLedger";
 import { isDebitNormal, type Account, type AccountType, type AccountSubtype } from "@/data/accounting/coa";
@@ -30,7 +31,9 @@ const SUBTYPES: Record<AccountType, AccountSubtype[]> = {
 const blankForm = { number: "", name: "", type: "expense" as AccountType, subtype: "operating_expense" as AccountSubtype, description: "", openingBalance: "", allowManualEntry: true };
 
 export default function ChartOfAccounts() {
-  const { accounts, balanceOf, addAccount, updateAccount, archiveAccount } = useLedger();
+  const { accounts, balanceOf, addAccount, updateAccount, archiveAccount, applyCoaTemplate } = useLedger();
+  const [tmplModal, setTmplModal] = useState(false);
+  const [tmplChoice, setTmplChoice] = useState("");
   const asOf = new Date().toISOString();
   const [showArchived, setShowArchived] = useState(false);
   const [create, setCreate] = useState(false);
@@ -79,6 +82,7 @@ export default function ChartOfAccounts() {
         actions={
           <>
             <Checkbox label="Show archived" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
+            <Button variant="soft" onClick={() => setTmplModal(true)}>Apply template</Button>
             <Button onClick={() => { setF(blankForm); setErr(null); setCreate(true); }}><Plus size={15} /> New Account</Button>
           </>
         }
@@ -182,6 +186,15 @@ export default function ChartOfAccounts() {
           </Field>
           <Field label="Description"><Textarea value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field>
           <Checkbox label="Allow manual journal entries against this account" checked={f.allowManualEntry} onChange={(e) => setF({ ...f, allowManualEntry: e.target.checked })} />
+        </div>
+      </Modal>
+
+      <Modal open={tmplModal} onClose={() => setTmplModal(false)} title="Apply a Chart-of-Accounts Template"
+        footer={<><Button variant="ghost" onClick={() => setTmplModal(false)}>Cancel</Button><Button disabled={!tmplChoice} onClick={() => { const r = applyCoaTemplate(tmplChoice); setTmplModal(false); alert(`${r.added} account(s) added, ${r.skipped} already present.`); }}>Apply</Button></>}>
+        <div className="space-y-3">
+          <p className="text-sm text-mist-500">Adds any accounts the template defines that you don't already have. Existing accounts and their balances are left untouched.</p>
+          <Field label="Template"><Select value={tmplChoice} onChange={(e) => setTmplChoice(e.target.value)} options={[{ value: "", label: "— choose —" }, ...coaTemplates.map((t) => ({ value: t.id, label: `${t.name} · ${t.industry}` }))]} /></Field>
+          {tmplChoice && <p className="rounded-lg bg-mist-50 p-3 text-sm text-mist-600">{coaTemplates.find((t) => t.id === tmplChoice)?.description}</p>}
         </div>
       </Modal>
     </div>

@@ -26,6 +26,7 @@ import {
   type AccountingPeriod,
 } from "@/data/accounting/fiscal";
 import { seedBranches, seedConsolidationGroups, DEFAULT_BRANCH, type Branch, type ConsolidationGroup } from "@/data/accounting/branches";
+import { coaTemplates } from "@/data/accounting/coaTemplates";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -104,6 +105,8 @@ type LedgerState = {
 
   // ---- chart of accounts ----
   addAccount: (a: { number: number; name: string; type: AccountType; subtype: AccountSubtype; parentNumber?: number; description?: string; openingBalance?: number; allowManualEntry?: boolean }) => { ok: boolean; error?: string };
+  /** B15 — add any accounts from a CoA template that aren't already in the ledger */
+  applyCoaTemplate: (templateId: string) => { added: number; skipped: number };
   updateAccount: (id: string, patch: Partial<Pick<Account, "name" | "description" | "isActive" | "allowManualEntry" | "parentNumber" | "subtype">>) => void;
   archiveAccount: (id: string) => void;
 
@@ -413,6 +416,20 @@ export const useLedger = create<LedgerState>((set, get) => ({
       });
     }
     return { ok: true };
+  },
+
+  applyCoaTemplate: (templateId) => {
+    const tmpl = coaTemplates.find((t) => t.id === templateId);
+    if (!tmpl) return { added: 0, skipped: 0 };
+    let added = 0;
+    let skipped = 0;
+    for (const ta of tmpl.accounts) {
+      if (get().accountByNumber(ta.number)) { skipped++; continue; }
+      const r = get().addAccount({ number: ta.number, name: ta.name, type: ta.type, subtype: ta.subtype, parentNumber: ta.parentNumber });
+      if (r.ok) added++; else skipped++;
+    }
+    audit(`applied CoA template "${tmpl.name}" — ${added} account(s) added`, "accounting/coa/template");
+    return { added, skipped };
   },
 
   updateAccount: (id, patch) => {

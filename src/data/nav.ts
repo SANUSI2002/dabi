@@ -56,6 +56,7 @@ import {
   Landmark,
   PiggyBank,
   Percent,
+  Wand2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -214,6 +215,7 @@ export const NAV: NavGroup[] = [
       { to: "/accounting/consolidation", label: "Branches & Consolidation", icon: Building2 },
       { to: "/accounting/period-end", label: "Period-End Routines", icon: CalendarRange },
       { to: "/accounting/approvals", label: "Approvals", icon: ShieldCheck },
+      { to: "/accounting/setup", label: "Setup Wizard", icon: Wand2 },
       { to: "/accounting/integrations", label: "Integrations", icon: RefreshCw },
       { to: "/accounting/settings", label: "Settings", icon: Settings },
     ],
