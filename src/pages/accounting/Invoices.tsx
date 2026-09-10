@@ -9,6 +9,7 @@ import { PrintDoc, Section, Line } from "@/components/print/PrintFrame";
 import { money, shortDate, dateTime, isoDate } from "@/lib/format";
 import { useAR, docSubtotal, docTax, docTotal } from "@/store/accounting/useAR";
 import { useProjects } from "@/store/accounting/useProjects";
+import { Attachments } from "./_attachments";
 import { useLedger } from "@/store/accounting/useLedger";
 import { LineEditor, DocTotals, type EditableLine } from "./_components";
 import type { Invoice } from "@/data/accounting/receivables";
@@ -237,6 +238,7 @@ export default function Invoices() {
             </Table>
             <DocTotals subtotal={docSubtotal(view.lines)} tax={docTax(view.lines)} total={docTotal(view.lines)} />
             <div className="flex justify-end gap-6 text-sm"><span className="text-mist-500">Paid {money(view.amountPaid)}</span><span className="font-bold">Balance {money(invoiceBalance(view))}</span></div>
+            <div className="border-t border-mist-100 pt-3"><Attachments entityType="invoice" entityId={view.id} entityLabel={view.number} /></div>
           </div>
         )}
       </Modal>

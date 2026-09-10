@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, Send, Check, X, Ban, Banknote, FileText } from "lucide-react";
+import { Plus, Send, Check, X, Ban, Banknote, FileText, ScanLine } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard, Card, statusTone, EmptyState } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
@@ -11,6 +11,7 @@ import { useAcctControl } from "@/store/accounting/useAcctControl";
 import { useLedger } from "@/store/accounting/useLedger";
 import { useIdentity } from "@/store/useIdentity";
 import { LineEditor, DocTotals, type EditableLine } from "./_components";
+import { Attachments } from "./_attachments";
 import type { Bill } from "@/data/accounting/payables";
 
 const purchaseAcct = (n: number) => n >= 5000 || (n >= 1200 && n < 1600) || n === 2100;
@@ -25,6 +26,29 @@ export default function Bills() {
   const [view, setView] = useState<Bill | null>(null);
   const [pay, setPay] = useState<Bill | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [scan, setScan] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<null | { vendorId: string; vendorInvoiceNumber: string; date: string; confidence: number; lines: EditableLine[] }>(null);
+
+  function simulateScan(filename: string) {
+    setScanning(true);
+    setScanResult(null);
+    // deterministic-ish: pick a vendor by a keyword in the filename, else the first
+    const lc = filename.toLowerCase();
+    const v = vendors.find((x) => lc.includes(x.name.toLowerCase().split(" ")[0])) ?? vendors[Math.floor(lc.length) % Math.max(1, vendors.length)] ?? vendors[0];
+    setTimeout(() => {
+      setScanning(false);
+      setScanResult({
+        vendorId: v?.id ?? "",
+        vendorInvoiceNumber: `${(v?.name ?? "INV").slice(0, 3).toUpperCase()}-${Math.floor(10000 + Math.random() * 89999)}`,
+        date: isoDate(new Date(Date.now() - Math.floor(Math.random() * 10) * 864e5)),
+        confidence: 0.82 + Math.random() * 0.15,
+        lines: [
+          { accountNumber: 5100, description: "Goods / services per attached invoice", qty: 1, unitPrice: Math.round((50000 + Math.random() * 400000) / 1000) * 1000, taxRateId: "tax-vat-standard" },
+        ],
+      });
+    }, 900);
+  }
 
   const fxRates = useLedger((s) => s.fxRates);
   const [f, setF] = useState<{ vendorId: string; vendorInvoiceNumber: string; date: string; dueDate: string; notes: string; currency: string; exchangeRate: number; recurMonths: number; lines: EditableLine[] }>({
@@ -77,7 +101,10 @@ export default function Bills() {
   return (
     <div>
       <PageHeader title="Bills" subtitle="Vendor invoices — posting a bill records Dr expense/inventory / Cr Accounts Payable"
-        actions={<Button onClick={() => { setErr(null); setF({ ...f, vendorId: vendors[0]?.id ?? "" }); setCreate(true); }}><Plus size={15} /> New Bill</Button>} />
+        actions={<>
+          <Button variant="soft" onClick={() => { setScanResult(null); setScan(true); }}><ScanLine size={15} /> Scan a Bill</Button>
+          <Button onClick={() => { setErr(null); setF({ ...f, vendorId: vendors[0]?.id ?? "" }); setCreate(true); }}><Plus size={15} /> New Bill</Button>
+        </>} />
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Payable" value={money(stats.payable)} tone="action" icon={<FileText size={18} />} />
@@ -205,6 +232,7 @@ export default function Bills() {
               ))}
             </Table>
             <DocTotals subtotal={purchaseSubtotal(view.lines)} tax={purchaseTax(view.lines)} total={purchaseTotal(view.lines)} />
+            <div className="border-t border-mist-100 pt-3"><Attachments entityType="bill" entityId={view.id} entityLabel={view.number} /></div>
           </div>
         )}
       </Modal>
@@ -228,6 +256,39 @@ export default function Bills() {
             <p className="text-xs text-mist-400">Posts Dr Accounts Payable {money(payF.amount + (payF.wht || 0))} / Cr bank {money(payF.amount)}{payF.wht ? ` / Cr WHT Payable ${money(payF.wht)}` : ""}.</p>
           </div>
         )}
+      </Modal>
+
+      {/* B20 scan a bill */}
+      <Modal open={scan} onClose={() => setScan(false)} title="Scan a Bill" wide
+        footer={scanResult
+          ? <><Button variant="ghost" onClick={() => setScan(false)}>Cancel</Button><Button onClick={() => {
+              setF({ ...f, vendorId: scanResult.vendorId, vendorInvoiceNumber: scanResult.vendorInvoiceNumber, date: scanResult.date, lines: scanResult.lines });
+              setScan(false); setCreate(true);
+            }}>Use these details</Button></>
+          : <Button variant="ghost" onClick={() => setScan(false)}>Cancel</Button>}>
+        <div className="space-y-3">
+          <p className="text-sm text-mist-500">Upload a photo or PDF of the supplier's invoice. The document is read and the vendor, date and amount are extracted for you to review before the bill is created.</p>
+          {!scanResult && !scanning && (
+            <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-mist-300 bg-mist-50/60 px-6 py-10 text-center text-sm text-mist-500 hover:bg-mist-50">
+              <ScanLine size={24} className="text-mist-400" />
+              Choose an invoice file…
+              <input type="file" hidden accept="image/*,application/pdf" onChange={(e) => { const file = e.target.files?.[0]; if (file) simulateScan(file.name); }} />
+            </label>
+          )}
+          {scanning && <div className="flex items-center gap-3 rounded-xl bg-mist-50 px-4 py-6 text-sm text-mist-500"><div className="h-5 w-5 animate-spin rounded-full border-2 border-brand-200 border-t-brand-600" /> Reading the document…</div>}
+          {scanResult && (
+            <div className="space-y-2 rounded-xl bg-brand-50/60 p-4 ring-1 ring-brand-200">
+              <div className="flex items-center justify-between text-sm"><span className="font-bold text-brand-700">Extracted</span><Badge tone="brand">{Math.round(scanResult.confidence * 100)}% confidence</Badge></div>
+              <div className="grid gap-1 text-sm sm:grid-cols-2">
+                <div><span className="text-mist-400">Vendor</span> · {vendorById(scanResult.vendorId)?.name}</div>
+                <div><span className="text-mist-400">Invoice no.</span> · {scanResult.vendorInvoiceNumber}</div>
+                <div><span className="text-mist-400">Date</span> · {scanResult.date}</div>
+                <div><span className="text-mist-400">Amount</span> · {money(scanResult.lines.reduce((n, l) => n + l.qty * l.unitPrice, 0))}</div>
+              </div>
+              <p className="text-xs text-mist-400">Review and adjust everything on the next screen before posting.</p>
+            </div>
+          )}
+        </div>
       </Modal>
     </div>
   );

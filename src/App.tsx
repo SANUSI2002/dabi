@@ -97,6 +97,7 @@ const AcctBudgets = lazy(() => import("@/pages/accounting/Budgets"));
 const AcctProjects = lazy(() => import("@/pages/accounting/Projects"));
 const AcctSetup = lazy(() => import("@/pages/accounting/SetupWizard"));
 const AcctNotifications = lazy(() => import("@/pages/accounting/Notifications"));
+const AcctAuditTrail = lazy(() => import("@/pages/accounting/AuditTrail"));
 const AcctTax = lazy(() => import("@/pages/accounting/TaxCenter"));
 const AcctReports = lazy(() => import("@/pages/accounting/AccountingReports"));
 const AcctApprovals = lazy(() => import("@/pages/accounting/AccountingApprovals"));
@@ -222,6 +223,7 @@ export default function App() {
           <Route path="/accounting/projects" element={<AcctProjects />} />
           <Route path="/accounting/setup" element={<AcctSetup />} />
           <Route path="/accounting/notifications" element={<AcctNotifications />} />
+          <Route path="/accounting/audit-trail" element={<AcctAuditTrail />} />
           <Route path="/accounting/tax" element={<AcctTax />} />
           <Route path="/accounting/reports" element={<AcctReports />} />
           <Route path="/accounting/approvals" element={<AcctApprovals />} />

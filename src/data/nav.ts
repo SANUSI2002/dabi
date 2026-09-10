@@ -217,6 +217,7 @@ export const NAV: NavGroup[] = [
       { to: "/accounting/period-end", label: "Period-End Routines", icon: CalendarRange },
       { to: "/accounting/approvals", label: "Approvals", icon: ShieldCheck },
       { to: "/accounting/notifications", label: "Notifications", icon: Bell },
+      { to: "/accounting/audit-trail", label: "Audit Trail", icon: ScrollText },
       { to: "/accounting/setup", label: "Setup Wizard", icon: Wand2 },
       { to: "/accounting/integrations", label: "Integrations", icon: RefreshCw },
       { to: "/accounting/settings", label: "Settings", icon: Settings },
