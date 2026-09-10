@@ -62,8 +62,11 @@ type EmrState = {
   patientById: (id?: string | null) => Patient | undefined;
 
   registerPatient: (p: Omit<Patient, "id" | "mrn" | "registeredAt">) => Patient;
+  duplicateRisk: (candidate: { firstName: string; lastName: string; dob?: string; phone?: string; nin?: string; excludeId?: string }) => { patient: Patient; reasons: string[]; score: number }[];
+  likelyDuplicatePairs: () => { left: Patient; right: Patient; reasons: string[] }[];
   addToQueue: (patientId: string, station: Station, priority: QueueEntry["priority"], complaint?: string) => void;
   advanceQueue: (id: string, status: QueueEntry["status"], station?: Station) => void;
+  callNext: (station?: Station) => QueueEntry | undefined;
 
   saveEncounter: (e: Omit<Encounter, "id" | "date">) => string;
   amendEncounter: (id: string, patch: Partial<Pick<Encounter, "examination" | "assessment" | "plan" | "followUp" | "patientInstructions">>, note: string) => void;
@@ -153,6 +156,51 @@ export const useEmr = create<EmrState>((set, get) => ({
     return patient;
   },
 
+  duplicateRisk: (candidate) => {
+    const normalise = (value?: string) => (value ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const candidateName = normalise(`${candidate.firstName}${candidate.lastName}`);
+    const candidatePhone = normalise(candidate.phone);
+    const candidateNin = normalise(candidate.nin);
+    return get()
+      .patients.filter((existing) => existing.id !== candidate.excludeId)
+      .map((existing) => {
+        const reasons: string[] = [];
+        let score = 0;
+        if (candidateNin && normalise(existing.nin) === candidateNin) { reasons.push("Same NIN"); score += 5; }
+        if (candidatePhone && candidatePhone.length >= 7 && normalise(existing.phone) === candidatePhone) { reasons.push("Same phone number"); score += 3; }
+        const sameName = candidateName && normalise(`${existing.firstName}${existing.lastName}`) === candidateName;
+        const sameDob = candidate.dob && existing.dob.slice(0, 10) === candidate.dob.slice(0, 10);
+        if (sameName && sameDob) { reasons.push("Same name and date of birth"); score += 5; }
+        else if (sameName) { reasons.push("Same name"); score += 2; }
+        else if (sameDob && candidateName && normalise(existing.lastName) === normalise(candidate.lastName)) { reasons.push("Same surname and date of birth"); score += 2; }
+        return { patient: existing, reasons, score };
+      })
+      .filter((match) => match.score >= 2)
+      .sort((left, right) => right.score - left.score);
+  },
+
+  likelyDuplicatePairs: () => {
+    const normalise = (value?: string) => (value ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const patients = get().patients;
+    const pairs: { left: Patient; right: Patient; reasons: string[] }[] = [];
+    for (let i = 0; i < patients.length; i += 1) {
+      for (let j = i + 1; j < patients.length; j += 1) {
+        const left = patients[i];
+        const right = patients[j];
+        const reasons: string[] = [];
+        const sameName = normalise(`${left.firstName}${left.lastName}`) === normalise(`${right.firstName}${right.lastName}`);
+        const sameDob = left.dob.slice(0, 10) === right.dob.slice(0, 10);
+        const samePhone = left.phone && normalise(left.phone) === normalise(right.phone);
+        const sameNin = left.nin && normalise(left.nin) === normalise(right.nin);
+        if (sameNin) reasons.push("Same NIN");
+        if (samePhone) reasons.push("Same phone number");
+        if (sameName && sameDob) reasons.push("Same name and date of birth");
+        if (reasons.length) pairs.push({ left, right, reasons });
+      }
+    }
+    return pairs;
+  },
+
   addToQueue: (patientId, station, priority, complaint) => {
     audit("added to queue", `queue/${station.toLowerCase()}`);
     set((s) => ({
@@ -176,6 +224,23 @@ export const useEmr = create<EmrState>((set, get) => ({
     set((s) => ({
       queue: s.queue.map((q) => (q.id === id ? { ...q, status, station: station ?? q.station } : q)),
     })),
+
+  callNext: (station) => {
+    const priorityRank = { Emergency: 0, Urgent: 1, Normal: 2 } as const;
+    const waiting = get()
+      .queue.filter((entry) => entry.status === "Waiting" && (!station || entry.station === station))
+      .sort((left, right) =>
+        priorityRank[left.priority] - priorityRank[right.priority] || +new Date(left.enqueuedAt) - +new Date(right.enqueuedAt),
+      );
+    const next = waiting[0];
+    if (!next) return undefined;
+    const who = useIdentity.getState().user.name;
+    audit("called next patient", `queue/${next.station.toLowerCase()}`, { user: who });
+    set((s) => ({
+      queue: s.queue.map((entry) => (entry.id === next.id ? { ...entry, status: "In Progress", assignedTo: who } : entry)),
+    }));
+    return next;
+  },
 
   saveEncounter: (e) => {
     const patient = get().patients.find((p) => p.id === e.patientId);
@@ -631,6 +696,12 @@ export const useEmr = create<EmrState>((set, get) => ({
     }));
   },
 }));
+
+/** live wait time from the enqueue timestamp — falls back to the seeded value */
+export const queueWaitMinutes = (entry: QueueEntry) => {
+  const elapsed = Math.round((Date.now() - new Date(entry.enqueuedAt).getTime()) / 60000);
+  return elapsed >= 0 && elapsed < 60 * 24 ? elapsed : entry.waitMins;
+};
 
 export const priceFor = (code: string) => SERVICE_TYPES.find((s) => s.code === code)?.price ?? 0;
 export const serviceLine = (code: string, qty = 1): InvoiceLine => {

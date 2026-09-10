@@ -2,23 +2,37 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PhoneCall, Plus, ArrowRightCircle } from "lucide-react";
 import { PageHeader, Button, Badge, statusTone } from "@/components/ui/primitives";
-import { Table, Row, Cell } from "@/components/ui/Table";
+import { Table, Row, Cell, EmptyRow } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Select, Textarea } from "@/components/ui/form";
 import { PatientPicker } from "@/components/ui/PatientPicker";
 import { PatientLink } from "@/components/ui/PatientLink";
 import { VitalsModal } from "@/components/clinical/VitalsModal";
-import { useEmr } from "@/store/useEmr";
+import { useEmr, queueWaitMinutes } from "@/store/useEmr";
 import { STATIONS } from "@/data/catalog";
 import { ageFromDob } from "@/lib/format";
 
 export default function ClinicalQueue() {
   const nav = useNavigate();
-  const { queue, patientById, addToQueue, advanceQueue } = useEmr();
+  const { queue, patientById, addToQueue, advanceQueue, callNext } = useEmr();
   const [tab, setTab] = useState<"All" | "Waiting" | "In Progress" | "Completed" | "Referred">("All");
   const [station, setStation] = useState<string>("All Stations");
   const [add, setAdd] = useState(false);
   const [vitalsFor, setVitalsFor] = useState<{ patientId: string; queueId: string } | null>(null);
+  const [banner, setBanner] = useState("");
+
+  function handleCallNext() {
+    const stationFilter = station === "All Stations" ? undefined : (station as never);
+    const next = callNext(stationFilter);
+    if (!next) {
+      setBanner(`No patients are waiting${station === "All Stations" ? "" : ` at the ${station} station`}.`);
+    } else {
+      const patient = patientById(next.patientId);
+      setBanner(`Now serving ${patient ? `${patient.firstName} ${patient.lastName}` : "the next patient"} · ${next.station} · ${next.priority} priority`);
+      if (next.station === "Consultation") nav("/consultation");
+    }
+    setTimeout(() => setBanner(""), 4000);
+  }
 
   const [pid, setPid] = useState<string | null>(null);
   const [pr, setPr] = useState("Normal");
@@ -46,15 +60,21 @@ export default function ClinicalQueue() {
         subtitle={`${counts.Waiting} waiting · ${counts["In Progress"]} in progress`}
         actions={
           <>
-            <Button variant="ghost">
-              <PhoneCall size={15} /> Call Next
+            <Button variant="ghost" onClick={handleCallNext} disabled={counts.Waiting === 0}>
+              <PhoneCall size={15} /> Call next
             </Button>
             <Button onClick={() => setAdd(true)}>
-              <Plus size={15} /> Add to Queue
+              <Plus size={15} /> Add to queue
             </Button>
           </>
         }
       />
+
+      {banner && (
+        <div role="status" className="mb-4 rounded-xl bg-brand-50 px-4 py-2.5 text-sm font-medium text-brand-700 ring-1 ring-brand-200">
+          {banner}
+        </div>
+      )}
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {(Object.keys(counts) as (keyof typeof counts)[]).map((k) => (
@@ -73,9 +93,15 @@ export default function ClinicalQueue() {
         </select>
       </div>
 
-      <Table columns={["Patient", "Age / Sex", "Station", "Priority", "Wait", "Status", "Assigned", ""]}>
+      <Table columns={["Patient", "Age / Sex", "Station", "Priority", "Wait", "Status", "Assigned", ""]} caption="Clinical queue">
+        {filtered.length === 0 && (
+          <EmptyRow colSpan={8}>
+            {queue.length === 0 ? "The queue is empty." : `No patients ${tab === "All" ? "" : `are ${tab.toLowerCase()} `}${station === "All Stations" ? "" : `at the ${station} station`}.`}
+          </EmptyRow>
+        )}
         {filtered.map((q, i) => {
           const p = patientById(q.patientId);
+          const wait = queueWaitMinutes(q);
           return (
             <Row key={q.id} index={i}>
               <Cell>
@@ -86,7 +112,9 @@ export default function ClinicalQueue() {
               <Cell>
                 <Badge tone={q.priority === "Normal" ? "mist" : "action"}>{q.priority}</Badge>
               </Cell>
-              <Cell className="text-mist-400">{q.waitMins}m</Cell>
+              <Cell className={wait >= 45 && q.status === "Waiting" ? "font-semibold text-action-600" : "text-mist-400"}>
+                {wait} min{wait >= 45 && q.status === "Waiting" ? " · long wait" : ""}
+              </Cell>
               <Cell>
                 <Badge tone={statusTone(q.status)}>{q.status}</Badge>
               </Cell>

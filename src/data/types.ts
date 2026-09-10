@@ -7,6 +7,7 @@ export type Patient = {
   firstName: string;
   lastName: string;
   otherName?: string;
+  preferredName?: string;
   sex: Sex;
   dob: string;
   phone?: string;
@@ -17,10 +18,18 @@ export type Patient = {
   category: string; // PatientCategory.code
   payer: Payer;
   nin?: string;
+  hospitalNumber?: string; // legacy paper-file / alternate identifier
+  language?: string;
+  occupation?: string;
   bloodGroup?: string;
   allergies?: string;
   nextOfKin?: string;
   nokPhone?: string;
+  nokRelation?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  emergencyContactRelation?: string;
+  consentToContact?: boolean;
   registeredAt: string;
 };
 
