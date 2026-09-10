@@ -5,6 +5,7 @@ import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { PageTransition } from "@/components/motion/Reveal";
 import { useIntegrations } from "@/store/useIntegrations";
+import { EntitlementBoundary } from "@/platform/EntitlementBoundary";
 
 export function AppShell() {
   const [mobileNav, setMobileNav] = useState(false);
@@ -57,7 +58,9 @@ export function AppShell() {
           <div className="mx-auto max-w-[1400px] px-4 py-6 lg:px-8">
             <AnimatePresence mode="wait">
               <PageTransition key={loc.pathname}>
-                <Outlet />
+                <EntitlementBoundary>
+                  <Outlet />
+                </EntitlementBoundary>
               </PageTransition>
             </AnimatePresence>
           </div>

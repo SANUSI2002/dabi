@@ -98,6 +98,9 @@ const AcctProjects = lazy(() => import("@/pages/accounting/Projects"));
 const AcctSetup = lazy(() => import("@/pages/accounting/SetupWizard"));
 const AcctNotifications = lazy(() => import("@/pages/accounting/Notifications"));
 const AcctAuditTrail = lazy(() => import("@/pages/accounting/AuditTrail"));
+const PlatformModules = lazy(() => import("@/pages/platform/PlatformModules"));
+const TerminologySettings = lazy(() => import("@/pages/platform/TerminologySettings"));
+const MasterDataSettings = lazy(() => import("@/pages/platform/MasterDataSettings"));
 const AcctTax = lazy(() => import("@/pages/accounting/TaxCenter"));
 const AcctReports = lazy(() => import("@/pages/accounting/AccountingReports"));
 const AcctApprovals = lazy(() => import("@/pages/accounting/AccountingApprovals"));
@@ -163,6 +166,9 @@ export default function App() {
           <Route path="/nhmis-sync" element={<NhmisSync />} />
           <Route path="/audit-log" element={<AuditLog />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/platform" element={<PlatformModules />} />
+          <Route path="/settings/terminology" element={<TerminologySettings />} />
+          <Route path="/settings/master-data" element={<MasterDataSettings />} />
           <Route path="/workforce" element={<WorkforceLayout />}>
             <Route index element={<WorkforceDashboard />} />
             <Route path="schedules" element={<Schedules />} />

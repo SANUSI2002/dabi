@@ -6,6 +6,7 @@ import { NAV, type NavItem } from "@/data/nav";
 import { useEmr } from "@/store/useEmr";
 import { FACILITY } from "@/data/mock";
 import { cn } from "@/lib/cn";
+import { useRouteGate } from "@/platform/useEntitlements";
 
 function LeafLink({
   to,
@@ -90,6 +91,17 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const queue = useEmr((s) => s.queue);
   const labs = useEmr((s) => s.labOrders);
   const encounters = useEmr((s) => s.encounters);
+  const { isRouteAllowed } = useRouteGate();
+
+  // drop nav items whose route isn't licensed; drop nested items with no allowed children; drop empty groups
+  const nav = NAV.map((group) => ({
+    ...group,
+    items: group.items
+      .map((item) =>
+        item.children ? { ...item, children: item.children.filter((c) => isRouteAllowed(c.to)) } : item,
+      )
+      .filter((item) => (item.children ? item.children.length > 0 : isRouteAllowed(item.to))),
+  })).filter((group) => group.items.length > 0);
 
   const badges = {
     queue: queue.filter((q) => q.status === "Waiting" || q.status === "In Progress").length,
@@ -112,7 +124,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-6">
-        {NAV.map((group) => (
+        {nav.map((group) => (
           <div key={group.title}>
             <p className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-mist-300">{group.title}</p>
             <div className="space-y-0.5">

@@ -58,6 +58,8 @@ import {
   Percent,
   Wand2,
   Bell,
+  Languages,
+  Database,
   type LucideIcon,
 } from "lucide-react";
 
@@ -235,6 +237,14 @@ export const NAV: NavGroup[] = [
       { to: "/nhmis-sync", label: "NHMIS Sync", icon: RefreshCw },
       { to: "/audit-log", label: "Audit Log", icon: ScrollText },
       { to: "/settings", label: "Settings", icon: Settings },
+    ],
+  },
+  {
+    title: "Platform",
+    items: [
+      { to: "/platform", label: "Platform & Modules", icon: Boxes },
+      { to: "/settings/terminology", label: "Terminology", icon: Languages },
+      { to: "/settings/master-data", label: "Master Data", icon: Database },
     ],
   },
 ];
