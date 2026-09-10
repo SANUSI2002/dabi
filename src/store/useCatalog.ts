@@ -30,6 +30,7 @@ type CatalogState = {
   update: (k: CatalogKey, id: string, patch: Record<string, unknown>) => void;
   toggle: (k: CatalogKey, id: string) => void;
   adjustStock: (drugName: string, delta: number) => void;
+  receiveStock: (drugName: string, quantity: number, batch: { batchNumber?: string; expiryDate?: string; supplier?: string }) => void;
 };
 
 const withActive = <T extends object>(rows: T[]) => rows.map((r) => ({ active: true, ...r }));
@@ -86,4 +87,17 @@ export const useCatalog = create<CatalogState>((set) => ({
         drugs: s.drugs.map((d) => (d.id === match.id ? { ...d, stock: Math.max(0, d.stock + delta) } : d)),
       };
     }),
+
+  receiveStock: (drugName, quantity, batch) => {
+    audit("received drug stock", `pharmacy/stock/${drugName}`, { meta: { quantity, ...batch } });
+    set((s) => {
+      const match = s.drugs.find((d) => d.name.toLowerCase() === drugName.toLowerCase());
+      if (!match) return {};
+      return {
+        drugs: s.drugs.map((d) =>
+          d.id === match.id ? { ...d, stock: d.stock + quantity, batches: d.batches + (batch.batchNumber ? 1 : 0) } : d,
+        ),
+      };
+    });
+  },
 }));

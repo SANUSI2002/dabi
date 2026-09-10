@@ -62,6 +62,8 @@ export type QueueEntry = {
   waitMins: number;
 };
 
+export type PrescriptionStatus = "Pending" | "Dispensed" | "Partially Dispensed" | "Outsourced" | "Refused" | "Cancelled";
+
 export type Prescription = {
   id: string;
   drug: string;
@@ -69,7 +71,17 @@ export type Prescription = {
   frequency: string;
   duration: string;
   qty: number;
-  status: "Pending" | "Dispensed" | "Outsourced";
+  route?: string;
+  indication?: string;
+  instructions?: string;
+  substitutionAllowed?: boolean;
+  status: PrescriptionStatus;
+  dispensedQty?: number;
+  dispensedBy?: string;
+  dispensedAt?: string;
+  refusalReason?: string;
+  /** free-text override reason if dispensed despite a safety warning */
+  overrideReason?: string;
 };
 
 export type LabOrder = {

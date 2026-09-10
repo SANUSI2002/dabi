@@ -16,7 +16,6 @@ import type {
   AncRecord,
   FpClient,
   ChildVisit,
-  Prescription,
   Station,
   Delivery,
   PncVisit,
@@ -81,7 +80,9 @@ type EmrState = {
   markLabResultViewed: (id: string) => void;
   acknowledgeLabResult: (id: string) => void;
   communicateCriticalResult: (id: string, to: string) => void;
-  dispense: (encounterId: string, rxId: string, status: Prescription["status"]) => void;
+  dispensePrescription: (encounterId: string, rxId: string, opts: { quantity: number; overrideReason?: string }) => void;
+  outsourcePrescription: (encounterId: string, rxId: string) => void;
+  refusePrescription: (encounterId: string, rxId: string, reason: string) => void;
 
   admit: (patientId: string, ward: string, bed: string, diagnosis: string) => void;
   discharge: (id: string, outcome: string) => void;
@@ -419,14 +420,49 @@ export const useEmr = create<EmrState>((set, get) => ({
     }));
   },
 
-  dispense: (encounterId, rxId, status) => {
+  dispensePrescription: (encounterId, rxId, opts) => {
+    const who = useIdentity.getState().user.name;
     const rx = get().encounters.find((e) => e.id === encounterId)?.prescriptions.find((r) => r.id === rxId);
-    audit(status === "Dispensed" ? "dispensed drug" : "outsourced drug", `pharmacy/${rx?.drug ?? rxId}`);
+    if (!rx) return;
+    const nowIso = new Date().toISOString();
+    const full = opts.quantity >= rx.qty;
+    audit(full ? "dispensed medication" : "partially dispensed medication", `pharmacy/${rx.drug}`, {
+      user: who,
+      meta: { quantity: opts.quantity, ordered: rx.qty, ...(opts.overrideReason ? { override: opts.overrideReason } : {}) },
+    });
     set((s) => ({
       encounters: s.encounters.map((e) =>
         e.id === encounterId
-          ? { ...e, prescriptions: e.prescriptions.map((r) => (r.id === rxId ? { ...r, status } : r)) }
+          ? {
+              ...e,
+              prescriptions: e.prescriptions.map((r) =>
+                r.id === rxId
+                  ? { ...r, status: full ? "Dispensed" : "Partially Dispensed", dispensedQty: opts.quantity, dispensedBy: who, dispensedAt: nowIso, overrideReason: opts.overrideReason }
+                  : r,
+              ),
+            }
           : e,
+      ),
+    }));
+  },
+
+  outsourcePrescription: (encounterId, rxId) => {
+    const rx = get().encounters.find((e) => e.id === encounterId)?.prescriptions.find((r) => r.id === rxId);
+    audit("prescription outsourced to external pharmacy", `pharmacy/${rx?.drug ?? rxId}`);
+    set((s) => ({
+      encounters: s.encounters.map((e) =>
+        e.id === encounterId ? { ...e, prescriptions: e.prescriptions.map((r) => (r.id === rxId ? { ...r, status: "Outsourced" } : r)) } : e,
+      ),
+    }));
+  },
+
+  refusePrescription: (encounterId, rxId, reason) => {
+    const who = useIdentity.getState().user.name;
+    const rx = get().encounters.find((e) => e.id === encounterId)?.prescriptions.find((r) => r.id === rxId);
+    audit("prescription not dispensed", `pharmacy/${rx?.drug ?? rxId}`, { user: who, meta: { reason } });
+    set((s) => ({
+      encounters: s.encounters.map((e) =>
+        e.id === encounterId ? { ...e, prescriptions: e.prescriptions.map((r) => (r.id === rxId ? { ...r, status: "Refused", refusalReason: reason } : r)) } : e,
       ),
     }));
   },
