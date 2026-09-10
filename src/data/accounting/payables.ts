@@ -18,6 +18,7 @@ export type Vendor = {
   category: "Pharmaceuticals" | "Medical Supplies" | "Equipment" | "Utilities" | "Services" | "Facilities" | "Other";
   currency?: string;
   paymentTermsDays: number;
+  paymentTermId?: string;
   apAccountNumber: number; // 2000
   openingBalance: number;
   active: boolean;

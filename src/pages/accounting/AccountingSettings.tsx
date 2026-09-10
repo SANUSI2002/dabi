@@ -17,7 +17,7 @@ const ROLES: Exclude<FinanceRole, "None" | "Auditor">[] = ["Approver", "Accounta
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 export default function AccountingSettings() {
-  const { org, sequences, updateOrg, updateSequence } = useAccountingSettings();
+  const { org, sequences, updateOrg, updateSequence, paymentTerms, addPaymentTerm, updatePaymentTerm, reminderRules, addReminderRule, updateReminderRule, removeReminderRule } = useAccountingSettings();
   const { periods, fiscalYears, booksLockedBefore, setPeriodStatus, setBooksLockedBefore, openFiscalYear, fxRates } = useLedger();
   const { rules, addRule, updateRule, removeRule } = useAcctControl();
 
@@ -25,12 +25,16 @@ export default function AccountingSettings() {
   const [lockDate, setLockDate] = useState(booksLockedBefore ? isoDate(booksLockedBefore) : "");
   const [ruleModal, setRuleModal] = useState(false);
   const [rf, setRf] = useState<{ docType: ApprovableDoc; minAmount: number; maxAmount: string; approverRole: ApprovalRule["approverRole"]; level: number }>({ docType: "Bill", minAmount: 0, maxAmount: "", approverRole: "Accountant", level: 1 });
+  const [termModal, setTermModal] = useState(false);
+  const [tf, setTf] = useState({ name: "", netDays: 30, eom: false, discountPercent: "", discountDays: "" });
+  const [dunModal, setDunModal] = useState(false);
+  const [df, setDf] = useState({ level: 4, daysOverdue: 45, tone: "Escalation", subject: "", body: "" });
 
   return (
     <div>
       <PageHeader title="Accounting Settings" subtitle="Organisation, fiscal calendar, period locking, approval rules, numbering and currencies" />
 
-      <Tabs tabs={["Organisation", "Periods & Locking", "Approval Rules", "Numbering", "Currencies"]}>
+      <Tabs tabs={["Organisation", "Periods & Locking", "Approval Rules", "Payment Terms", "Dunning", "Numbering", "Currencies"]}>
         {(t) => {
           if (t === "Organisation") return (
             <Card>
@@ -108,6 +112,44 @@ export default function AccountingSettings() {
             </Card>
           );
 
+          if (t === "Payment Terms") return (
+            <Card className="p-0">
+              <div className="flex justify-end p-3"><Button variant="soft" onClick={() => setTermModal(true)}><Plus size={13} /> Add Term</Button></div>
+              <Table columns={["Name", "Net days", "EOM", "Early-pay discount", "Active"]}>
+                {paymentTerms.map((term, i) => (
+                  <Row key={term.id} index={i}>
+                    <Cell className="font-semibold">{term.name}</Cell>
+                    <Cell className="font-mono">{term.netDays}</Cell>
+                    <Cell>{term.eom ? "Yes" : "—"}</Cell>
+                    <Cell>{term.discountPercent ? `${term.discountPercent}% within ${term.discountDays} days` : "—"}</Cell>
+                    <Cell><button onClick={() => updatePaymentTerm(term.id, { active: !term.active })}><Badge tone={term.active ? "brand" : "mist"}>{term.active ? "On" : "Off"}</Badge></button></Cell>
+                  </Row>
+                ))}
+              </Table>
+            </Card>
+          );
+
+          if (t === "Dunning") return (
+            <Card className="p-0">
+              <div className="flex items-center justify-between p-3">
+                <p className="text-sm text-mist-500">Overdue-invoice reminder ladder. Placeholders: {"{number} {amount} {dueDate} {daysOverdue}"}.</p>
+                <Button variant="soft" onClick={() => setDunModal(true)}><Plus size={13} /> Add Step</Button>
+              </div>
+              <Table columns={["Level", "Days overdue", "Tone", "Subject", "Active", ""]}>
+                {reminderRules.map((r, i) => (
+                  <Row key={r.id} index={i}>
+                    <Cell className="font-mono">{r.level}</Cell>
+                    <Cell><input type="number" className="input h-8 w-20 text-sm" value={r.daysOverdue} onChange={(e) => updateReminderRule(r.id, { daysOverdue: +e.target.value })} /></Cell>
+                    <Cell><input className="input h-8 w-28 text-sm" value={r.tone} onChange={(e) => updateReminderRule(r.id, { tone: e.target.value })} /></Cell>
+                    <Cell className="max-w-[280px] truncate text-mist-500">{r.subject}</Cell>
+                    <Cell><button onClick={() => updateReminderRule(r.id, { active: !r.active })}><Badge tone={r.active ? "brand" : "mist"}>{r.active ? "On" : "Off"}</Badge></button></Cell>
+                    <Cell><button className="btn-ghost px-2 py-1 text-xs" onClick={() => removeReminderRule(r.id)}><Trash2 size={12} /></button></Cell>
+                  </Row>
+                ))}
+              </Table>
+            </Card>
+          );
+
           if (t === "Numbering") return (
             <Card className="p-0">
               <Table columns={["Document", "Prefix", "Padding", "Next", "Example"]}>
@@ -140,6 +182,32 @@ export default function AccountingSettings() {
           );
         }}
       </Tabs>
+
+      <Modal open={termModal} onClose={() => setTermModal(false)} title="Add Payment Term"
+        footer={<><Button variant="ghost" onClick={() => setTermModal(false)}>Cancel</Button><Button disabled={!tf.name} onClick={() => { addPaymentTerm({ name: tf.name, netDays: tf.netDays, eom: tf.eom, discountPercent: tf.discountPercent ? +tf.discountPercent : undefined, discountDays: tf.discountDays ? +tf.discountDays : undefined }); setTermModal(false); setTf({ name: "", netDays: 30, eom: false, discountPercent: "", discountDays: "" }); }}>Add</Button></>}>
+        <div className="space-y-3">
+          <Field label="Name"><Input value={tf.name} onChange={(e) => setTf({ ...tf, name: e.target.value })} placeholder="e.g. Net 90" /></Field>
+          <Grid cols={2}>
+            <Field label="Net days"><Input type="number" value={tf.netDays} onChange={(e) => setTf({ ...tf, netDays: +e.target.value })} /></Field>
+            <Field label="End of month"><Select value={tf.eom ? "yes" : "no"} onChange={(e) => setTf({ ...tf, eom: e.target.value === "yes" })} options={[{ value: "no", label: "No" }, { value: "yes", label: "Yes" }]} /></Field>
+            <Field label="Early-pay discount %"><Input type="number" value={tf.discountPercent} onChange={(e) => setTf({ ...tf, discountPercent: e.target.value })} placeholder="optional" /></Field>
+            <Field label="…if paid within (days)"><Input type="number" value={tf.discountDays} onChange={(e) => setTf({ ...tf, discountDays: e.target.value })} placeholder="optional" /></Field>
+          </Grid>
+        </div>
+      </Modal>
+
+      <Modal open={dunModal} onClose={() => setDunModal(false)} title="Add Dunning Step"
+        footer={<><Button variant="ghost" onClick={() => setDunModal(false)}>Cancel</Button><Button disabled={!df.subject} onClick={() => { addReminderRule({ level: df.level, daysOverdue: df.daysOverdue, tone: df.tone, subject: df.subject, body: df.body }); setDunModal(false); }}>Add</Button></>}>
+        <div className="space-y-3">
+          <Grid cols={3}>
+            <Field label="Level"><Input type="number" value={df.level} onChange={(e) => setDf({ ...df, level: +e.target.value })} /></Field>
+            <Field label="Days overdue"><Input type="number" value={df.daysOverdue} onChange={(e) => setDf({ ...df, daysOverdue: +e.target.value })} /></Field>
+            <Field label="Tone"><Input value={df.tone} onChange={(e) => setDf({ ...df, tone: e.target.value })} /></Field>
+          </Grid>
+          <Field label="Subject"><Input value={df.subject} onChange={(e) => setDf({ ...df, subject: e.target.value })} /></Field>
+          <Field label="Body"><Textarea value={df.body} onChange={(e) => setDf({ ...df, body: e.target.value })} /></Field>
+        </div>
+      </Modal>
 
       <Modal open={ruleModal} onClose={() => setRuleModal(false)} title="Add Approval Rule"
         footer={<><Button variant="ghost" onClick={() => setRuleModal(false)}>Cancel</Button><Button onClick={() => { addRule({ docType: rf.docType, minAmount: rf.minAmount, maxAmount: rf.maxAmount === "" ? null : Number(rf.maxAmount), approverRole: rf.approverRole, level: rf.level }); setRuleModal(false); }}>Add</Button></>}>

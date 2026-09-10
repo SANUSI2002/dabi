@@ -13,7 +13,8 @@ import { LineEditor, DocTotals, type EditableLine } from "./_components";
 import type { Invoice } from "@/data/accounting/receivables";
 
 export default function Invoices() {
-  const { customers, invoices, customerById, createInvoice, issueInvoice, voidInvoice, recordReceipt, invoiceBalance, reminderDue, sendReminder, runReminderRun, reminders, unbilledChargesOf } = useAR();
+  const { customers, invoices, customerById, createInvoice, issueInvoice, voidInvoice, recordReceipt, invoiceBalance, reminderDue, sendReminder, runReminderRun, reminders, unbilledChargesOf, earlyPayDiscountFor } = useAR();
+  const [takeDiscount, setTakeDiscount] = useState(true);
   const [pullCharges, setPullCharges] = useState(true);
   const accounts = useLedger((s) => s.accounts);
   const cashAccts = accounts.filter((a) => a.subtype === "cash" || a.subtype === "bank");
@@ -23,6 +24,8 @@ export default function Invoices() {
   const [pay, setPay] = useState<Invoice | null>(null);
   const [print, setPrint] = useState<Invoice | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [creditBlock, setCreditBlock] = useState<string | null>(null);
 
   const fxRates = useLedger((s) => s.fxRates);
   const [f, setF] = useState<{ customerId: string; date: string; dueDate: string; notes: string; currency: string; exchangeRate: number; deferMonths: number; recurMonths: number; lines: EditableLine[] }>({
@@ -39,25 +42,32 @@ export default function Invoices() {
 
   const [payF, setPayF] = useState({ date: isoDate(new Date()), method: "Bank Transfer" as const, account: 1010, amount: 0, reference: "", settlementRate: 0 });
 
-  function submitCreate(issue: boolean) {
+  function submitCreate(issue: boolean, overrideCredit = false) {
     setErr(null);
     if (!f.customerId) return setErr("Pick a customer.");
-    const id = createInvoice({
-      customerId: f.customerId,
-      date: new Date(f.date + "T12:00:00Z").toISOString(),
-      dueDate: new Date(f.dueDate + "T12:00:00Z").toISOString(),
-      lines: f.lines.map((l) => ({ ...l, id: `sl-${Math.random().toString(36).slice(2, 7)}` })),
-      notes: f.notes || undefined,
-      currency: f.currency,
-      exchangeRate: f.currency === "NGN" ? 1 : f.exchangeRate,
-      deferOverMonths: f.deferMonths || undefined,
-      recurEveryMonths: f.recurMonths || undefined,
-      delayedChargeIds: pullCharges ? unbilledChargesOf(f.customerId).map((d) => d.id) : undefined,
-    });
-    if (issue) {
-      const r = issueInvoice(id);
-      if (!r.ok) return setErr(r.error ?? "Could not issue");
+    if (!draftId) {
+      const id = createInvoice({
+        customerId: f.customerId,
+        date: new Date(f.date + "T12:00:00Z").toISOString(),
+        dueDate: new Date(f.dueDate + "T12:00:00Z").toISOString(),
+        lines: f.lines.map((l) => ({ ...l, id: `sl-${Math.random().toString(36).slice(2, 7)}` })),
+        notes: f.notes || undefined,
+        currency: f.currency,
+        exchangeRate: f.currency === "NGN" ? 1 : f.exchangeRate,
+        deferOverMonths: f.deferMonths || undefined,
+        recurEveryMonths: f.recurMonths || undefined,
+        delayedChargeIds: pullCharges ? unbilledChargesOf(f.customerId).map((d) => d.id) : undefined,
+      });
+      setDraftId(id);
+      if (issue) {
+        const r = issueInvoice(id, { overrideCredit });
+        if (!r.ok) { setCreditBlock(r.error ?? "Could not issue"); return; }
+      }
+    } else if (issue) {
+      const r = issueInvoice(draftId, { overrideCredit });
+      if (!r.ok) { setCreditBlock(r.error ?? "Could not issue"); return; }
     }
+    setDraftId(null); setCreditBlock(null);
     setCreate(false);
   }
 
@@ -66,15 +76,16 @@ export default function Invoices() {
     setErr(null);
     const foreign = pay.currency !== "NGN";
     const setRate = foreign ? payF.settlementRate || pay.exchangeRate : 1;
+    const discount = !foreign && takeDiscount ? earlyPayDiscountFor(pay, new Date(payF.date + "T12:00:00Z").toISOString()) : 0;
     // allocation is in the invoice's currency; for a foreign invoice payF.amount is the NGN deposited
-    const allocForeign = foreign ? Math.min(payF.amount / setRate, invoiceBalance(pay)) : Math.min(payF.amount, invoiceBalance(pay));
+    const allocForeign = foreign ? Math.min(payF.amount / setRate, invoiceBalance(pay)) : Math.min(payF.amount, invoiceBalance(pay) - discount);
     const r = recordReceipt({
       customerId: pay.customerId,
       date: new Date(payF.date + "T12:00:00Z").toISOString(),
       method: payF.method,
       depositAccountNumber: payF.account,
       amount: payF.amount,
-      allocations: [{ invoiceId: pay.id, amount: allocForeign }],
+      allocations: [{ invoiceId: pay.id, amount: allocForeign, discount: discount || undefined }],
       settlementRate: foreign ? setRate : undefined,
       reference: payF.reference || undefined,
     });
@@ -159,10 +170,13 @@ export default function Invoices() {
       </Tabs>
 
       {/* create */}
-      <Modal open={create} onClose={() => setCreate(false)} title="New Invoice" wide
-        footer={<><Button variant="ghost" onClick={() => setCreate(false)}>Cancel</Button><Button variant="soft" onClick={() => submitCreate(false)}>Save draft</Button><Button onClick={() => submitCreate(true)}>Save & issue</Button></>}>
+      <Modal open={create} onClose={() => { setCreate(false); setDraftId(null); setCreditBlock(null); }} title={draftId ? "Invoice saved as draft" : "New Invoice"} wide
+        footer={creditBlock
+          ? <><Button variant="ghost" onClick={() => { setCreate(false); setDraftId(null); setCreditBlock(null); }}>Leave as draft</Button><Button variant="action" onClick={() => submitCreate(true, true)}>Issue anyway (override)</Button></>
+          : <><Button variant="ghost" onClick={() => { setCreate(false); setDraftId(null); }}>Cancel</Button><Button variant="soft" onClick={() => submitCreate(false)}>Save draft</Button><Button onClick={() => submitCreate(true)}>Save & issue</Button></>}>
         <div className="space-y-4">
           {err && <p className="rounded-lg bg-action-50 px-3 py-2 text-sm text-action-700 ring-1 ring-action-200">{err}</p>}
+          {creditBlock && <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 ring-1 ring-amber-200">Credit check: {creditBlock}</p>}
           <div className="grid gap-3 sm:grid-cols-3">
             <Field label="Customer"><Select value={f.customerId} onChange={(e) => { const c = customers.find((x) => x.id === e.target.value); setF({ ...f, customerId: e.target.value, currency: c?.currency ?? "NGN", exchangeRate: c?.currency && c.currency !== "NGN" ? (fxRates.find((r) => r.code === c.currency)?.rateToNgn ?? 1) : 1 }); }} options={customers.map((c) => ({ value: c.id, label: c.name }))} /></Field>
             <Field label="Invoice date"><Input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
@@ -237,6 +251,12 @@ export default function Invoices() {
               <Field label="Deposit to"><Select value={String(payF.account)} onChange={(e) => setPayF({ ...payF, account: +e.target.value })} options={cashAccts.map((a) => ({ value: String(a.number), label: `${a.number} — ${a.name}` }))} /></Field>
             </div>
             <Field label="Reference"><Input value={payF.reference} onChange={(e) => setPayF({ ...payF, reference: e.target.value })} /></Field>
+            {pay.currency === "NGN" && earlyPayDiscountFor(pay, new Date(payF.date + "T12:00:00Z").toISOString()) > 0 && (
+              <label className="flex items-center gap-2 rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-800 ring-1 ring-brand-200">
+                <input type="checkbox" checked={takeDiscount} onChange={(e) => setTakeDiscount(e.target.checked)} />
+                Apply early-payment discount — {money(earlyPayDiscountFor(pay, new Date(payF.date + "T12:00:00Z").toISOString()))} (posts to Discounts &amp; Waivers)
+              </label>
+            )}
             <p className="text-xs text-mist-400">{pay.currency !== "NGN" ? "AR relieved at the booked rate; the difference vs the settlement rate posts to FX gain / loss." : `Posts Dr ${payF.account} / Cr ${customerById(pay.customerId)?.arAccountNumber} Accounts Receivable.`}</p>
           </div>
         )}

@@ -17,7 +17,6 @@ import {
   seedSalesReceipts,
   seedRefundReceipts,
   seedDelayedCharges,
-  REMINDER_LADDER,
   type Customer,
   type InvoiceReminder,
   type CustomerType,
@@ -71,26 +70,31 @@ function postInvoiceJE(inv: Invoice, cust: Customer, schedule?: RevenueSchedule)
   return led.postJournal({ date: inv.date, source: "Invoice", memo: `Invoice ${inv.number} — ${cust.name}`, reference: inv.number, lines });
 }
 
-/** posts a customer receipt with realised FX gain/loss on foreign settlements */
+/** posts a customer receipt with realised FX gain/loss on foreign settlements + early-pay discount */
 function postReceiptJE(r: CustomerReceipt, cust: Customer, invLookup: (id: string) => Invoice | undefined) {
   let arReliefNgn = 0;
   let fxDiff = 0;
   let bankFromAlloc = 0;
+  let discountNgn = 0;
   for (const a of r.allocations) {
     const inv = invLookup(a.invoiceId);
     const bookRate = inv ? fxOf(inv) : 1;
     const setRate = inv && inv.currency !== "NGN" ? r.settlementRate ?? bookRate : 1;
-    arReliefNgn += a.amount * bookRate;
+    const disc = a.discount ?? 0;
+    arReliefNgn += (a.amount + disc) * bookRate; // discount also relieves the receivable
+    discountNgn += disc * bookRate;
     fxDiff += a.amount * (setRate - bookRate);
     bankFromAlloc += a.amount * setRate;
   }
   const unallocatedNgn = round2(r.amount - bankFromAlloc);
   const creditAr = round2(arReliefNgn + Math.max(unallocatedNgn, 0));
   fxDiff = round2(fxDiff);
+  discountNgn = round2(discountNgn);
   const lines: { accountNumber: number; debit: number; credit: number; description?: string; customerId?: string }[] = [
     { accountNumber: r.depositAccountNumber, debit: r.amount, credit: 0, description: `${r.method} — ${cust.name}` },
-    { accountNumber: cust.arAccountNumber, debit: 0, credit: creditAr, description: `Applied to ${r.allocations.length} invoice(s)`, customerId: cust.id },
   ];
+  if (discountNgn > 0.005) lines.push({ accountNumber: ACCT.discountsWaivers, debit: discountNgn, credit: 0, description: "Early-payment discount", customerId: cust.id });
+  lines.push({ accountNumber: cust.arAccountNumber, debit: 0, credit: creditAr, description: `Applied to ${r.allocations.length} invoice(s)`, customerId: cust.id });
   if (fxDiff > 0.005) lines.push({ accountNumber: ACCT.fxGain, debit: 0, credit: fxDiff, description: "Realised FX gain on settlement" });
   else if (fxDiff < -0.005) lines.push({ accountNumber: ACCT.fxLoss, debit: -fxDiff, credit: 0, description: "Realised FX loss on settlement" });
   return useLedger.getState().postJournal({ date: r.date, source: "Customer Payment", memo: `Receipt ${r.number} — ${cust.name}`, reference: r.number, lines });
@@ -151,6 +155,7 @@ type ARState = {
   salesReceipts: SalesReceipt[];
   refundReceipts: RefundReceipt[];
   delayedCharges: DelayedCharge[];
+  statementLog: { customerId: string; to: string; sentAt: string; by: string }[];
 
   // customers
   addCustomer: (c: Omit<Customer, "id" | "createdAt" | "arAccountNumber" | "creditHold" | "openingBalance"> & { openingBalance?: number }) => string;
@@ -173,11 +178,15 @@ type ARState = {
   // invoices
   createInvoice: (input: { customerId: string; date: string; dueDate?: string; lines: SalesLine[]; notes?: string; salesOrderId?: string; source?: Invoice["source"]; emrInvoiceId?: string; currency?: string; exchangeRate?: number; deferOverMonths?: number; recurEveryMonths?: number; recurEndDate?: string; delayedChargeIds?: string[] }) => string;
   updateInvoice: (id: string, patch: Partial<Pick<Invoice, "date" | "dueDate" | "lines" | "notes">>) => void;
-  issueInvoice: (id: string) => { ok: boolean; error?: string };
+  issueInvoice: (id: string, opts?: { overrideCredit?: boolean }) => { ok: boolean; error?: string; creditWarning?: string };
   voidInvoice: (id: string) => { ok: boolean; error?: string };
+  /** B5 — returns a blocking reason if this customer can't take `addAmount` more of AR */
+  creditCheck: (customerId: string, addAmount: number) => { blocked: boolean; reason?: string };
 
   // receipts
   recordReceipt: (input: { customerId: string; date: string; method: CustomerReceipt["method"]; depositAccountNumber: number; amount: number; allocations: ReceiptAllocation[]; settlementRate?: number; reference?: string; notes?: string }) => { ok: boolean; error?: string };
+  /** B4 — early-payment discount available on this invoice if paid on `date` */
+  earlyPayDiscountFor: (inv: Invoice, date: string) => number;
 
   // multi-currency / recurring / revenue recognition
   revalueForeignAr: (asOf: string, rates: Record<string, number>) => { module: string; adjusted: number; net: number };
@@ -207,6 +216,10 @@ type ARState = {
   addDelayedCharge: (input: { customerId: string; date: string; accountNumber: number; description: string; qty: number; unitPrice: number; taxRateId?: string }) => void;
   removeDelayedCharge: (id: string) => void;
   unbilledChargesOf: (customerId: string) => DelayedCharge[];
+
+  // B7 statement delivery
+  markStatementSent: (customerId: string) => { ok: boolean; to?: string };
+  lastStatementSent: (customerId: string) => string | undefined;
 
   // selectors
   invoicesOf: (customerId: string) => Invoice[];
@@ -250,6 +263,7 @@ export const useAR = create<ARState>((set, get) => {
     salesReceipts,
     refundReceipts: seedRefundReceipts,
     delayedCharges: seedDelayedCharges,
+    statementLog: [],
 
     addCustomer: (c) => {
       const id = `cust-${rid()}`;
@@ -367,7 +381,7 @@ export const useAR = create<ARState>((set, get) => {
         customerId: input.customerId,
         salesOrderId: input.salesOrderId,
         date: input.date,
-        dueDate: input.dueDate ?? daysAdd(input.date, cust?.paymentTermsDays ?? 30),
+        dueDate: input.dueDate ?? useAccountingSettings.getState().dueDateFor(input.date, cust?.paymentTermId, cust?.paymentTermsDays ?? 30),
         lines: allLines,
         notes: input.notes,
         status: "Draft",
@@ -406,20 +420,33 @@ export const useAR = create<ARState>((set, get) => {
     },
     updateInvoice: (id, patch) => set((s) => ({ invoices: s.invoices.map((i) => (i.id === id && i.status === "Draft" ? { ...i, ...patch } : i)) })),
 
-    issueInvoice: (id) => {
+    creditCheck: (customerId, addAmount) => {
+      const cust = get().customerById(customerId);
+      if (!cust) return { blocked: false };
+      if (cust.creditHold) return { blocked: true, reason: `${cust.name} is on credit hold. Release the hold before issuing.` };
+      if (cust.creditLimit > 0) {
+        const projected = round2(get().customerBalance(customerId) + addAmount);
+        if (projected > cust.creditLimit) return { blocked: true, reason: `Issuing this would put ${cust.name} at ${projected.toLocaleString()} against a ${cust.creditLimit.toLocaleString()} limit.` };
+      }
+      return { blocked: false };
+    },
+
+    issueInvoice: (id, opts) => {
       const inv = get().invoices.find((i) => i.id === id);
       if (!inv || inv.status !== "Draft") return { ok: false, error: "Only a draft invoice can be issued." };
       const cust = get().customerById(inv.customerId);
       if (!cust) return { ok: false, error: "Customer not found." };
       if (!inv.lines.length || docTotal(inv.lines) <= 0) return { ok: false, error: "Add at least one line with an amount." };
+      const credit = get().creditCheck(inv.customerId, invoiceBalanceNgn(inv));
+      if (credit.blocked && !opts?.overrideCredit) return { ok: false, error: credit.reason };
       const schedule = inv.revenueScheduleId ? get().revenueSchedules.find((x) => x.id === inv.revenueScheduleId) : undefined;
       const je = postInvoiceJE(inv, cust, schedule);
       if (!je.ok) return { ok: false, error: je.error };
       set((s) => ({
         invoices: s.invoices.map((i) => (i.id === id ? { ...i, status: recomputeStatus({ ...i, status: "Open" }), journalEntryId: je.entry?.id, issuedAt: new Date().toISOString() } : i)),
       }));
-      audit(`issued invoice ${inv.number}`, `accounting/invoices/${inv.number}`);
-      return { ok: true };
+      audit(`issued invoice ${inv.number}${credit.blocked ? " (credit limit overridden)" : ""}`, `accounting/invoices/${inv.number}`);
+      return { ok: true, creditWarning: credit.blocked ? credit.reason : undefined };
     },
 
     voidInvoice: (id) => {
@@ -462,12 +489,21 @@ export const useAR = create<ARState>((set, get) => {
         invoices: s.invoices.map((i) => {
           const a = receipt.allocations.find((x) => x.invoiceId === i.id);
           if (!a) return i;
-          const paid = round2(i.amountPaid + a.amount);
+          const paid = round2(i.amountPaid + a.amount + (a.discount ?? 0));
           return { ...i, amountPaid: paid, status: recomputeStatus({ ...i, amountPaid: paid }) };
         }),
       }));
       audit(`recorded receipt ${receipt.number} — ${cust.name}`, `accounting/receipts/${receipt.number}`);
       return { ok: true };
+    },
+
+    earlyPayDiscountFor: (inv, date) => {
+      const cust = get().customerById(inv.customerId);
+      const term = useAccountingSettings.getState().termById(cust?.paymentTermId);
+      if (!term?.discountPercent || !term.discountDays) return 0;
+      const cutoff = new Date(inv.date).getTime() + term.discountDays * 864e5;
+      if (new Date(date).getTime() > cutoff) return 0;
+      return round2((docTotal(inv.lines) - inv.amountPaid) * (term.discountPercent / 100));
     },
 
     createCreditNote: (input) => {
@@ -697,7 +733,8 @@ export const useAR = create<ARState>((set, get) => {
       const overdueDays = Math.floor((Date.now() - new Date(inv.dueDate).getTime()) / 864e5);
       if (overdueDays <= 0) return undefined;
       const alreadySent = get().reminders.filter((r) => r.invoiceId === inv.id).reduce((mx, r) => Math.max(mx, r.level), 0);
-      const eligible = REMINDER_LADDER.filter((l) => l.daysOverdue <= overdueDays && l.level > alreadySent).sort((a, b) => b.level - a.level)[0];
+      const rules = useAccountingSettings.getState().reminderRules.filter((r) => r.active);
+      const eligible = rules.filter((l) => l.daysOverdue <= overdueDays && l.level > alreadySent).sort((a, b) => b.level - a.level)[0];
       return eligible ? { level: eligible.level, tone: eligible.tone } : undefined;
     },
 
@@ -720,6 +757,15 @@ export const useAR = create<ARState>((set, get) => {
       }
       return { sent };
     },
+
+    markStatementSent: (customerId) => {
+      const cust = get().customerById(customerId);
+      if (!cust?.email) return { ok: false };
+      set((s) => ({ statementLog: [{ customerId, to: cust.email!, sentAt: new Date().toISOString(), by: useIdentity.getState().user.id }, ...s.statementLog] }));
+      audit(`sent statement of account to ${cust.name} (${cust.email})`, `accounting/customers/${cust.name}`);
+      return { ok: true, to: cust.email };
+    },
+    lastStatementSent: (customerId) => get().statementLog.find((l) => l.customerId === customerId)?.sentAt,
 
     invoicesOf: (customerId) => get().invoices.filter((i) => i.customerId === customerId),
     openInvoicesOf: (customerId) => get().invoices.filter((i) => i.customerId === customerId && (i.status === "Open" || i.status === "Partially Paid" || i.status === "Overdue")),

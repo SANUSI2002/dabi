@@ -17,7 +17,8 @@ export type Customer = {
   city?: string;
   arAccountNumber: number; // 1100 patients / 1110 NHIS / 1120 HMO
   currency?: string; // default invoicing currency (ISO); NGN when unset
-  paymentTermsDays: number; // net days
+  paymentTermsDays: number; // net days (fallback when no paymentTermId)
+  paymentTermId?: string; // B4 — managed payment term
   creditLimit: number;
   creditHold: boolean;
   openingBalance: number;
@@ -121,7 +122,7 @@ export type RevenueSchedule = {
   createdAt: string;
 };
 
-export type ReceiptAllocation = { invoiceId: string; amount: number };
+export type ReceiptAllocation = { invoiceId: string; amount: number; discount?: number };
 
 export type CustomerReceipt = {
   id: string;
@@ -213,10 +214,10 @@ const daysAgo = (n: number) => new Date(Date.now() - n * 864e5).toISOString();
 const daysAhead = (n: number) => new Date(Date.now() + n * 864e5).toISOString();
 
 export const seedCustomers: Customer[] = [
-  { id: "cust-hygeia", name: "Hygeia HMO", type: "HMO", email: "claims@hygeia.example", phone: "+234 1 462 0000", city: "Lagos", arAccountNumber: 1120, paymentTermsDays: 45, creditLimit: 20_000_000, creditHold: false, openingBalance: 0, createdAt: daysAgo(300) },
-  { id: "cust-avon", name: "Avon HMO", type: "HMO", email: "providers@avonhealthcare.example", city: "Lagos", arAccountNumber: 1120, paymentTermsDays: 45, creditLimit: 15_000_000, creditHold: false, openingBalance: 0, createdAt: daysAgo(280) },
-  { id: "cust-nhis", name: "NHIS — National Scheme", type: "NHIS", email: "capitation@nhis.example", city: "Abuja", arAccountNumber: 1110, paymentTermsDays: 60, creditLimit: 50_000_000, creditHold: false, openingBalance: 0, createdAt: daysAgo(365) },
-  { id: "cust-dangote", name: "Dangote Cement Plc (Staff Scheme)", type: "Corporate", email: "hr.medicals@dangote.example", city: "Lagos", arAccountNumber: 1100, paymentTermsDays: 30, creditLimit: 8_000_000, creditHold: false, openingBalance: 1_300_000, createdAt: daysAgo(200) },
+  { id: "cust-hygeia", name: "Hygeia HMO", type: "HMO", email: "claims@hygeia.example", phone: "+234 1 462 0000", city: "Lagos", arAccountNumber: 1120, paymentTermsDays: 45, paymentTermId: "pt-net45", creditLimit: 20_000_000, creditHold: false, openingBalance: 0, createdAt: daysAgo(300) },
+  { id: "cust-avon", name: "Avon HMO", type: "HMO", email: "providers@avonhealthcare.example", city: "Lagos", arAccountNumber: 1120, paymentTermsDays: 45, paymentTermId: "pt-net45", creditLimit: 15_000_000, creditHold: false, openingBalance: 0, createdAt: daysAgo(280) },
+  { id: "cust-nhis", name: "NHIS — National Scheme", type: "NHIS", email: "capitation@nhis.example", city: "Abuja", arAccountNumber: 1110, paymentTermsDays: 60, paymentTermId: "pt-net60", creditLimit: 50_000_000, creditHold: false, openingBalance: 0, createdAt: daysAgo(365) },
+  { id: "cust-dangote", name: "Dangote Cement Plc (Staff Scheme)", type: "Corporate", email: "hr.medicals@dangote.example", city: "Lagos", arAccountNumber: 1100, paymentTermsDays: 30, paymentTermId: "pt-2-10-30", creditLimit: 8_000_000, creditHold: false, openingBalance: 1_300_000, createdAt: daysAgo(200) },
   { id: "cust-walkin", name: "Walk-in Patients", type: "Walk-in", arAccountNumber: 1100, paymentTermsDays: 0, creditLimit: 0, creditHold: false, openingBalance: 0, createdAt: daysAgo(365) },
   { id: "cust-mercy", name: "Mercy Ships (Referral Partner)", type: "Corporate", email: "referrals@mercyships.example", city: "Cotonou", arAccountNumber: 1100, currency: "USD", paymentTermsDays: 30, creditLimit: 60_000, creditHold: false, openingBalance: 0, createdAt: daysAgo(120) },
 ];
@@ -355,13 +356,6 @@ export const seedDelayedCharges: DelayedCharge[] = [
   { id: "dc-8002", customerId: "cust-dangote", date: daysAgo(3), accountNumber: 4010, description: "Urgent malaria RDT x2", qty: 2, unitPrice: 3_500, taxRateId: "tax-vat-exempt", status: "Unbilled", createdBy: "s1", createdAt: daysAgo(3) },
 ];
 
-export type ReminderLevel = { level: number; daysOverdue: number; tone: "Friendly" | "Firm" | "Final Notice" };
-
-export const REMINDER_LADDER: ReminderLevel[] = [
-  { level: 1, daysOverdue: 3, tone: "Friendly" },
-  { level: 2, daysOverdue: 14, tone: "Firm" },
-  { level: 3, daysOverdue: 30, tone: "Final Notice" },
-];
-
+// dunning ladder now lives in useAccountingSettings.reminderRules (B6, editable)
 export type InvoiceReminder = { invoiceId: string; level: number; tone: string; sentAt: string; sentBy: string };
 export const seedReminders: InvoiceReminder[] = [];

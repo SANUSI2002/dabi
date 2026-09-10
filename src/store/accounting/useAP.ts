@@ -306,7 +306,7 @@ export const useAP = create<APState>((set, get) => {
         vendorId: input.vendorId,
         purchaseOrderId: input.purchaseOrderId,
         date: input.date,
-        dueDate: input.dueDate ?? daysAdd(input.date, vendor?.paymentTermsDays ?? 30),
+        dueDate: input.dueDate ?? useAccountingSettings.getState().dueDateFor(input.date, vendor?.paymentTermId, vendor?.paymentTermsDays ?? 30),
         lines: input.lines,
         notes: input.notes,
         status: "Draft",

@@ -8,13 +8,17 @@ import { Field, Input, Select, Textarea, Grid } from "@/components/ui/form";
 import { PrintDoc, Section, Line } from "@/components/print/PrintFrame";
 import { money, shortDate } from "@/lib/format";
 import { useAR, docTotal } from "@/store/accounting/useAR";
+import { useAccountingSettings } from "@/store/accounting/useAccountingSettings";
 import type { CustomerType, Customer } from "@/data/accounting/receivables";
 
 const TYPES: CustomerType[] = ["Patient", "NHIS", "HMO", "Corporate", "Walk-in"];
-const blank = { name: "", type: "Corporate" as CustomerType, email: "", phone: "", address: "", city: "", paymentTermsDays: 30, creditLimit: 0, openingBalance: 0 };
+const blank = { name: "", type: "Corporate" as CustomerType, email: "", phone: "", address: "", city: "", paymentTermId: "pt-net30", creditLimit: 0, openingBalance: 0 };
 
 export default function Customers() {
-  const { customers, invoices, receipts, addCustomer, updateCustomer, customerBalance, invoicesOf, invoiceBalance, agingFor } = useAR();
+  const { customers, invoices, receipts, addCustomer, updateCustomer, customerBalance, invoicesOf, invoiceBalance, agingFor, markStatementSent, lastStatementSent } = useAR();
+  const paymentTerms = useAccountingSettings((s) => s.paymentTerms);
+  const termById = useAccountingSettings((s) => s.termById);
+  const termName = (id?: string) => termById(id)?.name ?? "Net 30";
   const [create, setCreate] = useState(false);
   const [detail, setDetail] = useState<Customer | null>(null);
   const [statement, setStatement] = useState<Customer | null>(null);
@@ -27,7 +31,7 @@ export default function Customers() {
 
   function submit() {
     if (!f.name.trim()) return;
-    addCustomer({ name: f.name.trim(), type: f.type, email: f.email || undefined, phone: f.phone || undefined, address: f.address || undefined, city: f.city || undefined, paymentTermsDays: f.paymentTermsDays, creditLimit: f.creditLimit, openingBalance: f.openingBalance });
+    addCustomer({ name: f.name.trim(), type: f.type, email: f.email || undefined, phone: f.phone || undefined, address: f.address || undefined, city: f.city || undefined, paymentTermId: f.paymentTermId, paymentTermsDays: termById(f.paymentTermId)?.netDays ?? 30, creditLimit: f.creditLimit, openingBalance: f.openingBalance });
     setCreate(false);
     setF(blank);
   }
@@ -74,7 +78,7 @@ export default function Customers() {
                     <Row key={c.id} index={i} onClick={() => setDetail(c)}>
                       <Cell className="font-semibold">{c.name}<span className="block text-xs font-normal text-mist-400">{c.email ?? c.phone ?? "—"}</span></Cell>
                       <Cell><Badge tone="mist">{c.type}</Badge></Cell>
-                      <Cell>{c.paymentTermsDays ? `Net ${c.paymentTermsDays}` : "Due on receipt"}</Cell>
+                      <Cell>{termName(c.paymentTermId)}</Cell>
                       <Cell className="font-mono">{c.creditLimit ? money(c.creditLimit) : "—"}</Cell>
                       <Cell className="font-mono font-semibold">{money(bal)}</Cell>
                       <Cell>{c.creditHold ? <Badge tone="action">On hold</Badge> : bal > c.creditLimit && c.creditLimit > 0 ? <Badge tone="amber">Over limit</Badge> : <Badge tone="brand">OK</Badge>}</Cell>
@@ -97,7 +101,7 @@ export default function Customers() {
             <Field label="Email"><Input value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></Field>
             <Field label="Phone"><Input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} /></Field>
             <Field label="City"><Input value={f.city} onChange={(e) => setF({ ...f, city: e.target.value })} /></Field>
-            <Field label="Payment terms (days)"><Input type="number" value={f.paymentTermsDays} onChange={(e) => setF({ ...f, paymentTermsDays: +e.target.value })} /></Field>
+            <Field label="Payment term"><Select value={f.paymentTermId} onChange={(e) => setF({ ...f, paymentTermId: e.target.value })} options={paymentTerms.filter((pt) => pt.active).map((pt) => ({ value: pt.id, label: pt.name }))} /></Field>
             <Field label="Credit limit"><Input type="number" value={f.creditLimit || ""} onChange={(e) => setF({ ...f, creditLimit: +e.target.value })} /></Field>
             <Field label="Opening balance"><Input type="number" value={f.openingBalance || ""} onChange={(e) => setF({ ...f, openingBalance: +e.target.value })} /></Field>
           </Grid>
@@ -114,7 +118,7 @@ export default function Customers() {
             <div className="grid gap-2 rounded-xl bg-mist-50 p-3 text-sm sm:grid-cols-2">
               <div><span className="text-mist-400">Type</span> · {detail.type}</div>
               <div><span className="text-mist-400">AR account</span> · {detail.arAccountNumber}</div>
-              <div><span className="text-mist-400">Terms</span> · Net {detail.paymentTermsDays}</div>
+              <div><span className="text-mist-400">Terms</span> · {termName(detail.paymentTermId)}</div>
               <div><span className="text-mist-400">Balance</span> · <b>{money(customerBalance(detail.id))}</b></div>
             </div>
             <div>
@@ -145,14 +149,29 @@ export default function Customers() {
           ...rcpts.map((r) => ({ date: r.date, doc: r.number, desc: `Receipt (${r.method})`, debit: 0, credit: r.amount })),
         ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         let run = statement.openingBalance;
+        const ageRow = aging.find((a) => a.customer.id === statement.id);
+        const lastSent = lastStatementSent(statement.id);
         return (
           <PrintDoc open onClose={() => setStatement(null)} docTitle="Customer Statement">
+            <div className="no-print mb-4 flex items-center justify-between rounded-lg bg-mist-50 px-3 py-2 text-sm">
+              <span className="text-mist-500">{statement.email ? `Deliver to ${statement.email}` : "No email on file"}{lastSent && ` · last sent ${shortDate(lastSent)}`}</span>
+              <Button variant="soft" disabled={!statement.email} onClick={() => { const r = markStatementSent(statement.id); if (r.ok) alert(`Statement sent to ${r.to}`); }}>Send statement</Button>
+            </div>
             <Section title="Statement of Account">
               <Line label="Customer" value={statement.name} />
               <Line label="As at" value={shortDate(new Date())} />
               <Line label="Opening balance" value={money(statement.openingBalance)} />
               <Line label="Closing balance" value={money(customerBalance(statement.id))} />
             </Section>
+            {ageRow && ageRow.total > 0 && (
+              <Section title="Aging summary">
+                <div className="grid grid-cols-5 gap-2 text-center text-xs">
+                  {([["Current", ageRow.current], ["1–30", ageRow.d1_30], ["31–60", ageRow.d31_60], ["61–90", ageRow.d61_90], ["90+", ageRow.d90plus]] as const).map(([lbl, v]) => (
+                    <div key={lbl} className="rounded-lg bg-mist-50 p-2"><div className="text-mist-400">{lbl}</div><div className="font-mono font-semibold">{money(v)}</div></div>
+                  ))}
+                </div>
+              </Section>
+            )}
             <table className="w-full border-collapse text-sm">
               <thead><tr className="border-y border-mist-300 text-left text-[11px] uppercase text-mist-500"><th className="py-2">Date</th><th>Doc</th><th>Detail</th><th className="text-right">Charge</th><th className="text-right">Payment</th><th className="text-right">Balance</th></tr></thead>
               <tbody>
