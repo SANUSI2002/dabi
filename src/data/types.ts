@@ -96,6 +96,18 @@ export type LabOrder = {
   approvedBy?: string;
   approvedAt?: string;
   revisionNote?: string;
+  // result communication to the ordering clinician (distinct from the result itself)
+  resultViewedBy?: string;
+  resultViewedAt?: string;
+  acknowledgedBy?: string;
+  acknowledgedAt?: string;
+  criticalCommunicatedBy?: string;
+  criticalCommunicatedTo?: string;
+  criticalCommunicatedAt?: string;
+  // specimen rejection
+  rejectedReason?: string;
+  rejectedBy?: string;
+  rejectedAt?: string;
 };
 
 export type EncounterStatus = "in-progress" | "signed" | "amended" | "cancelled";

@@ -77,6 +77,10 @@ type EmrState = {
   submitLabResult: (id: string, fields: Record<string, string>, flag: LabOrder["flag"], lastPhaseName?: string) => void;
   approveLabResult: (id: string) => void;
   sendLabResultBack: (id: string, note: string) => void;
+  rejectSpecimen: (id: string, reason: string) => void;
+  markLabResultViewed: (id: string) => void;
+  acknowledgeLabResult: (id: string) => void;
+  communicateCriticalResult: (id: string, to: string) => void;
   dispense: (encounterId: string, rxId: string, status: Prescription["status"]) => void;
 
   admit: (patientId: string, ward: string, bed: string, diagnosis: string) => void;
@@ -366,6 +370,52 @@ export const useEmr = create<EmrState>((set, get) => ({
     audit("sent lab result back for revision", `lab/${l?.test ?? id}`, { user: who });
     set((s) => ({
       labOrders: s.labOrders.map((x) => (x.id === id ? { ...x, status: "In Process", revisionNote: note } : x)),
+    }));
+  },
+
+  rejectSpecimen: (id, reason) => {
+    const who = useIdentity.getState().user.name;
+    const l = get().labOrders.find((x) => x.id === id);
+    audit("rejected specimen", `lab/${l?.test ?? id}`, { user: who, meta: { reason } });
+    set((s) => ({
+      labOrders: s.labOrders.map((x) =>
+        x.id === id ? { ...x, status: "Rejected", rejectedReason: reason, rejectedBy: who, rejectedAt: new Date().toISOString() } : x,
+      ),
+    }));
+  },
+
+  markLabResultViewed: (id) => {
+    const who = useIdentity.getState().user.name;
+    set((s) => ({
+      labOrders: s.labOrders.map((x) =>
+        x.id === id && x.status === "Resulted" && !x.resultViewedAt
+          ? { ...x, resultViewedBy: who, resultViewedAt: new Date().toISOString() }
+          : x,
+      ),
+    }));
+  },
+
+  acknowledgeLabResult: (id) => {
+    const who = useIdentity.getState().user.name;
+    const l = get().labOrders.find((x) => x.id === id);
+    audit("acknowledged lab result", `lab/${l?.test ?? id}`, { user: who });
+    set((s) => ({
+      labOrders: s.labOrders.map((x) =>
+        x.id === id
+          ? { ...x, acknowledgedBy: who, acknowledgedAt: new Date().toISOString(), resultViewedBy: x.resultViewedBy ?? who, resultViewedAt: x.resultViewedAt ?? new Date().toISOString() }
+          : x,
+      ),
+    }));
+  },
+
+  communicateCriticalResult: (id, to) => {
+    const who = useIdentity.getState().user.name;
+    const l = get().labOrders.find((x) => x.id === id);
+    audit("communicated critical result", `lab/${l?.test ?? id}`, { user: who, meta: { to } });
+    set((s) => ({
+      labOrders: s.labOrders.map((x) =>
+        x.id === id ? { ...x, criticalCommunicatedBy: who, criticalCommunicatedTo: to, criticalCommunicatedAt: new Date().toISOString() } : x,
+      ),
     }));
   },
 
@@ -696,6 +746,13 @@ export const useEmr = create<EmrState>((set, get) => ({
     }));
   },
 }));
+
+/** a lab order is overdue when its expected turnaround has elapsed and it is not yet verified/cancelled */
+export const labOrderOverdue = (order: LabOrder, turnaroundMinutes: number) => {
+  if (order.status === "Resulted" || order.status === "Rejected") return false;
+  const started = new Date(order.sampleCollectedAt ?? order.orderedAt).getTime();
+  return Date.now() - started > turnaroundMinutes * 60000;
+};
 
 /** live wait time from the enqueue timestamp — falls back to the seeded value */
 export const queueWaitMinutes = (entry: QueueEntry) => {
