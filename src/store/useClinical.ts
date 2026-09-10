@@ -68,6 +68,34 @@ function parseAllergyText(text?: string): string[] {
   return trimmed.split(/[,;/]|\band\b/i).map((part) => part.trim()).filter(Boolean);
 }
 
+/**
+ * Pure selector: structured allergies for a patient, or an "unconfirmed / imported
+ * from registration free text" synthesised record if nothing structured exists.
+ * Safe to call from a component render or a zustand selector.
+ */
+export function selectAllergiesFor(
+  allergyRecords: AllergyIntolerance[],
+  patient: Patient | null | undefined,
+): AllergyIntolerance[] {
+  if (!patient) return [];
+  const structured = allergyRecords.filter((allergy) => allergy.patientId === patient.id);
+  if (structured.length > 0) return structured;
+  return parseAllergyText(patient.allergies).map((substanceText, index) => ({
+    id: `alg-legacy-${patient.id}-${index}`,
+    patientId: patient.id,
+    substance: localConcept(substanceText),
+    type: "allergy" as const,
+    category: "medication" as const,
+    criticality: "unable-to-assess" as const,
+    clinicalStatus: "active" as const,
+    verificationStatus: "unconfirmed" as const,
+    reactions: [],
+    recordedDate: patient.registeredAt,
+    recordedBy: "Registration",
+    source: "Imported from registration free text — not yet reviewed",
+  }));
+}
+
 export const useClinical = create<ClinicalState>((set, get) => ({
   conditions: seedConditions,
   allergies: seedAllergies,
@@ -76,25 +104,7 @@ export const useClinical = create<ClinicalState>((set, get) => ({
   conditionsFor: (patientId) =>
     !patientId ? [] : get().conditions.filter((condition) => condition.patientId === patientId),
 
-  allergiesFor: (patient) => {
-    if (!patient) return [];
-    const structured = get().allergies.filter((allergy) => allergy.patientId === patient.id);
-    if (structured.length > 0) return structured;
-    return parseAllergyText(patient.allergies).map((substanceText, index) => ({
-      id: `alg-legacy-${patient.id}-${index}`,
-      patientId: patient.id,
-      substance: localConcept(substanceText),
-      type: "allergy" as const,
-      category: "medication" as const,
-      criticality: "unable-to-assess" as const,
-      clinicalStatus: "active" as const,
-      verificationStatus: "unconfirmed" as const,
-      reactions: [],
-      recordedDate: patient.registeredAt,
-      recordedBy: "Registration",
-      source: "Imported from registration free text — not yet reviewed",
-    }));
-  },
+  allergiesFor: (patient) => selectAllergiesFor(get().allergies, patient),
 
   carePlansFor: (patientId) =>
     !patientId ? [] : get().carePlans.filter((plan) => plan.patientId === patientId),

@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import {
   ResponsiveContainer, BarChart, Bar, LineChart, Line, AreaChart, Area,
-  XAxis, YAxis, Tooltip, CartesianGrid, Legend, PieChart, Pie, Cell,
+  XAxis, YAxis, Tooltip, CartesianGrid, Legend, PieChart, Pie, Cell, ReferenceArea,
 } from "recharts";
 
 export const CHART_COLORS = ["#0fc06d", "#2fdd8a", "#f83b3b", "#0a4f32", "#84bd9b", "#f59e0b"];
@@ -126,12 +126,19 @@ export function Lines({
   series,
   height,
   area,
+  yAllowDecimals = false,
+  yDomain,
+  referenceBand,
 }: {
   data: Record<string, string | number>[];
   x: string;
   series: { key: string; label?: string; color?: string }[];
   height?: number;
   area?: boolean;
+  yAllowDecimals?: boolean;
+  yDomain?: [number | "auto" | "dataMin" | "dataMax", number | "auto" | "dataMin" | "dataMax"];
+  /** shaded normal / reference range behind the trend */
+  referenceBand?: { from: number; to: number };
 }) {
   const Comp = area ? AreaChart : LineChart;
   return (
@@ -139,7 +146,18 @@ export function Lines({
       <Comp data={data} margin={{ top: 4, right: 10, bottom: 0, left: -12 }}>
         <CartesianGrid {...gridProps} />
         <XAxis dataKey={x} {...axisProps} />
-        <YAxis {...axisProps} allowDecimals={false} />
+        <YAxis {...axisProps} allowDecimals={yAllowDecimals} domain={yDomain as never} />
+        {referenceBand && (
+          <ReferenceArea
+            y1={referenceBand.from}
+            y2={referenceBand.to}
+            fill="#0fc06d"
+            fillOpacity={0.06}
+            stroke="#0fc06d"
+            strokeOpacity={0.15}
+            strokeDasharray="2 2"
+          />
+        )}
         <Tooltip {...tip} />
         {series.length > 1 && <Legend iconType="circle" wrapperStyle={{ fontSize: 11 }} />}
         {series.map((s, i) => {

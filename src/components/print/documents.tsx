@@ -1,5 +1,6 @@
 import { PrintDoc, Line, Section, SignRow } from "./PrintFrame";
 import type { Patient, LabOrder, Encounter } from "@/data/types";
+import type { Condition, AllergyIntolerance, CarePlan } from "@/data/clinical";
 import { PATIENT_CATEGORIES, LAB_TESTS, VACCINES } from "@/data/catalog";
 import { ageFromDob, shortDate, dateTime } from "@/lib/format";
 import { differenceInWeeks } from "date-fns";
@@ -263,6 +264,141 @@ export function ConsolidatedEmrDoc({
       </Section>
 
       <p className="mt-6 text-center text-[11px] text-mist-400">— End of consolidated record —</p>
+    </PrintDoc>
+  );
+}
+
+/* ---------------- Patient Summary (IPS-inspired) ---------------- */
+export function PatientSummaryDoc({
+  patient,
+  conditions,
+  allergies,
+  encounters,
+  labs,
+  carePlans,
+  open,
+  onClose,
+}: {
+  patient: Patient;
+  conditions: Condition[];
+  allergies: AllergyIntolerance[];
+  encounters: Encounter[];
+  labs: LabOrder[];
+  carePlans: CarePlan[];
+  open: boolean;
+  onClose: () => void;
+}) {
+  const meds = encounters.flatMap((encounter) =>
+    encounter.prescriptions.map((prescription) => ({ ...prescription, date: encounter.date })),
+  );
+  const activeProblems = conditions.filter(
+    (condition) => condition.clinicalStatus === "active" || condition.clinicalStatus === "recurrence" || condition.clinicalStatus === "relapse",
+  );
+  const pastProblems = conditions.filter((condition) => !activeProblems.includes(condition));
+
+  return (
+    <PrintDoc open={open} onClose={onClose} docTitle="Patient Summary">
+      <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-[11px] text-amber-700 ring-1 ring-amber-200">
+        Structure inspired by the International Patient Summary (IPS). This is a facility-generated summary and is
+        <b> not a conformant IPS document</b>.
+      </p>
+
+      <Section title="Patient">
+        <div className="grid grid-cols-2 gap-x-8">
+          <Line label="Name" value={`${patient.firstName} ${patient.lastName} ${patient.otherName ?? ""}`.trim()} />
+          <Line label="File no." value={patient.mrn} />
+          <Line label="DOB / Age" value={`${shortDate(patient.dob)} · ${ageFromDob(patient.dob)}`} />
+          <Line label="Sex" value={patient.sex === "M" ? "Male" : "Female"} />
+          <Line label="Blood group" value={patient.bloodGroup ?? "Not recorded"} />
+          <Line label="Payer" value={patient.payer} />
+        </div>
+      </Section>
+
+      <Section title="Allergies and intolerances">
+        {allergies.length === 0 ? (
+          <p className="text-sm text-mist-500">No known allergies recorded.</p>
+        ) : (
+          allergies.map((allergy) => (
+            <p key={allergy.id} className="text-sm">
+              • <b>{allergy.substance.display}</b> — {allergy.type}, {allergy.criticality} criticality,{" "}
+              {allergy.verificationStatus}
+              {allergy.reactions.length > 0
+                ? ` — reactions: ${allergy.reactions.flatMap((reaction) => reaction.manifestation).join(", ")}`
+                : ""}
+            </p>
+          ))
+        )}
+      </Section>
+
+      <Section title={`Active problems (${activeProblems.length})`}>
+        {activeProblems.length === 0 ? (
+          <p className="text-sm text-mist-500">No active problems recorded.</p>
+        ) : (
+          activeProblems.map((condition) => (
+            <p key={condition.id} className="text-sm">
+              • {condition.code.display}
+              {condition.code.system !== "local" ? ` (${condition.code.system.toUpperCase()} ${condition.code.code})` : " (local label)"} —{" "}
+              {condition.verificationStatus}
+              {condition.onsetDate ? `, onset ${shortDate(condition.onsetDate)}` : ""}
+            </p>
+          ))
+        )}
+      </Section>
+
+      {pastProblems.length > 0 && (
+        <Section title={`Past / resolved problems (${pastProblems.length})`}>
+          {pastProblems.map((condition) => (
+            <p key={condition.id} className="text-sm text-mist-500">
+              • {condition.code.display} — {condition.clinicalStatus}
+              {condition.abatementDate ? `, resolved ${shortDate(condition.abatementDate)}` : ""}
+            </p>
+          ))}
+        </Section>
+      )}
+
+      <Section title={`Medication summary (${meds.length})`}>
+        {meds.length === 0 ? (
+          <p className="text-sm text-mist-500">No medications recorded.</p>
+        ) : (
+          meds.map((med, index) => (
+            <p key={index} className="text-sm">
+              • {med.drug} — {med.dose}, {med.frequency} for {med.duration} — {med.status} — {shortDate(med.date)}
+            </p>
+          ))
+        )}
+      </Section>
+
+      <Section title={`Recent results (${labs.length})`}>
+        {labs.length === 0 ? (
+          <p className="text-sm text-mist-500">No laboratory results recorded.</p>
+        ) : (
+          labs.slice(0, 20).map((lab) => (
+            <p key={lab.id} className="text-sm">
+              • {lab.test}: <b>{lab.result ?? lab.status}</b> {lab.flag ? `(${lab.flag})` : ""} — {shortDate(lab.orderedAt)}
+              {lab.verifiedBy ? ` — verified by ${lab.verifiedBy}` : ""}
+            </p>
+          ))
+        )}
+      </Section>
+
+      <Section title={`Care plans (${carePlans.length})`}>
+        {carePlans.length === 0 ? (
+          <p className="text-sm text-mist-500">No care plans recorded.</p>
+        ) : (
+          carePlans.map((plan) => (
+            <div key={plan.id} className="mb-2 text-sm">
+              <p className="font-semibold">{plan.title} — {plan.status}</p>
+              {plan.goals.map((goal) => (
+                <p key={goal.id} className="text-mist-600">— Goal: {goal.description} ({goal.status})</p>
+              ))}
+            </div>
+          ))
+        )}
+      </Section>
+
+      <p className="mt-6 text-center text-[11px] text-mist-400">
+        Generated {dateTime(new Date())} · — End of patient summary —
+      </p>
     </PrintDoc>
   );
 }
