@@ -47,6 +47,21 @@ export type PostInput = {
 
 export type LockCheck = { locked: boolean; reason?: string };
 
+// B13 — a standing journal that reposts on a monthly cadence (rent accrual,
+// prepaid amortisation, etc.)
+export type RecurringJournal = {
+  id: string;
+  memo: string;
+  lines: DraftLine[];
+  everyMonths: number;
+  nextDate: string;
+  endDate?: string;
+  lastPostedDate?: string;
+  postedCount: number;
+  active: boolean;
+  createdAt: string;
+};
+
 type LedgerState = {
   accounts: Account[];
   entries: JournalEntry[];
@@ -57,6 +72,7 @@ type LedgerState = {
   branches: Branch[];
   consolidationGroups: ConsolidationGroup[];
   activeBranchId: string;
+  recurringJournals: RecurringJournal[];
 
   // ---- lookups ----
   accountByNumber: (n: number) => Account | undefined;
@@ -95,6 +111,13 @@ type LedgerState = {
   setPeriodStatus: (id: string, status: AccountingPeriod["status"]) => void;
   setBooksLockedBefore: (date: string | null) => void;
   openFiscalYear: (year: number) => void;
+
+  // ---- B13 recurring journals ----
+  addRecurringJournal: (input: { memo: string; lines: DraftLine[]; everyMonths: number; startDate: string; endDate?: string }) => { ok: boolean; error?: string };
+  updateRecurringJournal: (id: string, patch: Partial<Pick<RecurringJournal, "active" | "everyMonths" | "endDate" | "memo">>) => void;
+  removeRecurringJournal: (id: string) => void;
+  dueRecurringJournals: (asOf: string) => RecurringJournal[];
+  runRecurringJournals: (asOf: string) => { posted: number };
 };
 
 const toLines = (draft: DraftLine[]): JournalLine[] =>
@@ -124,6 +147,9 @@ export const useLedger = create<LedgerState>((set, get) => ({
   branches: seedBranches,
   consolidationGroups: seedConsolidationGroups,
   activeBranchId: loadBranch(),
+  recurringJournals: [
+    { id: "rj-rent", memo: "Monthly office rent accrual", lines: [{ accountNumber: 5200, debit: 400_000, credit: 0, description: "Rent for the month" }, { accountNumber: 2000, debit: 0, credit: 400_000, description: "Accrued rent payable" }], everyMonths: 1, nextDate: new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1, 12)).toISOString(), postedCount: 0, active: true, createdAt: "2026-01-01T00:00:00.000Z" },
+  ],
 
   accountByNumber: (n) => get().accounts.find((a) => a.number === n),
   accountById: (id) => get().accounts.find((a) => a.id === id),
@@ -425,6 +451,48 @@ export const useLedger = create<LedgerState>((set, get) => ({
     }));
     audit(`opened fiscal year ${year}`, `accounting/fiscal-year/${year}`);
   },
+
+  addRecurringJournal: (input) => {
+    const check = get().validateLines(input.lines);
+    if (!check.ok) return { ok: false, error: check.error };
+    if (input.everyMonths < 1) return { ok: false, error: "Cadence must be at least 1 month." };
+    const rj: RecurringJournal = {
+      id: `rj-${rid()}`,
+      memo: input.memo,
+      lines: input.lines,
+      everyMonths: input.everyMonths,
+      nextDate: input.startDate,
+      endDate: input.endDate,
+      postedCount: 0,
+      active: true,
+      createdAt: new Date().toISOString(),
+    };
+    set((s) => ({ recurringJournals: [rj, ...s.recurringJournals] }));
+    audit(`created recurring journal — ${input.memo}`, "accounting/recurring-journals");
+    return { ok: true };
+  },
+  updateRecurringJournal: (id, patch) => set((s) => ({ recurringJournals: s.recurringJournals.map((r) => (r.id === id ? { ...r, ...patch } : r)) })),
+  removeRecurringJournal: (id) => set((s) => ({ recurringJournals: s.recurringJournals.filter((r) => r.id !== id) })),
+  dueRecurringJournals: (asOf) => {
+    const t = new Date(asOf).getTime();
+    return get().recurringJournals.filter((r) => r.active && new Date(r.nextDate).getTime() <= t && (!r.endDate || new Date(r.nextDate).getTime() <= new Date(r.endDate).getTime()));
+  },
+  runRecurringJournals: (asOf) => {
+    let posted = 0;
+    for (const rj of get().dueRecurringJournals(asOf)) {
+      const res = get().postJournal({ date: rj.nextDate, source: "Manual", memo: `${rj.memo} (recurring)`, reference: rj.id, lines: rj.lines });
+      if (!res.ok) continue;
+      posted++;
+      const next = monthsFwd(rj.nextDate, rj.everyMonths);
+      set((s) => ({
+        recurringJournals: s.recurringJournals.map((r) => (r.id === rj.id ? { ...r, lastPostedDate: rj.nextDate, nextDate: next, postedCount: r.postedCount + 1, active: r.endDate && new Date(next).getTime() > new Date(r.endDate).getTime() ? false : r.active } : r)),
+      }));
+    }
+    if (posted) audit(`posted ${posted} recurring journal(s)`, "accounting/recurring-journals");
+    return { posted };
+  },
 }));
+
+const monthsFwd = (iso: string, m: number) => { const d = new Date(iso); return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + m, d.getUTCDate(), 12)).toISOString(); };
 
 export { normalBalanceOf, isDebitNormal };

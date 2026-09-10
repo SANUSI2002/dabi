@@ -207,7 +207,7 @@ export const NAV: NavGroup[] = [
       { to: "/accounting/expenses", label: "Expenses", icon: Wallet },
       { to: "/accounting/fixed-assets", label: "Fixed Assets", icon: Building2 },
       { to: "/accounting/inventory", label: "Inventory Accounting", icon: Boxes },
-      { to: "/accounting/budgets", label: "Budgets & Cost Centres", icon: PiggyBank },
+      { to: "/accounting/budgets", label: "Budgets & Forecasts", icon: PiggyBank },
       { to: "/accounting/projects", label: "Projects & Job Costing", icon: FolderKanban },
       { to: "/accounting/tax", label: "Tax", icon: Percent },
       { to: "/accounting/reports", label: "Financial Reports", icon: BarChart3 },

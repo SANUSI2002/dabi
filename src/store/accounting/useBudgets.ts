@@ -25,7 +25,7 @@ type BudgetState = {
   toggleCostCentre: (id: string) => void;
 
   budgetById: (id: string) => Budget | undefined;
-  createBudget: (name: string, fiscalYear: number) => string;
+  createBudget: (name: string, fiscalYear: number, opts?: { copyFromId?: string; adjustPct?: number }) => string;
   setBudgetStatus: (id: string, status: Budget["status"]) => void;
   upsertLine: (budgetId: string, line: Omit<BudgetLine, "id"> & { id?: string }) => void;
   removeLine: (budgetId: string, lineId: string) => void;
@@ -45,14 +45,29 @@ export const useBudgets = create<BudgetState>((set, get) => ({
 
   budgetById: (id) => get().budgets.find((b) => b.id === id),
 
-  createBudget: (name, fiscalYear) => {
+  createBudget: (name, fiscalYear, opts) => {
     const id = `bud-${rid()}`;
-    set((s) => ({ budgets: [{ id, name, fiscalYear, status: "Draft", lines: [], createdAt: new Date().toISOString() }, ...s.budgets] }));
-    audit(`created budget ${name}`, `accounting/budgets/${name}`);
+    const src = opts?.copyFromId ? get().budgetById(opts.copyFromId) : undefined;
+    const factor = 1 + (opts?.adjustPct ?? 0) / 100;
+    const lines: BudgetLine[] = src
+      ? src.lines.map((l) => ({ ...l, id: `bl-${rid()}`, monthly: l.monthly.map((v) => Math.round(v * factor)) }))
+      : [];
+    set((s) => ({ budgets: [{ id, name, fiscalYear, status: "Draft", lines, createdAt: new Date().toISOString() }, ...s.budgets] }));
+    audit(`created budget ${name}${src ? ` (from ${src.name}${opts?.adjustPct ? `, ${opts.adjustPct > 0 ? "+" : ""}${opts.adjustPct}%` : ""})` : ""}`, `accounting/budgets/${name}`);
     return id;
   },
   setBudgetStatus: (id, status) => {
-    set((s) => ({ budgets: s.budgets.map((b) => (b.id === id ? { ...b, status } : b)) }));
+    set((s) => {
+      // only one Active budget per fiscal year
+      const target = s.budgets.find((b) => b.id === id);
+      return {
+        budgets: s.budgets.map((b) => {
+          if (b.id === id) return { ...b, status };
+          if (status === "Active" && target && b.fiscalYear === target.fiscalYear && b.status === "Active") return { ...b, status: "Closed" as const };
+          return b;
+        }),
+      };
+    });
     audit(`set budget ${status.toLowerCase()}`, `accounting/budgets/${id}`);
   },
   upsertLine: (budgetId, line) =>

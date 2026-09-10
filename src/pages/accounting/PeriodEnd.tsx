@@ -12,7 +12,7 @@ import { useAP, fxOfBill } from "@/store/accounting/useAP";
 const thisMonth = () => { const d = new Date(); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`; };
 
 export default function PeriodEnd() {
-  const { fxRates } = useLedger();
+  const { fxRates, recurringJournals, dueRecurringJournals, runRecurringJournals, accountByNumber } = useLedger();
   const { invoices, revenueSchedules, revalueForeignAr, runRecurringInvoices, recognizeRevenue, customerById } = useAR();
   const { bills, revalueForeignAp, runRecurringBills, vendorById } = useAP();
 
@@ -39,8 +39,10 @@ export default function PeriodEnd() {
     const iso = new Date(asOf + "T23:59:59Z").toISOString();
     const i = runRecurringInvoices(iso);
     const b = runRecurringBills(iso);
-    setMsg(`Generated ${i.created.length} invoice(s) and ${b.created.length} bill(s) from recurring templates.`);
+    const j = runRecurringJournals(iso);
+    setMsg(`Generated ${i.created.length} invoice(s), ${b.created.length} bill(s) and posted ${j.posted} recurring journal(s).`);
   }
+  const dueJournals = dueRecurringJournals(new Date(asOf + "T23:59:59Z").toISOString());
 
   return (
     <div>
@@ -50,7 +52,7 @@ export default function PeriodEnd() {
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Foreign AR / AP open" value={openForeignInv.length + openForeignBill.length} tone="brand" icon={<Coins size={18} />} />
-        <StatCard label="Recurring due" value={dueRecurringInv.length + dueRecurringBill.length} tone={dueRecurringInv.length + dueRecurringBill.length ? "amber" : "mist"} delay={0.05} />
+        <StatCard label="Recurring due" value={dueRecurringInv.length + dueRecurringBill.length + dueRecurringJournals(new Date(asOf + "T23:59:59Z").toISOString()).length} tone="amber" delay={0.05} />
         <StatCard label="Revenue to recognise" value={dueSchedules.length} tone={dueSchedules.length ? "amber" : "mist"} delay={0.1} />
         <StatCard label="Revenue schedules" value={revenueSchedules.length} tone="mist" delay={0.15} />
       </div>
@@ -98,8 +100,22 @@ export default function PeriodEnd() {
             </Card>
           ) : t === "Recurring" ? (
             <Card>
-              <p className="mb-3 text-sm text-mist-500">Templates whose next date has arrived. Running this issues a fresh invoice / bill and advances the schedule.</p>
-              {dueRecurringInv.length + dueRecurringBill.length === 0 ? <EmptyState title="Nothing due" hint="Recurring invoices and bills appear here on their next date." /> : (
+              <p className="mb-3 text-sm text-mist-500">Templates whose next date has arrived. Running this issues a fresh invoice / bill or posts a standing journal and advances the schedule.</p>
+              {recurringJournals.length > 0 && (
+                <Table columns={["Standing journal", "Lines", "Next date", "Every", "Posted", "Status"]}>
+                  {recurringJournals.map((rj, i) => (
+                    <Row key={rj.id} index={i}>
+                      <Cell className="font-semibold">{rj.memo}</Cell>
+                      <Cell className="text-mist-500">{rj.lines.map((l) => `${l.accountNumber}`).join(" / ")}</Cell>
+                      <Cell>{shortDate(rj.nextDate)}{dueJournals.some((d) => d.id === rj.id) && <Badge tone="amber"> due</Badge>}</Cell>
+                      <Cell>{rj.everyMonths} mo</Cell>
+                      <Cell>{rj.postedCount}x</Cell>
+                      <Cell><Badge tone={rj.active ? "brand" : "mist"}>{rj.active ? "Active" : "Ended"}</Badge></Cell>
+                    </Row>
+                  ))}
+                </Table>
+              )}
+              {dueRecurringInv.length + dueRecurringBill.length + dueJournals.length === 0 ? <EmptyState title="Nothing due" hint="Recurring invoices, bills and standing journals appear here on their next date." /> : (
                 <>
                   <Table columns={["Type", "Source", "Party", "Next date", "Amount", "Every"]}>
                     {[...dueRecurringInv.map((i) => ({ kind: "Invoice", ref: i.number, party: customerById(i.customerId)?.name, next: i.recurrenceNextDate!, amt: useAR.getState().invoiceBalance({ ...i, amountPaid: 0 }) * fxOf(i), every: i.recurrenceEveryMonths })),

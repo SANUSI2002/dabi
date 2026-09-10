@@ -5,9 +5,10 @@ import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select } from "@/components/ui/form";
-import { money } from "@/lib/format";
+import { money, isoDate } from "@/lib/format";
 import { useBudgets } from "@/store/accounting/useBudgets";
 import { useLedger } from "@/store/accounting/useLedger";
+import { useForecast } from "@/store/accounting/useForecast";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -17,7 +18,11 @@ export default function Budgets() {
   const [budgetId, setBudgetId] = useState(budgets[0]?.id ?? "");
   const [through, setThrough] = useState(new Date().getUTCMonth() + 1);
   const [newBudget, setNewBudget] = useState(false);
-  const [nb, setNb] = useState({ name: "", year: 2026 });
+  const [nb, setNb] = useState({ name: "", year: 2027, copyFromId: "", adjustPct: 0 });
+  const { scenarios, addScenario, seedLinesFromLedger, project } = useForecast();
+  const [scenarioId, setScenarioId] = useState(scenarios[0]?.id ?? "");
+  const [newScenario, setNewScenario] = useState(false);
+  const [ns, setNs] = useState({ name: "", startPeriod: isoDate(new Date()).slice(0, 7), months: 6 });
   const [lineModal, setLineModal] = useState(false);
   const [lf, setLf] = useState({ accountNumber: 5100, costCentreId: "", annual: 0 });
   const [ccModal, setCcModal] = useState(false);
@@ -29,12 +34,62 @@ export default function Budgets() {
 
   return (
     <div>
-      <PageHeader title="Budgets & Cost Centres" subtitle="Plan by account and cost centre, then track against the ledger"
+      <PageHeader title="Budgets & Forecasts" subtitle="Plan by account and cost centre, roll forward year to year, and project the months ahead"
         actions={<Button onClick={() => setNewBudget(true)}><Plus size={15} /> New Budget</Button>} />
 
+      <Tabs tabs={["Budget vs Actual", "Forecast", "Cost Centres"]}>
+        {(t) => {
+          if (t === "Forecast") {
+            const sc = scenarios.find((x) => x.id === scenarioId);
+            const proj = sc ? project(sc.id) : null;
+            return (
+              <div>
+                <Card className="mb-4">
+                  <div className="flex flex-wrap items-end gap-3">
+                    <Field label="Scenario"><Select value={scenarioId} onChange={(e) => setScenarioId(e.target.value)} options={scenarios.map((x) => ({ value: x.id, label: x.name }))} /></Field>
+                    <Button variant="soft" onClick={() => { setNs({ name: "", startPeriod: isoDate(new Date()).slice(0, 7), months: 6 }); setNewScenario(true); }}><Plus size={13} /> New Scenario</Button>
+                  </div>
+                </Card>
+                {!proj || proj.rows.length === 0 ? <EmptyState title="No forecast lines" /> : (
+                  <>
+                    <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      <StatCard label="Projected total" value={money(proj.totals.projected)} tone="mist" />
+                      <StatCard label="Actual so far" value={money(proj.totals.actual)} tone="brand" delay={0.05} />
+                      <StatCard label="Horizon" value={`${sc!.months} mo`} tone="mist" delay={0.1} />
+                    </div>
+                    <Card className="p-0 overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="border-b border-mist-200 bg-mist-50/70"><tr>
+                          <th className="th text-left">Account</th>
+                          {proj.periods.map((p) => <th key={p} className="th text-right">{p.slice(2)}</th>)}
+                          <th className="th text-right">Total</th>
+                        </tr></thead>
+                        <tbody className="divide-y divide-mist-100">
+                          {proj.rows.map((r) => (
+                            <tr key={r.accountNumber}>
+                              <td className="td font-semibold">{r.accountNumber} — {r.accountName}</td>
+                              {r.cells.map((c, i) => (
+                                <td key={i} className="td text-right font-mono">
+                                  <div>{money(c.projected)}</div>
+                                  {c.actual !== null && <div className={`text-[10px] ${(c.variance ?? 0) >= 0 ? "text-brand-600" : "text-action-600"}`}>act {money(c.actual)}</div>}
+                                </td>
+                              ))}
+                              <td className="td text-right font-mono font-bold">{money(r.projectedTotal)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </Card>
+                    <p className="mt-2 text-xs text-mist-400">Projected = base x (1 + growth%)^month. "act" shows the ledger actual for closed months and its variance.</p>
+                  </>
+                )}
+              </div>
+            );
+          }
+          return (<>
       <Card className="mb-4">
         <div className="grid gap-3 sm:grid-cols-[1fr_200px_auto]">
-          <Field label="Budget"><Select value={budgetId} onChange={(e) => setBudgetId(e.target.value)} options={budgets.map((b) => ({ value: b.id, label: `${b.name} (${b.status})` }))} /></Field>
+          <Field label="Budget"><Select value={budgetId} onChange={(e) => setBudgetId(e.target.value)} options={budgets.map((b) => ({ value: b.id, label: `${b.name} · FY${b.fiscalYear} (${b.status})` }))} /></Field>
           <Field label="Through month"><Select value={String(through)} onChange={(e) => setThrough(+e.target.value)} options={MONTHS.map((m, i) => ({ value: String(i + 1), label: m }))} /></Field>
           {budget && <div className="flex items-end gap-2">
             <Button variant="soft" onClick={() => { setLf({ accountNumber: 5100, costCentreId: "", annual: 0 }); setLineModal(true); }}><Plus size={13} /> Line</Button>
@@ -42,10 +97,7 @@ export default function Budgets() {
           </div>}
         </div>
       </Card>
-
-      <Tabs tabs={["Budget vs Actual", "Cost Centres"]}>
-        {(t) =>
-          t === "Cost Centres" ? (
+      {t === "Cost Centres" ? (
             <Card className="p-0">
               <div className="flex justify-end p-3"><Button variant="soft" onClick={() => setCcModal(true)}><Plus size={13} /> Cost Centre</Button></div>
               <Table columns={["Code", "Name", "Active"]}>
@@ -87,15 +139,28 @@ export default function Budgets() {
                 </Table>
               </Card>
             </>
-          )
-        }
+          )}
+          </>);
+        }}
       </Tabs>
 
       <Modal open={newBudget} onClose={() => setNewBudget(false)} title="New Budget"
-        footer={<><Button variant="ghost" onClick={() => setNewBudget(false)}>Cancel</Button><Button onClick={() => { const id = createBudget(nb.name || "Untitled Budget", nb.year); setBudgetId(id); setNewBudget(false); }} disabled={!nb.name}>Create</Button></>}>
+        footer={<><Button variant="ghost" onClick={() => setNewBudget(false)}>Cancel</Button><Button onClick={() => { const id = createBudget(nb.name || "Untitled Budget", nb.year, nb.copyFromId ? { copyFromId: nb.copyFromId, adjustPct: nb.adjustPct } : undefined); setBudgetId(id); setNewBudget(false); }} disabled={!nb.name}>Create</Button></>}>
         <div className="space-y-3">
           <Field label="Name"><Input value={nb.name} onChange={(e) => setNb({ ...nb, name: e.target.value })} placeholder="FY2027 Operating Budget" /></Field>
           <Field label="Fiscal year"><Input type="number" value={nb.year} onChange={(e) => setNb({ ...nb, year: +e.target.value })} /></Field>
+          <Field label="Copy lines from"><Select value={nb.copyFromId} onChange={(e) => setNb({ ...nb, copyFromId: e.target.value })} options={[{ value: "", label: "Start blank" }, ...budgets.map((b) => ({ value: b.id, label: `${b.name} · FY${b.fiscalYear}` }))]} /></Field>
+          {nb.copyFromId && <Field label="Adjust every line by %" hint="e.g. 8 for +8% inflation"><Input type="number" value={nb.adjustPct || ""} onChange={(e) => setNb({ ...nb, adjustPct: +e.target.value })} /></Field>}
+        </div>
+      </Modal>
+
+      <Modal open={newScenario} onClose={() => setNewScenario(false)} title="New Forecast Scenario"
+        footer={<><Button variant="ghost" onClick={() => setNewScenario(false)}>Cancel</Button><Button disabled={!ns.name} onClick={() => { const id = addScenario({ name: ns.name, basis: "Last 3 months average", startPeriod: ns.startPeriod, months: ns.months, lines: seedLinesFromLedger(ns.startPeriod) }); setScenarioId(id); setNewScenario(false); }}>Create</Button></>}>
+        <div className="space-y-3">
+          <Field label="Name"><Input value={ns.name} onChange={(e) => setNs({ ...ns, name: e.target.value })} placeholder="FY2027 — aggressive growth" /></Field>
+          <Field label="Start month"><Input type="month" value={ns.startPeriod} onChange={(e) => setNs({ ...ns, startPeriod: e.target.value })} /></Field>
+          <Field label="Horizon (months)"><Input type="number" value={ns.months} onChange={(e) => setNs({ ...ns, months: +e.target.value })} /></Field>
+          <p className="text-xs text-mist-400">Lines are seeded from the last 3 months' actual activity per revenue/expense account; set growth rates and per-month overrides after.</p>
         </div>
       </Modal>
 

@@ -20,6 +20,7 @@ import { useBudgets } from "@/store/accounting/useBudgets";
 import { useInventoryAccounting } from "@/store/accounting/useInventoryAccounting";
 import { useAccountingSettings } from "@/store/accounting/useAccountingSettings";
 import { useProjects } from "@/store/accounting/useProjects";
+import { useForecast } from "@/store/accounting/useForecast";
 
 useLedger.getState();
 useTax.getState();
@@ -33,3 +34,4 @@ useBanking.getState();
 useFixedAssets.getState();
 useBudgets.getState();
 useInventoryAccounting.getState();
+useForecast.getState();
