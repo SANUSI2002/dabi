@@ -1,9 +1,9 @@
 // Promotions — role/grade change with an approval gate and a tracked
 // handover of the outgoing responsibilities to a successor.
 
-// "Proposed" / rejected state is tracked by the linked approval request
-// (see useApprovals) — the Promotion record itself only distinguishes
-// not-yet-applied from applied, to avoid two sources of truth.
+// "Proposed" / rejected state is tracked by the linked workflow instance
+// (see useWorkflow, trigger "promotion") — the Promotion record itself only
+// distinguishes not-yet-applied from applied, to avoid two sources of truth.
 export type PromotionStatus = "Proposed" | "Effective";
 export type HandoverStatus = "Not started" | "In progress" | "Complete";
 

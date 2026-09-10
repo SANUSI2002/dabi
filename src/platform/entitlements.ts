@@ -74,7 +74,7 @@ export const MODULES: ModuleDef[] = [
   { key: "workforce.assets", product: "workforce", label: "Company Assets", description: "Asset register, allocations",
     routes: ["/hr/assets"] },
   { key: "workforce.reports", product: "workforce", label: "Workforce Reports", core: true, description: "HR analytics and time reports",
-    routes: ["/hr/reports", "/workforce/reports", "/hr/approvals"] },
+    routes: ["/hr/reports", "/workforce/reports"] },
 
   // ---------- Accounting ----------
   { key: "accounting.gl", product: "accounting", label: "General Ledger", core: true, description: "Chart of accounts, journals, trial balance, period control",

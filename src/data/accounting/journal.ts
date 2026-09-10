@@ -54,7 +54,7 @@ export type JournalEntry = {
   postedAt?: string;
   reversedByEntryId?: string; // set on the original when a reversing entry is booked
   reversesEntryId?: string; // set on the reversing entry, points back to the original
-  approvalRef?: string; // useApprovals reference when the entry needed sign-off
+  approvalRef?: string; // workflow instance reference when the entry needed sign-off
 };
 
 const line = (accountNumber: number, debit: number, credit: number, description?: string): JournalLine => ({
