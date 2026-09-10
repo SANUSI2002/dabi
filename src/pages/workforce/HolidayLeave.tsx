@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { CalendarOff, Plus, Palmtree } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard, statusTone } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
@@ -7,6 +7,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Grid, Textarea, Checkbox } from "@/components/ui/form";
 import { useWorkforce } from "@/store/useWorkforce";
 import { useHr } from "@/store/useHr";
+import { useMasterData } from "@/platform/useMasterData";
 import { shortDate } from "@/lib/format";
 import { differenceInCalendarDays } from "date-fns";
 
@@ -14,11 +15,13 @@ export default function HolidayLeave() {
   const { holidays, leave, holidayWork, addHoliday, requestLeave, setLeaveStatus, setHolidayWorkStatus } = useWorkforce();
   const staff = useHr((s) => s.staff);
   const name = (id: string) => staff.find((s) => s.id === id)?.name ?? id;
+  const masterData = useMasterData((s) => s.data);
+  const leaveTypes = useMemo(() => (masterData["leave-types"] ?? []).filter((i) => i.active), [masterData]);
 
   const [hOpen, setHOpen] = useState(false);
   const [lOpen, setLOpen] = useState(false);
   const [hf, setHf] = useState({ name: "", date: "", scope: "Organisation" as const, scopeValue: "All facilities", paid: true, workRequiresApproval: true });
-  const [lf, setLf] = useState({ staffId: staff[0]?.id ?? "", type: "Annual" as const, from: "", to: "", paid: true, note: "" });
+  const [lf, setLf] = useState({ staffId: staff[0]?.id ?? "", type: "Annual Leave", from: "", to: "", paid: true, note: "" });
 
   const pendingLeave = leave.filter((l) => l.status === "Pending");
   const onLeaveNow = leave.filter((l) => {
@@ -154,7 +157,15 @@ export default function HolidayLeave() {
         <div className="space-y-4">
           <Grid cols={2}>
             <Field label="Employee"><Select value={lf.staffId} onChange={(e) => setLf({ ...lf, staffId: e.target.value })} options={staff.map((s) => ({ value: s.id, label: s.name }))} /></Field>
-            <Field label="Leave type"><Select value={lf.type} onChange={(e) => setLf({ ...lf, type: e.target.value as never })} options={["Annual", "Sick", "Maternity", "Compassionate", "Study", "Unpaid"]} /></Field>
+            <Field label="Leave type"><Select
+              value={lf.type}
+              onChange={(e) => {
+                const it = leaveTypes.find((t) => t.label === e.target.value);
+                const paid = it?.meta?.paid;
+                setLf({ ...lf, type: e.target.value, paid: typeof paid === "boolean" ? paid : lf.paid });
+              }}
+              options={leaveTypes.length ? leaveTypes.map((t) => t.label) : ["Annual Leave", "Sick Leave"]}
+            /></Field>
             <Field label="From"><Input type="date" value={lf.from} onChange={(e) => setLf({ ...lf, from: e.target.value })} /></Field>
             <Field label="To"><Input type="date" value={lf.to} onChange={(e) => setLf({ ...lf, to: e.target.value })} /></Field>
           </Grid>

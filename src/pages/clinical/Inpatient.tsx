@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { BedDouble, Plus, Crown, Pencil, PowerOff, Power } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
@@ -8,6 +8,7 @@ import { Field, Input, Select, Textarea, Checkbox } from "@/components/ui/form";
 import { PatientPicker } from "@/components/ui/PatientPicker";
 import { useEmr } from "@/store/useEmr";
 import { useWards } from "@/store/useWards";
+import { useMasterData } from "@/platform/useMasterData";
 import { dateTime } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
@@ -18,6 +19,11 @@ export default function Inpatient() {
   const [f, setF] = useState({ patientId: "", ward: wards[1]?.name ?? "", bed: "", diagnosis: "" });
   const active = admissions.filter((a) => a.status === "Active");
   const activeBeds = beds.filter((b) => b.active);
+  const masterData = useMasterData((s) => s.data);
+  const wardTypeOptions = useMemo(() => {
+    const items = (masterData["ward-types"] ?? []).filter((i) => i.active).map((i) => i.label);
+    return items.length ? items : ["General Ward", "Maternity Ward"];
+  }, [masterData]);
 
   const [wardModal, setWardModal] = useState<{ id: string; name: string; type: string } | null>(null);
   const [bedForWard, setBedForWard] = useState<string | null>(null);
@@ -70,7 +76,7 @@ export default function Inpatient() {
           ) : t === "Ward Overview" ? (
             <div className="space-y-4">
               <div className="flex justify-end">
-                <Button variant="soft" onClick={() => setWardModal({ id: "", name: "", type: "General" })}><Plus size={14} /> Add ward</Button>
+                <Button variant="soft" onClick={() => setWardModal({ id: "", name: "", type: wardTypeOptions[0] })}><Plus size={14} /> Add ward</Button>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 {wards.map((w) => {
@@ -199,7 +205,7 @@ export default function Inpatient() {
       >
         <div className="space-y-4">
           <Field label="Ward name"><Input value={wardModal?.name ?? ""} onChange={(e) => setWardModal((s) => (s ? { ...s, name: e.target.value } : s))} /></Field>
-          <Field label="Type"><Select value={wardModal?.type ?? "General"} onChange={(e) => setWardModal((s) => (s ? { ...s, type: e.target.value } : s))} options={["General", "Maternity", "Paediatric", "Isolation", "ICU", "VIP Suite"]} /></Field>
+          <Field label="Type"><Select value={wardModal?.type ?? wardTypeOptions[0]} onChange={(e) => setWardModal((s) => (s ? { ...s, type: e.target.value } : s))} options={wardTypeOptions} /></Field>
         </div>
       </Modal>
 

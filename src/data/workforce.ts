@@ -239,7 +239,8 @@ export type Holiday = {
 export type LeaveRequest = {
   id: string;
   staffId: string;
-  type: "Annual" | "Sick" | "Maternity" | "Compassionate" | "Study" | "Unpaid";
+  /** master-data "leave-types" label (configurable) */
+  type: string;
   from: string;
   to: string;
   days: number;
