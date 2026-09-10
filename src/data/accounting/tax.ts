@@ -45,6 +45,7 @@ export const seedTaxRates: TaxRate[] = [
   { id: "tax-vat-zero", name: "Zero-rated", kind: "Zero-rated", rate: 0, accountNumber: 2200, isCompound: false, isActive: true },
   { id: "tax-wht-5", name: "WHT 5%", kind: "WHT", rate: 5, accountNumber: 2210, isCompound: false, isActive: true, description: "Withholding tax — goods/rent" },
   { id: "tax-wht-10", name: "WHT 10%", kind: "WHT", rate: 10, accountNumber: 2210, isCompound: false, isActive: true, description: "Withholding tax — professional services" },
+  { id: "tax-levy-1", name: "NHIS Levy 1%", kind: "VAT", rate: 1, accountNumber: 2220, isCompound: false, isActive: true, description: "Statutory health levy on non-exempt services — stacks on top of VAT" },
 ];
 
 export const DEFAULT_SALES_TAX = "tax-vat-exempt"; // hospital services are largely exempt

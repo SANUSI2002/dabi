@@ -32,8 +32,17 @@ const monthsAdd = (iso: string, m: number) => { const d = new Date(iso); return 
 
 const lineAmt = (l: PurchaseLine) => round2(l.qty * l.unitPrice);
 export const purchaseSubtotal = (lines: PurchaseLine[]) => round2(lines.reduce((n, l) => n + lineAmt(l), 0));
-export const purchaseTax = (lines: PurchaseLine[]) => round2(lines.reduce((n, l) => n + useTax.getState().taxOn(lineAmt(l), l.taxRateId), 0));
+export const purchaseTax = (lines: PurchaseLine[]) => round2(lines.reduce((n, l) => n + useTax.getState().taxTotal(lineAmt(l), useTax.getState().taxIdsOf(l)), 0));
 export const purchaseTotal = (lines: PurchaseLine[]) => round2(purchaseSubtotal(lines) + purchaseTax(lines));
+export const purchaseTaxBreakdown = (lines: PurchaseLine[]) => {
+  const t = useTax.getState();
+  const groups = new Map<number, { amount: number; label: string }>();
+  for (const l of lines) for (const b of t.taxBreakdown(lineAmt(l), t.taxIdsOf(l))) {
+    const cur = groups.get(b.accountNumber) ?? { amount: 0, label: b.label };
+    groups.set(b.accountNumber, { amount: round2(cur.amount + b.amount), label: b.label });
+  }
+  return [...groups.entries()].map(([accountNumber, v]) => ({ accountNumber, amount: v.amount, label: v.label }));
+};
 
 export const fxOfBill = (b: Pick<Bill, "exchangeRate">) => b.exchangeRate || 1;
 export const billBalanceNgn = (b: Bill) => round2((purchaseTotal(b.lines) - b.amountPaid) * fxOfBill(b));
@@ -46,7 +55,7 @@ function postBillJE(bill: Bill, vendor: Vendor) {
   const lines = [
     ...bill.lines.map((l) => ({ accountNumber: l.accountNumber, debit: round2(lineAmt(l) * rate), credit: 0, description: l.description, vendorId: vendor.id, projectId: bill.projectId })),
   ] as { accountNumber: number; debit: number; credit: number; description?: string; vendorId?: string; projectId?: string }[];
-  if (tax > 0) lines.push({ accountNumber: ACCT.vatPayable, debit: tax, credit: 0, description: `Recoverable input VAT — ${bill.number}`, vendorId: vendor.id });
+  for (const b of purchaseTaxBreakdown(bill.lines)) if (b.amount > 0) lines.push({ accountNumber: b.accountNumber, debit: round2(b.amount * rate), credit: 0, description: `Recoverable input ${b.label} — ${bill.number}`, vendorId: vendor.id });
   lines.push({ accountNumber: vendor.apAccountNumber, debit: 0, credit: total, description: `${bill.number} — ${vendor.name}${suffix}`, vendorId: vendor.id });
   return useLedger.getState().postJournal({ date: bill.date, source: "Bill", memo: `Bill ${bill.number} — ${vendor.name}`, reference: bill.number, lines });
 }
@@ -84,7 +93,7 @@ function postVendorCreditJE(vc: VendorCredit, vendor: Vendor) {
     { accountNumber: vendor.apAccountNumber, debit: total, credit: 0, description: `${vc.number} — ${vendor.name}`, vendorId: vendor.id },
     ...vc.lines.map((l) => ({ accountNumber: l.accountNumber, debit: 0, credit: lineAmt(l), description: l.description, vendorId: vendor.id })),
   ];
-  if (tax > 0) lines.push({ accountNumber: ACCT.vatPayable, debit: 0, credit: tax, description: `Input VAT reversed — ${vc.number}`, vendorId: vendor.id });
+  for (const b of purchaseTaxBreakdown(vc.lines)) if (b.amount > 0) lines.push({ accountNumber: b.accountNumber, debit: 0, credit: b.amount, description: `Input ${b.label} reversed — ${vc.number}`, vendorId: vendor.id });
   return useLedger.getState().postJournal({ date: vc.date, source: "Vendor Credit", memo: `Vendor credit ${vc.number} — ${vendor.name}`, reference: vc.number, lines });
 }
 
@@ -146,6 +155,8 @@ type APState = {
   billBalance: (b: Bill) => number;
   vendorBalance: (vendorId: string) => number;
   apAgingFor: (asOf: string) => { vendor: Vendor; current: number; d1_30: number; d31_60: number; d61_90: number; d90plus: number; total: number }[];
+  /** B30 — withholding-tax certificates derived from payments that withheld tax */
+  whtCertificates: () => { payment: VendorPayment; vendor?: Vendor; grossPaid: number; withheld: number; rate: number; certNumber: string }[];
 };
 
 export const useAP = create<APState>((set, get) => {
@@ -489,6 +500,22 @@ export const useAP = create<APState>((set, get) => {
       if (created.length) audit(`generated ${created.length} recurring bill(s)`, "accounting/bills/recurring");
       return { created };
     },
+
+    whtCertificates: () =>
+      get().vendorPayments
+        .filter((p) => (p.withheldTax ?? 0) > 0)
+        .map((payment) => {
+          const grossPaid = round2(payment.amount + (payment.withheldTax ?? 0));
+          const withheld = round2(payment.withheldTax ?? 0);
+          return {
+            payment,
+            vendor: get().vendorById(payment.vendorId),
+            grossPaid,
+            withheld,
+            rate: grossPaid > 0 ? round2((withheld / grossPaid) * 100) : 0,
+            certNumber: `WHT/${new Date(payment.date).getUTCFullYear()}/${payment.number.replace(/\D/g, "").slice(-6)}`,
+          };
+        }),
 
     billsOf: (vendorId) => get().bills.filter((b) => b.vendorId === vendorId),
     openBillsOf: (vendorId) => get().bills.filter((b) => b.vendorId === vendorId && (b.status === "Awaiting Payment" || b.status === "Partially Paid" || b.status === "Overdue")),

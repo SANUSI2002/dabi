@@ -20,6 +20,10 @@ type TaxState = {
 
   rateById: (id?: string) => TaxRate | undefined;
   taxOn: (amount: number, rateId?: string) => number;
+  /** B29 — one or more taxes stacked on a net amount, grouped by the liability account */
+  taxIdsOf: (line: { taxRateId?: string; taxRateIds?: string[] }) => string[];
+  taxBreakdown: (net: number, ids: string[]) => { accountNumber: number; amount: number; label: string }[];
+  taxTotal: (net: number, ids: string[]) => number;
 
   addRate: (r: Omit<TaxRate, "id" | "isActive">) => void;
   updateRate: (id: string, patch: Partial<TaxRate>) => void;
@@ -36,6 +40,19 @@ export const useTax = create<TaxState>((set, get) => ({
   returns: seedTaxReturns,
 
   rateById: (id) => get().rates.find((r) => r.id === id),
+  taxIdsOf: (line) => (line.taxRateIds && line.taxRateIds.length ? line.taxRateIds : line.taxRateId ? [line.taxRateId] : []),
+  taxBreakdown: (net, ids) => {
+    const groups = new Map<number, { amount: number; label: string }>();
+    for (const id of ids) {
+      const r = get().rateById(id);
+      if (!r || r.rate <= 0) continue;
+      const amt = round2((net * r.rate) / 100);
+      const cur = groups.get(r.accountNumber) ?? { amount: 0, label: r.name };
+      groups.set(r.accountNumber, { amount: round2(cur.amount + amt), label: cur.label === r.name ? r.name : `${cur.label} + ${r.name}` });
+    }
+    return [...groups.entries()].map(([accountNumber, v]) => ({ accountNumber, amount: v.amount, label: v.label }));
+  },
+  taxTotal: (net, ids) => round2(get().taxBreakdown(net, ids).reduce((n, b) => n + b.amount, 0)),
   taxOn: (amount, rateId) => {
     const r = get().rateById(rateId);
     return r ? round2((amount * r.rate) / 100) : 0;

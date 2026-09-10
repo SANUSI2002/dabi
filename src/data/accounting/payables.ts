@@ -32,6 +32,7 @@ export type PurchaseLine = {
   qty: number;
   unitPrice: number;
   taxRateId?: string;
+  taxRateIds?: string[]; // B29 — stacked input taxes
 };
 
 export type PRStatus = "Draft" | "Pending Approval" | "Approved" | "Rejected" | "Ordered" | "Cancelled";

@@ -5,7 +5,7 @@
 // and books the gain or loss.
 
 export type DepreciationMethod = "Straight Line" | "Reducing Balance";
-export type AssetStatus = "Active" | "Fully Depreciated" | "Disposed";
+export type AssetStatus = "Active" | "Fully Depreciated" | "Disposed" | "Under Construction" | "Impaired";
 
 export type FixedAsset = {
   id: string;
@@ -25,7 +25,23 @@ export type FixedAsset = {
   disposalDate?: string;
   disposalProceeds?: number;
   lastDepreciatedPeriod?: string; // YYYY-MM
+  revaluationReserve?: number; // B28 — cumulative upward revaluation held in equity
+  impairmentLoss?: number; // B28 — cumulative impairment charged to P&L
+  cwipSpend?: number; // B28 — costs accumulated while Under Construction
   createdAt: string;
+};
+
+export type AssetRevaluation = {
+  id: string;
+  assetId: string;
+  date: string;
+  kind: "Revaluation" | "Impairment" | "Reversal";
+  carryingBefore: number;
+  carryingAfter: number;
+  delta: number; // + up, - down
+  note?: string;
+  journalEntryId?: string;
+  by: string;
 };
 
 export type DepreciationRunEntry = { assetId: string; amount: number; nbvBefore: number; nbvAfter: number };
@@ -54,3 +70,4 @@ export const seedFixedAssets: FixedAsset[] = [
 ];
 
 export const seedDepreciationRuns: DepreciationRun[] = [];
+export const seedAssetRevaluations: AssetRevaluation[] = [];

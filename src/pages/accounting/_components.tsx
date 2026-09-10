@@ -22,9 +22,16 @@ export function LineEditor({
 }) {
   const accounts = useLedger((s) => s.accounts).filter((a) => a.isActive && accountFilter(a.number));
   const rates = useTax((s) => s.rates).filter((r) => r.isActive);
-  const taxOn = useTax((s) => s.taxOn);
+  const taxTotal = useTax((s) => s.taxTotal);
+  const taxIdsOf = useTax((s) => s.taxIdsOf);
 
   const set = (i: number, patch: Partial<EditableLine>) => onChange(lines.map((l, j) => (j === i ? { ...l, ...patch } : l)));
+  const idsOf = (l: EditableLine) => taxIdsOf(l);
+  const setTaxAt = (l: EditableLine, slot: 0 | 1, id: string) => {
+    const ids = idsOf(l);
+    const next = slot === 0 ? [id, ids[1]] : [ids[0], id];
+    return { taxRateId: undefined, taxRateIds: next.filter(Boolean) as string[] };
+  };
 
   return (
     <div>
@@ -41,8 +48,9 @@ export function LineEditor({
       <div className="space-y-2">
         {lines.map((l, i) => {
           const amount = round2(l.qty * l.unitPrice);
+          const ids = idsOf(l);
           return (
-            <div key={i} className="grid grid-cols-[1.4fr_1fr_60px_90px_110px_100px_24px] items-center gap-1.5 text-sm">
+            <div key={i} className="grid grid-cols-[1.3fr_1fr_54px_84px_96px_96px_96px_24px] items-center gap-1.5 text-sm">
               <Select
                 value={String(l.accountNumber || "")}
                 onChange={(e) => set(i, { accountNumber: Number(e.target.value) })}
@@ -51,8 +59,9 @@ export function LineEditor({
               <Input placeholder="Description" value={l.description} onChange={(e) => set(i, { description: e.target.value })} />
               <Input type="number" placeholder="Qty" value={l.qty || ""} onChange={(e) => set(i, { qty: +e.target.value })} className="text-center" />
               <Input type="number" placeholder="Unit price" value={l.unitPrice || ""} onChange={(e) => set(i, { unitPrice: +e.target.value })} />
-              <Select value={l.taxRateId ?? ""} onChange={(e) => set(i, { taxRateId: e.target.value || undefined })} options={[{ value: "", label: "No tax" }, ...rates.map((r) => ({ value: r.id, label: r.name }))]} />
-              <span className="text-right text-mist-600">{money(amount + taxOn(amount, l.taxRateId))}</span>
+              <Select value={ids[0] ?? ""} onChange={(e) => set(i, setTaxAt(l, 0, e.target.value))} options={[{ value: "", label: "No tax" }, ...rates.map((r) => ({ value: r.id, label: r.name }))]} />
+              <Select value={ids[1] ?? ""} onChange={(e) => set(i, setTaxAt(l, 1, e.target.value))} options={[{ value: "", label: "+ tax" }, ...rates.map((r) => ({ value: r.id, label: r.name }))]} />
+              <span className="text-right text-mist-600">{money(amount + taxTotal(amount, ids))}</span>
               <button type="button" className="text-action-500 hover:text-action-700" onClick={() => onChange(lines.filter((_, j) => j !== i))}><Trash2 size={14} /></button>
             </div>
           );

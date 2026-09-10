@@ -42,7 +42,17 @@ const ym = (iso: string) => { const d = new Date(iso); return `${d.getUTCFullYea
 
 const lineAmount = (l: SalesLine) => round2(l.qty * l.unitPrice);
 export const docSubtotal = (lines: SalesLine[]) => round2(lines.reduce((n, l) => n + lineAmount(l), 0));
-export const docTax = (lines: SalesLine[]) => round2(lines.reduce((n, l) => n + useTax.getState().taxOn(lineAmount(l), l.taxRateId), 0));
+export const docTax = (lines: SalesLine[]) => round2(lines.reduce((n, l) => n + useTax.getState().taxTotal(lineAmount(l), useTax.getState().taxIdsOf(l)), 0));
+/** stacked-tax breakdown for a whole document, grouped by tax account */
+export const docTaxBreakdown = (lines: SalesLine[]) => {
+  const t = useTax.getState();
+  const groups = new Map<number, { amount: number; label: string }>();
+  for (const l of lines) for (const b of t.taxBreakdown(lineAmount(l), t.taxIdsOf(l))) {
+    const cur = groups.get(b.accountNumber) ?? { amount: 0, label: b.label };
+    groups.set(b.accountNumber, { amount: round2(cur.amount + b.amount), label: b.label });
+  }
+  return [...groups.entries()].map(([accountNumber, v]) => ({ accountNumber, amount: v.amount, label: v.label }));
+};
 export const docTotal = (lines: SalesLine[]) => round2(docSubtotal(lines) + docTax(lines));
 
 /** the FX rate a document was booked at; NGN documents are 1:1 */
@@ -68,7 +78,10 @@ function postInvoiceJE(inv: Invoice, cust: Customer, schedule?: RevenueSchedule)
   } else {
     for (const l of inv.lines) lines.push({ accountNumber: l.accountNumber, debit: 0, credit: round2(lineAmount(l) * rate), description: l.description, customerId: cust.id, projectId: pj });
   }
-  if (tax > 0) lines.push({ accountNumber: ACCT.vatPayable, debit: 0, credit: tax, description: `Output VAT — ${inv.number}`, customerId: cust.id });
+  for (const b of docTaxBreakdown(inv.lines)) {
+    if (b.amount <= 0) continue;
+    lines.push({ accountNumber: b.accountNumber, debit: 0, credit: round2(b.amount * rate), description: `Output ${b.label} — ${inv.number}`, customerId: cust.id });
+  }
   return led.postJournal({ date: inv.date, source: "Invoice", memo: `Invoice ${inv.number} — ${cust.name}`, reference: inv.number, lines });
 }
 
@@ -109,7 +122,7 @@ function postSalesReceiptJE(sr: SalesReceipt, who: string) {
     { accountNumber: sr.depositAccountNumber, debit: total, credit: 0, description: `${sr.method} — ${who}` },
     ...sr.lines.map((l) => ({ accountNumber: l.accountNumber, debit: 0, credit: lineAmount(l), description: l.description })),
   ];
-  if (tax > 0) lines.push({ accountNumber: ACCT.vatPayable, debit: 0, credit: tax, description: `Output VAT — ${sr.number}` });
+  for (const b of docTaxBreakdown(sr.lines)) if (b.amount > 0) lines.push({ accountNumber: b.accountNumber, debit: 0, credit: b.amount, description: `Output ${b.label} — ${sr.number}` });
   return useLedger.getState().postJournal({ date: sr.date, source: "Sales Receipt", memo: `Sales receipt ${sr.number} — ${who}`, reference: sr.number, lines });
 }
 
@@ -119,7 +132,7 @@ function postRefundReceiptJE(rr: RefundReceipt, cust: Customer) {
   const lines: { accountNumber: number; debit: number; credit: number; description?: string; customerId?: string }[] = [
     ...rr.lines.map((l) => ({ accountNumber: l.accountNumber, debit: lineAmount(l), credit: 0, description: l.description, customerId: cust.id })),
   ];
-  if (tax > 0) lines.push({ accountNumber: ACCT.vatPayable, debit: tax, credit: 0, description: `VAT reversed — ${rr.number}`, customerId: cust.id });
+  for (const b of docTaxBreakdown(rr.lines)) if (b.amount > 0) lines.push({ accountNumber: b.accountNumber, debit: b.amount, credit: 0, description: `${b.label} reversed — ${rr.number}`, customerId: cust.id });
   lines.push({ accountNumber: rr.fromAccountNumber, debit: 0, credit: total, description: `Refund to ${cust.name}` });
   return useLedger.getState().postJournal({ date: rr.date, source: "Refund Receipt", memo: `Refund ${rr.number} — ${cust.name}`, reference: rr.number, lines });
 }
@@ -131,7 +144,7 @@ function postCreditNoteJE(cn: CreditNote, cust: Customer) {
   const lines = [
     ...cn.lines.map((l) => ({ accountNumber: l.accountNumber, debit: lineAmount(l), credit: 0, description: l.description, customerId: cust.id })),
   ];
-  if (tax > 0) lines.push({ accountNumber: ACCT.vatPayable, debit: tax, credit: 0, description: `VAT adjustment — ${cn.number}`, customerId: cust.id });
+  for (const b of docTaxBreakdown(cn.lines)) if (b.amount > 0) lines.push({ accountNumber: b.accountNumber, debit: b.amount, credit: 0, description: `${b.label} adjustment — ${cn.number}`, customerId: cust.id });
   lines.push({ accountNumber: cust.arAccountNumber, debit: 0, credit: total, description: `${cn.number} — ${cust.name}`, customerId: cust.id });
   return led.postJournal({ date: cn.date, source: "Credit Note", memo: `Credit note ${cn.number} — ${cust.name}`, reference: cn.number, lines });
 }

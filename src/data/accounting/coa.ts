@@ -79,6 +79,7 @@ const SEED: Seed[] = [
   [1400, "Staff Advances & Loans Receivable", "asset", "current_asset", 0],
   [1500, "Property, Plant & Equipment", "asset", "fixed_asset", 22_000_000],
   [1510, "Medical Equipment", "asset", "fixed_asset", 9_500_000],
+  [1580, "Assets Under Construction", "asset", "fixed_asset", 0],
   [1590, "Accumulated Depreciation", "asset", "contra_asset", 3_100_000],
 
   // ---- Liabilities 2000–2999 ----
@@ -89,6 +90,7 @@ const SEED: Seed[] = [
   [2150, "Intercompany Payable", "liability", "current_liability", 0],
   [2200, "VAT Payable", "liability", "tax_payable", 0],
   [2210, "Withholding Tax Payable", "liability", "tax_payable", 0],
+  [2220, "Health Levy Payable", "liability", "tax_payable", 0],
   [2300, "PAYE Payable", "liability", "tax_payable", 420_000],
   [2310, "Pension Payable", "liability", "tax_payable", 180_000],
   [2320, "NHF Payable", "liability", "tax_payable", 0],
@@ -99,6 +101,7 @@ const SEED: Seed[] = [
   [3000, "Owner's Capital", "equity", "equity", 35_200_000],
   [3100, "Drawings", "equity", "equity", 0],
   [3200, "Retained Earnings", "equity", "retained_earnings", 0],
+  [3300, "Revaluation Reserve", "equity", "equity", 0],
   [3900, "Opening Balance Equity", "equity", "equity", 0],
 
   // ---- Revenue 4000–4999 ----
@@ -130,6 +133,7 @@ const SEED: Seed[] = [
   [5310, "Telephone & Internet", "expense", "operating_expense", 0],
   [5400, "Professional Fees", "expense", "operating_expense", 0],
   [5500, "Depreciation Expense", "expense", "depreciation_expense", 0],
+  [5520, "Impairment Loss", "expense", "other_expense", 0],
   [5600, "Bank Charges", "expense", "other_expense", 0],
   [5610, "Foreign Exchange Loss", "expense", "other_expense", 0],
   [5700, "Bad Debt Expense", "expense", "other_expense", 0],
@@ -170,7 +174,10 @@ export const ACCT = {
   staffAdvances: 1400,
   ppe: 1500,
   medicalEquipment: 1510,
+  assetsUnderConstruction: 1580,
   accumDepreciation: 1590,
+  revaluationReserve: 3300,
+  impairmentLoss: 5520,
   apTrade: 2000,
   accruals: 2100,
   reimbursementsPayable: 2110,

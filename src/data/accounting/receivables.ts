@@ -32,7 +32,8 @@ export type SalesLine = {
   description: string;
   qty: number;
   unitPrice: number;
-  taxRateId?: string;
+  taxRateId?: string; // single tax (legacy)
+  taxRateIds?: string[]; // B29 — stacked taxes (VAT + levy etc.)
 };
 
 export type SalesDocStatus =
