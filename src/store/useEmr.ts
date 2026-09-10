@@ -65,7 +65,8 @@ type EmrState = {
   addToQueue: (patientId: string, station: Station, priority: QueueEntry["priority"], complaint?: string) => void;
   advanceQueue: (id: string, status: QueueEntry["status"], station?: Station) => void;
 
-  saveEncounter: (e: Omit<Encounter, "id" | "date">) => void;
+  saveEncounter: (e: Omit<Encounter, "id" | "date">) => string;
+  amendEncounter: (id: string, patch: Partial<Pick<Encounter, "examination" | "assessment" | "plan" | "followUp" | "patientInstructions">>, note: string) => void;
   addLabOrders: (patientId: string, tests: { test: string; category: string }[], orderedBy?: string) => void;
   collectSample: (id: string, sampleType: string) => void;
   startProcessing: (id: string) => void;
@@ -178,9 +179,36 @@ export const useEmr = create<EmrState>((set, get) => ({
 
   saveEncounter: (e) => {
     const patient = get().patients.find((p) => p.id === e.patientId);
-    audit("created encounter", `encounter/${patient?.mrn ?? e.patientId}`);
+    const id = rid();
+    const status = e.status ?? "signed";
+    const nowIso = new Date().toISOString();
+    audit(status === "signed" ? "signed encounter note" : "saved encounter note (unsigned)", `encounter/${patient?.mrn ?? e.patientId}`);
     set((s) => ({
-      encounters: [{ ...e, id: rid(), date: new Date().toISOString() }, ...s.encounters],
+      encounters: [
+        {
+          ...e,
+          id,
+          date: nowIso,
+          status,
+          signedBy: status === "signed" ? e.provider : undefined,
+          signedAt: status === "signed" ? nowIso : undefined,
+        },
+        ...s.encounters,
+      ],
+    }));
+    return id;
+  },
+
+  amendEncounter: (id, patch, note) => {
+    const who = useIdentity.getState().user.name;
+    const encounter = get().encounters.find((e) => e.id === id);
+    audit("amended encounter note", `encounter/${encounter?.patientId ?? id}`, { user: who });
+    set((s) => ({
+      encounters: s.encounters.map((e) =>
+        e.id === id
+          ? { ...e, ...patch, status: "amended", amendedBy: who, amendedAt: new Date().toISOString(), amendmentNote: note }
+          : e,
+      ),
     }));
   },
 

@@ -89,6 +89,8 @@ export type LabOrder = {
   revisionNote?: string;
 };
 
+export type EncounterStatus = "in-progress" | "signed" | "amended" | "cancelled";
+
 export type Encounter = {
   id: string;
   patientId: string;
@@ -102,6 +104,20 @@ export type Encounter = {
   prescriptions: Prescription[];
   labs: string[];
   station: Station;
+  // document lifecycle — older mock records have no status and are treated as signed
+  status?: EncounterStatus;
+  signedBy?: string;
+  signedAt?: string;
+  amendedBy?: string;
+  amendedAt?: string;
+  amendmentNote?: string;
+  visitType?: string;
+  followUp?: string;
+  patientInstructions?: string;
+  /** NHMIS reporting indicators ticked during the encounter */
+  nhmisIndicators?: string[];
+  /** template the note was started from */
+  templateKey?: string;
 };
 
 export type Admission = {
