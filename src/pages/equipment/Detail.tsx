@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Wrench, RotateCcw, TriangleAlert, Plus, Trash2, Gauge } from "lucide-react";
+import { ArrowLeft, Wrench, RotateCcw, TriangleAlert, Plus, Trash2, Gauge, UserRound, Clock3 } from "lucide-react";
 import { PageHeader, Card, Button, Badge, EmptyState } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell, EmptyRow } from "@/components/ui/Table";
@@ -11,6 +11,7 @@ import { useEquipment, maintenanceStateFor, calibrationStateFor, safetyStateFor 
 import { useEquipmentEvents } from "@/store/useEquipmentEvents";
 import { useEquipmentMaintenance } from "@/store/useEquipmentMaintenance";
 import { useEquipmentCalibration } from "@/store/useEquipmentCalibration";
+import { useEquipmentUsage } from "@/store/useEquipmentUsage";
 import { startEquipmentSimulator, triggerScenario, type SimulatorScenario } from "@/lib/equipmentSimulator";
 import { TELEMETRY_PARAMS } from "@/data/equipmentTelemetry";
 import type { WorkOrder, WorkOrderSeverity } from "@/data/equipmentMaintenance";
@@ -30,6 +31,7 @@ export default function EquipmentDetail() {
   const events = useEquipmentEvents();
   const maint = useEquipmentMaintenance();
   const cal = useEquipmentCalibration();
+  const usage = useEquipmentUsage();
   const [resolveId, setResolveId] = useState<string | null>(null);
   const [resolution, setResolution] = useState("");
 
@@ -73,6 +75,8 @@ export default function EquipmentDetail() {
   const alarms = events.alarmsFor(eq.id);
   const workOrders = maint.workOrdersFor(eq.id);
   const calRecords = cal.recordsFor(eq.id);
+  const currentSession = usage.currentSessionFor(eq.id);
+  const usageSessions = usage.sessionsFor(eq.id);
 
   function partFormFor(woId: string) {
     return partForm[woId] ?? { name: "", qty: "1", cost: "0" };
@@ -97,7 +101,7 @@ export default function EquipmentDetail() {
         {eq.compliance.calibrationRequired && <MaintenanceStateBadge state={calibration} />}
       </div>
 
-      <Tabs tabs={["Overview", "Live", "Telemetry", `Timeline (${timeline.length})`, `Alarms (${alarms.length})`, `Maintenance (${workOrders.length})`, `Calibration (${calRecords.length})`]}>
+      <Tabs tabs={["Overview", "Live", "Telemetry", `Usage (${usageSessions.length})`, `Timeline (${timeline.length})`, `Alarms (${alarms.length})`, `Maintenance (${workOrders.length})`, `Calibration (${calRecords.length})`]}>
         {(tab) =>
           tab === "Overview" ? (
             <div className="grid gap-4 md:grid-cols-2">
@@ -130,6 +134,21 @@ export default function EquipmentDetail() {
             </div>
           ) : tab === "Live" ? (
             <div className="space-y-4">
+              <Card className={currentSession ? "ring-1 ring-brand-200 bg-brand-50/40" : ""}>
+                <h3 className="mb-2 flex items-center gap-2 font-display font-bold text-mist-900"><UserRound size={16} /> Current Activity</h3>
+                {currentSession ? (
+                  <div className="text-sm">
+                    <p className="font-semibold text-mist-900">In use — {currentSession.operator}</p>
+                    <p className="mt-0.5 text-mist-600">
+                      {currentSession.testName ?? "Task in progress"}
+                      {currentSession.patientName ? ` for ${currentSession.patientName}` : ""}
+                    </p>
+                    <p className="mt-1 flex items-center gap-1 text-xs text-mist-400"><Clock3 size={11} aria-hidden /> Started {timeAgo(currentSession.startedAt)}</p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-mist-400">No active test or task on this equipment right now.</p>
+                )}
+              </Card>
               <Card>
                 <h3 className="mb-3 font-display font-bold text-mist-900">Connectivity</h3>
                 <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
@@ -187,6 +206,30 @@ export default function EquipmentDetail() {
                 })}
               </div>
             )
+          ) : tab.startsWith("Usage") ? (
+            <div>
+              <p className="mb-3 text-xs text-mist-400">
+                Who has used this equipment, for what, and when — derived from the real lab order each session is tied to, not a separate log.
+              </p>
+              <Table columns={["Operator", "Patient", "Test / Task", "Started", "Duration", "Outcome"]} caption="Equipment usage sessions">
+                {usageSessions.length === 0 && <EmptyRow colSpan={6}>No usage sessions recorded yet.</EmptyRow>}
+                {usageSessions.map((session, i) => {
+                  const durationMin = session.endedAt
+                    ? Math.round((new Date(session.endedAt).getTime() - new Date(session.startedAt).getTime()) / 60000)
+                    : null;
+                  return (
+                    <Row key={session.id} index={i}>
+                      <Cell className="font-semibold">{session.operator}</Cell>
+                      <Cell>{session.patientName ?? "—"}</Cell>
+                      <Cell>{session.testName ?? "—"}</Cell>
+                      <Cell className="text-xs text-mist-500">{dateTime(session.startedAt)}</Cell>
+                      <Cell>{durationMin !== null ? `${durationMin < 1 ? "<1" : durationMin} min` : "In progress"}</Cell>
+                      <Cell>{session.outcome ? <Badge tone={session.outcome === "Completed" ? "brand" : "action"}>{session.outcome}</Badge> : <Badge tone="amber">Active</Badge>}</Cell>
+                    </Row>
+                  );
+                })}
+              </Table>
+            </div>
           ) : tab.startsWith("Timeline") ? (
             <Table columns={["Time", "Event", "Source", "Detail"]} caption="Equipment timeline">
               {timeline.length === 0 && <EmptyRow colSpan={4}>No events recorded yet.</EmptyRow>}

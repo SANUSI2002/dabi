@@ -1,11 +1,12 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Activity, Wifi, BellRing, WifiOff, Skull, ListChecks, Wrench } from "lucide-react";
+import { Activity, Wifi, BellRing, WifiOff, Skull, ListChecks, Wrench, UserRound } from "lucide-react";
 import { PageHeader, StatCard, Card, EmptyState } from "@/components/ui/primitives";
 import { Reveal } from "@/components/motion/Reveal";
 import { useEquipment, maintenanceStateFor, safetyStateFor } from "@/store/useEquipment";
 import { useEquipmentEvents } from "@/store/useEquipmentEvents";
 import { useEquipmentMaintenance } from "@/store/useEquipmentMaintenance";
+import { useEquipmentUsage } from "@/store/useEquipmentUsage";
 import { startEquipmentSimulator } from "@/lib/equipmentSimulator";
 import { MachineStateBadge, ConnectivityBadge, MaintenanceStateBadge, SafetyStateBadge, AlarmSeverityBadge } from "@/components/equipment/EquipmentStatusBadge";
 import { IntegrationBadge } from "@/components/equipment/IntegrationBadge";
@@ -15,6 +16,7 @@ export default function CommandCentre() {
   const store = useEquipment();
   const events = useEquipmentEvents();
   const maintStore = useEquipmentMaintenance();
+  const usage = useEquipmentUsage();
 
   useEffect(() => {
     startEquipmentSimulator();
@@ -26,7 +28,8 @@ export default function CommandCentre() {
     const maintenance = maintenanceStateFor(eq, maintStore.lastPreventiveCompletedAt(eq.id));
     const openAlarms = events.openAlarmsFor(eq.id);
     const safety = safetyStateFor(store.telemetryLatest[eq.id], openAlarms);
-    return { eq, machine, connectivity, maintenance, safety, openAlarms };
+    const activeSession = usage.currentSessionFor(eq.id);
+    return { eq, machine, connectivity, maintenance, safety, openAlarms, activeSession };
   });
 
   const online = rows.filter((r) => r.connectivity === "Online").length;
@@ -43,9 +46,10 @@ export default function CommandCentre() {
         actions={<Link to="/equipment-scada/register" className="btn-soft px-3 py-1.5 text-xs">Equipment Register →</Link>}
       />
 
-      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-6">
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-7">
         <StatCard label="Online" value={online} tone="brand" icon={<Wifi size={18} />} />
         <StatCard label="Running" value={running} tone="brand" delay={0.05} icon={<Activity size={18} />} />
+        <StatCard label="In Use" value={rows.filter((r) => r.activeSession).length} tone="brand" delay={0.08} icon={<UserRound size={18} />} />
         <StatCard label="Active Alarms" value={activeAlarms.length} tone={activeAlarms.length ? "amber" : "mist"} delay={0.1} icon={<BellRing size={18} />} />
         <StatCard label="Offline" value={offline} tone={offline ? "action" : "mist"} delay={0.15} icon={<WifiOff size={18} />} />
         <StatCard label="Critical" value={critical} tone={critical ? "action" : "brand"} delay={0.2} icon={<Skull size={18} />} />
@@ -56,7 +60,7 @@ export default function CommandCentre() {
         <Card>
           <h3 className="mb-3 font-display font-bold text-mist-900">Live Equipment Status</h3>
           <div className="space-y-2">
-            {rows.map(({ eq, machine, connectivity, maintenance, safety, openAlarms }, i) => (
+            {rows.map(({ eq, machine, connectivity, maintenance, safety, openAlarms, activeSession }, i) => (
               <Reveal key={eq.id} delay={i * 0.03}>
                 <Link
                   to={`/equipment-scada/register/${eq.id}`}
@@ -65,6 +69,12 @@ export default function CommandCentre() {
                   <div className="min-w-[180px]">
                     <p className="font-semibold text-mist-900">{eq.name}</p>
                     <p className="text-[11px] text-mist-400">{eq.equipmentId} · {eq.location.department}{eq.location.room ? ` · ${eq.location.room}` : ""}</p>
+                    {activeSession && (
+                      <p className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-brand-700">
+                        <UserRound size={11} aria-hidden /> In use — {activeSession.operator}{activeSession.testName ? ` · ${activeSession.testName}` : ""}
+                        {activeSession.patientName ? ` (${activeSession.patientName})` : ""}
+                      </p>
+                    )}
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
                     <MachineStateBadge state={machine} />

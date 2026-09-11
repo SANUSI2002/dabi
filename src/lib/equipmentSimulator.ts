@@ -6,6 +6,7 @@ import { useEquipment, maintenanceStateFor, calibrationStateFor } from "@/store/
 import { useEquipmentEvents } from "@/store/useEquipmentEvents";
 import { useEquipmentMaintenance } from "@/store/useEquipmentMaintenance";
 import { useEquipmentCalibration } from "@/store/useEquipmentCalibration";
+import { useEquipmentUsage } from "@/store/useEquipmentUsage";
 import { useEmr } from "@/store/useEmr";
 import { useLabConfig } from "@/store/useLabConfig";
 import { TELEMETRY_PARAMS, severityFor } from "@/data/equipmentTelemetry";
@@ -16,6 +17,12 @@ export type SimulatorScenario = "Normal" | "Device Error" | "Over-Threshold" | "
 const activeScenarios = new Map<string, SimulatorScenario>();
 let intervalHandle: ReturnType<typeof setInterval> | null = null;
 let started = false;
+
+// An analyzer run stays visibly "in use" for a couple of ticks (~10-15s) rather than starting
+// and finishing within one synchronous tick — otherwise the SCADA grid could never actually show
+// a machine mid-test, which defeats the point of surfacing who's using it.
+type PendingRun = { orderId: string; sessionId: string; ticksRemaining: number };
+const pendingRuns = new Map<string, PendingRun>();
 
 export function triggerScenario(equipmentId: string, scenario: SimulatorScenario) {
   activeScenarios.set(equipmentId, scenario);
@@ -144,32 +151,51 @@ function generateResultFields(fields: { id: string; label: string; unit?: string
 // it through the *actual* useEmr lab pipeline — startProcessing -> advancePhase -> submitLabResult
 // — so it lands in the real "Awaiting Approval" queue a lab scientist must sign off on, exactly
 // like a manually entered result. Nothing here bypasses verification or writes a parallel record.
-function runAnalyzerCycle(eq: EquipmentRecord) {
+//
+// The run is tied to a named operator — whoever actually collected the sample on the real order
+// (falling back to who ordered it) — so the SCADA grid can show, live, whose test is occupying
+// the machine, and the Usage tab keeps a traceable history of it afterward.
+function startAnalyzerRun(eq: EquipmentRecord) {
   const wantedCategory = ANALYZER_CATEGORY_MAP[eq.equipmentId];
-  if (!wantedCategory) return;
+  if (!wantedCategory || pendingRuns.has(eq.id)) return;
   const emr = useEmr.getState();
   const candidate = emr.labOrders.find((o) => o.category === wantedCategory && o.status === "Sample Collected");
   if (!candidate) return;
 
+  const operator = candidate.sampleCollectedBy ?? candidate.orderedBy;
+  const patient = emr.patientById(candidate.patientId);
+  const patientName = patient ? `${patient.firstName} ${patient.lastName}` : undefined;
   const correlationId = candidate.id;
+
   useEquipmentEvents.getState().logEvent({
-    equipmentId: eq.id, type: "TEST_STARTED", source: "SIMULATOR", detail: candidate.test,
+    equipmentId: eq.id, type: "TEST_STARTED", source: "SIMULATOR", actor: operator, detail: candidate.test,
     patientId: candidate.patientId, relatedOrderId: candidate.id, correlationId,
   });
-
+  const session = useEquipmentUsage.getState().startSession(eq.id, { operator, patientId: candidate.patientId, patientName, testName: candidate.test, orderId: candidate.id });
   emr.startProcessing(candidate.id);
+  pendingRuns.set(eq.id, { orderId: candidate.id, sessionId: session.id, ticksRemaining: 2 });
+}
+
+function finishAnalyzerRun(eq: EquipmentRecord, pending: PendingRun) {
+  const emr = useEmr.getState();
+  const candidate = emr.labOrders.find((o) => o.id === pending.orderId);
+  pendingRuns.delete(eq.id);
+  useEquipmentUsage.getState().endSession(pending.sessionId, candidate ? "Completed" : "Aborted");
+  if (!candidate) return;
+
   const config = useLabConfig.getState().configFor(candidate.test);
   for (const phase of config.phases) emr.advancePhase(candidate.id, phase);
-
   const fields = generateResultFields(config.resultTemplate);
   emr.submitLabResult(candidate.id, fields, "Normal", config.phases[config.phases.length - 1]);
 
+  const operator = candidate.sampleCollectedBy ?? candidate.orderedBy;
+  const correlationId = candidate.id;
   useEquipmentEvents.getState().logEvent({
-    equipmentId: eq.id, type: "TEST_COMPLETED", source: "SIMULATOR", detail: candidate.test,
+    equipmentId: eq.id, type: "TEST_COMPLETED", source: "SIMULATOR", actor: operator, detail: candidate.test,
     patientId: candidate.patientId, relatedOrderId: candidate.id, correlationId,
   });
   useEquipmentEvents.getState().logEvent({
-    equipmentId: eq.id, type: "RESULT_GENERATED", source: "SIMULATOR", detail: `${candidate.test} result submitted for approval`,
+    equipmentId: eq.id, type: "RESULT_GENERATED", source: "SIMULATOR", actor: operator, detail: `${candidate.test} result submitted for approval`,
     patientId: candidate.patientId, relatedOrderId: candidate.id, correlationId,
   });
 }
@@ -180,7 +206,15 @@ function tick() {
     tickHeartbeatAndState(eq);
     if (useEquipment.getState().machineStates[eq.id] === "Running") {
       tickTelemetry(eq);
-      if (eq.category === "Laboratory Analyzer" && Math.random() < 0.3) runAnalyzerCycle(eq);
+      if (eq.category === "Laboratory Analyzer") {
+        const pending = pendingRuns.get(eq.id);
+        if (pending) {
+          if (pending.ticksRemaining <= 1) finishAnalyzerRun(eq, pending);
+          else pendingRuns.set(eq.id, { ...pending, ticksRemaining: pending.ticksRemaining - 1 });
+        } else if (Math.random() < 0.3) {
+          startAnalyzerRun(eq);
+        }
+      }
     }
     // Overdue preventive maintenance / calibration surfaces as a standing alarm rather than a
     // fabricated critical fault — it reflects a real schedule check against work order and
@@ -213,4 +247,5 @@ export function stopEquipmentSimulator() {
   if (intervalHandle) clearInterval(intervalHandle);
   intervalHandle = null;
   started = false;
+  pendingRuns.clear();
 }
