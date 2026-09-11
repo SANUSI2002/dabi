@@ -84,8 +84,12 @@ type EmrState = {
   outsourcePrescription: (encounterId: string, rxId: string) => void;
   refusePrescription: (encounterId: string, rxId: string, reason: string) => void;
 
-  admit: (patientId: string, ward: string, bed: string, diagnosis: string) => void;
+  admit: (patientId: string, ward: string, bed: string, diagnosis: string, opts?: { admittingClinician?: string; service?: string; reason?: string; isolation?: string; expectedDischarge?: string }) => string;
   discharge: (id: string, outcome: string) => void;
+  dischargeWithSummary: (id: string, input: { outcome: string; summary: string; destination?: string }) => void;
+  transferBed: (id: string, ward: string, bed: string, reason: string) => void;
+  setDischargeReady: (id: string, ready: boolean) => void;
+  admissionFor: (patientId?: string | null) => Admission | undefined;
 
   bookAppointment: (a: Omit<Appointment, "id" | "status">) => void;
   markAppointment: (id: string, status: Appointment["status"], queueStation?: Station) => void;
@@ -467,23 +471,70 @@ export const useEmr = create<EmrState>((set, get) => ({
     }));
   },
 
-  admit: (patientId, ward, bed, diagnosis) => {
+  admit: (patientId, ward, bed, diagnosis, opts) => {
     const p = get().patients.find((x) => x.id === patientId);
+    const id = rid();
+    const nowIso = new Date().toISOString();
     audit("admitted patient", `inpatient/${p?.mrn ?? patientId}`);
     set((s) => ({
       admissions: [
-        { id: rid(), patientId, ward, bed, diagnosis, admittedAt: new Date().toISOString(), status: "Active" },
+        {
+          id, patientId, ward, bed, diagnosis, admittedAt: nowIso, status: "Active",
+          admittingClinician: opts?.admittingClinician ?? useIdentity.getState().user.name,
+          service: opts?.service,
+          reason: opts?.reason,
+          isolation: opts?.isolation,
+          expectedDischarge: opts?.expectedDischarge,
+          dischargeReady: false,
+          bedHistory: [{ ward, bed, from: nowIso }],
+        },
         ...s.admissions,
       ],
     }));
+    return id;
+  },
+
+  transferBed: (id, ward, bed, reason) => {
+    const who = useIdentity.getState().user.name;
+    const admission = get().admissions.find((a) => a.id === id);
+    audit("transferred inpatient between beds", `inpatient/${admission?.patientId ?? id}`, { user: who, meta: { ward, bed, reason } });
+    set((s) => ({
+      admissions: s.admissions.map((a) =>
+        a.id === id
+          ? { ...a, ward, bed, bedHistory: [...(a.bedHistory ?? []), { ward, bed, from: new Date().toISOString(), reason, by: who }] }
+          : a,
+      ),
+    }));
+  },
+
+  setDischargeReady: (id, ready) => {
+    set((s) => ({ admissions: s.admissions.map((a) => (a.id === id ? { ...a, dischargeReady: ready } : a)) }));
   },
 
   discharge: (id, outcome) => {
     audit("discharged patient", `inpatient/${id}`);
     set((s) => ({
-      admissions: s.admissions.map((a) => (a.id === id ? { ...a, status: "Discharged", outcome } : a)),
+      admissions: s.admissions.map((a) =>
+        a.id === id ? { ...a, status: "Discharged", outcome, dischargedAt: new Date().toISOString(), dischargedBy: useIdentity.getState().user.name } : a,
+      ),
     }));
   },
+
+  dischargeWithSummary: (id, input) => {
+    const who = useIdentity.getState().user.name;
+    const admission = get().admissions.find((a) => a.id === id);
+    audit("discharged patient with summary", `inpatient/${admission?.patientId ?? id}`, { user: who, meta: { outcome: input.outcome } });
+    set((s) => ({
+      admissions: s.admissions.map((a) =>
+        a.id === id
+          ? { ...a, status: "Discharged", outcome: input.outcome, dischargeSummary: input.summary, dischargeDestination: input.destination, dischargedAt: new Date().toISOString(), dischargedBy: who }
+          : a,
+      ),
+    }));
+  },
+
+  admissionFor: (patientId) =>
+    !patientId ? undefined : get().admissions.find((a) => a.patientId === patientId && a.status === "Active"),
 
   bookAppointment: (a) => {
     audit("booked appointment", `appointment/${a.type.toLowerCase()}`);

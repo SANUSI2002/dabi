@@ -90,10 +90,14 @@ const MAPS: Record<ClinicalStatusKind, Record<string, Entry>> = {
   },
   admin: {
     scheduled: { label: "Scheduled", tone: "mist", icon: clock },
-    due: { label: "Due", tone: "amber", icon: <BellRing size={11} aria-hidden /> },
+    due: { label: "Due now", tone: "amber", icon: <BellRing size={11} aria-hidden /> },
+    given: { label: "Given", tone: "brand", icon: check },
     completed: { label: "Given", tone: "brand", icon: check },
+    held: { label: "Held", tone: "amber", icon: <PauseCircle size={11} aria-hidden /> },
     "on-hold": { label: "Held", tone: "amber", icon: <PauseCircle size={11} aria-hidden /> },
+    omitted: { label: "Omitted", tone: "action", icon: cross },
     "not-done": { label: "Omitted", tone: "action", icon: cross },
+    refused: { label: "Refused", tone: "action", icon: cross },
     declined: { label: "Refused", tone: "action", icon: cross },
   },
   referral: {

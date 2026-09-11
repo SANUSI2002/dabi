@@ -153,6 +153,14 @@ export type Encounter = {
   templateKey?: string;
 };
 
+export type BedMove = {
+  ward: string;
+  bed: string;
+  from: string; // ISO — when the patient moved into this bed
+  reason?: string;
+  by?: string;
+};
+
 export type Admission = {
   id: string;
   patientId: string;
@@ -162,7 +170,21 @@ export type Admission = {
   admittedAt: string;
   status: "Active" | "Discharged";
   outcome?: string;
+  admittingClinician?: string;
+  service?: string;
+  reason?: string;
+  isolation?: string;
+  expectedDischarge?: string;
+  dischargeReady?: boolean;
+  bedHistory?: BedMove[];
+  dischargedAt?: string;
+  dischargedBy?: string;
+  dischargeDestination?: string;
+  dischargeSummary?: string;
 };
+
+export const INPATIENT_SERVICES = ["General Medicine", "Paediatrics", "Obstetrics", "Surgery", "Isolation", "Observation"] as const;
+export const DISCHARGE_OUTCOMES = ["Recovered", "Improved", "Referred to higher level", "Discharged against advice", "Absconded", "Died"] as const;
 
 export type Appointment = {
   id: string;
