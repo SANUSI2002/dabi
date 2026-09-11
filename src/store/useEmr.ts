@@ -95,6 +95,11 @@ type EmrState = {
   markAppointment: (id: string, status: Appointment["status"], queueStation?: Station) => void;
   addReferral: (r: Omit<Referral, "id" | "date" | "status">) => void;
   setReferralStatus: (id: string, status: Referral["status"]) => void;
+  acceptReferral: (id: string, receivingClinician?: string) => void;
+  declineReferral: (id: string, reason: string) => void;
+  scheduleReferral: (id: string, appointmentDate: string) => void;
+  markReferralAttended: (id: string) => void;
+  cancelReferral: (id: string) => void;
   recordReferralFeedback: (id: string, feedback: Omit<ReferralFeedback, "at">) => void;
   addTransfer: (t: Omit<PatientTransfer, "id" | "status" | "completedAt">) => void;
   completeTransfer: (id: string, handledBy: string) => void;
@@ -551,16 +556,46 @@ export const useEmr = create<EmrState>((set, get) => ({
   },
 
   addReferral: (r) => {
-    audit("created referral", `referral/${r.type.toLowerCase()}`);
+    audit(`created ${r.type === "Internal" ? "internal" : "external"} referral`, `referral/${r.patientId}`);
     set((s) => ({
-      referrals: [{ ...r, id: rid(), date: new Date().toISOString(), status: "Open" }, ...s.referrals],
+      referrals: [{ ...r, id: rid(), date: new Date().toISOString(), status: "Requested", referredBy: r.referredBy ?? useIdentity.getState().user.name }, ...s.referrals],
     }));
   },
 
   setReferralStatus: (id, status) => {
     const r = get().referrals.find((x) => x.id === id);
-    audit(`referral ${status.toLowerCase()}`, `referral/${r ? r.patientId : id}`);
+    audit(`referral ${String(status).toLowerCase()}`, `referral/${r ? r.patientId : id}`);
     set((s) => ({ referrals: s.referrals.map((x) => (x.id === id ? { ...x, status } : x)) }));
+  },
+
+  acceptReferral: (id, receivingClinician) => {
+    const r = get().referrals.find((x) => x.id === id);
+    audit("referral accepted", `referral/${r?.patientId ?? id}`);
+    set((s) => ({ referrals: s.referrals.map((x) => (x.id === id ? { ...x, status: "Accepted", receivingClinician: receivingClinician || x.receivingClinician } : x)) }));
+  },
+
+  declineReferral: (id, reason) => {
+    const r = get().referrals.find((x) => x.id === id);
+    audit("referral declined", `referral/${r?.patientId ?? id}`, { meta: { reason } });
+    set((s) => ({ referrals: s.referrals.map((x) => (x.id === id ? { ...x, status: "Declined", declineReason: reason } : x)) }));
+  },
+
+  scheduleReferral: (id, appointmentDate) => {
+    const r = get().referrals.find((x) => x.id === id);
+    audit("referral appointment scheduled", `referral/${r?.patientId ?? id}`);
+    set((s) => ({ referrals: s.referrals.map((x) => (x.id === id ? { ...x, status: "Scheduled", appointmentDate } : x)) }));
+  },
+
+  markReferralAttended: (id) => {
+    const r = get().referrals.find((x) => x.id === id);
+    audit("referral appointment attended", `referral/${r?.patientId ?? id}`);
+    set((s) => ({ referrals: s.referrals.map((x) => (x.id === id ? { ...x, status: "Attended", attendedDate: new Date().toISOString() } : x)) }));
+  },
+
+  cancelReferral: (id) => {
+    const r = get().referrals.find((x) => x.id === id);
+    audit("referral cancelled", `referral/${r?.patientId ?? id}`);
+    set((s) => ({ referrals: s.referrals.map((x) => (x.id === id ? { ...x, status: "Cancelled" } : x)) }));
   },
 
   addTransfer: (t) => {
@@ -601,7 +636,7 @@ export const useEmr = create<EmrState>((set, get) => ({
           {
             id: rid(), patientId: r.patientId, type: "In", diagnosis: r.diagnosis,
             facility: r.facility, reason: "Continued care after referral", urgency: "Routine",
-            status: "Open", date: new Date().toISOString(), referredBy: feedback.by,
+            status: "Requested", date: new Date().toISOString(), referredBy: feedback.by,
           },
           ...s.referrals,
         ],
@@ -833,6 +868,21 @@ export const useEmr = create<EmrState>((set, get) => ({
     }));
   },
 }));
+
+/** normalise legacy referral statuses onto the current lifecycle */
+export const referralStatus = (raw: string): "Requested" | "Accepted" | "Declined" | "Scheduled" | "Attended" | "Completed" | "Cancelled" => {
+  if (raw === "Open") return "Requested";
+  if (raw === "Acknowledged") return "Accepted";
+  return raw as never;
+};
+
+/** an open referral is overdue when no response has come within the window for its urgency */
+export const referralOverdue = (referral: Referral) => {
+  const status = referralStatus(referral.status);
+  if (["Completed", "Declined", "Cancelled", "Attended"].includes(status)) return false;
+  const windowMs = { Emergency: 4 * 3600000, Urgent: 3 * 86400000, Routine: 21 * 86400000 }[referral.urgency];
+  return Date.now() - new Date(referral.date).getTime() > windowMs;
+};
 
 /** a lab order is overdue when its expected turnaround has elapsed and it is not yet verified/cancelled */
 export const labOrderOverdue = (order: LabOrder, turnaroundMinutes: number) => {

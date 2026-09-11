@@ -243,17 +243,28 @@ export type ReferralFeedback = {
   backReferral: boolean; // returned for continued care at the PHC
 };
 
+export type ReferralStatus =
+  | "Requested" | "Accepted" | "Declined" | "Scheduled" | "Attended" | "Completed" | "Cancelled"
+  | "Open" | "Acknowledged"; // legacy seed values, treated as Requested / Accepted
+
 export type Referral = {
   id: string;
   patientId: string;
+  /** Internal = another unit/clinic in this facility; Out = external organisation; In = received from elsewhere */
   type: "Out" | "In" | "Internal";
   diagnosis: string;
-  facility: string;
+  facility: string; // receiving unit or facility
   reason: string;
   urgency: "Routine" | "Urgent" | "Emergency";
-  status: "Open" | "Acknowledged" | "Completed" | "Declined";
+  status: ReferralStatus;
   date: string;
   referredBy?: string;
+  clinicalSummary?: string;
+  attachedResultIds?: string[];
+  receivingClinician?: string;
+  declineReason?: string;
+  appointmentDate?: string;
+  attendedDate?: string;
   feedback?: ReferralFeedback;
 };
 

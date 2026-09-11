@@ -103,11 +103,15 @@ const MAPS: Record<ClinicalStatusKind, Record<string, Entry>> = {
   referral: {
     draft: { label: "Draft", tone: "mist", icon: <Pencil size={11} aria-hidden /> },
     requested: { label: "Sent", tone: "amber", icon: <Send size={11} aria-hidden /> },
+    accepted: { label: "Accepted", tone: "amber", icon: dot },
     active: { label: "Accepted", tone: "amber", icon: dot },
+    declined: { label: "Declined", tone: "action", icon: cross },
     "on-hold": { label: "On hold", tone: "mist", icon: <PauseCircle size={11} aria-hidden /> },
     scheduled: { label: "Appointment booked", tone: "amber", icon: clock },
+    attended: { label: "Attended", tone: "brand", icon: check },
     completed: { label: "Completed", tone: "brand", icon: check },
-    "revoked": { label: "Declined", tone: "action", icon: cross },
+    cancelled: { label: "Cancelled", tone: "mist", icon: ban },
+    revoked: { label: "Declined", tone: "action", icon: cross },
     overdue: { label: "Overdue", tone: "action", icon: warn },
   },
   comm: {
