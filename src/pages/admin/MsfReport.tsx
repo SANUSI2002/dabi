@@ -3,7 +3,6 @@ import { FileSpreadsheet, Check, Send } from "lucide-react";
 import { PageHeader, Card, Button, Badge, StatCard } from "@/components/ui/primitives";
 import { Reveal } from "@/components/motion/Reveal";
 import { useEmr } from "@/store/useEmr";
-import { useCatalog } from "@/store/useCatalog";
 import { useAudit } from "@/store/useAudit";
 
 const SECTIONS = [
@@ -17,26 +16,25 @@ const SECTIONS = [
 
 export default function MsfReport() {
   const { encounters, ancRecords, deliveries, pncVisits, fpClients, referrals } = useEmr();
-  const drugs = useCatalog((s) => s.drugs);
   const log = useAudit((s) => s.log);
+  // Only fields this EMR actually has a source for are pre-filled; everything
+  // else starts blank for the compiler to enter from paper/register counts —
+  // never a placeholder number dressed up as a real figure.
   const [values, setValues] = useState<Record<string, number>>({
-    "New attendances": 88,
-    "Re-attendances": 40,
     "Referrals out": referrals.filter((r) => r.type === "Out").length,
-    "Total visits": encounters.length + 118,
+    "Total visits": encounters.length,
     "Confirmed malaria": encounters.filter((e) => e.diagnoses.some((d) => d.name.toLowerCase().includes("malaria"))).length,
     "ANC 1st visits": ancRecords.length,
     "Deliveries by SBA": deliveries.length,
     "PNC within 48h": pncVisits.filter((v) => v.daysPP <= 2).length,
     "New acceptors": fpClients.filter((c) => c.firstTime).length,
     "Revisits": fpClients.filter((c) => !c.firstTime).length,
-    "ACT stock-out days": drugs.find((d) => d.name.includes("Artemether"))?.stock === 0 ? 30 : 0,
-    "ORS stock-out days": drugs.find((d) => d.name === "ORS")?.stock === 0 ? 30 : 0,
   });
   const [submitted, setSubmitted] = useState(false);
 
   const total = SECTIONS.reduce((n, s) => n + s.fields.length, 0);
   const filled = Object.values(values).filter((v) => v > 0).length;
+  const prefilled = new Set(Object.keys(values));
 
   return (
     <div>
@@ -68,7 +66,14 @@ export default function MsfReport() {
               <div className="space-y-2">
                 {s.fields.map((fld) => (
                   <div key={fld} className="flex items-center justify-between gap-3">
-                    <span className="text-sm text-mist-600">{fld}</span>
+                    <span className="text-sm text-mist-600">
+                      {fld}
+                      {prefilled.has(fld) ? (
+                        <span className="ml-1.5 text-[10px] font-semibold uppercase text-brand-500">from EMR</span>
+                      ) : (
+                        <span className="ml-1.5 text-[10px] font-semibold uppercase text-mist-300">manual entry</span>
+                      )}
+                    </span>
                     <input
                       type="number"
                       disabled={submitted}
