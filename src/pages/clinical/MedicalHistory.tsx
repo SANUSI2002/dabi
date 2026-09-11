@@ -8,15 +8,24 @@ import { Field, Textarea } from "@/components/ui/form";
 import { PatientPicker } from "@/components/ui/PatientPicker";
 import { ConsolidatedEmrDoc } from "@/components/print/documents";
 import { LabProgress } from "@/components/lab/LabProgress";
+import { ClinicalStatusBadge } from "@/components/clinical/ClinicalStatusBadge";
 import { useEmr } from "@/store/useEmr";
 import { useLabConfig } from "@/store/useLabConfig";
 import { dateTime, ageFromDob } from "@/lib/format";
 
+function noteStatus(status?: string): "draft" | "saved" | "signed" | "amended" | "cancelled" {
+  if (status === "in-progress") return "saved";
+  if (status === "amended") return "amended";
+  if (status === "cancelled") return "cancelled";
+  return "signed";
+}
+
 export default function MedicalHistory() {
-  const { patients, encounters, labOrders, patientById } = useEmr();
+  const { patients, encounters, labOrders, patientById, amendEncounter } = useEmr();
   const { configFor } = useLabConfig();
   const [pid, setPid] = useState<string | null>(patients[0]?.id ?? null);
   const [amend, setAmend] = useState<string | null>(null);
+  const [amendReason, setAmendReason] = useState("");
   const [printDoc, setPrintDoc] = useState(false);
   const p = patientById(pid);
   const encs = encounters.filter((e) => e.patientId === pid);
@@ -64,14 +73,18 @@ export default function MedicalHistory() {
                         <FileClock size={15} className="text-brand-600" />
                         <span className="text-sm font-semibold text-mist-800">{dateTime(e.date)}</span>
                         <span className="text-xs text-mist-400">· {e.provider}</span>
+                        <ClinicalStatusBadge kind="note" status={noteStatus(e.status)} />
                       </div>
-                      <button onClick={() => setAmend(e.id)} className="text-xs font-semibold text-action-600 hover:underline">
+                      <button onClick={() => { setAmend(e.id); setAmendReason(""); }} className="text-xs font-semibold text-action-600 hover:underline">
                         Amend
                       </button>
                     </div>
                     <p className="text-sm text-mist-700"><b>Complaint:</b> {e.complaint}</p>
                     {e.assessment && <p className="text-sm text-mist-700"><b>Assessment:</b> {e.assessment}</p>}
                     {e.plan && <p className="text-sm text-mist-700"><b>Plan:</b> {e.plan}</p>}
+                    {e.amendmentNote && (
+                      <p className="mt-1 text-xs text-mist-400">Amended by {e.amendedBy} {e.amendedAt ? dateTime(e.amendedAt) : ""} — {e.amendmentNote}</p>
+                    )}
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {e.diagnoses.map((d) => <Badge key={d.code} tone="brand">{d.name}</Badge>)}
                     </div>
@@ -106,16 +119,8 @@ export default function MedicalHistory() {
                 {labs.length === 0 && <div className="py-12 text-center text-mist-400">No lab records.</div>}
               </div>
             ) : (
-              <div className="card">
-                <table className="w-full text-sm">
-                  <thead><tr className="text-[11px] uppercase text-mist-400">
-                    <th className="py-2 text-left">Date</th><th className="text-left">BP</th><th className="text-left">Temp</th>
-                    <th className="text-left">Pulse</th><th className="text-left">Weight</th>
-                  </tr></thead>
-                  <tbody>
-                    <tr className="border-t border-mist-100"><td className="py-2">{dateTime(new Date())}</td><td>120/80</td><td>37.0°C</td><td>80</td><td>62 kg</td></tr>
-                  </tbody>
-                </table>
+              <div className="card py-12 text-center text-mist-400">
+                Vitals are not recorded as structured data in this build — no BP, temperature, pulse, or weight readings are captured against an encounter.
               </div>
             )
           }
@@ -129,13 +134,19 @@ export default function MedicalHistory() {
         footer={
           <>
             <Button variant="ghost" onClick={() => setAmend(null)}>Cancel</Button>
-            <Button variant="action" onClick={() => setAmend(null)}>Save Amendment</Button>
+            <Button
+              variant="action"
+              disabled={!amendReason.trim()}
+              onClick={() => { if (amend) amendEncounter(amend, {}, amendReason.trim()); setAmend(null); }}
+            >
+              Save Amendment
+            </Button>
           </>
         }
       >
         <div className="space-y-3">
           <Field label="Reason for amendment (required)">
-            <Textarea placeholder="Why is this encounter being amended?" />
+            <Textarea value={amendReason} onChange={(event) => setAmendReason(event.target.value)} placeholder="Why is this encounter being amended?" />
           </Field>
           <p className="text-xs text-mist-400">Amendments are recorded in the audit log and never overwrite the original note.</p>
         </div>

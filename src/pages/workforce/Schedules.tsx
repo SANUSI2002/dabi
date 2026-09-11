@@ -144,11 +144,12 @@ export default function Schedules() {
               ) : (
                 <div className="card overflow-x-auto p-0">
                   <table className="w-full min-w-[820px] text-center text-[11px]">
+                    <caption className="sr-only">Rotational schedule projected onto the next 14 days, per assigned staff member</caption>
                     <thead className="border-b border-mist-200 bg-mist-50/60">
                       <tr>
-                        <th className="th sticky left-0 z-10 bg-mist-50 text-left">Employee</th>
+                        <th scope="col" className="th sticky left-0 z-10 bg-mist-50 text-left">Employee</th>
                         {calendar.dates.map((d) => (
-                          <th key={+d} className={cn("th px-1", [0, 6].includes(d.getDay()) && "text-action-500")}>
+                          <th key={+d} scope="col" className={cn("th px-1", [0, 6].includes(d.getDay()) && "text-action-500")}>
                             <span className="block">{format(d, "EEE")}</span>
                             <span className="block font-normal text-mist-400">{format(d, "d MMM")}</span>
                           </th>
@@ -158,10 +159,10 @@ export default function Schedules() {
                     <tbody className="divide-y divide-mist-100">
                       {calendar.rows.map((row, ri) => (
                         <tr key={ri}>
-                          <td className="td sticky left-0 z-10 bg-white text-left">
+                          <th scope="row" className="td sticky left-0 z-10 bg-white text-left font-normal">
                             <span className="font-semibold text-mist-800">{staffName(row.staffId)}</span>
                             <span className="block text-[10px] text-mist-400">{row.scheduleName}</span>
-                          </td>
+                          </th>
                           {row.cells.map((b, ci) => (
                             <td key={ci} className="td px-1">
                               {b ? (
@@ -219,15 +220,16 @@ export default function Schedules() {
           ) : (
             <div className="card overflow-x-auto p-0">
               <table className="w-full min-w-[640px]">
+                <caption className="sr-only">Weekly coverage grid — time block assigned to each employee by weekday</caption>
                 <thead className="border-b border-mist-200 bg-mist-50/60">
-                  <tr><th className="th">Employee</th>{WEEKDAYS.map((d) => <th key={d} className="th text-center">{d}</th>)}</tr>
+                  <tr><th scope="col" className="th">Employee</th>{WEEKDAYS.map((d) => <th key={d} scope="col" className="th text-center">{d}</th>)}</tr>
                 </thead>
                 <tbody className="divide-y divide-mist-100">
                   {assignments.map((a) => {
                     const sc = schedules.find((s) => s.id === a.scheduleId);
                     return (
                       <tr key={a.id}>
-                        <td className="td font-semibold">{staffName(a.staffId)}</td>
+                        <th scope="row" className="td text-left font-semibold">{staffName(a.staffId)}</th>
                         {WEEKDAYS.map((d) => {
                           const b = timeBlocks.find((x) => x.id === sc?.days[d]);
                           return (
