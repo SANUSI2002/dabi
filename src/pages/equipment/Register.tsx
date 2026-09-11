@@ -5,7 +5,9 @@ import { PageHeader, Button, StatCard } from "@/components/ui/primitives";
 import { Table, Row, Cell, EmptyRow } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select } from "@/components/ui/form";
-import { useEquipment, maintenanceStateFor } from "@/store/useEquipment";
+import { useEquipment, maintenanceStateFor, calibrationStateFor } from "@/store/useEquipment";
+import { useEquipmentMaintenance } from "@/store/useEquipmentMaintenance";
+import { useEquipmentCalibration } from "@/store/useEquipmentCalibration";
 import { EQUIPMENT_CATEGORIES, type EquipmentCategory, type OwnershipType } from "@/data/equipment";
 import { MachineStateBadge, ConnectivityBadge, MaintenanceStateBadge } from "@/components/equipment/EquipmentStatusBadge";
 import { startEquipmentSimulator } from "@/lib/equipmentSimulator";
@@ -14,6 +16,8 @@ const OWNERSHIP: OwnershipType[] = ["Owned", "Leased", "Rented", "Donated", "Ven
 
 export default function Register() {
   const store = useEquipment();
+  const maintStore = useEquipmentMaintenance();
+  const calStore = useEquipmentCalibration();
   const [category, setCategory] = useState<EquipmentCategory | "">("");
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({
@@ -48,7 +52,7 @@ export default function Register() {
         <StatCard label="Total Equipment" value={store.equipment.length} tone="brand" icon={<Boxes size={18} />} />
         <StatCard label="Simulated" value={store.equipment.filter((e) => e.technical.integrationKind === "SIMULATOR").length} tone="mist" delay={0.05} />
         <StatCard label="Not Configured" value={store.equipment.filter((e) => e.technical.integrationKind === "NOT_CONFIGURED").length} tone="mist" delay={0.1} />
-        <StatCard label="Maintenance Overdue" value={store.equipment.filter((e) => maintenanceStateFor(e) === "Overdue").length} tone="action" delay={0.15} />
+        <StatCard label="Maintenance Overdue" value={store.equipment.filter((e) => maintenanceStateFor(e, maintStore.lastPreventiveCompletedAt(e.id)) === "Overdue").length} tone="action" delay={0.15} />
       </div>
 
       <div className="mb-3 flex flex-wrap gap-1.5">
@@ -58,8 +62,8 @@ export default function Register() {
         ))}
       </div>
 
-      <Table columns={["Equipment", "Category", "Location", "Machine", "Connectivity", "Maintenance"]} caption="Equipment register">
-        {filtered.length === 0 && <EmptyRow colSpan={6}>No equipment in this category.</EmptyRow>}
+      <Table columns={["Equipment", "Category", "Location", "Machine", "Connectivity", "Maintenance", "Calibration"]} caption="Equipment register">
+        {filtered.length === 0 && <EmptyRow colSpan={7}>No equipment in this category.</EmptyRow>}
         {filtered.map((eq, i) => (
           <Row key={eq.id} index={i}>
             <Cell>
@@ -70,7 +74,8 @@ export default function Register() {
             <Cell>{eq.location.department}{eq.location.room ? ` · ${eq.location.room}` : ""}</Cell>
             <Cell><MachineStateBadge state={store.machineStates[eq.id] ?? "Unknown"} /></Cell>
             <Cell><ConnectivityBadge state={store.connectivityFor(eq.id)} /></Cell>
-            <Cell><MaintenanceStateBadge state={maintenanceStateFor(eq)} /></Cell>
+            <Cell><MaintenanceStateBadge state={maintenanceStateFor(eq, maintStore.lastPreventiveCompletedAt(eq.id))} /></Cell>
+            <Cell><MaintenanceStateBadge state={calibrationStateFor(eq, calStore.lastCompletedFor(eq.id)?.performedAt)} /></Cell>
           </Row>
         ))}
       </Table>

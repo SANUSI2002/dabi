@@ -2,8 +2,10 @@
 // pretends to talk to a real device. It exists so the SCADA UI has realistic, moving telemetry
 // and event sequences to demonstrate against, and so the analyzer -> real Lab Order integration
 // can be proven end to end without a physical analyzer.
-import { useEquipment, maintenanceStateFor } from "@/store/useEquipment";
+import { useEquipment, maintenanceStateFor, calibrationStateFor } from "@/store/useEquipment";
 import { useEquipmentEvents } from "@/store/useEquipmentEvents";
+import { useEquipmentMaintenance } from "@/store/useEquipmentMaintenance";
+import { useEquipmentCalibration } from "@/store/useEquipmentCalibration";
 import { useEmr } from "@/store/useEmr";
 import { useLabConfig } from "@/store/useLabConfig";
 import { TELEMETRY_PARAMS, severityFor } from "@/data/equipmentTelemetry";
@@ -180,12 +182,21 @@ function tick() {
       tickTelemetry(eq);
       if (eq.category === "Laboratory Analyzer" && Math.random() < 0.3) runAnalyzerCycle(eq);
     }
-    // Overdue preventive maintenance surfaces as a standing Medium alarm rather than a fabricated
-    // critical fault — it reflects a real schedule check, not simulated telemetry.
-    if (maintenanceStateFor(eq) === "Overdue" && !useEquipmentEvents.getState().openAlarmsFor(eq.id).some((a) => a.category === "Maintenance")) {
+    // Overdue preventive maintenance / calibration surfaces as a standing alarm rather than a
+    // fabricated critical fault — it reflects a real schedule check against work order and
+    // calibration history, not simulated telemetry.
+    const lastPm = useEquipmentMaintenance.getState().lastPreventiveCompletedAt(eq.id);
+    if (maintenanceStateFor(eq, lastPm) === "Overdue" && !useEquipmentEvents.getState().openAlarmsFor(eq.id).some((a) => a.category === "Maintenance")) {
       useEquipmentEvents.getState().raiseAlarm({
         equipmentId: eq.id, source: "SYSTEM", severity: "Medium", category: "Maintenance",
         description: "Preventive maintenance is overdue",
+      });
+    }
+    const lastCal = useEquipmentCalibration.getState().lastCompletedFor(eq.id)?.performedAt;
+    if (calibrationStateFor(eq, lastCal) === "Overdue" && !useEquipmentEvents.getState().openAlarmsFor(eq.id).some((a) => a.category === "Calibration")) {
+      useEquipmentEvents.getState().raiseAlarm({
+        equipmentId: eq.id, source: "SYSTEM", severity: "High", category: "Calibration",
+        description: "Calibration is overdue",
       });
     }
   }

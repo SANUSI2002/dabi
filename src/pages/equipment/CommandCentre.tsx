@@ -1,10 +1,11 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Activity, Wifi, BellRing, WifiOff, Skull, ListChecks } from "lucide-react";
+import { Activity, Wifi, BellRing, WifiOff, Skull, ListChecks, Wrench } from "lucide-react";
 import { PageHeader, StatCard, Card, EmptyState } from "@/components/ui/primitives";
 import { Reveal } from "@/components/motion/Reveal";
 import { useEquipment, maintenanceStateFor, safetyStateFor } from "@/store/useEquipment";
 import { useEquipmentEvents } from "@/store/useEquipmentEvents";
+import { useEquipmentMaintenance } from "@/store/useEquipmentMaintenance";
 import { startEquipmentSimulator } from "@/lib/equipmentSimulator";
 import { MachineStateBadge, ConnectivityBadge, MaintenanceStateBadge, SafetyStateBadge, AlarmSeverityBadge } from "@/components/equipment/EquipmentStatusBadge";
 import { IntegrationBadge } from "@/components/equipment/IntegrationBadge";
@@ -13,6 +14,7 @@ import { timeAgo } from "@/lib/format";
 export default function CommandCentre() {
   const store = useEquipment();
   const events = useEquipmentEvents();
+  const maintStore = useEquipmentMaintenance();
 
   useEffect(() => {
     startEquipmentSimulator();
@@ -21,7 +23,7 @@ export default function CommandCentre() {
   const rows = store.equipment.map((eq) => {
     const machine = store.machineStates[eq.id] ?? "Unknown";
     const connectivity = store.connectivityFor(eq.id);
-    const maintenance = maintenanceStateFor(eq);
+    const maintenance = maintenanceStateFor(eq, maintStore.lastPreventiveCompletedAt(eq.id));
     const openAlarms = events.openAlarmsFor(eq.id);
     const safety = safetyStateFor(store.telemetryLatest[eq.id], openAlarms);
     return { eq, machine, connectivity, maintenance, safety, openAlarms };
@@ -41,12 +43,13 @@ export default function CommandCentre() {
         actions={<Link to="/equipment-scada/register" className="btn-soft px-3 py-1.5 text-xs">Equipment Register →</Link>}
       />
 
-      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-6">
         <StatCard label="Online" value={online} tone="brand" icon={<Wifi size={18} />} />
         <StatCard label="Running" value={running} tone="brand" delay={0.05} icon={<Activity size={18} />} />
         <StatCard label="Active Alarms" value={activeAlarms.length} tone={activeAlarms.length ? "amber" : "mist"} delay={0.1} icon={<BellRing size={18} />} />
         <StatCard label="Offline" value={offline} tone={offline ? "action" : "mist"} delay={0.15} icon={<WifiOff size={18} />} />
         <StatCard label="Critical" value={critical} tone={critical ? "action" : "brand"} delay={0.2} icon={<Skull size={18} />} />
+        <StatCard label="Open Work Orders" value={maintStore.workOrders.filter((w) => !["Completed", "Cancelled"].includes(w.status)).length} tone="mist" delay={0.25} icon={<Wrench size={18} />} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">

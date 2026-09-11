@@ -158,6 +158,20 @@ export function maintenanceStateFor(eq: EquipmentRecord, lastCompletedAt?: strin
   return "Not Due";
 }
 
+// Same Not Due / Due Soon / Overdue vocabulary applies cleanly to calibration; kept as its own
+// named function (rather than a generic "compliance state") so call sites read clearly.
+export function calibrationStateFor(eq: EquipmentRecord, lastCompletedAt?: string): MaintenanceState {
+  if (!eq.compliance.calibrationRequired) return "Not Due";
+  const intervalDays = eq.compliance.calibrationIntervalDays;
+  if (!intervalDays) return "Not Due";
+  const anchor = lastCompletedAt ?? eq.lifecycle.installationDate ?? eq.createdAt;
+  const dueAt = new Date(anchor).getTime() + intervalDays * 86400000;
+  const daysUntilDue = (dueAt - Date.now()) / 86400000;
+  if (daysUntilDue < 0) return "Overdue";
+  if (daysUntilDue <= 14) return "Due Soon";
+  return "Not Due";
+}
+
 // Safety-state derivation combines this store's telemetry with the events store's open alarms —
 // kept as a pure function so either store can call it without a circular subscription.
 export function safetyStateFor(telemetryForDevice: Record<string, TelemetryReading> | undefined, openAlarms: EquipmentAlarm[]): SafetyState {
