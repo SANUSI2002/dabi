@@ -43,7 +43,12 @@ export default function CommandCentre() {
       <PageHeader
         title="Equipment SCADA Command Centre"
         subtitle="Live medical device and facility infrastructure monitoring — simulated telemetry, real alarm/audit trail"
-        actions={<Link to="/equipment-scada/register" className="btn-soft px-3 py-1.5 text-xs">Equipment Register →</Link>}
+        actions={
+          <>
+            <Link to="/equipment-scada/analytics" className="btn-soft px-3 py-1.5 text-xs">Reliability Analytics →</Link>
+            <Link to="/equipment-scada/register" className="btn-soft px-3 py-1.5 text-xs">Equipment Register →</Link>
+          </>
+        }
       />
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-7">

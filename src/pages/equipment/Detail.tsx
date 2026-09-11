@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Wrench, RotateCcw, TriangleAlert, Plus, Trash2, Gauge, UserRound, Clock3 } from "lucide-react";
+import { ArrowLeft, Wrench, RotateCcw, TriangleAlert, Plus, Trash2, Gauge, UserRound, Clock3, Activity, TrendingUp, TrendingDown, ShieldCheck } from "lucide-react";
 import { PageHeader, Card, Button, Badge, EmptyState } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell, EmptyRow } from "@/components/ui/Table";
@@ -20,6 +20,7 @@ import {
   MachineStateBadge, ConnectivityBadge, MaintenanceStateBadge, SafetyStateBadge, AlarmSeverityBadge, AlarmLifecycleBadge,
 } from "@/components/equipment/EquipmentStatusBadge";
 import { IntegrationBadge } from "@/components/equipment/IntegrationBadge";
+import { reliabilityStatsFor, formatHours } from "@/lib/equipmentReliability";
 import { shortDate, dateTime, timeAgo, isoDate } from "@/lib/format";
 
 const SCENARIOS: SimulatorScenario[] = ["Normal", "Device Error", "Over-Threshold", "Connectivity Loss", "Maintenance", "Calibration"];
@@ -77,6 +78,7 @@ export default function EquipmentDetail() {
   const calRecords = cal.recordsFor(eq.id);
   const currentSession = usage.currentSessionFor(eq.id);
   const usageSessions = usage.sessionsFor(eq.id);
+  const reliability = reliabilityStatsFor(eq, workOrders);
 
   function partFormFor(woId: string) {
     return partForm[woId] ?? { name: "", qty: "1", cost: "0" };
@@ -101,7 +103,7 @@ export default function EquipmentDetail() {
         {eq.compliance.calibrationRequired && <MaintenanceStateBadge state={calibration} />}
       </div>
 
-      <Tabs tabs={["Overview", "Live", "Telemetry", `Usage (${usageSessions.length})`, `Timeline (${timeline.length})`, `Alarms (${alarms.length})`, `Maintenance (${workOrders.length})`, `Calibration (${calRecords.length})`]}>
+      <Tabs tabs={["Overview", "Live", "Telemetry", `Usage (${usageSessions.length})`, `Timeline (${timeline.length})`, `Alarms (${alarms.length})`, `Maintenance (${workOrders.length})`, `Calibration (${calRecords.length})`, "Analytics"]}>
         {(tab) =>
           tab === "Overview" ? (
             <div className="grid gap-4 md:grid-cols-2">
@@ -335,6 +337,67 @@ export default function EquipmentDetail() {
                 </div>
               )}
             </div>
+          ) : tab === "Analytics" ? (
+            <div className="space-y-4">
+              <p className="text-xs text-mist-400">
+                Computed from completed corrective/emergency work orders for this equipment — never estimated or invented.
+                {reliability.recordedDowntimeCount < reliability.failureCount &&
+                  ` ${reliability.failureCount - reliability.recordedDowntimeCount} of ${reliability.failureCount} failure(s) have no downtime recorded, so MTTR/availability use only the ${reliability.recordedDowntimeCount} that do.`}
+              </p>
+
+              {reliability.failureCount === 0 ? (
+                <EmptyState
+                  title="Not enough history yet"
+                  hint="MTBF, MTTR, availability and failure rate need at least one completed corrective or emergency work order for this equipment."
+                />
+              ) : (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <ReliabilityStat icon={<TrendingUp size={16} />} label="MTBF" value={formatHours(reliability.mtbfHours!)} hint="Mean time between failures" />
+                  <ReliabilityStat
+                    icon={<TrendingDown size={16} />}
+                    label="MTTR"
+                    value={reliability.mttrHours !== null ? formatHours(reliability.mttrHours) : "No downtime recorded"}
+                    hint="Mean time to repair"
+                  />
+                  <ReliabilityStat
+                    icon={<ShieldCheck size={16} />}
+                    label="Availability"
+                    value={reliability.availabilityPct !== null ? `${reliability.availabilityPct.toFixed(2)}%` : "—"}
+                    hint="Uptime over the observation period"
+                  />
+                  <ReliabilityStat
+                    icon={<Activity size={16} />}
+                    label="Failure Rate"
+                    value={reliability.failureRatePer30Days !== null ? `${reliability.failureRatePer30Days.toFixed(2)} / 30d` : "—"}
+                    hint="Failures per 30 days"
+                  />
+                </div>
+              )}
+
+              <Card>
+                <h3 className="mb-3 font-display font-bold text-mist-900">Observation Period</h3>
+                <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
+                  <Row2 k="Since" v={eq.lifecycle.installationDate ? shortDate(eq.lifecycle.installationDate) : shortDate(eq.createdAt)} />
+                  <Row2 k="Duration tracked" v={formatHours(reliability.observationHours)} />
+                  <Row2 k="Completed failures" v={String(reliability.failureCount)} />
+                  <Row2 k="Total downtime" v={reliability.recordedDowntimeCount > 0 ? formatHours(reliability.totalDowntimeHours) : "Not recorded"} />
+                </dl>
+              </Card>
+
+              {reliability.failures.length > 0 && (
+                <Table columns={["Reported", "Type", "Description", "Downtime", "Root Cause"]} caption="Completed failures used in this calculation">
+                  {reliability.failures.map((wo, i) => (
+                    <Row key={wo.id} index={i}>
+                      <Cell className="whitespace-nowrap text-xs text-mist-500">{shortDate(wo.reportedAt)}</Cell>
+                      <Cell><Badge tone={wo.type === "Emergency" ? "action" : "amber"}>{wo.type}</Badge></Cell>
+                      <Cell className="max-w-[220px] truncate">{wo.description}</Cell>
+                      <Cell>{typeof wo.downtimeMinutes === "number" ? `${wo.downtimeMinutes} min` : "—"}</Cell>
+                      <Cell className="text-mist-500">{wo.diagnosis ?? "—"}</Cell>
+                    </Row>
+                  ))}
+                </Table>
+              )}
+            </div>
           ) : null
         }
       </Tabs>
@@ -486,6 +549,16 @@ function Row2({ k, v }: { k: string; v: string }) {
       <dt className="text-mist-400">{k}</dt>
       <dd className="font-semibold text-mist-800">{v}</dd>
     </div>
+  );
+}
+
+function ReliabilityStat({ icon, label, value, hint }: { icon: ReactNode; label: string; value: string; hint: string }) {
+  return (
+    <Card>
+      <div className="flex items-center gap-2 text-mist-400">{icon}<span className="text-xs font-semibold uppercase tracking-wide">{label}</span></div>
+      <p className="mt-1 text-xl font-bold text-mist-900">{value}</p>
+      <p className="text-[11px] text-mist-400">{hint}</p>
+    </Card>
   );
 }
 
