@@ -61,6 +61,8 @@ import {
   Languages,
   Database,
   FileText,
+  Scissors,
+  Radiation,
   type LucideIcon,
 } from "lucide-react";
 
@@ -85,6 +87,7 @@ export const NAV: NavGroup[] = [
       { to: "/appointments", label: "Appointments", icon: CalendarClock },
       { to: "/consultation", label: "Consultation", icon: Stethoscope },
       { to: "/inpatient", label: "In-patient Care (IPC)", icon: BedDouble },
+      { to: "/procedures", label: "Procedures", icon: Scissors },
       { to: "/history", label: "Medical History", icon: FileClock },
     ],
   },
@@ -93,6 +96,7 @@ export const NAV: NavGroup[] = [
     items: [
       { to: "/laboratory", label: "Laboratory", icon: FlaskConical, badge: "lab" },
       { to: "/pharmacy", label: "Pharmacy", icon: Pill, badge: "rx" },
+      { to: "/radiology", label: "Radiology", icon: Radiation },
     ],
   },
   {

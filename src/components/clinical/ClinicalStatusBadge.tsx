@@ -31,7 +31,7 @@ const warn = <TriangleAlert size={11} aria-hidden />;
 const ban = <Ban size={11} aria-hidden />;
 
 export type ClinicalStatusKind =
-  | "request" | "task" | "service" | "result" | "note" | "dispense" | "admin" | "referral" | "comm";
+  | "request" | "task" | "service" | "result" | "note" | "dispense" | "admin" | "referral" | "comm" | "procedure" | "imaging";
 
 const MAPS: Record<ClinicalStatusKind, Record<string, Entry>> = {
   request: {
@@ -119,6 +119,25 @@ const MAPS: Record<ClinicalStatusKind, Record<string, Entry>> = {
     viewed: { label: "Viewed", tone: "mist", icon: <Eye size={11} aria-hidden /> },
     acknowledged: { label: "Acknowledged", tone: "brand", icon: check },
     communicated: { label: "Communicated", tone: "brand", icon: <Send size={11} aria-hidden /> },
+  },
+  procedure: {
+    requested: { label: "Requested", tone: "amber", icon: <Send size={11} aria-hidden /> },
+    scheduled: { label: "Scheduled", tone: "amber", icon: clock },
+    consented: { label: "Consented", tone: "amber", icon: <ClipboardCheck size={11} aria-hidden /> },
+    "pre-procedure": { label: "Pre-procedure", tone: "amber", icon: clock },
+    performed: { label: "Performed", tone: "brand", icon: check },
+    recovery: { label: "Recovery", tone: "amber", icon: dot },
+    "follow-up": { label: "Follow-up", tone: "brand", icon: <RotateCcw size={11} aria-hidden /> },
+    cancelled: { label: "Cancelled", tone: "mist", icon: ban },
+  },
+  imaging: {
+    requested: { label: "Requested", tone: "amber", icon: <Send size={11} aria-hidden /> },
+    scheduled: { label: "Scheduled", tone: "amber", icon: clock },
+    performed: { label: "Performed", tone: "amber", icon: <Beaker size={11} aria-hidden /> },
+    reported: { label: "Reported", tone: "amber", icon: <FileText size={11} aria-hidden /> },
+    verified: { label: "Verified", tone: "brand", icon: check },
+    amended: { label: "Amended", tone: "amber", icon: <RotateCcw size={11} aria-hidden /> },
+    cancelled: { label: "Cancelled", tone: "mist", icon: ban },
   },
 };
 

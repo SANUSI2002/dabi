@@ -15,9 +15,11 @@ const Inpatient = lazy(() => import("@/pages/clinical/Inpatient"));
 const MedicalHistory = lazy(() => import("@/pages/clinical/MedicalHistory"));
 const PatientChart = lazy(() => import("@/pages/clinical/PatientChart"));
 const Transfers = lazy(() => import("@/pages/clinical/Transfers"));
+const Procedures = lazy(() => import("@/pages/clinical/Procedures"));
 const Laboratory = lazy(() => import("@/pages/diagnostics/Laboratory"));
 const LabTestSettings = lazy(() => import("@/pages/diagnostics/LabTestSettings"));
 const Pharmacy = lazy(() => import("@/pages/diagnostics/Pharmacy"));
+const Radiology = lazy(() => import("@/pages/diagnostics/Radiology"));
 const Antenatal = lazy(() => import("@/pages/mch/Antenatal"));
 const Labour = lazy(() => import("@/pages/mch/Labour"));
 const Postnatal = lazy(() => import("@/pages/mch/Postnatal"));
@@ -146,9 +148,11 @@ export default function App() {
           <Route path="/history" element={<MedicalHistory />} />
           <Route path="/patients/:id" element={<PatientChart />} />
           <Route path="/transfers" element={<Transfers />} />
+          <Route path="/procedures" element={<Procedures />} />
           <Route path="/laboratory" element={<Laboratory />} />
           <Route path="/laboratory/test-settings" element={<LabTestSettings />} />
           <Route path="/pharmacy" element={<Pharmacy />} />
+          <Route path="/radiology" element={<Radiology />} />
           <Route path="/anc" element={<Antenatal />} />
           <Route path="/labour" element={<Labour />} />
           <Route path="/pnc" element={<Postnatal />} />

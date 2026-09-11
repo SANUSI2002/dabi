@@ -17,6 +17,8 @@ import { Provenance } from "@/components/clinical/Provenance";
 import { ConsolidatedEmrDoc, PatientCardDoc, PatientSummaryDoc } from "@/components/print/documents";
 import { useEmr, serviceLine } from "@/store/useEmr";
 import { useClinical, isActivityOverdue } from "@/store/useClinical";
+import { useProcedures } from "@/store/useProcedures";
+import { useRadiology } from "@/store/useRadiology";
 import { DIAGNOSES, LAB_TESTS } from "@/data/catalog";
 import {
   ALLERGEN_SNOMED, LAB_LOINC, VITAL_LOINC, icd11Concept, localConcept, type VitalKey,
@@ -41,6 +43,8 @@ export default function PatientChart() {
   const nav = useNavigate();
   const emr = useEmr();
   const clinical = useClinical();
+  const proceduresStore = useProcedures();
+  const radiologyStore = useRadiology();
   const patient = emr.patientById(id);
   const [doc, setDoc] = useState<"emr" | "card" | "summary" | null>(null);
   const [problemOpen, setProblemOpen] = useState(false);
@@ -74,6 +78,8 @@ export default function PatientChart() {
   const conditions = clinical.conditionsFor(patient.id);
   const allergies = clinical.allergiesFor(patient);
   const carePlans = clinical.carePlansFor(patient.id);
+  const procedures = proceduresStore.proceduresFor(patient.id);
+  const imagingStudies = radiologyStore.studiesFor(patient.id);
 
   const activeProblems = conditions.filter((condition) => condition.clinicalStatus === "active" || condition.clinicalStatus === "recurrence" || condition.clinicalStatus === "relapse");
   const pastProblems = conditions.filter((condition) => !activeProblems.includes(condition));
@@ -91,6 +97,8 @@ export default function PatientChart() {
     ...appointments.map((appointment) => ({ id: `appt-${appointment.id}`, timestamp: appointment.date, category: "Appointments", title: `${appointment.type} appointment`, detail: `${appointment.provider} · ${appointment.time} · ${appointment.status}` })),
     ...referrals.map((referral) => ({ id: `ref-${referral.id}`, timestamp: referral.date, category: "Referrals", title: `${referral.type} referral — ${referral.diagnosis}`, detail: `${referral.facility} · ${referral.status}`, author: referral.referredBy })),
     ...admissions.map((admission) => ({ id: `adm-${admission.id}`, timestamp: admission.admittedAt, category: "Admissions", title: `Admitted — ${admission.diagnosis}`, detail: `${admission.ward} · ${admission.bed} · ${admission.status}` })),
+    ...procedures.map((procedure) => ({ id: `proc-${procedure.id}`, timestamp: procedure.requestedAt, category: "Procedures", title: procedure.name, detail: `${procedure.status}${procedure.performer ? ` · ${procedure.performer}` : ""}`, author: procedure.requestedBy })),
+    ...imagingStudies.map((study) => ({ id: `img-${study.id}`, timestamp: study.requestedAt, category: "Imaging", title: `${study.modality} — ${study.bodySite}`, detail: `${study.accessionNumber} · ${study.status}${study.report ? ` · ${study.report.impression}` : ""}`, author: study.requestedBy })),
     ...transfers.map((transfer) => ({ id: `xfer-${transfer.id}`, timestamp: transfer.date, category: "Admissions", title: `${transfer.direction === "Out" ? "Transfer out to" : "Transfer in from"} ${transfer.facility}`, detail: `${transfer.reason} · ${transfer.status}` })),
     ...invoices.map((invoice) => ({ id: `inv-${invoice.id}`, timestamp: invoice.createdAt, category: "Billing", title: `${invoice.number}`, detail: `${invoice.lines.map((line) => line.name).join(", ")} · ${invoice.status}` })),
     ...carePlans.map((plan) => ({ id: `plan-${plan.id}`, timestamp: plan.createdDate, category: "Care plans", title: plan.title, detail: `${plan.status} · ${plan.goals.length} goal(s)`, author: plan.createdBy })),
@@ -104,6 +112,8 @@ export default function PatientChart() {
     `Results & trends (${labs.length})`,
     `Care plans (${carePlans.length})`,
     "Documents",
+    `Procedures (${procedures.length})`,
+    `Imaging (${imagingStudies.length})`,
     `Encounters (${encounters.length})`,
     "Vitals",
     `Billing (${invoices.length})`,
@@ -425,22 +435,85 @@ export default function PatientChart() {
             return (
               <div className="space-y-4">
                 <Table columns={["Document", "Type", "Author", "Date", "Status"]} caption="Clinical documents">
-                  {encounters.length === 0 && <EmptyRow colSpan={5}>No clinical documents have been recorded.</EmptyRow>}
+                  {encounters.length === 0 &&
+                    procedures.filter((procedure) => procedure.noteSigned || procedure.status === "Performed").length === 0 &&
+                    imagingStudies.filter((study) => study.report).length === 0 && (
+                      <EmptyRow colSpan={5}>No clinical documents have been recorded.</EmptyRow>
+                    )}
                   {encounters.map((encounter, index) => (
                     <Row key={encounter.id} index={index}>
                       <Cell className="font-medium text-mist-900">Consultation note — {encounter.complaint}</Cell>
                       <Cell><Badge tone="mist">Encounter note</Badge></Cell>
                       <Cell>{encounter.provider}</Cell>
                       <Cell className="text-mist-500">{shortDate(encounter.date)}</Cell>
-                      <Cell><ClinicalStatusBadge kind="note" status="signed" /></Cell>
+                      <Cell><ClinicalStatusBadge kind="note" status={noteStatus(encounter.status)} /></Cell>
+                    </Row>
+                  ))}
+                  {procedures.filter((procedure) => procedure.noteSigned || procedure.status === "Performed").map((procedure, index) => (
+                    <Row key={procedure.id} index={encounters.length + index}>
+                      <Cell className="font-medium text-mist-900">Procedure note — {procedure.name}</Cell>
+                      <Cell><Badge tone="mist">Procedure note</Badge></Cell>
+                      <Cell>{procedure.performer ?? procedure.requestedBy}</Cell>
+                      <Cell className="text-mist-500">{procedure.performedAt ? shortDate(procedure.performedAt) : shortDate(procedure.requestedAt)}</Cell>
+                      <Cell><ClinicalStatusBadge kind="note" status={procedure.noteSigned ? "signed" : "saved"} /></Cell>
+                    </Row>
+                  ))}
+                  {imagingStudies.filter((study) => study.report).map((study, index) => (
+                    <Row key={study.id} index={encounters.length + procedures.length + index}>
+                      <Cell className="font-medium text-mist-900">Imaging report — {study.modality} {study.bodySite}</Cell>
+                      <Cell><Badge tone="mist">Imaging report</Badge></Cell>
+                      <Cell>{study.report?.verifiedBy ?? study.report?.author}</Cell>
+                      <Cell className="text-mist-500">{shortDate(study.report!.authoredAt)}</Cell>
+                      <Cell><ClinicalStatusBadge kind="note" status={study.report?.verifiedBy ? "signed" : "saved"} /></Cell>
+                    </Row>
+                  ))}
+                </Table>
+              </div>
+            );
+          }
+
+          if (tab.startsWith("Procedures")) {
+            return (
+              <Table columns={["Procedure", "Site", "Priority", "Requested", "Status", "Note"]} caption="Procedure history">
+                {procedures.length === 0 && <EmptyRow colSpan={6}>No procedures have been recorded.</EmptyRow>}
+                {procedures.map((procedure, index) => (
+                  <Row key={procedure.id} index={index}>
+                    <Cell className="font-medium">{procedure.name}</Cell>
+                    <Cell className="text-mist-500">{procedure.bodySite ?? "—"}{procedure.laterality && procedure.laterality !== "N/A" ? ` (${procedure.laterality})` : ""}</Cell>
+                    <Cell><Badge tone={procedure.priority === "Routine" ? "mist" : "action"}>{procedure.priority}</Badge></Cell>
+                    <Cell className="text-mist-400">{shortDate(procedure.requestedAt)}</Cell>
+                    <Cell><ClinicalStatusBadge kind="procedure" status={procedure.status} /></Cell>
+                    <Cell>{procedure.status === "Performed" || procedure.status === "Recovery" || procedure.status === "Follow-up" ? <ClinicalStatusBadge kind="note" status={procedure.noteSigned ? "signed" : "saved"} /> : "—"}</Cell>
+                  </Row>
+                ))}
+                {procedures.length > 0 && (
+                  <tr><td colSpan={6} className="td"><Link to="/procedures" className="text-xs text-brand-600 hover:underline">Open Procedures for full detail →</Link></td></tr>
+                )}
+              </Table>
+            );
+          }
+
+          if (tab.startsWith("Imaging")) {
+            return (
+              <div className="space-y-4">
+                <Table columns={["Study", "Accession", "Requested", "Status", "Impression"]} caption="Imaging history">
+                  {imagingStudies.length === 0 && <EmptyRow colSpan={5}>No imaging has been requested.</EmptyRow>}
+                  {imagingStudies.map((study, index) => (
+                    <Row key={study.id} index={index}>
+                      <Cell className="font-medium">{study.modality} — {study.bodySite}{study.laterality && study.laterality !== "N/A" ? ` (${study.laterality})` : ""}</Cell>
+                      <Cell className="font-mono text-xs">{study.accessionNumber}</Cell>
+                      <Cell className="text-mist-400">{shortDate(study.requestedAt)}</Cell>
+                      <Cell><ClinicalStatusBadge kind="imaging" status={study.status} /></Cell>
+                      <Cell className="text-mist-600">{study.report?.impression ?? "—"}</Cell>
                     </Row>
                   ))}
                 </Table>
                 <EmptyState
                   variant="unavailable"
                   compact
-                  title="Imaging reports unavailable"
-                  hint="No radiology / imaging integration is configured for this facility. Imaging studies and reports are not available in this record."
+                  title="Image viewer unavailable"
+                  hint="No PACS/DICOM viewer is integrated with this facility build — reports above are text only. Open Radiology for the full study, series and comparison detail."
+                  action={<Link to="/radiology" className="btn-soft text-xs">Open Radiology</Link>}
                 />
               </div>
             );
@@ -457,7 +530,7 @@ export default function PatientChart() {
                     <Cell>{encounter.complaint}</Cell>
                     <Cell>{encounter.diagnoses.map((diagnosis) => `${diagnosis.name} (${diagnosis.code})`).join(", ") || "—"}</Cell>
                     <Cell className="text-mist-500">{encounter.plan ?? "—"}</Cell>
-                    <Cell><ClinicalStatusBadge kind="note" status="signed" /></Cell>
+                    <Cell><ClinicalStatusBadge kind="note" status={noteStatus(encounter.status)} /></Cell>
                   </Row>
                 ))}
               </Table>
@@ -542,6 +615,15 @@ export default function PatientChart() {
 
 function daysBetween(iso: string) {
   return Math.round((Date.now() - new Date(iso).getTime()) / 86400000);
+}
+
+/** maps the encounter document lifecycle onto the shared "note" status vocabulary;
+ *  older mock encounters have no status recorded and are treated as signed */
+function noteStatus(status?: string): string {
+  if (status === "in-progress") return "saved";
+  if (status === "amended") return "amended";
+  if (status === "cancelled") return "cancelled";
+  return "signed";
 }
 
 type ConditionRow = ReturnType<typeof useClinical.getState>["conditions"][number];
