@@ -35,7 +35,7 @@ export const useEquipmentCalibration = create<EquipmentCalibrationState>((set, g
       vendor,
       technician,
     };
-    audit("scheduled equipment calibration", `equipment/${eq?.equipmentId ?? equipmentId}`, { user: who, meta: { scheduledFor } });
+    audit("scheduled equipment calibration", `equipment-scada/${eq?.equipmentId ?? equipmentId}`, { user: who, meta: { scheduledFor } });
     set((s) => ({ records: [record, ...s.records] }));
     return record;
   },
@@ -44,7 +44,7 @@ export const useEquipmentCalibration = create<EquipmentCalibrationState>((set, g
     const who = useIdentity.getState().user.name;
     const record = get().records.find((r) => r.id === id);
     if (!record) return;
-    audit("started equipment calibration", `equipment/calibration/${id}`, { user: who });
+    audit("started equipment calibration", `equipment-scada/calibration/${id}`, { user: who });
     set((s) => ({ records: s.records.map((r) => (r.id === id ? { ...r, status: "In Progress" } : r)) }));
     useEquipmentEvents.getState().logEvent({ equipmentId: record.equipmentId, type: "CALIBRATION_STARTED", source: "USER", actor: who, correlationId: id });
   },
@@ -53,7 +53,7 @@ export const useEquipmentCalibration = create<EquipmentCalibrationState>((set, g
     const who = useIdentity.getState().user.name;
     const record = get().records.find((r) => r.id === id);
     if (!record) return;
-    audit("completed equipment calibration", `equipment/calibration/${id}`, { user: who, meta: input });
+    audit("completed equipment calibration", `equipment-scada/calibration/${id}`, { user: who, meta: input });
     set((s) => ({
       records: s.records.map((r) =>
         r.id === id
@@ -72,7 +72,7 @@ export const useEquipmentCalibration = create<EquipmentCalibrationState>((set, g
 
   cancelCalibration: (id, reason) => {
     const who = useIdentity.getState().user.name;
-    audit("cancelled equipment calibration", `equipment/calibration/${id}`, { user: who, meta: { reason } });
+    audit("cancelled equipment calibration", `equipment-scada/calibration/${id}`, { user: who, meta: { reason } });
     set((s) => ({ records: s.records.map((r) => (r.id === id ? { ...r, status: "Cancelled", cancelReason: reason } : r)) }));
   },
 

@@ -169,10 +169,11 @@ function reserveConsumable(eq: EquipmentRecord, testName: string, orderId: strin
   const usable = items.find((i) => consumableStateFor(i) === "OK" || consumableStateFor(i) === "Low Stock");
   if (!usable) {
     const expired = items.some((i) => consumableStateFor(i) === "Expired");
-    if (!useEquipmentEvents.getState().openAlarmsFor(eq.id).some((a) => a.category === "Consumable")) {
+    if (!useEquipmentEvents.getState().openAlarmsFor(eq.id).some((a) => a.category === "Consumable" && a.parameter === "blocked")) {
       useEquipmentEvents.getState().raiseAlarm({
         equipmentId: eq.id, source: "SIMULATOR", severity: "High", category: "Consumable",
         description: expired ? "All registered consumables are expired — testing blocked" : "Consumable stock depleted — testing blocked",
+        parameter: "blocked",
       });
     }
     return false;
@@ -259,6 +260,21 @@ function tick() {
         equipmentId: eq.id, source: "SYSTEM", severity: "High", category: "Calibration",
         description: "Calibration is overdue",
       });
+    }
+    // Low Stock is a reorder heads-up, distinct from the hard block raised once stock actually
+    // runs out — surfaced per item (via the alarm's `parameter`) so multiple low items on one
+    // device each get their own alarm rather than one masking the rest.
+    for (const item of useEquipmentConsumables.getState().itemsFor(eq.id)) {
+      if (
+        consumableStateFor(item) === "Low Stock" &&
+        !useEquipmentEvents.getState().openAlarmsFor(eq.id).some((a) => a.category === "Consumable" && a.parameter === item.id)
+      ) {
+        useEquipmentEvents.getState().raiseAlarm({
+          equipmentId: eq.id, source: "SYSTEM", severity: "Medium", category: "Consumable",
+          description: `${item.name} is low on stock (${item.quantityOnHand} ${item.unit} left, reorder at ${item.reorderThreshold})`,
+          parameter: item.id,
+        });
+      }
     }
     // Warranty expiry is a cost/coverage fact, not a safety one — surfaced once as a heads-up
     // ahead of the deadline (directive: "generate alerts before expiry"), not re-raised forever.

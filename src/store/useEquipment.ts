@@ -19,7 +19,9 @@ type EquipmentState = {
   machineStates: Record<string, MachineState>;
   telemetryLatest: Record<string, Record<string, TelemetryReading>>;
   telemetryHistory: Record<string, Record<string, TelemetryHistoryPoint[]>>;
-  runtimeTodaySec: Record<string, number>;
+  /** Cumulative seconds spent Running since the simulator started this session — not a
+   *  calendar-day figure despite how that might sound; nothing resets it at midnight. */
+  runtimeSecTotal: Record<string, number>;
 
   equipmentById: (id: string) => EquipmentRecord | undefined;
   registerEquipment: (input: {
@@ -43,7 +45,7 @@ export const useEquipment = create<EquipmentState>((set, get) => ({
   machineStates: Object.fromEntries(EQUIPMENT_SEED.map((e) => [e.id, "Ready" as MachineState])),
   telemetryLatest: {},
   telemetryHistory: {},
-  runtimeTodaySec: {},
+  runtimeSecTotal: {},
 
   equipmentById: (id) => get().equipment.find((e) => e.id === id),
 
@@ -67,7 +69,7 @@ export const useEquipment = create<EquipmentState>((set, get) => ({
       createdAt: new Date().toISOString(),
       registeredBy: who,
     };
-    audit("registered equipment", `equipment/${record.equipmentId}`, { user: who });
+    audit("registered equipment", `equipment-scada/${record.equipmentId}`, { user: who });
     set((s) => ({
       equipment: [record, ...s.equipment],
       heartbeats: { ...s.heartbeats, [record.id]: emptyHeartbeat() },
@@ -79,7 +81,7 @@ export const useEquipment = create<EquipmentState>((set, get) => ({
   transferEquipment: (id, to, reason) => {
     const who = useIdentity.getState().user.name;
     const eq = get().equipmentById(id);
-    audit("transferred equipment", `equipment/${eq?.equipmentId ?? id}`, { user: who, meta: { reason, to } });
+    audit("transferred equipment", `equipment-scada/${eq?.equipmentId ?? id}`, { user: who, meta: { reason, to } });
     set((s) => ({
       equipment: s.equipment.map((e) => (e.id === id ? { ...e, location: to } : e)),
     }));
@@ -88,7 +90,7 @@ export const useEquipment = create<EquipmentState>((set, get) => ({
   decommissionEquipment: (id, reason) => {
     const who = useIdentity.getState().user.name;
     const eq = get().equipmentById(id);
-    audit("decommissioned equipment", `equipment/${eq?.equipmentId ?? id}`, { user: who, meta: { reason } });
+    audit("decommissioned equipment", `equipment-scada/${eq?.equipmentId ?? id}`, { user: who, meta: { reason } });
     set((s) => ({
       equipment: s.equipment.map((e) => (e.id === id ? { ...e, lifecycle: { ...e.lifecycle, decommissionDate: new Date().toISOString() } } : e)),
       machineStates: { ...s.machineStates, [id]: "Decommissioned" },
@@ -134,7 +136,7 @@ export const useEquipment = create<EquipmentState>((set, get) => ({
     });
   },
 
-  addRuntime: (id, seconds) => set((s) => ({ runtimeTodaySec: { ...s.runtimeTodaySec, [id]: (s.runtimeTodaySec[id] ?? 0) + seconds } })),
+  addRuntime: (id, seconds) => set((s) => ({ runtimeSecTotal: { ...s.runtimeSecTotal, [id]: (s.runtimeSecTotal[id] ?? 0) + seconds } })),
 
   connectivityFor: (id) => {
     const hb = get().heartbeats[id];

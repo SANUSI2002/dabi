@@ -26,7 +26,7 @@ export const useEquipmentWarranty = create<EquipmentWarrantyState>((set, get) =>
   setWarranty: (equipmentId, input) => {
     const who = useIdentity.getState().user.name;
     const info: WarrantyInfo = { equipmentId, ...input, updatedAt: new Date().toISOString(), updatedBy: who };
-    audit("updated equipment warranty", `equipment/warranty/${equipmentId}`, { user: who, meta: { provider: input.provider } });
+    audit("updated equipment warranty", `equipment-scada/warranty/${equipmentId}`, { user: who, meta: { provider: input.provider } });
     set((s) => ({ warranties: [info, ...s.warranties.filter((w) => w.equipmentId !== equipmentId)] }));
   },
 
@@ -43,14 +43,14 @@ export const useEquipmentWarranty = create<EquipmentWarrantyState>((set, get) =>
       raisedBy: who,
       relatedWorkOrderId,
     };
-    audit("filed equipment warranty claim", `equipment/warranty-claim/${equipmentId}`, { user: who, meta: { issue } });
+    audit("filed equipment warranty claim", `equipment-scada/warranty-claim/${equipmentId}`, { user: who, meta: { issue } });
     set((s) => ({ claims: [claim, ...s.claims] }));
     return claim;
   },
 
   updateClaimStatus: (id, status, opts) => {
     const who = useIdentity.getState().user.name;
-    audit("updated equipment warranty claim", `equipment/warranty-claim/${id}`, { user: who, meta: { status, ...opts } });
+    audit("updated equipment warranty claim", `equipment-scada/warranty-claim/${id}`, { user: who, meta: { status, ...opts } });
     set((s) => ({
       claims: s.claims.map((c) =>
         c.id === id

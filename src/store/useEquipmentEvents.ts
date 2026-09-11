@@ -103,7 +103,7 @@ export const useEquipmentEvents = create<EquipmentEventsState>((set, get) => ({
   acknowledgeAlarm: (id) => {
     const who = useIdentity.getState().user.name;
     const alarm = get().alarms.find((a) => a.id === id);
-    audit("acknowledged equipment alarm", `equipment/alarm/${id}`, { user: who });
+    audit("acknowledged equipment alarm", `equipment-scada/alarm/${id}`, { user: who });
     set((s) => ({
       alarms: s.alarms.map((a) => (a.id === id ? { ...a, status: "Acknowledged", acknowledgedBy: who, acknowledgedAt: new Date().toISOString() } : a)),
     }));
@@ -112,20 +112,20 @@ export const useEquipmentEvents = create<EquipmentEventsState>((set, get) => ({
 
   investigateAlarm: (id, note) => {
     const who = useIdentity.getState().user.name;
-    audit("investigating equipment alarm", `equipment/alarm/${id}`, { user: who, meta: { note } });
+    audit("investigating equipment alarm", `equipment-scada/alarm/${id}`, { user: who, meta: { note } });
     set((s) => ({ alarms: s.alarms.map((a) => (a.id === id ? { ...a, status: "Investigating", investigationNote: note } : a)) }));
   },
 
   escalateAlarm: (id, to) => {
     const who = useIdentity.getState().user.name;
-    audit("escalated equipment alarm", `equipment/alarm/${id}`, { user: who, meta: { to } });
+    audit("escalated equipment alarm", `equipment-scada/alarm/${id}`, { user: who, meta: { to } });
     set((s) => ({ alarms: s.alarms.map((a) => (a.id === id ? { ...a, status: "Escalated", escalatedTo: to, escalatedAt: new Date().toISOString() } : a)) }));
   },
 
   resolveAlarm: (id, resolution) => {
     const who = useIdentity.getState().user.name;
     const alarm = get().alarms.find((a) => a.id === id);
-    audit("resolved equipment alarm", `equipment/alarm/${id}`, { user: who, meta: { resolution } });
+    audit("resolved equipment alarm", `equipment-scada/alarm/${id}`, { user: who, meta: { resolution } });
     set((s) => ({
       alarms: s.alarms.map((a) => (a.id === id ? { ...a, status: "Resolved", resolution, resolvedBy: who, resolvedAt: new Date().toISOString() } : a)),
     }));
@@ -134,13 +134,13 @@ export const useEquipmentEvents = create<EquipmentEventsState>((set, get) => ({
 
   closeAlarm: (id) => {
     const who = useIdentity.getState().user.name;
-    audit("closed equipment alarm", `equipment/alarm/${id}`, { user: who });
+    audit("closed equipment alarm", `equipment-scada/alarm/${id}`, { user: who });
     set((s) => ({ alarms: s.alarms.map((a) => (a.id === id ? { ...a, status: "Closed" } : a)) }));
   },
 
   suppressAlarm: (id) => {
     const who = useIdentity.getState().user.name;
-    audit("suppressed equipment alarm", `equipment/alarm/${id}`, { user: who });
+    audit("suppressed equipment alarm", `equipment-scada/alarm/${id}`, { user: who });
     set((s) => ({ alarms: s.alarms.map((a) => (a.id === id ? { ...a, status: "Suppressed" } : a)) }));
   },
 

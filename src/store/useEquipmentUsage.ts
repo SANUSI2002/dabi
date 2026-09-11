@@ -28,7 +28,7 @@ export const useEquipmentUsage = create<EquipmentUsageState>((set, get) => ({
       orderId: input.orderId,
       startedAt: new Date().toISOString(),
     };
-    audit("equipment usage session started", `equipment/usage/${equipmentId}`, { meta: { operator: input.operator, test: input.testName } });
+    audit("equipment usage session started", `equipment-scada/usage/${equipmentId}`, { meta: { operator: input.operator, test: input.testName } });
     set((s) => ({ sessions: [session, ...s.sessions] }));
     return session;
   },

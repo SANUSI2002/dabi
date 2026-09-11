@@ -48,14 +48,14 @@ export const useEquipmentConsumables = create<EquipmentConsumablesState>((set, g
       registeredAt: new Date().toISOString(),
       registeredBy: who,
     };
-    audit("registered equipment consumable", `equipment/consumable/${equipmentId}`, { user: who, meta: { name: input.name, lot: input.lotNumber } });
+    audit("registered equipment consumable", `equipment-scada/consumable/${equipmentId}`, { user: who, meta: { name: input.name, lot: input.lotNumber } });
     set((s) => ({ items: [item, ...s.items] }));
     return item;
   },
 
   receiveStock: (id, quantity) => {
     const who = useIdentity.getState().user.name;
-    audit("received equipment consumable stock", `equipment/consumable/${id}`, { user: who, meta: { quantity } });
+    audit("received equipment consumable stock", `equipment-scada/consumable/${id}`, { user: who, meta: { quantity } });
     set((s) => ({ items: s.items.map((i) => (i.id === id ? { ...i, quantityOnHand: i.quantityOnHand + quantity } : i)) }));
   },
 
@@ -72,7 +72,7 @@ export const useEquipmentConsumables = create<EquipmentConsumablesState>((set, g
         ...s.usageEvents,
       ],
     }));
-    if (opts.source === "USER") audit("recorded equipment consumable usage", `equipment/consumable/${id}`, { user: who, meta: { quantity, reason: opts.reason } });
+    if (opts.source === "USER") audit("recorded equipment consumable usage", `equipment-scada/consumable/${id}`, { user: who, meta: { quantity, reason: opts.reason } });
     return true;
   },
 

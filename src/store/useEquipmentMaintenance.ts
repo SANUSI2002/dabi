@@ -44,7 +44,7 @@ export const useEquipmentMaintenance = create<EquipmentMaintenanceState>((set, g
       checklist: eq ? defaultChecklistFor(eq.category) : [],
       partsUsed: [],
     };
-    audit("reported equipment failure", `equipment/${eq?.equipmentId ?? equipmentId}`, { user: who, meta: { severity, description } });
+    audit("reported equipment failure", `equipment-scada/${eq?.equipmentId ?? equipmentId}`, { user: who, meta: { severity, description } });
     set((s) => ({ workOrders: [wo, ...s.workOrders] }));
     return wo;
   },
@@ -66,7 +66,7 @@ export const useEquipmentMaintenance = create<EquipmentMaintenanceState>((set, g
       checklist: eq ? defaultChecklistFor(eq.category) : [],
       partsUsed: [],
     };
-    audit("scheduled preventive maintenance", `equipment/${eq?.equipmentId ?? equipmentId}`, { user: who, meta: { scheduledFor } });
+    audit("scheduled preventive maintenance", `equipment-scada/${eq?.equipmentId ?? equipmentId}`, { user: who, meta: { scheduledFor } });
     set((s) => ({ workOrders: [wo, ...s.workOrders] }));
     return wo;
   },
@@ -75,7 +75,7 @@ export const useEquipmentMaintenance = create<EquipmentMaintenanceState>((set, g
     const who = useIdentity.getState().user.name;
     const wo = get().workOrders.find((w) => w.id === id);
     if (!wo) return;
-    audit("started equipment work order", `equipment/workorder/${id}`, { user: who });
+    audit("started equipment work order", `equipment-scada/workorder/${id}`, { user: who });
     set((s) => ({
       workOrders: s.workOrders.map((w) => (w.id === id ? { ...w, status: "In Progress", startedAt: new Date().toISOString(), technician: technician ?? w.technician } : w)),
     }));
@@ -106,7 +106,7 @@ export const useEquipmentMaintenance = create<EquipmentMaintenanceState>((set, g
     const who = useIdentity.getState().user.name;
     const wo = get().workOrders.find((w) => w.id === id);
     if (!wo) return;
-    audit("completed equipment work order", `equipment/workorder/${id}`, { user: who, meta: input });
+    audit("completed equipment work order", `equipment-scada/workorder/${id}`, { user: who, meta: input });
     set((s) => ({
       workOrders: s.workOrders.map((w) =>
         w.id === id
@@ -126,7 +126,7 @@ export const useEquipmentMaintenance = create<EquipmentMaintenanceState>((set, g
 
   cancelWorkOrder: (id, reason) => {
     const who = useIdentity.getState().user.name;
-    audit("cancelled equipment work order", `equipment/workorder/${id}`, { user: who, meta: { reason } });
+    audit("cancelled equipment work order", `equipment-scada/workorder/${id}`, { user: who, meta: { reason } });
     set((s) => ({ workOrders: s.workOrders.map((w) => (w.id === id ? { ...w, status: "Cancelled", cancelReason: reason } : w)) }));
   },
 
