@@ -7,9 +7,13 @@ import { useEquipmentEvents } from "@/store/useEquipmentEvents";
 import { useEquipmentMaintenance } from "@/store/useEquipmentMaintenance";
 import { useEquipmentCalibration } from "@/store/useEquipmentCalibration";
 import { useEquipmentUsage } from "@/store/useEquipmentUsage";
+import { useEquipmentConsumables } from "@/store/useEquipmentConsumables";
+import { useEquipmentWarranty } from "@/store/useEquipmentWarranty";
 import { useEmr } from "@/store/useEmr";
 import { useLabConfig } from "@/store/useLabConfig";
 import { TELEMETRY_PARAMS, severityFor } from "@/data/equipmentTelemetry";
+import { consumableStateFor } from "@/data/equipmentConsumables";
+import { warrantyStatusFor } from "@/data/equipmentWarranty";
 import type { EquipmentRecord } from "@/data/equipment";
 
 export type SimulatorScenario = "Normal" | "Device Error" | "Over-Threshold" | "Connectivity Loss" | "Maintenance" | "Calibration";
@@ -155,12 +159,35 @@ function generateResultFields(fields: { id: string; label: string; unit?: string
 // The run is tied to a named operator — whoever actually collected the sample on the real order
 // (falling back to who ordered it) — so the SCADA grid can show, live, whose test is occupying
 // the machine, and the Usage tab keeps a traceable history of it afterward.
+// Blocks the run and raises an alarm if this equipment has registered consumables but none of
+// them are usable (expired or out of stock) — never lets a test silently proceed as if reagent
+// were unlimited. Equipment with no consumables registered at all is untracked, not blocked.
+function reserveConsumable(eq: EquipmentRecord, testName: string, orderId: string): boolean {
+  const items = useEquipmentConsumables.getState().itemsFor(eq.id);
+  if (items.length === 0) return true;
+
+  const usable = items.find((i) => consumableStateFor(i) === "OK" || consumableStateFor(i) === "Low Stock");
+  if (!usable) {
+    const expired = items.some((i) => consumableStateFor(i) === "Expired");
+    if (!useEquipmentEvents.getState().openAlarmsFor(eq.id).some((a) => a.category === "Consumable")) {
+      useEquipmentEvents.getState().raiseAlarm({
+        equipmentId: eq.id, source: "SIMULATOR", severity: "High", category: "Consumable",
+        description: expired ? "All registered consumables are expired — testing blocked" : "Consumable stock depleted — testing blocked",
+      });
+    }
+    return false;
+  }
+  useEquipmentConsumables.getState().consume(usable.id, 1, { reason: "Test", source: "SIMULATOR", testName, orderId });
+  return true;
+}
+
 function startAnalyzerRun(eq: EquipmentRecord) {
   const wantedCategory = ANALYZER_CATEGORY_MAP[eq.equipmentId];
   if (!wantedCategory || pendingRuns.has(eq.id)) return;
   const emr = useEmr.getState();
   const candidate = emr.labOrders.find((o) => o.category === wantedCategory && o.status === "Sample Collected");
   if (!candidate) return;
+  if (!reserveConsumable(eq, candidate.test, candidate.id)) return;
 
   const operator = candidate.sampleCollectedBy ?? candidate.orderedBy;
   const patient = emr.patientById(candidate.patientId);
@@ -231,6 +258,15 @@ function tick() {
       useEquipmentEvents.getState().raiseAlarm({
         equipmentId: eq.id, source: "SYSTEM", severity: "High", category: "Calibration",
         description: "Calibration is overdue",
+      });
+    }
+    // Warranty expiry is a cost/coverage fact, not a safety one — surfaced once as a heads-up
+    // ahead of the deadline (directive: "generate alerts before expiry"), not re-raised forever.
+    const warranty = useEquipmentWarranty.getState().warrantyFor(eq.id);
+    if (warrantyStatusFor(warranty) === "Expiring Soon" && !useEquipmentEvents.getState().openAlarmsFor(eq.id).some((a) => a.category === "Warranty")) {
+      useEquipmentEvents.getState().raiseAlarm({
+        equipmentId: eq.id, source: "SYSTEM", severity: "Low", category: "Warranty",
+        description: `Warranty with ${warranty!.provider} expires ${new Date(warranty!.end).toLocaleDateString("en-GB")}`,
       });
     }
   }

@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Wrench, RotateCcw, TriangleAlert, Plus, Trash2, Gauge, UserRound, Clock3, Activity, TrendingUp, TrendingDown, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Wrench, RotateCcw, TriangleAlert, Plus, Trash2, Gauge, UserRound, Clock3, Activity, TrendingUp, TrendingDown, ShieldCheck, PackagePlus, Award, FileWarning } from "lucide-react";
 import { PageHeader, Card, Button, Badge, EmptyState } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell, EmptyRow } from "@/components/ui/Table";
@@ -12,10 +12,14 @@ import { useEquipmentEvents } from "@/store/useEquipmentEvents";
 import { useEquipmentMaintenance } from "@/store/useEquipmentMaintenance";
 import { useEquipmentCalibration } from "@/store/useEquipmentCalibration";
 import { useEquipmentUsage } from "@/store/useEquipmentUsage";
+import { useEquipmentConsumables } from "@/store/useEquipmentConsumables";
+import { useEquipmentWarranty } from "@/store/useEquipmentWarranty";
 import { startEquipmentSimulator, triggerScenario, type SimulatorScenario } from "@/lib/equipmentSimulator";
 import { TELEMETRY_PARAMS } from "@/data/equipmentTelemetry";
 import type { WorkOrder, WorkOrderSeverity } from "@/data/equipmentMaintenance";
 import type { CalibrationRecord, CalibrationResult } from "@/data/equipmentCalibration";
+import { consumableStateFor, type ConsumableItem } from "@/data/equipmentConsumables";
+import { warrantyStatusFor, type WarrantyClaim, type WarrantyClaimStatus } from "@/data/equipmentWarranty";
 import {
   MachineStateBadge, ConnectivityBadge, MaintenanceStateBadge, SafetyStateBadge, AlarmSeverityBadge, AlarmLifecycleBadge,
 } from "@/components/equipment/EquipmentStatusBadge";
@@ -33,6 +37,8 @@ export default function EquipmentDetail() {
   const maint = useEquipmentMaintenance();
   const cal = useEquipmentCalibration();
   const usage = useEquipmentUsage();
+  const consumables = useEquipmentConsumables();
+  const warranty = useEquipmentWarranty();
   const [resolveId, setResolveId] = useState<string | null>(null);
   const [resolution, setResolution] = useState("");
 
@@ -48,6 +54,20 @@ export default function EquipmentDetail() {
   const [calForm, setCalForm] = useState({ scheduledFor: isoDate(new Date()), vendor: "", technician: "" });
   const [completeCalId, setCompleteCalId] = useState<string | null>(null);
   const [completeCalForm, setCompleteCalForm] = useState({ result: "Pass" as CalibrationResult, certificateNumber: "", certificateExpiry: "", standardsUsed: "", notes: "" });
+
+  const [registerConsumableModal, setRegisterConsumableModal] = useState(false);
+  const [consumableForm, setConsumableForm] = useState({ name: "", lotNumber: "", expiryDate: isoDate(new Date()), unit: "unit", quantityOnHand: "0", reorderThreshold: "0", costPerUnit: "0", supplier: "" });
+  const [receiveStockId, setReceiveStockId] = useState<string | null>(null);
+  const [receiveQty, setReceiveQty] = useState("0");
+  const [wastageId, setWastageId] = useState<string | null>(null);
+  const [wastageQty, setWastageQty] = useState("0");
+
+  const [warrantyModal, setWarrantyModal] = useState(false);
+  const [warrantyForm, setWarrantyForm] = useState({ provider: "", start: isoDate(new Date()), end: isoDate(new Date()), coverage: "", contactName: "", contactPhone: "", slaHours: "" });
+  const [claimModal, setClaimModal] = useState(false);
+  const [claimForm, setClaimForm] = useState({ issue: "", relatedWorkOrderId: "" });
+  const [completeClaimId, setCompleteClaimId] = useState<string | null>(null);
+  const [completeClaimForm, setCompleteClaimForm] = useState({ repairedUnderWarranty: true, costRecovered: "", resolutionNote: "" });
 
   useEffect(() => {
     startEquipmentSimulator();
@@ -79,6 +99,11 @@ export default function EquipmentDetail() {
   const currentSession = usage.currentSessionFor(eq.id);
   const usageSessions = usage.sessionsFor(eq.id);
   const reliability = reliabilityStatsFor(eq, workOrders);
+  const consumableItems = consumables.itemsFor(eq.id);
+  const consumableUsage = consumables.usageFor(eq.id);
+  const warrantyInfo = warranty.warrantyFor(eq.id);
+  const warrantyState = warrantyStatusFor(warrantyInfo);
+  const claims = warranty.claimsFor(eq.id);
 
   function partFormFor(woId: string) {
     return partForm[woId] ?? { name: "", qty: "1", cost: "0" };
@@ -103,7 +128,13 @@ export default function EquipmentDetail() {
         {eq.compliance.calibrationRequired && <MaintenanceStateBadge state={calibration} />}
       </div>
 
-      <Tabs tabs={["Overview", "Live", "Telemetry", `Usage (${usageSessions.length})`, `Timeline (${timeline.length})`, `Alarms (${alarms.length})`, `Maintenance (${workOrders.length})`, `Calibration (${calRecords.length})`, "Analytics"]}>
+      <Tabs
+        tabs={[
+          "Overview", "Live", "Telemetry", `Usage (${usageSessions.length})`, `Timeline (${timeline.length})`,
+          `Alarms (${alarms.length})`, `Maintenance (${workOrders.length})`, `Calibration (${calRecords.length})`,
+          `Consumables (${consumableItems.length})`, `Warranty (${claims.length})`, "Analytics",
+        ]}
+      >
         {(tab) =>
           tab === "Overview" ? (
             <div className="grid gap-4 md:grid-cols-2">
@@ -337,6 +368,97 @@ export default function EquipmentDetail() {
                 </div>
               )}
             </div>
+          ) : tab.startsWith("Consumables") ? (
+            <div className="space-y-4">
+              <Button variant="soft" onClick={() => { setConsumableForm({ name: "", lotNumber: "", expiryDate: isoDate(new Date()), unit: "unit", quantityOnHand: "0", reorderThreshold: "0", costPerUnit: "0", supplier: "" }); setRegisterConsumableModal(true); }}>
+                <PackagePlus size={14} /> Register Consumable
+              </Button>
+
+              {consumableItems.length === 0 ? (
+                <EmptyState title="No consumables registered" hint="This equipment runs with no reagent/consumable gating until one is registered here." />
+              ) : (
+                <div className="space-y-3">
+                  {consumableItems.map((item) => (
+                    <ConsumableItemCard
+                      key={item.id}
+                      item={item}
+                      onReceiveStock={() => { setReceiveStockId(item.id); setReceiveQty("0"); }}
+                      onWastage={() => { setWastageId(item.id); setWastageQty("0"); }}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {consumableUsage.length > 0 && (
+                <Table columns={["Date", "Item", "Qty", "Reason", "Source"]} caption="Consumable usage log">
+                  {consumableUsage.map((event, i) => (
+                    <Row key={event.id} index={i}>
+                      <Cell className="whitespace-nowrap text-xs text-mist-500">{dateTime(event.at)}</Cell>
+                      <Cell>{consumableItems.find((it) => it.id === event.consumableId)?.name ?? "—"}</Cell>
+                      <Cell>{event.quantityUsed}</Cell>
+                      <Cell>{event.reason}{event.testName ? ` · ${event.testName}` : ""}</Cell>
+                      <Cell><Badge tone={event.source === "SIMULATOR" ? "mist" : "brand"}>{event.source}</Badge></Cell>
+                    </Row>
+                  ))}
+                </Table>
+              )}
+            </div>
+          ) : tab.startsWith("Warranty") ? (
+            <div className="space-y-4">
+              <Card>
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="flex items-center gap-2 font-display font-bold text-mist-900"><Award size={16} /> Warranty Coverage</h3>
+                  <MaintenanceStateBadge state={warrantyState === "Not Tracked" ? "Not Due" : warrantyState === "Active" ? "Not Due" : warrantyState === "Expiring Soon" ? "Due Soon" : "Overdue"} />
+                </div>
+                {warrantyInfo ? (
+                  <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
+                    <Row2 k="Provider" v={warrantyInfo.provider} />
+                    <Row2 k="Coverage" v={warrantyInfo.coverage} />
+                    <Row2 k="Start" v={shortDate(warrantyInfo.start)} />
+                    <Row2 k="End" v={shortDate(warrantyInfo.end)} />
+                    {warrantyInfo.contactName && <Row2 k="Contact" v={warrantyInfo.contactName} />}
+                    {warrantyInfo.slaHours !== undefined && <Row2 k="Response SLA" v={`${warrantyInfo.slaHours}h`} />}
+                  </dl>
+                ) : (
+                  <p className="text-sm text-mist-400">No warranty on file for this equipment.</p>
+                )}
+                <button
+                  onClick={() => {
+                    setWarrantyForm(
+                      warrantyInfo
+                        ? { provider: warrantyInfo.provider, start: isoDate(warrantyInfo.start), end: isoDate(warrantyInfo.end), coverage: warrantyInfo.coverage, contactName: warrantyInfo.contactName ?? "", contactPhone: warrantyInfo.contactPhone ?? "", slaHours: warrantyInfo.slaHours ? String(warrantyInfo.slaHours) : "" }
+                        : { provider: "", start: isoDate(new Date()), end: isoDate(new Date()), coverage: "", contactName: "", contactPhone: "", slaHours: "" },
+                    );
+                    setWarrantyModal(true);
+                  }}
+                  className="btn-soft mt-3 px-2.5 py-1 text-xs"
+                >
+                  {warrantyInfo ? "Edit Warranty" : "Set Warranty"}
+                </button>
+              </Card>
+
+              <div className="flex items-center justify-between">
+                <h3 className="flex items-center gap-2 font-display font-bold text-mist-900"><FileWarning size={16} /> Claims</h3>
+                <Button variant="soft" onClick={() => { setClaimForm({ issue: "", relatedWorkOrderId: "" }); setClaimModal(true); }}>File Claim</Button>
+              </div>
+              {claims.length === 0 ? (
+                <EmptyState title="No warranty claims filed" hint="File a claim when a repair should be covered under warranty." />
+              ) : (
+                <div className="space-y-3">
+                  {claims.map((claim) => (
+                    <ClaimCard
+                      key={claim.id}
+                      claim={claim}
+                      relatedWorkOrder={workOrders.find((w) => w.id === claim.relatedWorkOrderId)}
+                      onApprove={() => warranty.updateClaimStatus(claim.id, "Approved")}
+                      onReject={() => warranty.updateClaimStatus(claim.id, "Rejected", { resolutionNote: "Rejected by provider" })}
+                      onStartRepair={() => warranty.updateClaimStatus(claim.id, "In Repair")}
+                      onComplete={() => { setCompleteClaimId(claim.id); setCompleteClaimForm({ repairedUnderWarranty: true, costRecovered: "", resolutionNote: "" }); }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           ) : tab === "Analytics" ? (
             <div className="space-y-4">
               <p className="text-xs text-mist-400">
@@ -520,6 +642,160 @@ export default function EquipmentDetail() {
         </Modal>
       )}
 
+      <Modal
+        open={registerConsumableModal}
+        onClose={() => setRegisterConsumableModal(false)}
+        title="Register Consumable"
+        footer={<><Button variant="ghost" onClick={() => setRegisterConsumableModal(false)}>Cancel</Button>
+          <Button
+            disabled={!consumableForm.name.trim() || !consumableForm.lotNumber.trim()}
+            onClick={() => {
+              consumables.registerConsumable(eq.id, {
+                name: consumableForm.name.trim(), lotNumber: consumableForm.lotNumber.trim(), expiryDate: new Date(consumableForm.expiryDate).toISOString(),
+                unit: consumableForm.unit, quantityOnHand: +consumableForm.quantityOnHand || 0, reorderThreshold: +consumableForm.reorderThreshold || 0,
+                costPerUnit: +consumableForm.costPerUnit || 0, supplier: consumableForm.supplier || undefined,
+              });
+              setRegisterConsumableModal(false);
+            }}
+          >
+            Register
+          </Button></>}
+      >
+        <div className="space-y-4">
+          <Field label="Name"><Input value={consumableForm.name} onChange={(e) => setConsumableForm({ ...consumableForm, name: e.target.value })} placeholder="e.g. Hemoglobin reagent kit" /></Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Lot number"><Input value={consumableForm.lotNumber} onChange={(e) => setConsumableForm({ ...consumableForm, lotNumber: e.target.value })} /></Field>
+            <Field label="Expiry date"><Input type="date" value={consumableForm.expiryDate} onChange={(e) => setConsumableForm({ ...consumableForm, expiryDate: e.target.value })} /></Field>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="Unit"><Input value={consumableForm.unit} onChange={(e) => setConsumableForm({ ...consumableForm, unit: e.target.value })} placeholder="kit, mL, test" /></Field>
+            <Field label="Qty on hand"><Input type="number" value={consumableForm.quantityOnHand} onChange={(e) => setConsumableForm({ ...consumableForm, quantityOnHand: e.target.value })} /></Field>
+            <Field label="Reorder at"><Input type="number" value={consumableForm.reorderThreshold} onChange={(e) => setConsumableForm({ ...consumableForm, reorderThreshold: e.target.value })} /></Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Cost per unit (₦)"><Input type="number" value={consumableForm.costPerUnit} onChange={(e) => setConsumableForm({ ...consumableForm, costPerUnit: e.target.value })} /></Field>
+            <Field label="Supplier" hint="Optional"><Input value={consumableForm.supplier} onChange={(e) => setConsumableForm({ ...consumableForm, supplier: e.target.value })} /></Field>
+          </div>
+        </div>
+      </Modal>
+
+      {receiveStockId && (
+        <Modal
+          open
+          onClose={() => setReceiveStockId(null)}
+          title="Receive Stock"
+          footer={<><Button variant="ghost" onClick={() => setReceiveStockId(null)}>Cancel</Button>
+            <Button disabled={!(+receiveQty > 0)} onClick={() => { consumables.receiveStock(receiveStockId, +receiveQty); setReceiveStockId(null); }}>Receive</Button></>}
+        >
+          <Field label="Quantity received"><Input type="number" value={receiveQty} onChange={(e) => setReceiveQty(e.target.value)} /></Field>
+        </Modal>
+      )}
+
+      {wastageId && (
+        <Modal
+          open
+          onClose={() => setWastageId(null)}
+          title="Record Wastage"
+          footer={<><Button variant="ghost" onClick={() => setWastageId(null)}>Cancel</Button>
+            <Button
+              disabled={!(+wastageQty > 0)}
+              onClick={() => { consumables.consume(wastageId, +wastageQty, { reason: "Wastage", source: "USER" }); setWastageId(null); }}
+            >
+              Record
+            </Button></>}
+        >
+          <Field label="Quantity wasted"><Input type="number" value={wastageQty} onChange={(e) => setWastageQty(e.target.value)} /></Field>
+        </Modal>
+      )}
+
+      <Modal
+        open={warrantyModal}
+        onClose={() => setWarrantyModal(false)}
+        title="Warranty Coverage"
+        footer={<><Button variant="ghost" onClick={() => setWarrantyModal(false)}>Cancel</Button>
+          <Button
+            disabled={!warrantyForm.provider.trim() || !warrantyForm.coverage.trim()}
+            onClick={() => {
+              warranty.setWarranty(eq.id, {
+                provider: warrantyForm.provider.trim(), start: new Date(warrantyForm.start).toISOString(), end: new Date(warrantyForm.end).toISOString(),
+                coverage: warrantyForm.coverage.trim(), contactName: warrantyForm.contactName || undefined, contactPhone: warrantyForm.contactPhone || undefined,
+                slaHours: warrantyForm.slaHours ? +warrantyForm.slaHours : undefined,
+              });
+              setWarrantyModal(false);
+            }}
+          >
+            Save
+          </Button></>}
+      >
+        <div className="space-y-4">
+          <Field label="Provider"><Input value={warrantyForm.provider} onChange={(e) => setWarrantyForm({ ...warrantyForm, provider: e.target.value })} /></Field>
+          <Field label="Coverage"><Textarea value={warrantyForm.coverage} onChange={(e) => setWarrantyForm({ ...warrantyForm, coverage: e.target.value })} placeholder="e.g. Parts and labor, excludes consumables" /></Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Start"><Input type="date" value={warrantyForm.start} onChange={(e) => setWarrantyForm({ ...warrantyForm, start: e.target.value })} /></Field>
+            <Field label="End"><Input type="date" value={warrantyForm.end} onChange={(e) => setWarrantyForm({ ...warrantyForm, end: e.target.value })} /></Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Contact name" hint="Optional"><Input value={warrantyForm.contactName} onChange={(e) => setWarrantyForm({ ...warrantyForm, contactName: e.target.value })} /></Field>
+            <Field label="Contact phone" hint="Optional"><Input value={warrantyForm.contactPhone} onChange={(e) => setWarrantyForm({ ...warrantyForm, contactPhone: e.target.value })} /></Field>
+          </div>
+          <Field label="Response SLA (hours)" hint="Optional"><Input type="number" value={warrantyForm.slaHours} onChange={(e) => setWarrantyForm({ ...warrantyForm, slaHours: e.target.value })} /></Field>
+        </div>
+      </Modal>
+
+      <Modal
+        open={claimModal}
+        onClose={() => setClaimModal(false)}
+        title="File Warranty Claim"
+        footer={<><Button variant="ghost" onClick={() => setClaimModal(false)}>Cancel</Button>
+          <Button disabled={!claimForm.issue.trim()} onClick={() => { warranty.fileClaim(eq.id, claimForm.issue.trim(), claimForm.relatedWorkOrderId || undefined); setClaimModal(false); }}>
+            File Claim
+          </Button></>}
+      >
+        <div className="space-y-4">
+          <Field label="Issue"><Textarea value={claimForm.issue} onChange={(e) => setClaimForm({ ...claimForm, issue: e.target.value })} placeholder="What needs to be covered under warranty?" /></Field>
+          {workOrders.length > 0 && (
+            <Field label="Linked work order" hint="Optional">
+              <Select
+                value={claimForm.relatedWorkOrderId}
+                onChange={(e) => setClaimForm({ ...claimForm, relatedWorkOrderId: e.target.value })}
+                options={[{ value: "", label: "None" }, ...workOrders.map((w) => ({ value: w.id, label: `${w.type} — ${w.description.slice(0, 40)}` }))]}
+              />
+            </Field>
+          )}
+        </div>
+      </Modal>
+
+      {completeClaimId && (
+        <Modal
+          open
+          onClose={() => setCompleteClaimId(null)}
+          title="Resolve Warranty Claim"
+          footer={<><Button variant="ghost" onClick={() => setCompleteClaimId(null)}>Cancel</Button>
+            <Button
+              onClick={() => {
+                warranty.updateClaimStatus(completeClaimId, "Completed", {
+                  repairedUnderWarranty: completeClaimForm.repairedUnderWarranty,
+                  costRecovered: completeClaimForm.costRecovered ? +completeClaimForm.costRecovered : undefined,
+                  resolutionNote: completeClaimForm.resolutionNote || undefined,
+                });
+                setCompleteClaimId(null);
+              }}
+            >
+              Complete
+            </Button></>}
+        >
+          <div className="space-y-4">
+            <Checkbox
+              label="Repaired under warranty (no cost to facility)"
+              checked={completeClaimForm.repairedUnderWarranty}
+              onChange={(e) => setCompleteClaimForm({ ...completeClaimForm, repairedUnderWarranty: e.target.checked })}
+            />
+            <Field label="Cost recovered (₦)" hint="Optional — e.g. parts reimbursed"><Input type="number" value={completeClaimForm.costRecovered} onChange={(e) => setCompleteClaimForm({ ...completeClaimForm, costRecovered: e.target.value })} /></Field>
+            <Field label="Resolution note" hint="Optional"><Textarea value={completeClaimForm.resolutionNote} onChange={(e) => setCompleteClaimForm({ ...completeClaimForm, resolutionNote: e.target.value })} /></Field>
+          </div>
+        </Modal>
+      )}
+
       {resolveId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
           <Card className="w-full max-w-md">
@@ -685,6 +961,80 @@ function CalibrationCard({ record, onStart, onComplete, onCancel }: { record: Ca
         </p>
       )}
       {record.status === "Cancelled" && <p className="mt-2 text-xs text-mist-400">Cancelled — {record.cancelReason}</p>}
+    </Card>
+  );
+}
+
+function ConsumableItemCard({ item, onReceiveStock, onWastage }: { item: ConsumableItem; onReceiveStock: () => void; onWastage: () => void }) {
+  const state = consumableStateFor(item);
+  const tone = state === "OK" ? "brand" : state === "Low Stock" ? "amber" : "action";
+  return (
+    <Card>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="font-semibold text-mist-900">{item.name}</p>
+          <p className="text-[11px] text-mist-400">Lot {item.lotNumber} · expires {shortDate(item.expiryDate)}{item.supplier ? ` · ${item.supplier}` : ""}</p>
+        </div>
+        <Badge tone={tone}>{state}</Badge>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-4 text-sm">
+        <span className="text-mist-600">{item.quantityOnHand} {item.unit} on hand</span>
+        <span className="text-mist-400">Reorder at {item.reorderThreshold} {item.unit}</span>
+        <span className="text-mist-400">₦{item.costPerUnit.toLocaleString()} / {item.unit}</span>
+      </div>
+      <div className="mt-2 flex gap-1.5">
+        <button onClick={onReceiveStock} className="btn-soft px-2.5 py-1 text-xs">Receive Stock</button>
+        <button onClick={onWastage} className="text-xs text-mist-400 hover:text-action-600">Record wastage</button>
+      </div>
+    </Card>
+  );
+}
+
+function ClaimCard({
+  claim, relatedWorkOrder, onApprove, onReject, onStartRepair, onComplete,
+}: {
+  claim: WarrantyClaim;
+  relatedWorkOrder?: WorkOrder;
+  onApprove: () => void;
+  onReject: () => void;
+  onStartRepair: () => void;
+  onComplete: () => void;
+}) {
+  const tone: Record<WarrantyClaimStatus, "brand" | "action" | "mist" | "amber"> = {
+    Submitted: "amber", Approved: "brand", "In Repair": "amber", Rejected: "action", Completed: "brand",
+  };
+  return (
+    <Card>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Badge tone={tone[claim.status]}>{claim.status}</Badge>
+        <span className="text-[11px] text-mist-300">{dateTime(claim.raisedAt)} · {claim.raisedBy}</span>
+      </div>
+      <p className="mt-1.5 text-sm text-mist-700">{claim.issue}</p>
+      {relatedWorkOrder && <p className="mt-1 text-xs text-mist-400">Linked to work order: {relatedWorkOrder.description}</p>}
+      {claim.status === "Completed" && (
+        <p className="mt-1 text-xs text-mist-400">
+          {claim.repairedUnderWarranty ? "Repaired under warranty" : "Not covered"}
+          {claim.costRecovered ? ` · ₦${claim.costRecovered.toLocaleString()} recovered` : ""}
+          {claim.resolutionNote ? ` · ${claim.resolutionNote}` : ""}
+        </p>
+      )}
+      {claim.status === "Rejected" && claim.resolutionNote && <p className="mt-1 text-xs text-mist-400">{claim.resolutionNote}</p>}
+      {claim.status === "Submitted" && (
+        <div className="mt-2 flex gap-1.5">
+          <button onClick={onApprove} className="btn-primary px-2.5 py-1 text-xs">Approve</button>
+          <button onClick={onReject} className="text-xs text-mist-400 hover:text-action-600">Reject</button>
+        </div>
+      )}
+      {claim.status === "Approved" && (
+        <div className="mt-2">
+          <button onClick={onStartRepair} className="btn-primary px-2.5 py-1 text-xs">Start Repair</button>
+        </div>
+      )}
+      {claim.status === "In Repair" && (
+        <div className="mt-2">
+          <button onClick={onComplete} className="btn-primary px-2.5 py-1 text-xs">Complete</button>
+        </div>
+      )}
     </Card>
   );
 }

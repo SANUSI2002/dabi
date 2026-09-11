@@ -3,7 +3,7 @@ export type AlarmLifecycle = "Raised" | "Acknowledged" | "Investigating" | "Esca
 
 export type AlarmCategory =
   | "Threshold Breach" | "Connectivity" | "Calibration" | "Maintenance" | "Safety"
-  | "Unauthorized Activity" | "Consumable" | "Power" | "Other";
+  | "Unauthorized Activity" | "Consumable" | "Warranty" | "Power" | "Other";
 
 export type EquipmentAlarm = {
   id: string;
