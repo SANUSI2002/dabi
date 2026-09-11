@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { FileDown, Printer, BarChart3 } from "lucide-react";
 import { PageHeader, StatCard } from "@/components/ui/primitives";
+import { Field, Input } from "@/components/ui/form";
 import { cn } from "@/lib/cn";
+import { shortDate, isoDate } from "@/lib/format";
 import { useEmr } from "@/store/useEmr";
 import { useAssets } from "@/store/useAssets";
 import { useWards } from "@/store/useWards";
@@ -10,8 +12,7 @@ import { useAudit } from "@/store/useAudit";
 import { REPORTS } from "./reports/config";
 import { ReportView } from "./reports/ReportView";
 import type { EmrSnapshot } from "./reports/types";
-
-const PRESETS = ["Today", "Last 7 days", "Last 30 days", "This month", "This quarter", "This year", "Custom"];
+import { DATE_PRESETS, resolveRange, scopeSnapshot, type DatePreset } from "./reports/dateScope";
 
 export default function Reports() {
   const emr = useEmr();
@@ -19,7 +20,7 @@ export default function Reports() {
   const maintenanceJobs = useAssets((s) => s.jobs);
   const wards = useWards((s) => s.wards);
   const beds = useWards((s) => s.beds);
-  const snap: EmrSnapshot = {
+  const snap: EmrSnapshot = useMemo(() => ({
     patients: emr.patients, queue: emr.queue, encounters: emr.encounters, labOrders: emr.labOrders,
     admissions: emr.admissions, appointments: emr.appointments, referrals: emr.referrals, transfers: emr.transfers,
     ancRecords: emr.ancRecords, fpClients: emr.fpClients, childVisits: emr.childVisits,
@@ -27,10 +28,14 @@ export default function Reports() {
     outreachActivities: emr.outreachActivities, surveillanceCases: emr.surveillanceCases,
     ncdClients: emr.ncdClients, patientById: emr.patientById,
     assets, maintenanceJobs, wards, beds,
-  };
+  }), [emr, assets, maintenanceJobs, wards, beds]);
 
   const [familyName, setFamilyName] = useState(REPORTS[14].name); // Service Performance
-  const [preset, setPreset] = useState("This month");
+  const [preset, setPreset] = useState<DatePreset>("This month");
+  const [customFrom, setCustomFrom] = useState(isoDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1)));
+  const [customTo, setCustomTo] = useState(isoDate(new Date()));
+  const range = useMemo(() => resolveRange(preset, customFrom, customTo), [preset, customFrom, customTo]);
+  const scopedSnap = useMemo(() => scopeSnapshot(snap, range), [snap, range]);
   const family = useMemo(() => REPORTS.find((f) => f.name === familyName)!, [familyName]);
   const [tabName, setTabName] = useState(family.tabs[0].name);
   const tab = family.tabs.find((t) => t.name === tabName) ?? family.tabs[0];
@@ -79,23 +84,35 @@ export default function Reports() {
         </div>
 
         <div className="space-y-5">
-          <div className="flex flex-wrap gap-1.5">
-            {PRESETS.map((p) => (
-              <button
-                key={p}
-                onClick={() => setPreset(p)}
-                className={cn("chip", preset === p ? "bg-brand-gradient text-white" : "bg-white text-mist-500 ring-1 ring-mist-200")}
-              >
-                {p}
-              </button>
-            ))}
+          <div>
+            <div className="flex flex-wrap gap-1.5">
+              {DATE_PRESETS.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPreset(p)}
+                  className={cn("chip", preset === p ? "bg-brand-gradient text-white" : "bg-white text-mist-500 ring-1 ring-mist-200")}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+            {preset === "Custom" && (
+              <div className="mt-2 flex flex-wrap items-end gap-3">
+                <Field label="From"><Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} /></Field>
+                <Field label="To"><Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} /></Field>
+              </div>
+            )}
+            <p className="mt-2 text-[11px] text-mist-400">
+              Applies to dated activity — encounters, orders, admissions, deliveries, referrals, and similar events. The NCD,
+              Family Planning, and ANC registers, and asset/ward data, always reflect current state rather than the period above.
+            </p>
           </div>
 
           <motion.div key={familyName} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <h2 className="mb-4 font-display text-lg font-bold text-mist-900">Reports · {family.name}</h2>
 
             <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {family.stats(snap).map((st, i) => (
+              {family.stats(scopedSnap).map((st, i) => (
                 <StatCard key={st.label} label={st.label} value={st.value} tone={st.tone ?? "mist"} delay={i * 0.04} />
               ))}
             </div>
@@ -119,11 +136,11 @@ export default function Reports() {
             </div>
 
             <div>
-              <ReportView tab={tab} snap={snap} />
+              <ReportView tab={tab} snap={scopedSnap} />
             </div>
 
             <p className="mt-4 text-center text-[11px] text-mist-300">
-              {family.name} · {tab.name} · {preset} · generated {new Date().toLocaleString("en-NG")}
+              {family.name} · {tab.name} · {shortDate(range.from)} – {shortDate(range.to)} · generated {new Date().toLocaleString("en-NG")}
             </p>
           </motion.div>
         </div>
