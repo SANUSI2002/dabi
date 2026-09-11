@@ -418,6 +418,7 @@ export type OutreachActivity = {
   households: number;
   referrals: number;
   date: string;
+  notes?: string;
 };
 
 export type Aefi = {
@@ -448,6 +449,7 @@ export type SurveillanceCase = {
   onset: string;
   reportedAt: string;
   status: "Suspected" | "Confirmed" | "Discarded";
+  notes?: string;
 };
 
 export type NcdClient = {

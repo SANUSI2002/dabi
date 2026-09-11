@@ -12,7 +12,7 @@ import { shortDate, ageFromDob } from "@/lib/format";
 export default function Ncd() {
   const { ncdClients, patientById, addNcdClient } = useEmr();
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState({ patientId: "", condition: "Essential hypertension", bp: "", fbs: 0, nextVisit: "" });
+  const [f, setF] = useState({ patientId: "", condition: "Essential hypertension", bp: "", fbs: 0, nextVisit: "", control: "Controlled" as "Controlled" | "Uncontrolled" });
 
   return (
     <div>
@@ -30,7 +30,10 @@ export default function Ncd() {
 
       <Tabs tabs={["Register", "Due for Review"]}>
         {(t) => (
-          <Table columns={["Patient", "Age", "Condition", "Last BP", "Last FBS", "Control", "Next Visit"]}>
+          <Table columns={["Patient", "Age", "Condition", "Last BP", "Last FBS", "Control", "Next Visit"]} caption={t === "Register" ? "NCD register" : "NCD clients due for review"}>
+            {(t === "Register" ? ncdClients : ncdClients.filter((c) => new Date(c.nextVisit) < new Date(Date.now() + 7 * 864e5))).length === 0 && (
+              <Row><Cell className="text-mist-400">{t === "Register" ? "No NCD clients enrolled yet." : "No clients due for review in the next 7 days."}</Cell></Row>
+            )}
             {(t === "Register" ? ncdClients : ncdClients.filter((c) => new Date(c.nextVisit) < new Date(Date.now() + 7 * 864e5))).map((c, i) => {
               const p = patientById(c.patientId);
               return (
@@ -57,11 +60,11 @@ export default function Ncd() {
           <Button disabled={!f.patientId} onClick={() => {
             addNcdClient({
               patientId: f.patientId, condition: f.condition, bp: f.bp, fbs: f.fbs,
-              control: f.fbs > 7 || (f.bp && +f.bp.split("/")[0] > 140) ? "Uncontrolled" : "Controlled",
+              control: f.control,
               nextVisit: f.nextVisit ? new Date(f.nextVisit).toISOString() : new Date(Date.now() + 28 * 864e5).toISOString(),
             });
             setOpen(false);
-            setF({ patientId: "", condition: "Essential hypertension", bp: "", fbs: 0, nextVisit: "" });
+            setF({ patientId: "", condition: "Essential hypertension", bp: "", fbs: 0, nextVisit: "", control: "Controlled" });
           }}>Enrol</Button></>}
       >
         <div className="space-y-4">
@@ -72,6 +75,9 @@ export default function Ncd() {
             <Field label="FBS (mmol/L)"><Input type="number" step="0.1" value={f.fbs || ""} onChange={(e) => setF({ ...f, fbs: +e.target.value })} /></Field>
             <Field label="Next visit"><Input type="date" value={f.nextVisit} onChange={(e) => setF({ ...f, nextVisit: e.target.value })} /></Field>
           </Grid>
+          <Field label="Clinician's control assessment" hint="Your own judgement — this is not auto-derived from the readings above.">
+            <Select value={f.control} onChange={(e) => setF({ ...f, control: e.target.value as never })} options={["Controlled", "Uncontrolled"]} />
+          </Field>
         </div>
       </Modal>
     </div>

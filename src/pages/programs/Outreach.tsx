@@ -14,7 +14,7 @@ export default function Outreach() {
   const staff = useHr((s) => s.staff);
   const [open, setOpen] = useState(false);
   const chws = staff.filter((s) => s.role.includes("Community"));
-  const [f, setF] = useState({ chw: chws[0]?.name ?? staff[0]?.name ?? "", type: "Household visit", ward: "Kirikiri", households: 0, referrals: 0, date: "" });
+  const [f, setF] = useState({ chw: chws[0]?.name ?? staff[0]?.name ?? "", type: "Household visit", ward: "Kirikiri", households: 0, referrals: 0, date: "", notes: "" });
 
   return (
     <div>
@@ -33,11 +33,15 @@ export default function Outreach() {
       <Tabs tabs={["Activity Log", "CHW Roster"]}>
         {(t) =>
           t === "Activity Log" ? (
-            <Table columns={["CHW", "Type", "Ward", "Households", "Referrals", "Date"]}>
+            <Table columns={["CHW", "Type", "Ward", "Households", "Referrals", "Date"]} caption="Community outreach activity log">
+              {outreachActivities.length === 0 && <Row><Cell className="text-mist-400">No activities logged yet.</Cell></Row>}
               {outreachActivities.map((a, i) => (
                 <Row key={a.id} index={i}>
                   <Cell className="font-semibold">{a.chw}</Cell>
-                  <Cell><Badge tone="mist">{a.type}</Badge></Cell>
+                  <Cell>
+                    <Badge tone="mist">{a.type}</Badge>
+                    {a.notes && <span className="mt-0.5 block text-[11px] text-mist-400">{a.notes}</span>}
+                  </Cell>
                   <Cell>{a.ward}</Cell>
                   <Cell>{a.households}</Cell>
                   <Cell>{a.referrals}</Cell>
@@ -65,7 +69,7 @@ export default function Outreach() {
         onClose={() => setOpen(false)}
         title="Log Outreach Activity"
         footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button disabled={!f.date} onClick={() => { addOutreach({ ...f, date: new Date(f.date).toISOString() }); setOpen(false); setF({ ...f, date: "", households: 0, referrals: 0 }); }}>Save Activity</Button></>}
+          <Button disabled={!f.date} onClick={() => { addOutreach({ ...f, date: new Date(f.date).toISOString(), notes: f.notes.trim() || undefined }); setOpen(false); setF({ ...f, date: "", households: 0, referrals: 0, notes: "" }); }}>Save Activity</Button></>}
       >
         <div className="space-y-4">
           <Field label="CHW"><Select value={f.chw} onChange={(e) => setF({ ...f, chw: e.target.value })} options={chws.map((c) => c.name)} /></Field>
@@ -76,7 +80,7 @@ export default function Outreach() {
             <Field label="Referrals made"><Input type="number" value={f.referrals || ""} onChange={(e) => setF({ ...f, referrals: +e.target.value })} /></Field>
           </div>
           <Field label="Date"><Input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
-          <Field label="Notes"><Textarea /></Field>
+          <Field label="Notes"><Textarea value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} placeholder="Households missed, follow-up needed, supplies used…" /></Field>
         </div>
       </Modal>
     </div>
