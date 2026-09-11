@@ -232,6 +232,13 @@ export const NAV: NavGroup[] = [
     ],
   },
   {
+    title: "Equipment Intelligence",
+    items: [
+      { to: "/equipment-scada", label: "SCADA Command Centre", icon: Radar },
+      { to: "/equipment-scada/register", label: "Equipment Register", icon: Activity },
+    ],
+  },
+  {
     title: "Administration",
     items: [
       { to: "/billing", label: "Billing", icon: Receipt },

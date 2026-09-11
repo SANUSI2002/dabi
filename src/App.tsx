@@ -35,6 +35,9 @@ const Outreach = lazy(() => import("@/pages/programs/Outreach"));
 const Billing = lazy(() => import("@/pages/admin/Billing"));
 const Inventory = lazy(() => import("@/pages/admin/Inventory"));
 const Equipment = lazy(() => import("@/pages/admin/Equipment"));
+const EquipmentCommandCentre = lazy(() => import("@/pages/equipment/CommandCentre"));
+const EquipmentRegister = lazy(() => import("@/pages/equipment/Register"));
+const EquipmentDetail = lazy(() => import("@/pages/equipment/Detail"));
 const Hris = lazy(() => import("@/pages/admin/Hris"));
 const MsfReport = lazy(() => import("@/pages/admin/MsfReport"));
 const Reports = lazy(() => import("@/pages/admin/Reports"));
@@ -168,6 +171,9 @@ export default function App() {
           <Route path="/billing" element={<Billing />} />
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/equipment" element={<Equipment />} />
+          <Route path="/equipment-scada" element={<EquipmentCommandCentre />} />
+          <Route path="/equipment-scada/register" element={<EquipmentRegister />} />
+          <Route path="/equipment-scada/register/:id" element={<EquipmentDetail />} />
           <Route path="/hris" element={<Hris />} />
           <Route path="/msf-report" element={<MsfReport />} />
           <Route path="/reports" element={<Reports />} />

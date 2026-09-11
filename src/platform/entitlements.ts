@@ -51,6 +51,8 @@ export const MODULES: ModuleDef[] = [
     routes: ["/billing"] },
   { key: "emr.operations", product: "emr", label: "Facility Operations", description: "Equipment & maintenance, inventory, MSF/NHMIS reporting",
     routes: ["/equipment", "/inventory", "/msf-report", "/nhmis-sync", "/reports"] },
+  { key: "emr.equipmentScada", product: "emr", label: "Equipment Intelligence & SCADA", description: "Live device/facility monitoring, telemetry, alarms — simulated feed, real Lab/audit integration",
+    routes: ["/equipment-scada", "/equipment-scada/register"] },
 
   // ---------- Workforce ----------
   { key: "workforce.core", product: "workforce", label: "People & Organisation", core: true, description: "Employee directory, org structure, org chart, departments",
