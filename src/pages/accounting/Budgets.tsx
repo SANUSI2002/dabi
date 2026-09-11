@@ -59,15 +59,16 @@ export default function Budgets() {
                     </div>
                     <Card className="p-0 overflow-x-auto">
                       <table className="w-full text-sm">
+                        <caption className="sr-only">Budget forecast by account and month, with actuals and variance for closed months</caption>
                         <thead className="border-b border-mist-200 bg-mist-50/70"><tr>
-                          <th className="th text-left">Account</th>
-                          {proj.periods.map((p) => <th key={p} className="th text-right">{p.slice(2)}</th>)}
-                          <th className="th text-right">Total</th>
+                          <th scope="col" className="th text-left">Account</th>
+                          {proj.periods.map((p) => <th key={p} scope="col" className="th text-right">{p.slice(2)}</th>)}
+                          <th scope="col" className="th text-right">Total</th>
                         </tr></thead>
                         <tbody className="divide-y divide-mist-100">
                           {proj.rows.map((r) => (
                             <tr key={r.accountNumber}>
-                              <td className="td font-semibold">{r.accountNumber} — {r.accountName}</td>
+                              <th scope="row" className="td text-left font-semibold">{r.accountNumber} — {r.accountName}</th>
                               {r.cells.map((c, i) => (
                                 <td key={i} className="td text-right font-mono">
                                   <div>{money(c.projected)}</div>
