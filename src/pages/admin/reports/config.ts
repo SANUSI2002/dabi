@@ -1,10 +1,9 @@
 import type { EmrSnapshot } from "./types";
-import {
-  patientFlow, utilization, topDiagnoses, monthlyTargets, staff, auditTrail, drugs,
-} from "@/data/mock";
+import { auditTrail, drugs } from "@/data/mock";
 import { OUT_REFERRAL_REASONS, NOTIFIABLE, VACCINES } from "@/data/catalog";
 import { shortDate, ageFromDob } from "@/lib/format";
 import { pmState, nextPmDue } from "@/store/useAssets";
+import { differenceInYears, startOfISOWeek, format } from "date-fns";
 
 type Tone = "brand" | "action" | "mist" | "amber";
 type Stat = { label: string; value: string | number; tone?: Tone };
@@ -35,30 +34,48 @@ export const REPORTS: ReportFamily[] = [
   {
     name: "OPD Reports",
     stats: (s) => [
-      { label: "Total Visits", value: s.encounters.length + 118, tone: "brand" },
-      { label: "New", value: 88 },
-      { label: "Revisit", value: 40 },
+      { label: "Total Visits", value: s.encounters.length, tone: "brand" },
+      { label: "Distinct patients", value: new Set(s.encounters.map((e) => e.patientId)).size },
+      { label: "With diagnosis recorded", value: s.encounters.filter((e) => e.diagnoses.length > 0).length },
       { label: "Referrals", value: s.referrals.length, tone: "action" },
     ],
     tabs: [
       {
         name: "Daily Attendance", kind: "table",
-        columns: ["Date", "New", "Revisit", "Total"],
-        rows: () => patientFlow.map((d) => [d.date, d.queued - d.seen + 6, d.seen - 4, d.queued]),
+        columns: ["Date", "Encounters"],
+        rows: (s) => {
+          const byDay = new Map<string, number>();
+          for (const encounter of s.encounters) {
+            const key = shortDate(encounter.date);
+            byDay.set(key, (byDay.get(key) ?? 0) + 1);
+          }
+          return [...byDay.entries()];
+        },
       },
       {
         name: "Age & Sex", kind: "table",
         columns: ["Age group", "Male", "Female", "Total"],
-        rows: () => [["0–4", 5, 3, 8], ["5–14", 4, 6, 10], ["15–49", 12, 21, 33], ["50+", 7, 9, 16]],
+        rows: (s) => {
+          const bands: [string, number, number][] = [["0–4", 0, 4], ["5–14", 5, 14], ["15–49", 15, 49], ["50+", 50, 999]];
+          const patientsSeen = [...new Set(s.encounters.map((e) => e.patientId))]
+            .map((id) => s.patientById(id))
+            .filter((p): p is NonNullable<typeof p> => !!p);
+          return bands.map(([label, lo, hi]) => {
+            const inBand = patientsSeen.filter((p) => { const age = differenceInYears(new Date(), new Date(p.dob)); return age >= lo && age <= hi; });
+            return [label, inBand.filter((p) => p.sex === "M").length, inBand.filter((p) => p.sex === "F").length, inBand.length];
+          });
+        },
       },
       {
         name: "Top 10 Diagnoses", kind: "table",
         columns: ["Diagnosis", "Cases"],
-        rows: () => topDiagnoses.map((d) => [d.name, d.cases]),
+        rows: (s) => Object.entries(s.encounters.flatMap((e) => e.diagnoses).reduce<Record<string, number>>((acc, d) => ((acc[d.name] = (acc[d.name] ?? 0) + 1), acc), {}))
+          .sort(([, a], [, b]) => b - a).slice(0, 10),
       },
       {
         name: "OPD Morbidity", kind: "bars", keys: ["cases", "cases"],
-        data: () => topDiagnoses.map((d) => ({ label: d.name.split(",")[0], cases: d.cases })),
+        data: (s) => Object.entries(s.encounters.flatMap((e) => e.diagnoses).reduce<Record<string, number>>((acc, d) => ((acc[d.name] = (acc[d.name] ?? 0) + 1), acc), {}))
+          .sort(([, a], [, b]) => b - a).slice(0, 10).map(([name, cases]) => ({ label: name.split(",")[0], cases })),
       },
       {
         name: "Referrals from OPD", kind: "table",
@@ -66,9 +83,8 @@ export const REPORTS: ReportFamily[] = [
         rows: (s) => s.referrals.map((r) => [nm(s.patientById(r.patientId)), r.facility, r.reason, r.status]),
       },
       {
-        name: "Wait Time Analysis", kind: "table",
-        columns: ["Station", "Avg wait (min)", "Max wait (min)", "Entries"],
-        rows: () => [["Vital", 6, 22, 24], ["Consultation", 12, 41, 20], ["Lab", 9, 28, 11], ["Pharmacy", 14, 34, 9], ["Exit", 2, 6, 26]],
+        name: "Wait Time Analysis", kind: "empty",
+        hint: "Per-station wait times are not tracked in this build — no timestamped station transitions are recorded against a visit.",
       },
     ],
   },
@@ -78,15 +94,15 @@ export const REPORTS: ReportFamily[] = [
       { label: "ANC Bookings", value: s.ancRecords.length, tone: "brand" },
       { label: "Total ANC Visits", value: s.ancRecords.reduce((n, r) => n + r.visits.length, 0) },
       { label: "High-risk", value: s.ancRecords.filter((r) => (r.hb ?? 12) < 10).length, tone: "action" },
-      { label: "Deliveries", value: s.deliveries.length + 3 },
+      { label: "Deliveries", value: s.deliveries.length },
     ],
     tabs: [
       { name: "ANC Registration", kind: "table", columns: ["Patient", "Age", "LMP", "EDD", "G / P", "Status"], rows: (s) => s.ancRecords.map((r) => [nm(s.patientById(r.patientId)), s.patientById(r.patientId) ? ageFromDob(s.patientById(r.patientId)!.dob) : "—", shortDate(r.lmp), shortDate(r.edd), `${r.gravida}/${r.para}`, r.status]) },
       { name: "ANC Visits", kind: "table", columns: ["Patient", "Visit date", "Weeks", "BP", "Hb", "FHR"], rows: (s) => s.ancRecords.flatMap((r) => r.visits.map((v) => [nm(s.patientById(r.patientId)), shortDate(v.date), v.weeks, v.bp, v.hb ?? "—", v.fhr ?? "—"])) },
       { name: "High-Risk", kind: "table", columns: ["Patient", "Risk factor", "Hb", "Action"], rows: (s) => s.ancRecords.filter((r) => (r.hb ?? 12) < 10).map((r) => [nm(s.patientById(r.patientId)), "Anaemia in pregnancy", r.hb ?? "—", "Iron + folate, review 2 weeks"]) },
       { name: "TT Coverage", kind: "table", columns: ["Patient", "TT doses", "Status"], rows: (s) => s.ancRecords.map((r) => [nm(s.patientById(r.patientId)), `${r.ttDoses}/5`, r.ttDoses >= 2 ? "Protected" : "Incomplete"]) },
-      { name: "IPT Uptake", kind: "kv", rows: () => [{ k: "IPTp-SP 1st dose", v: 12 }, { k: "IPTp-SP 2nd dose", v: 8 }, { k: "IPTp-SP 3rd dose+", v: 4, target: "≥ 60%" }] },
-      { name: "HIV Testing", kind: "kv", rows: () => [{ k: "Total tested", v: 14 }, { k: "Non-reactive", v: 13 }, { k: "Reactive", v: 1 }, { k: "Partner tested", v: 6 }] },
+      { name: "IPT Uptake", kind: "empty", hint: "IPTp-SP dosing is not recorded as structured data in this build — no field captures doses given per ANC visit." },
+      { name: "HIV Testing", kind: "empty", hint: "HIV testing during antenatal care is not recorded as structured data in this build." },
       { name: "Deliveries", kind: "table", columns: ["Mother", "Date", "Mode", "GA", "Outcome", "Weight"], rows: (s) => s.deliveries.map((d) => [nm(s.patientById(d.patientId)), shortDate(d.date), d.mode, `${d.gaWeeks}w`, d.babyStatus, `${d.weight} kg`]) },
       { name: "Birth Outcomes", kind: "kv", rows: (s) => [{ k: "Live birth", v: s.deliveries.filter((d) => d.babyStatus === "Alive").length }, { k: "Fresh stillbirth", v: s.deliveries.filter((d) => d.babyStatus === "Fresh stillbirth").length }, { k: "Macerated stillbirth", v: s.deliveries.filter((d) => d.babyStatus === "Macerated stillbirth").length }, { k: "Total", v: s.deliveries.length }] },
       { name: "PNC Visits", kind: "table", columns: ["Mother", "Date", "Timing", "Days PP", "Danger signs"], rows: (s) => s.pncVisits.map((v) => [nm(s.patientById(v.patientId)), shortDate(v.date), v.timing, v.daysPP, v.dangerSigns.length || "None"]) },
@@ -112,7 +128,7 @@ export const REPORTS: ReportFamily[] = [
   {
     name: "Child Health",
     stats: (s) => [
-      { label: "Under-5 Visits", value: s.childVisits.length + 6, tone: "brand" },
+      { label: "Under-5 Visits", value: s.childVisits.length, tone: "brand" },
       { label: "Growth checks", value: s.childVisits.length },
       { label: "MAM", value: s.childVisits.filter((v) => v.status === "MAM").length, tone: "amber" },
       { label: "SAM", value: s.childVisits.filter((v) => v.status === "SAM").length, tone: "action" },
@@ -121,8 +137,8 @@ export const REPORTS: ReportFamily[] = [
       { name: "Under-5 Attendance", kind: "table", columns: ["Child", "Age", "Visit date", "Weight", "Diagnosis"], rows: (s) => s.childVisits.map((v) => [nm(s.patientById(v.patientId)), s.patientById(v.patientId) ? ageFromDob(s.patientById(v.patientId)!.dob) : "—", shortDate(v.date), `${v.weight} kg`, "Growth monitoring"]) },
       { name: "Growth Monitoring", kind: "table", columns: ["Child", "Weight", "Height", "MUAC", "WAZ", "Status"], rows: (s) => s.childVisits.map((v) => [nm(s.patientById(v.patientId)), v.weight, v.height, v.muac, v.waz ?? "—", v.status]) },
       { name: "Nutrition (MUAC)", kind: "kv", rows: (s) => (["Normal", "MAM", "SAM"] as const).map((k) => ({ k, v: s.childVisits.filter((v) => v.status === k).length })) },
-      { name: "Vitamin A", kind: "kv", rows: () => [{ k: "6–11 months", v: 8 }, { k: "12–59 months", v: 34 }, { k: "Total", v: 42, target: "≥ 80%" }] },
-      { name: "Deworming", kind: "kv", rows: () => [{ k: "12–23 months", v: 6 }, { k: "24–59 months", v: 21 }] },
+      { name: "Vitamin A", kind: "empty", hint: "Vitamin A supplementation is not recorded as structured data in this build." },
+      { name: "Deworming", kind: "empty", hint: "Deworming doses are not recorded as structured data in this build." },
       { name: "Child Mortality", kind: "empty", hint: "No under-5 deaths recorded in this period." },
     ],
   },
@@ -160,7 +176,7 @@ export const REPORTS: ReportFamily[] = [
   {
     name: "Immunization",
     stats: (s) => [
-      { label: "Doses given", value: s.immunizations.length + 92, tone: "brand" },
+      { label: "Doses given", value: s.immunizations.length, tone: "brand" },
       { label: "Children reached", value: new Set(s.immunizations.map((i) => i.patientId)).size },
       { label: "AEFI", value: s.immunizations.filter((i) => i.aefi).length, tone: s.immunizations.some((i) => i.aefi?.severity === "Serious") ? "action" : "mist" },
       { label: "Serious AEFI", value: s.immunizations.filter((i) => i.aefi?.severity === "Serious").length, tone: "action" },
@@ -168,15 +184,26 @@ export const REPORTS: ReportFamily[] = [
     tabs: [
       {
         name: "Coverage by Antigen", kind: "bars", keys: ["given", "given"],
-        data: (s) => VACCINES.slice(0, 12).map((v) => ({ label: v.code, given: s.immunizations.filter((i) => i.vaccineCode === v.code).length + Math.max(2, 12 - v.dose * 2) })),
+        data: (s) => VACCINES.slice(0, 12).map((v) => ({ label: v.code, given: s.immunizations.filter((i) => i.vaccineCode === v.code).length })),
       },
       {
         name: "Doses Log", kind: "table",
         columns: ["Child", "Vaccine", "Batch", "Site", "Given by", "Date"],
         rows: (s) => s.immunizations.map((i) => [nm(s.patientById(i.patientId)), i.vaccineName, i.batchNo, i.site, i.givenBy, shortDate(i.givenAt)]),
       },
-      { name: "Fully Immunized", kind: "kv", rows: () => [{ k: "Fully immunized (<1 yr)", v: 7, target: "≥ 90%" }, { k: "Fully immunized (12–23 mo)", v: 11 }] },
-      { name: "Dropout Rate", kind: "kv", rows: () => [{ k: "Penta 1", v: 18 }, { k: "Penta 3", v: 14 }, { k: "Dropout %", v: "22%", target: "< 10%" }] },
+      { name: "Fully Immunized", kind: "empty", hint: "\"Fully immunized\" status is not derived in this build — it requires a per-child schedule check against the national immunization calendar that is not yet implemented." },
+      {
+        name: "Dropout Rate", kind: "kv",
+        rows: (s) => {
+          const p1 = s.immunizations.filter((i) => i.vaccineCode === "PENTA1").length;
+          const p3 = s.immunizations.filter((i) => i.vaccineCode === "PENTA3").length;
+          return [
+            { k: "Penta 1 doses given", v: p1 },
+            { k: "Penta 3 doses given", v: p3 },
+            { k: "Dropout (Penta1→Penta3)", v: p1 ? `${Math.round(((p1 - p3) / p1) * 100)}%` : "—", target: "< 10%" },
+          ];
+        },
+      },
       {
         name: "AEFI Report", kind: "table",
         columns: ["Child", "Vaccine", "Symptoms", "Severity", "Onset (h)", "Reported by"],
@@ -190,7 +217,7 @@ export const REPORTS: ReportFamily[] = [
             { k: "Total AEFI", v: a.length },
             { k: "Non-serious", v: a.filter((i) => i.aefi!.severity === "Non-serious").length },
             { k: "Serious (notified to IDSR)", v: a.filter((i) => i.aefi!.severity === "Serious").length },
-            { k: "Deaths", v: 0 },
+            { k: "Deaths", v: "Not tracked in this build" },
           ];
         },
       },
@@ -198,17 +225,35 @@ export const REPORTS: ReportFamily[] = [
   },
   {
     name: "Malaria",
-    stats: (s) => [
-      { label: "Suspected (fever)", value: s.encounters.length + 4, tone: "brand" },
-      { label: "Tested (RDT/Micro)", value: 6 },
-      { label: "Confirmed", value: s.encounters.filter((e) => e.diagnoses.some((d) => d.name.toLowerCase().includes("malaria"))).length, tone: "action" },
-      { label: "Treated with ACT", value: s.encounters.filter((e) => e.diagnoses.some((d) => d.name.toLowerCase().includes("malaria"))).length },
-    ],
+    stats: (s) => {
+      const tests = s.labOrders.filter((l) => l.test.toLowerCase().includes("malaria"));
+      const suspected = s.encounters.filter((e) => e.complaint.toLowerCase().includes("fever") || e.diagnoses.some((d) => d.name.toLowerCase().includes("malaria")));
+      return [
+        { label: "Suspected (fever/malaria)", value: suspected.length, tone: "brand" },
+        { label: "Tested (RDT/Micro)", value: tests.length },
+        { label: "Confirmed", value: s.encounters.filter((e) => e.diagnoses.some((d) => d.name.toLowerCase().includes("malaria"))).length, tone: "action" },
+        { label: "Treated with ACT", value: s.encounters.filter((e) => e.diagnoses.some((d) => d.name.toLowerCase().includes("malaria")) && e.prescriptions.some((p) => /artemether|lumefantrine|artesunate|act /i.test(p.drug))).length },
+      ];
+    },
     tabs: [
-      { name: "Testing & Treatment", kind: "line", keys: ["tested", "positive"], data: () => [{ label: "Wk 1", tested: 22, positive: 14 }, { label: "Wk 2", tested: 31, positive: 19 }, { label: "Wk 3", tested: 27, positive: 16 }, { label: "Wk 4", tested: 35, positive: 24 }] },
+      {
+        name: "Testing & Treatment", kind: "line", keys: ["tested", "positive"],
+        data: (s) => {
+          const byWeek = new Map<string, { label: string; tested: number; positive: number }>();
+          for (const order of s.labOrders.filter((l) => l.test.toLowerCase().includes("malaria"))) {
+            const weekStart = startOfISOWeek(new Date(order.orderedAt));
+            const key = format(weekStart, "yyyy-'W'II");
+            const entry = byWeek.get(key) ?? { label: format(weekStart, "dd MMM"), tested: 0, positive: 0 };
+            entry.tested += 1;
+            if (order.result && /positive|present/i.test(order.result)) entry.positive += 1;
+            byWeek.set(key, entry);
+          }
+          return [...byWeek.entries()].sort(([a], [b]) => (a < b ? -1 : 1)).map(([, v]) => v);
+        },
+      },
       { name: "Confirmed Cases", kind: "table", columns: ["Patient", "Date", "Diagnosis", "Treatment"], rows: (s) => s.encounters.filter((e) => e.diagnoses.some((d) => d.name.toLowerCase().includes("malaria"))).map((e) => [nm(s.patientById(e.patientId)), shortDate(e.date), e.diagnoses.map((d) => d.name).join(", "), e.prescriptions[0]?.drug ?? "—"]) },
       { name: "Severe Malaria", kind: "empty", hint: "No severe malaria cases in this period." },
-      { name: "IPTp (pregnant women)", kind: "kv", rows: () => [{ k: "IPTp 1", v: 12 }, { k: "IPTp 2", v: 8 }, { k: "IPTp 3+", v: 4 }] },
+      { name: "IPTp (pregnant women)", kind: "empty", hint: "IPTp-SP dosing is not recorded as structured data in this build." },
     ],
   },
   {
@@ -281,15 +326,26 @@ export const REPORTS: ReportFamily[] = [
   },
   {
     name: "Inpatient",
-    stats: (s) => [
-      { label: "Active admissions", value: s.admissions.filter((a) => a.status === "Active").length, tone: "brand" },
-      { label: "Discharges", value: s.admissions.filter((a) => a.status === "Discharged").length },
-      { label: "Beds available", value: 24 - s.admissions.filter((a) => a.status === "Active").length },
-      { label: "Bed occupancy", value: `${Math.round((s.admissions.filter((a) => a.status === "Active").length / 24) * 100)}%` },
-    ],
+    stats: (s) => {
+      const activeBeds = s.beds.filter((b) => b.active).length;
+      const activeAdmissions = s.admissions.filter((a) => a.status === "Active").length;
+      return [
+        { label: "Active admissions", value: activeAdmissions, tone: "brand" },
+        { label: "Discharges", value: s.admissions.filter((a) => a.status === "Discharged").length },
+        { label: "Beds available", value: activeBeds - activeAdmissions },
+        { label: "Bed occupancy", value: activeBeds ? `${Math.round((activeAdmissions / activeBeds) * 100)}%` : "—" },
+      ];
+    },
     tabs: [
       { name: "Admissions", kind: "table", columns: ["Patient", "Ward", "Bed", "Diagnosis", "Admitted"], rows: (s) => s.admissions.map((a) => [nm(s.patientById(a.patientId)), a.ward, a.bed, a.diagnosis, shortDate(a.admittedAt)]) },
-      { name: "Bed Occupancy", kind: "table", columns: ["Ward", "Beds", "Occupied", "Available", "Occupancy %"], rows: (s) => ["Children's Ward", "Female Ward", "Male Ward", "Maternity Ward"].map((w) => { const occ = s.admissions.filter((a) => a.status === "Active" && a.ward === w).length; return [w, 6, occ, 6 - occ, `${Math.round((occ / 6) * 100)}%`]; }) },
+      {
+        name: "Bed Occupancy", kind: "table", columns: ["Ward", "Beds", "Occupied", "Available", "Occupancy %"],
+        rows: (s) => s.wards.map((w) => {
+          const wardBeds = s.beds.filter((b) => b.wardId === w.id && b.active).length;
+          const occ = s.admissions.filter((a) => a.status === "Active" && a.ward === w.name).length;
+          return [w.name, wardBeds, occ, wardBeds - occ, wardBeds ? `${Math.round((occ / wardBeds) * 100)}%` : "—"];
+        }),
+      },
       { name: "Daily Occupancy", kind: "empty", hint: "No occupancy recorded in this period." },
       { name: "Length of Stay", kind: "empty", hint: "No discharges in this period." },
       { name: "LOS by Ward", kind: "empty", hint: "No discharges in this period." },
@@ -357,25 +413,43 @@ export const REPORTS: ReportFamily[] = [
     tabs: [
       { name: "Weekly Line List", kind: "table", columns: ["Patient", "Disease", "Onset", "Status"], rows: (s) => s.surveillanceCases.map((c) => [nm(s.patientById(c.patientId)), c.disease, c.onset || "—", c.status]) },
       { name: "By Disease", kind: "table", columns: ["Disease", "Class", "Priority", "Cases"], rows: (s) => NOTIFIABLE.map((d) => [d.name, d.class, d.priority, s.surveillanceCases.filter((c) => c.disease === d.name).length]) },
-      { name: "IDSR Timeliness", kind: "kv", rows: () => [{ k: "Reports due", v: 4 }, { k: "Reports submitted on time", v: 4, target: "100%" }] },
+      { name: "IDSR Timeliness", kind: "empty", hint: "Reporting deadlines and submission timestamps are not tracked in this build — there is no live IDSR/SORMAS connection." },
       { name: "Alerts", kind: "empty", hint: "No epidemic thresholds crossed." },
     ],
   },
   {
     name: "Service Performance",
     stats: (s) => [
-      { label: "Encounters", value: s.encounters.length + 118, tone: "brand" },
-      { label: "Queue entries", value: s.queue.length + 96 },
+      { label: "Encounters", value: s.encounters.length, tone: "brand" },
+      { label: "Queue entries", value: s.queue.length },
       { label: "Appointments", value: s.appointments.length },
       { label: "No-shows", value: s.appointments.filter((a) => a.status === "No-Show").length, tone: "action" },
     ],
     tabs: [
-      { name: "Daily Patient Flow", kind: "line", keys: ["queued", "seen", "referred"], data: () => patientFlow.map((d) => ({ ...d })) },
-      { name: "Wait Times", kind: "table", columns: ["Station", "Avg wait (min)", "Max wait (min)", "Entries"], rows: () => [["Exit", 2, 6, 24], ["Immunization", 18, 45, 13], ["Pharmacy", 14, 34, 9], ["Consultation", 12, 41, 12], ["Lab", 9, 28, 8], ["Family Planning", 4, 12, 2]] },
-      { name: "Staff Productivity", kind: "table", columns: ["Provider", "Encounters"], rows: () => staff.filter((x) => ["Medical Officer", "Nurse"].includes(x.role)).map((x) => [x.name, x.role === "Medical Officer" ? 42 : 18]) },
-      { name: "Service Utilization", kind: "bars", keys: ["entries", "entries"], data: () => utilization.map((u) => ({ label: u.module, entries: u.entries })) },
-      { name: "No-Shows", kind: "empty", hint: "No no-shows recorded in this period." },
-      { name: "Data Quality", kind: "kv", rows: () => [{ k: "Encounters missing diagnosis", v: 2 }, { k: "Vitals missing weight", v: 1 }, { k: "QC overrides", v: 0 }] },
+      {
+        name: "Daily Patient Flow", kind: "table", columns: ["Date", "Encounters"],
+        rows: (s) => {
+          const byDay = new Map<string, number>();
+          for (const encounter of s.encounters) {
+            const key = shortDate(encounter.date);
+            byDay.set(key, (byDay.get(key) ?? 0) + 1);
+          }
+          return [...byDay.entries()];
+        },
+      },
+      { name: "Wait Times", kind: "empty", hint: "Per-station wait times are not tracked in this build — no timestamped station transitions are recorded against a visit." },
+      {
+        name: "Staff Productivity", kind: "table", columns: ["Provider", "Encounters"],
+        rows: (s) => Object.entries(s.encounters.reduce<Record<string, number>>((acc, e) => ((acc[e.provider] = (acc[e.provider] ?? 0) + 1), acc), {}))
+          .sort(([, a], [, b]) => b - a),
+      },
+      {
+        name: "Service Utilization", kind: "bars", keys: ["entries", "entries"],
+        data: (s) => Object.entries(s.encounters.reduce<Record<string, number>>((acc, e) => ((acc[e.station] = (acc[e.station] ?? 0) + 1), acc), {}))
+          .map(([label, entries]) => ({ label, entries })),
+      },
+      { name: "No-Shows", kind: "table", columns: ["Patient", "Date", "Reason"], rows: (s) => s.appointments.filter((a) => a.status === "No-Show").map((a) => [nm(s.patientById(a.patientId)), shortDate(a.date), a.reason ?? "—"]) },
+      { name: "Data Quality", kind: "kv", rows: (s) => [{ k: "Encounters missing diagnosis", v: s.encounters.filter((e) => e.diagnoses.length === 0).length }] },
     ],
   },
   {
@@ -420,7 +494,11 @@ export const REPORTS: ReportFamily[] = [
     ],
     tabs: [
       { name: "By Patient", kind: "table", columns: ["Patient", "Age", "Sex", "Diagnosis"], rows: (s) => s.encounters.flatMap((e) => e.diagnoses.map((d) => { const p = s.patientById(e.patientId); return [nm(p), p ? ageFromDob(p.dob) : "—", p?.sex ?? "—", `${d.code}  ${d.name}`]; })) },
-      { name: "Frequency", kind: "table", columns: ["Diagnosis", "Cases"], rows: () => topDiagnoses.map((d) => [d.name, d.cases]) },
+      {
+        name: "Frequency", kind: "table", columns: ["Diagnosis", "Cases"],
+        rows: (s) => Object.entries(s.encounters.flatMap((e) => e.diagnoses).reduce<Record<string, number>>((acc, d) => ((acc[d.name] = (acc[d.name] ?? 0) + 1), acc), {}))
+          .sort(([, a], [, b]) => b - a),
+      },
     ],
   },
   {
@@ -475,15 +553,15 @@ export const REPORTS: ReportFamily[] = [
   {
     name: "DHIS / Statutory",
     stats: () => [
-      { label: "Datasets", value: 6, tone: "brand" },
-      { label: "Elements mapped", value: 214 },
-      { label: "Last submission", value: "6h ago" },
-      { label: "Status", value: "Pending", tone: "action" },
+      { label: "Datasets mapped", value: 4, tone: "brand" },
+      { label: "Elements mapped", value: "Not tracked in this build" },
+      { label: "Last submission", value: "No live connection" },
+      { label: "Status", value: "Not configured", tone: "mist" },
     ],
     tabs: [
-      { name: "NHMIS Monthly Summary", kind: "kv", rows: (s) => [{ k: "OPD attendance", v: s.encounters.length + 118 }, { k: "ANC 1st visits", v: s.ancRecords.length }, { k: "Deliveries", v: s.deliveries.length }, { k: "Birth notifications (NPopC)", v: s.birthRegister.length }, { k: "Penta 3", v: 9 }, { k: "FP new acceptors", v: s.fpClients.filter((c) => c.firstTime).length }, { k: "Confirmed malaria", v: s.encounters.filter((e) => e.diagnoses.some((d) => d.name.toLowerCase().includes("malaria"))).length }] },
+      { name: "NHMIS Monthly Summary", kind: "kv", rows: (s) => [{ k: "OPD attendance", v: s.encounters.length }, { k: "ANC 1st visits", v: s.ancRecords.length }, { k: "Deliveries", v: s.deliveries.length }, { k: "Birth notifications (NPopC)", v: s.birthRegister.length }, { k: "Penta 3 doses", v: s.immunizations.filter((i) => i.vaccineCode === "PENTA3").length }, { k: "FP new acceptors", v: s.fpClients.filter((c) => c.firstTime).length }, { k: "Confirmed malaria", v: s.encounters.filter((e) => e.diagnoses.some((d) => d.name.toLowerCase().includes("malaria"))).length }] },
       { name: "Data Element Mapping", kind: "table", columns: ["Local field", "DHIS2 data element", "Category combo"], rows: () => [["OPD new attendance", "NHMIS_OPD_NEW", "Age/Sex"], ["ANC 1st visit", "NHMIS_ANC1", "default"], ["Penta 3 doses", "NHMIS_PENTA3", "<1 / 12-23mo"], ["Confirmed malaria", "NHMIS_MAL_CONF", "Age/Sex"]] },
-      { name: "Submission History", kind: "table", columns: ["Period", "Dataset", "Submitted", "Status"], rows: () => [["2026-08", "NHMIS_OPD", "01 Sep 2026", "Accepted"], ["2026-08", "NHMIS_EPI", "01 Sep 2026", "Accepted"], ["2026-09", "NHMIS_OPD", "—", "Pending"]] },
+      { name: "Submission History", kind: "empty", hint: "No live DHIS2/SORMAS connection is configured — see NHMIS Sync for the frontend simulation of this transfer. No submissions have actually been sent." },
     ],
   },
   {
@@ -492,12 +570,12 @@ export const REPORTS: ReportFamily[] = [
       { label: "Events (24h)", value: auditTrail.length, tone: "brand" },
       { label: "Users", value: new Set(auditTrail.map((e) => e.user)).size },
       { label: "Data exports", value: auditTrail.filter((e) => e.action.includes("REPORT")).length, tone: "amber" },
-      { label: "Amendments", value: 0 },
+      { label: "Amendments", value: s.encounters.filter((e) => e.amendedBy).length },
     ],
     tabs: [
       { name: "Access Log Summary", kind: "table", columns: ["Action", "Count"], rows: () => [...new Set(auditTrail.map((e) => e.action))].map((a) => [a, auditTrail.filter((e) => e.action === a).length]) },
       { name: "Data Exports", kind: "table", columns: ["User", "Resource", "IP"], rows: () => auditTrail.filter((e) => e.action.includes("REPORT")).slice(0, 8).map((e) => [e.user, e.resource, e.ip]) },
-      { name: "Consent Records", kind: "kv", rows: (s) => [{ k: "Patients with consent on file", v: s.patients.length }, { k: "Consent withdrawn", v: 0 }] },
+      { name: "Consent Records", kind: "kv", rows: (s) => [{ k: "Registered patients", v: s.patients.length }, { k: "Consent capture", v: "Not implemented in this build" }] },
       { name: "Amendment Log", kind: "empty", hint: "No record amendments in this period." },
     ],
   },

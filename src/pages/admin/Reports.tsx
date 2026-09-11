@@ -5,6 +5,7 @@ import { PageHeader, StatCard } from "@/components/ui/primitives";
 import { cn } from "@/lib/cn";
 import { useEmr } from "@/store/useEmr";
 import { useAssets } from "@/store/useAssets";
+import { useWards } from "@/store/useWards";
 import { useAudit } from "@/store/useAudit";
 import { REPORTS } from "./reports/config";
 import { ReportView } from "./reports/ReportView";
@@ -16,6 +17,8 @@ export default function Reports() {
   const emr = useEmr();
   const assets = useAssets((s) => s.assets);
   const maintenanceJobs = useAssets((s) => s.jobs);
+  const wards = useWards((s) => s.wards);
+  const beds = useWards((s) => s.beds);
   const snap: EmrSnapshot = {
     patients: emr.patients, queue: emr.queue, encounters: emr.encounters, labOrders: emr.labOrders,
     admissions: emr.admissions, appointments: emr.appointments, referrals: emr.referrals, transfers: emr.transfers,
@@ -23,7 +26,7 @@ export default function Reports() {
     deliveries: emr.deliveries, birthRegister: emr.birthRegister, immunizations: emr.immunizations, pncVisits: emr.pncVisits, cmamScreenings: emr.cmamScreenings,
     outreachActivities: emr.outreachActivities, surveillanceCases: emr.surveillanceCases,
     ncdClients: emr.ncdClients, patientById: emr.patientById,
-    assets, maintenanceJobs,
+    assets, maintenanceJobs, wards, beds,
   };
 
   const [familyName, setFamilyName] = useState(REPORTS[14].name); // Service Performance
@@ -49,7 +52,7 @@ export default function Reports() {
     <div>
       <PageHeader
         title="Reports"
-        subtitle="Server-calculated analytics · NHMIS / DHIS2 aligned · NDPR-audited"
+        subtitle="Computed from recorded EMR activity · NHMIS-style layout · not connected to DHIS2"
         actions={
           <>
             <button className="btn-ghost text-xs" onClick={() => exportAs("csv")}><FileDown size={13} /> CSV</button>
