@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Syringe, Printer, TriangleAlert, ShieldCheck } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard } from "@/components/ui/primitives";
+import { GuidelineBanner } from "@/components/clinical/GuidelineBanner";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
@@ -52,6 +53,8 @@ export default function Immunization() {
   return (
     <div>
       <PageHeader title="Immunization" subtitle="Routine EPI schedule, defaulter tracking & AEFI — persisted & NHMIS-fed" />
+
+      <GuidelineBanner guidelineKey="epi-ng-2022" className="mb-5" />
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Doses given (total)" value={immunizations.length} tone="brand" icon={<Syringe size={18} />} />

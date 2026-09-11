@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Baby, Plus } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard, statusTone } from "@/components/ui/primitives";
+import { GuidelineBanner } from "@/components/clinical/GuidelineBanner";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
@@ -28,6 +29,8 @@ export default function ChildHealth() {
         subtitle="Growth monitoring & nutrition surveillance for under-5s"
         actions={<Button onClick={() => setOpen(true)}><Plus size={15} /> Record Visit</Button>}
       />
+
+      <GuidelineBanner guidelineKey="imci-2014" className="mb-5" />
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Under-5 Visits" value={childVisits.length} tone="brand" icon={<Baby size={18} />} />
         <StatCard label="Normal" value={childVisits.filter((v) => v.status === "Normal").length} tone="brand" delay={0.05} />

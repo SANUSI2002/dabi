@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { HeartPulse, CalendarClock, TriangleAlert } from "lucide-react";
 import { PageHeader, Button, StatCard, EmptyState, Badge } from "@/components/ui/primitives";
+import { GuidelineBanner } from "@/components/clinical/GuidelineBanner";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Field, Input, Select, Textarea, Grid } from "@/components/ui/form";
@@ -58,6 +59,8 @@ export default function Postnatal() {
   return (
     <div>
       <PageHeader title="Postnatal Care (PNC)" subtitle="WHO 4-contact schedule · mother & newborn assessment · danger-sign escalation" />
+
+      <GuidelineBanner guidelineKey="pnc-2013" className="mb-5" />
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="PNC visits" value={pncVisits.length} tone="brand" icon={<HeartPulse size={18} />} />
         <StatCard label="Contacts due" value={due.length} tone={due.length ? "amber" : "brand"} delay={0.05} icon={<CalendarClock size={18} />} />

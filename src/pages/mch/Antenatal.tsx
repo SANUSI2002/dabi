@@ -6,6 +6,7 @@ import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Grid } from "@/components/ui/form";
 import { PatientPicker } from "@/components/ui/PatientPicker";
+import { GuidelineBanner } from "@/components/clinical/GuidelineBanner";
 import { useEmr } from "@/store/useEmr";
 import { shortDate, ageFromDob } from "@/lib/format";
 
@@ -33,6 +34,8 @@ export default function Antenatal() {
           </>
         }
       />
+
+      <GuidelineBanner guidelineKey="anc-2016" className="mb-5" />
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Enrollments" value={ancRecords.length} tone="brand" icon={<HeartPulse size={18} />} />

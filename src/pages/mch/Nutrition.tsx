@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Salad, Plus, CheckCircle2 } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard, EmptyState, statusTone } from "@/components/ui/primitives";
+import { GuidelineBanner } from "@/components/clinical/GuidelineBanner";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
@@ -45,6 +46,8 @@ export default function Nutrition() {
         subtitle="Acute malnutrition screening & treatment (OTP / SC / SFP)"
         actions={<Button onClick={() => setOpen(true)}><Plus size={15} /> New Screening</Button>}
       />
+
+      <GuidelineBanner guidelineKey="cmam-ng-2016" className="mb-5" />
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Screenings" value={cmamScreenings.length} tone="brand" icon={<Salad size={18} />} />
         <StatCard label="Active caseload" value={active.length} tone="action" delay={0.05} />

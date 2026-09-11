@@ -33,6 +33,7 @@ export default function Consultation() {
   const emr = useEmr();
   const { queue, patientById, saveEncounter, addLabOrders, advanceQueue, admit, latestVitals, createInvoice } = emr;
   const addCondition = useClinical((state) => state.addCondition);
+  const addCarePlan = useClinical((state) => state.addCarePlan);
   const wards = useWards((state) => state.wards);
   const beds = useWards((state) => state.beds);
   const currentUser = useIdentity((state) => state.user.name);
@@ -58,6 +59,7 @@ export default function Consultation() {
   const [nhmis, setNhmis] = useState<Record<string, boolean>>({});
   const [followUp, setFollowUp] = useState("");
   const [instructions, setInstructions] = useState("");
+  const [carePlan, setCarePlan] = useState({ open: false, title: "", category: "Chronic disease", goal: "" });
   const [routeStation, setRouteStation] = useState("Exit");
   const [admitOpen, setAdmitOpen] = useState(false);
   const [admitWardId, setAdmitWardId] = useState(wards[0]?.id ?? "");
@@ -66,8 +68,8 @@ export default function Consultation() {
 
   const dirty = useMemo(
     () =>
-      Boolean(soap.s || soap.o || soap.a || soap.p || diagnoses.length || prescriptions.length || labs.length || followUp || instructions),
-    [soap, diagnoses, prescriptions, labs, followUp, instructions],
+      Boolean(soap.s || soap.o || soap.a || soap.p || diagnoses.length || prescriptions.length || labs.length || followUp || instructions || carePlan.title),
+    [soap, diagnoses, prescriptions, labs, followUp, instructions, carePlan.title],
   );
   useUnsavedGuard(dirty);
 
@@ -81,6 +83,7 @@ export default function Consultation() {
     setFollowUp("");
     setInstructions("");
     setTemplateKey("");
+    setCarePlan({ open: false, title: "", category: "Chronic disease", goal: "" });
   }
 
   function switchPatient(queueId: string) {
@@ -146,15 +149,31 @@ export default function Consultation() {
       templateKey: templateKey || undefined,
     });
 
+    const conditionIds: string[] = [];
     diagnoses.forEach((diagnosis) => {
-      addCondition({
+      const conditionId = addCondition({
         patientId: patient.id,
         code: icd11Concept(diagnosis.code, diagnosis.name),
         category: diagnosis.toProblemList ? "problem-list-item" : "encounter-diagnosis",
         verificationStatus: "confirmed",
         encounterId,
       });
+      if (diagnosis.toProblemList) conditionIds.push(conditionId);
     });
+
+    if (carePlan.title.trim()) {
+      addCarePlan({
+        patientId: patient.id,
+        title: carePlan.title.trim(),
+        status: "active",
+        category: carePlan.category,
+        description: `Opened at consultation on ${new Date().toLocaleDateString()}.`,
+        period: { start: new Date().toISOString() },
+        addresses: conditionIds,
+        goals: carePlan.goal.trim() ? [{ id: `goal-${Math.random().toString(36).slice(2, 7)}`, description: carePlan.goal.trim(), status: "active" }] : [],
+        activities: followUp ? [{ id: `act-${Math.random().toString(36).slice(2, 7)}`, description: followUp, owner: provider, status: "scheduled" }] : [],
+      });
+    }
 
     if (labs.length) addLabOrders(patient.id, labs.map((test) => ({ test, category: "Consultation order" })), provider);
 
@@ -431,6 +450,32 @@ export default function Consultation() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Care plan */}
+            <div className="card">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold uppercase tracking-wide text-mist-400">Care plan</p>
+                {!carePlan.open && (
+                  <Button variant="soft" className="px-2.5 py-1 text-xs" onClick={() => setCarePlan({ ...carePlan, open: true, title: carePlan.title || `${diagnoses[0]?.name ?? "Follow-up"} — ongoing management` })}>
+                    <ClipboardList size={13} /> Open a care plan
+                  </Button>
+                )}
+              </div>
+              {carePlan.open ? (
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <Field label="Plan title"><Input value={carePlan.title} onChange={(event) => setCarePlan({ ...carePlan, title: event.target.value })} /></Field>
+                  <Field label="Category"><Select value={carePlan.category} onChange={(event) => setCarePlan({ ...carePlan, category: event.target.value })} options={["Chronic disease", "Maternal care", "Child health", "Rehabilitation", "Palliative", "Other"]} /></Field>
+                  <Field label="First goal (optional)" hint="Ticked diagnoses are linked to the plan; the follow-up above becomes a scheduled activity.">
+                    <Input value={carePlan.goal} onChange={(event) => setCarePlan({ ...carePlan, goal: event.target.value })} placeholder="e.g. BP below 140/90 within 3 months" />
+                  </Field>
+                  <div className="flex items-end">
+                    <Button variant="ghost" className="px-2.5 py-1 text-xs" onClick={() => setCarePlan({ open: false, title: "", category: "Chronic disease", goal: "" })}>Remove plan</Button>
+                  </div>
+                </div>
+              ) : (
+                <SectionNote>No care plan for this encounter. Open one to track goals and follow-up activities on the patient chart over time.</SectionNote>
+              )}
             </div>
 
             {/* NHMIS */}

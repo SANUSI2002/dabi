@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Users, Plus, CalendarClock, RefreshCw, XCircle } from "lucide-react";
 import { Bars } from "@/components/ui/Chart";
 import { PageHeader, Button, Badge, StatCard, statusTone, Card } from "@/components/ui/primitives";
+import { GuidelineBanner } from "@/components/clinical/GuidelineBanner";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
@@ -49,6 +50,8 @@ export default function FamilyPlanning() {
         subtitle={`${active.length} active clients · ${totalCyp.toFixed(1)} CYP`}
         actions={<Button onClick={() => { setF({ patientId: "", method: FP_METHODS[0], firstTime: false, startDate: "", nextVisit: "", counselled: true, notes: "" }); setOpen(true); }}><Plus size={15} /> New client</Button>}
       />
+
+      <GuidelineBanner guidelineKey="fp-2018" className="mb-5" />
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Active clients" value={active.length} tone="brand" icon={<Users size={18} />} />
         <StatCard label="CYP (protection)" value={totalCyp.toFixed(1)} tone="brand" delay={0.05} />
