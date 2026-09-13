@@ -1,0 +1,13 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# SabiEMR is a client-side-routed React Router SPA — every path must fall back to
+# index.html so a direct link or a page refresh on, say, /equipment-scada doesn't 404.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
