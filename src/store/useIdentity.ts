@@ -1,11 +1,12 @@
 import { create } from "zustand";
 import { ACCOUNTS, DEFAULT_ACCOUNT, accountById, type Account } from "@/data/accounts";
+import { activeTenantId } from "@/platform/tenantRuntime";
 
-const KEY = "sabi-emr-account";
+const key = () => `sabi-emr-account:${activeTenantId()}`;
 
 const load = (): Account => {
   try {
-    return accountById(localStorage.getItem(KEY) ?? DEFAULT_ACCOUNT);
+    return accountById(localStorage.getItem(key()) ?? DEFAULT_ACCOUNT);
   } catch {
     return accountById(DEFAULT_ACCOUNT);
   }
@@ -26,7 +27,7 @@ export const useIdentity = create<IdentityState>((set) => ({
     const acct = ACCOUNTS.find((a) => a.id === id);
     if (!acct) return;
     try {
-      localStorage.setItem(KEY, id);
+      localStorage.setItem(key(), id);
     } catch {
       /* ignore */
     }

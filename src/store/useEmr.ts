@@ -30,8 +30,30 @@ import type {
 import { SERVICE_TYPES, PATIENT_CATEGORIES } from "@/data/catalog";
 import { audit } from "@/store/useAudit";
 import { useIdentity } from "@/store/useIdentity";
+import { persisted } from "@/platform/persist";
+import { activeFacility, readActiveTenant } from "@/platform/tenantRuntime";
+import { useRevenueCycle } from "@/billing/useRevenueCycle";
+import { getRevenueCycleApi } from "@/billing/runtime";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
+
+const financialReadinessReasons = (encounterId: string, labOrders: LabOrder[], encounters: Encounter[]) => {
+  const pendingLabs = labOrders.filter((order) => order.encounterId === encounterId && order.status === "Pending").length;
+  const encounter = encounters.find((item) => item.id === encounterId);
+  const pendingPharmacy = encounter?.prescriptions.filter((prescription) => prescription.status === "Pending").length ?? 0;
+  return [
+    ...(pendingLabs ? [`Laboratory: ${pendingLabs} specimen${pendingLabs === 1 ? "" : "s"} pending`] : []),
+    ...(pendingPharmacy ? [`Pharmacy: ${pendingPharmacy} dispense${pendingPharmacy === 1 ? "" : "s"} pending`] : []),
+  ];
+};
+
+function dispatchBillingCommand(run: () => Promise<unknown>, resource: string) {
+  try {
+    void run().catch((cause) => audit("billing command failed", resource, { meta: { message: cause instanceof Error ? cause.message : "Unknown billing error" } }));
+  } catch (cause) {
+    audit("billing command failed", resource, { meta: { message: cause instanceof Error ? cause.message : "Unknown billing error" } });
+  }
+}
 
 type EmrState = {
   patients: Patient[];
@@ -63,13 +85,13 @@ type EmrState = {
   registerPatient: (p: Omit<Patient, "id" | "mrn" | "registeredAt">) => Patient;
   duplicateRisk: (candidate: { firstName: string; lastName: string; dob?: string; phone?: string; nin?: string; excludeId?: string }) => { patient: Patient; reasons: string[]; score: number }[];
   likelyDuplicatePairs: () => { left: Patient; right: Patient; reasons: string[] }[];
-  addToQueue: (patientId: string, station: Station, priority: QueueEntry["priority"], complaint?: string) => void;
+  addToQueue: (patientId: string, station: Station, priority: QueueEntry["priority"], complaint?: string, context?: { appointmentId?: string; provider?: string; visitType?: string }) => { queueId: string; encounterId: string; accountId?: string };
   advanceQueue: (id: string, status: QueueEntry["status"], station?: Station) => void;
   callNext: (station?: Station) => QueueEntry | undefined;
 
   saveEncounter: (e: Omit<Encounter, "id" | "date">) => string;
   amendEncounter: (id: string, patch: Partial<Pick<Encounter, "examination" | "assessment" | "plan" | "followUp" | "patientInstructions">>, note: string) => void;
-  addLabOrders: (patientId: string, tests: { test: string; category: string }[], orderedBy?: string) => void;
+  addLabOrders: (patientId: string, tests: { test: string; category: string }[], orderedBy?: string, encounterId?: string) => void;
   collectSample: (id: string, sampleType: string) => void;
   startProcessing: (id: string) => void;
   advancePhase: (id: string, phaseName: string) => void;
@@ -128,7 +150,7 @@ type EmrState = {
   settleInvoice: (id: string, method: NonNullable<Invoice["method"]>) => void;
 };
 
-export const useEmr = create<EmrState>((set, get) => ({
+export const useEmr = create<EmrState>(persisted<EmrState>("emr", (set, get) => ({
   patients: mock.patients,
   queue: mock.queue,
   encounters: mock.encounters,
@@ -159,10 +181,11 @@ export const useEmr = create<EmrState>((set, get) => ({
 
   registerPatient: (p) => {
     const n = get().patients.length + 35;
+    const facility = activeFacility();
     const patient: Patient = {
       ...p,
       id: rid(),
-      mrn: `${mock.FACILITY.code}-26-${String(n).padStart(6, "0")}`,
+      mrn: `${facility.code}-26-${String(n).padStart(6, "0")}`,
       registeredAt: new Date().toISOString(),
     };
     set((s) => ({ patients: [patient, ...s.patients] }));
@@ -215,29 +238,84 @@ export const useEmr = create<EmrState>((set, get) => ({
     return pairs;
   },
 
-  addToQueue: (patientId, station, priority, complaint) => {
-    audit("added to queue", `queue/${station.toLowerCase()}`);
+  addToQueue: (patientId, station, priority, complaint, context) => {
+    const nowIso = new Date().toISOString();
+    const queueId = rid();
+    const encounterId = rid();
+    const provider = context?.provider ?? "Unassigned";
+    const patient = get().patients.find((item) => item.id === patientId);
+    audit("checked in patient", `encounter/${encounterId}`, { meta: { patientId, appointmentId: context?.appointmentId, queueId, station } });
     set((s) => ({
       queue: [
         ...s.queue,
         {
-          id: rid(),
+          id: queueId,
           patientId,
+          encounterId,
+          appointmentId: context?.appointmentId,
           station,
           priority,
           complaint,
           status: "Waiting",
-          enqueuedAt: new Date().toISOString(),
+          enqueuedAt: nowIso,
           waitMins: 0,
         },
       ],
+      encounters: [
+        {
+          id: encounterId,
+          patientId,
+          appointmentId: context?.appointmentId,
+          queueEntryId: queueId,
+          date: nowIso,
+          provider,
+          complaint: complaint || "—",
+          diagnoses: [],
+          prescriptions: [],
+          labs: [],
+          station,
+          status: "in-progress",
+          clinicalStatus: "CHECKED_IN",
+          visitType: context?.visitType ?? (station === "Emergency" ? "Emergency" : "Outpatient"),
+        },
+        ...s.encounters,
+      ],
     }));
+    const tenant = readActiveTenant();
+    dispatchBillingCommand(() => getRevenueCycleApi().ensurePatientAccount({
+      patientId, encounterId, appointmentId: context?.appointmentId, branchId: tenant.facilityCode,
+      visitType: context?.visitType ?? (station === "Emergency" ? "Emergency" : "Outpatient"),
+      attendingProvider: provider, payer: patient?.payer ?? "Out of Pocket", currency: tenant.currency, openedAt: nowIso,
+    }), `billing/account/${encounterId}`);
+    const account = useRevenueCycle.getState().accounts.find((item) => item.encounterId === encounterId);
+    return { queueId, encounterId, accountId: account?.id };
   },
 
   advanceQueue: (id, status, station) =>
-    set((s) => ({
-      queue: s.queue.map((q) => (q.id === id ? { ...q, status, station: station ?? q.station } : q)),
-    })),
+    set((s) => {
+      const queueEntry = s.queue.find((entry) => entry.id === id);
+      const encounterId = queueEntry?.encounterId;
+      return {
+        queue: s.queue.map((entry) => (entry.id === id ? { ...entry, status, station: station ?? entry.station } : entry)),
+        encounters: s.encounters.map((encounter) => {
+          if (!encounterId || encounter.id !== encounterId) return encounter;
+          const readinessReasons = financialReadinessReasons(encounterId, s.labOrders, s.encounters);
+          const hasPendingLab = readinessReasons.some((reason) => reason.startsWith("Laboratory:"));
+          const hasPendingPharmacy = readinessReasons.some((reason) => reason.startsWith("Pharmacy:"));
+          const clinicalStatus =
+            status === "In Progress"
+              ? "IN_PROGRESS"
+              : hasPendingLab
+                ? "AWAITING_LAB"
+                : hasPendingPharmacy
+                  ? "AWAITING_PHARMACY"
+                  : status === "Completed"
+                    ? "COMPLETED"
+                    : encounter.clinicalStatus;
+          return { ...encounter, station: station ?? encounter.station, clinicalStatus };
+        }),
+      };
+    }),
 
   callNext: (station) => {
     const priorityRank = { Emergency: 0, Urgent: 1, Normal: 2 } as const;
@@ -250,31 +328,45 @@ export const useEmr = create<EmrState>((set, get) => ({
     if (!next) return undefined;
     const who = useIdentity.getState().user.name;
     audit("called next patient", `queue/${next.station.toLowerCase()}`, { user: who });
-    set((s) => ({
-      queue: s.queue.map((entry) => (entry.id === next.id ? { ...entry, status: "In Progress", assignedTo: who } : entry)),
-    }));
+    get().advanceQueue(next.id, "In Progress");
+    set((s) => ({ queue: s.queue.map((entry) => (entry.id === next.id ? { ...entry, assignedTo: who } : entry)) }));
     return next;
   },
 
   saveEncounter: (e) => {
     const patient = get().patients.find((p) => p.id === e.patientId);
-    const id = rid();
+    const linkedId = e.queueEntryId ? get().queue.find((entry) => entry.id === e.queueEntryId)?.encounterId : undefined;
+    const id = linkedId ?? rid();
+    const existing = get().encounters.find((encounter) => encounter.id === id);
     const status = e.status ?? "signed";
     const nowIso = new Date().toISOString();
     audit(status === "signed" ? "signed encounter note" : "saved encounter note (unsigned)", `encounter/${patient?.mrn ?? e.patientId}`);
     set((s) => ({
-      encounters: [
-        {
-          ...e,
-          id,
-          date: nowIso,
-          status,
-          signedBy: status === "signed" ? e.provider : undefined,
-          signedAt: status === "signed" ? nowIso : undefined,
-        },
-        ...s.encounters,
-      ],
+      encounters: existing
+        ? s.encounters.map((encounter) => encounter.id === id ? {
+            ...encounter,
+            ...e,
+            id,
+            date: encounter.date,
+            status,
+            signedBy: status === "signed" ? e.provider : encounter.signedBy,
+            signedAt: status === "signed" ? nowIso : encounter.signedAt,
+          } : encounter)
+        : [{
+            ...e,
+            id,
+            date: nowIso,
+            status,
+            signedBy: status === "signed" ? e.provider : undefined,
+            signedAt: status === "signed" ? nowIso : undefined,
+          }, ...s.encounters],
     }));
+    const tenant = readActiveTenant();
+    dispatchBillingCommand(() => getRevenueCycleApi().ensurePatientAccount({
+      patientId: e.patientId, encounterId: id, appointmentId: e.appointmentId, branchId: tenant.facilityCode,
+      visitType: e.visitType ?? "Outpatient", attendingProvider: e.provider,
+      payer: patient?.payer ?? "Out of Pocket", currency: tenant.currency, openedAt: nowIso,
+    }), `billing/account/${id}`);
     return id;
   },
 
@@ -291,12 +383,13 @@ export const useEmr = create<EmrState>((set, get) => ({
     }));
   },
 
-  addLabOrders: (patientId, tests, orderedBy = "Dr. Adaeze Okonjo") =>
+  addLabOrders: (patientId, tests, orderedBy = "Dr. Adaeze Okonjo", encounterId) =>
     set((s) => ({
       labOrders: [
         ...tests.map((t) => ({
           id: rid(),
           patientId,
+          encounterId,
           test: t.test,
           category: t.category,
           urgency: "Routine" as const,
@@ -311,12 +404,30 @@ export const useEmr = create<EmrState>((set, get) => ({
   collectSample: (id, sampleType) => {
     const who = useIdentity.getState().user.name;
     const l = get().labOrders.find((x) => x.id === id);
+    if (!l || l.status !== "Pending") return;
+    const patient = get().patients.find((item) => item.id === l.patientId);
+    const encounterId = l.encounterId ?? get().encounters
+      .filter((encounter) => encounter.patientId === l.patientId)
+      .sort((left, right) => +new Date(right.date) - +new Date(left.date))[0]?.id;
+    const nowIso = new Date().toISOString();
     audit("collected lab sample", `lab/${l?.test ?? id}`, { user: who });
     set((s) => ({
       labOrders: s.labOrders.map((x) =>
-        x.id === id ? { ...x, status: "Sample Collected", sampleType, sampleCollectedBy: who, sampleCollectedAt: new Date().toISOString() } : x,
+        x.id === id ? { ...x, status: "Sample Collected", sampleType, sampleCollectedBy: who, sampleCollectedAt: nowIso } : x,
       ),
     }));
+    if (encounterId) {
+      const sourceEventId = `lab-specimen-collected:${l.id}`;
+      dispatchBillingCommand(async () => {
+        await getRevenueCycleApi().captureCharge({
+          patientId: l.patientId, encounterId, branchId: activeFacility().code,
+          payer: patient?.payer ?? "Out of Pocket", visitType: "Outpatient", sourceType: "LABORATORY",
+          sourceId: l.id, sourceEventId, idempotencyKey: sourceEventId, serviceName: l.test, quantity: 1,
+          department: "Laboratory", performedBy: who, performedAt: nowIso,
+        });
+        await getRevenueCycleApi().updateBillingReadiness({ encounterId, reasons: financialReadinessReasons(encounterId, get().labOrders, get().encounters), updatedAt: nowIso });
+      }, `billing/laboratory/${l.id}`);
+    }
   },
 
   startProcessing: (id) => {
@@ -392,6 +503,10 @@ export const useEmr = create<EmrState>((set, get) => ({
         x.id === id ? { ...x, status: "Rejected", rejectedReason: reason, rejectedBy: who, rejectedAt: new Date().toISOString() } : x,
       ),
     }));
+    if (l?.encounterId) {
+      const encounterId = l.encounterId;
+      dispatchBillingCommand(() => getRevenueCycleApi().updateBillingReadiness({ encounterId, reasons: financialReadinessReasons(encounterId, get().labOrders, get().encounters) }), `billing/readiness/${encounterId}`);
+    }
   },
 
   markLabResultViewed: (id) => {
@@ -433,6 +548,7 @@ export const useEmr = create<EmrState>((set, get) => ({
     const who = useIdentity.getState().user.name;
     const rx = get().encounters.find((e) => e.id === encounterId)?.prescriptions.find((r) => r.id === rxId);
     if (!rx) return;
+    if (rx.status !== "Pending") return;
     const nowIso = new Date().toISOString();
     const full = opts.quantity >= rx.qty;
     audit(full ? "dispensed medication" : "partially dispensed medication", `pharmacy/${rx.drug}`, {
@@ -453,6 +569,20 @@ export const useEmr = create<EmrState>((set, get) => ({
           : e,
       ),
     }));
+    const encounter = get().encounters.find((item) => item.id === encounterId);
+    const patient = get().patients.find((item) => item.id === encounter?.patientId);
+    if (encounter) {
+      const sourceEventId = `medication-dispensed:${encounterId}:${rx.id}`;
+      dispatchBillingCommand(async () => {
+        await getRevenueCycleApi().captureCharge({
+          patientId: encounter.patientId, encounterId, branchId: activeFacility().code,
+          payer: patient?.payer ?? "Out of Pocket", visitType: encounter.visitType ?? "Outpatient",
+          sourceType: "PHARMACY", sourceId: rx.id, sourceEventId, idempotencyKey: sourceEventId,
+          serviceName: rx.drug, quantity: opts.quantity, department: "Pharmacy", performedBy: who, performedAt: nowIso,
+        });
+        await getRevenueCycleApi().updateBillingReadiness({ encounterId, reasons: financialReadinessReasons(encounterId, get().labOrders, get().encounters), updatedAt: nowIso });
+      }, `billing/pharmacy/${rx.id}`);
+    }
   },
 
   outsourcePrescription: (encounterId, rxId) => {
@@ -463,6 +593,7 @@ export const useEmr = create<EmrState>((set, get) => ({
         e.id === encounterId ? { ...e, prescriptions: e.prescriptions.map((r) => (r.id === rxId ? { ...r, status: "Outsourced" } : r)) } : e,
       ),
     }));
+    dispatchBillingCommand(() => getRevenueCycleApi().updateBillingReadiness({ encounterId, reasons: financialReadinessReasons(encounterId, get().labOrders, get().encounters) }), `billing/readiness/${encounterId}`);
   },
 
   refusePrescription: (encounterId, rxId, reason) => {
@@ -474,6 +605,7 @@ export const useEmr = create<EmrState>((set, get) => ({
         e.id === encounterId ? { ...e, prescriptions: e.prescriptions.map((r) => (r.id === rxId ? { ...r, status: "Refused", refusalReason: reason } : r)) } : e,
       ),
     }));
+    dispatchBillingCommand(() => getRevenueCycleApi().updateBillingReadiness({ encounterId, reasons: financialReadinessReasons(encounterId, get().labOrders, get().encounters) }), `billing/readiness/${encounterId}`);
   },
 
   admit: (patientId, ward, bed, diagnosis, opts) => {
@@ -551,7 +683,12 @@ export const useEmr = create<EmrState>((set, get) => ({
     audit(`appointment ${status.toLowerCase()}`, `appointment/${id}`);
     set((s) => ({ appointments: s.appointments.map((a) => (a.id === id ? { ...a, status } : a)) }));
     if (status === "Attended" && appt && queueStation) {
-      get().addToQueue(appt.patientId, queueStation, "Normal", `${appt.type} appointment — ${appt.reason ?? ""}`.trim());
+      const visit = get().addToQueue(appt.patientId, queueStation, "Normal", `${appt.type} appointment — ${appt.reason ?? ""}`.trim(), {
+        appointmentId: appt.id,
+        provider: appt.provider,
+        visitType: appt.type === "General" ? "General consultation" : `${appt.type} visit`,
+      });
+      set((s) => ({ appointments: s.appointments.map((appointment) => appointment.id === id ? { ...appointment, encounterId: visit.encounterId, checkedInAt: new Date().toISOString() } : appointment) }));
     }
   },
 
@@ -741,6 +878,7 @@ export const useEmr = create<EmrState>((set, get) => ({
     const mother = s.patients.find((p) => p.id === d.patientId);
     const yr = new Date(d.date).getFullYear();
     const seq = String(s.birthRegister.length + 1).padStart(4, "0");
+    const facility = activeFacility();
     audit("issued birth notification", `mch/birth-register/${d.patientId}`);
     set((st) => ({
       birthRegister: [
@@ -752,12 +890,12 @@ export const useEmr = create<EmrState>((set, get) => ({
           sex: d.babySex,
           bornAt: d.date,
           weight: d.weight,
-          placeOfBirth: `${mock.FACILITY.name} (${mock.FACILITY.code})`,
+          placeOfBirth: `${facility.name} (${facility.code})`,
           motherName: mother ? `${mother.firstName} ${mother.lastName}` : "—",
           fatherName: data.fatherName || undefined,
           informantName: data.informantName,
           informantRelation: data.informantRelation,
-          npopcNo: `NOT/${mock.FACILITY.code}/${yr}/${seq}`,
+          npopcNo: `NOT/${facility.code}/${yr}/${seq}`,
           status: "Notified",
           notifiedAt: new Date().toISOString(),
         },
@@ -771,11 +909,12 @@ export const useEmr = create<EmrState>((set, get) => ({
     if (!e || e.status !== "Notified") return;
     const yr = new Date(e.bornAt).getFullYear();
     const seq = String(get().birthRegister.filter((x) => x.regNo).length + 1).padStart(4, "0");
+    const facility = activeFacility();
     audit("registered birth", `mch/birth-register/${e.patientId}`);
     set((s) => ({
       birthRegister: s.birthRegister.map((x) =>
         x.id === id
-          ? { ...x, status: "Registered", regNo: `BR/${mock.FACILITY.lga}/${yr}/${seq}`, registeredAt: new Date().toISOString() }
+          ? { ...x, status: "Registered", regNo: `BR/${facility.lga}/${yr}/${seq}`, registeredAt: new Date().toISOString() }
           : x,
       ),
     }));
@@ -867,7 +1006,7 @@ export const useEmr = create<EmrState>((set, get) => ({
       ),
     }));
   },
-}));
+})));
 
 /** normalise legacy referral statuses onto the current lifecycle */
 export const referralStatus = (raw: string): "Requested" | "Accepted" | "Declined" | "Scheduled" | "Attended" | "Completed" | "Cancelled" => {

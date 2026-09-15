@@ -6,20 +6,29 @@ import { TopBar } from "./TopBar";
 import { PageTransition } from "@/components/motion/Reveal";
 import { useIntegrations } from "@/store/useIntegrations";
 import { EntitlementBoundary } from "@/platform/EntitlementBoundary";
+import { useTenant } from "@/store/useTenant";
+import { useRevenueCycle } from "@/billing/useRevenueCycle";
+import "@/store/accounting/bootstrap";
 
 export function AppShell() {
   const [mobileNav, setMobileNav] = useState(false);
   const loc = useLocation();
+  const tenantName = useTenant((state) => state.tenant.name);
+
+  useEffect(() => {
+    document.title = `Sabi OS — ${tenantName}`;
+  }, [tenantName]);
 
   // Platform integration layer: mirror EMR billing + payroll into Accounting.
   // Runs on load and whenever the app route changes, so the ledger stays current
   // without EMR/HR knowing accounting exists. No-op when nothing is pending.
   const autoSync = useIntegrations((s) => s.autoSync);
+  const revenuePostingVersion = useRevenueCycle((state) => `${state.invoices.length}:${state.payments.length}`);
   useEffect(() => {
     if (!autoSync) return;
     const c = useIntegrations.getState().pendingCounts();
     if (c.emrBilling || c.payrollAccrual || c.payrollSettlement || c.pharmacy) useIntegrations.getState().syncAll();
-  }, [autoSync, loc.pathname]);
+  }, [autoSync, loc.pathname, revenuePostingVersion]);
 
   return (
     <div className="flex h-full bg-mist-50">

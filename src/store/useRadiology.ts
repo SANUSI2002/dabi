@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { audit } from "@/store/useAudit";
 import { useIdentity } from "@/store/useIdentity";
 import { seedImagingStudies, type ImagingStudy, type ImagingModality, type ImagingSeries } from "@/data/radiology";
+import { persisted } from "@/platform/persist";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 const now = () => new Date().toISOString();
@@ -25,7 +26,7 @@ type RadiologyState = {
   setCompareStudy: (id: string, compareToStudyId: string | undefined) => void;
 };
 
-export const useRadiology = create<RadiologyState>((set, get) => ({
+export const useRadiology = create<RadiologyState>(persisted<RadiologyState>("radiology", (set, get) => ({
   studies: seedImagingStudies,
 
   studiesFor: (patientId) => (!patientId ? [] : get().studies.filter((study) => study.patientId === patientId)),
@@ -102,4 +103,4 @@ export const useRadiology = create<RadiologyState>((set, get) => ({
   setCompareStudy: (id, compareToStudyId) => {
     set((state) => ({ studies: state.studies.map((study) => (study.id === id ? { ...study, compareToStudyId } : study)) }));
   },
-}));
+})));

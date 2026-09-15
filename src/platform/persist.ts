@@ -1,3 +1,5 @@
+import { DEFAULT_TENANT_ID, activeTenantId, tenantStorageKey } from "./tenantRuntime";
+
 // Platform persistence seam.
 //
 // A tiny localStorage-backed persister for Zustand stores. It exists so that
@@ -46,6 +48,11 @@ export const backend = {
   },
 };
 
+/** Commit a tenant projection before a navigation or full application reload. */
+export function writeTenantState<T>(key: string, data: T): void {
+  backend.write(tenantStorageKey(key), data);
+}
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type ZSet<T> = (partial: T | Partial<T> | ((s: T) => T | Partial<T>), replace?: boolean) => void;
 type ZGet<T> = () => T;
@@ -63,7 +70,7 @@ type ZGet<T> = () => T;
 export function persisted<T extends object>(
   key: string,
   init: (set: ZSet<T>, get: ZGet<T>) => T,
-  opts?: { pick?: (s: T) => Partial<T>; merge?: (base: T, saved: Partial<T>) => T },
+  opts?: { pick?: (s: T) => Partial<T>; merge?: (base: T, saved: Partial<T>) => T; scope?: "tenant" | "global" },
 ) {
   return ((set: any, get: any) => {
     const pick = opts?.pick ?? ((s: T) => stripFns(s));
@@ -72,7 +79,7 @@ export function persisted<T extends object>(
     let timer: ReturnType<typeof setTimeout> | undefined;
     const save = () => {
       clearTimeout(timer);
-      timer = setTimeout(() => backend.write(key, pick(get())), 120);
+      timer = setTimeout(() => backend.write(opts?.scope === "global" ? key : tenantStorageKey(key), pick(get())), 120);
     };
 
     const wrappedSet: ZSet<T> = (partial, replace) => {
@@ -81,7 +88,11 @@ export function persisted<T extends object>(
     };
 
     const base = init(wrappedSet, get);
-    const saved = backend.read<Partial<T>>(key);
+    const storageKey = opts?.scope === "global" ? key : tenantStorageKey(key);
+    // Existing single-tenant installs migrate their unscoped data into the
+    // original Sabi tenant. Other tenants always start from isolated seeds.
+    const saved = backend.read<Partial<T>>(storageKey)
+      ?? (opts?.scope !== "global" && activeTenantId() === DEFAULT_TENANT_ID ? backend.read<Partial<T>>(key) : undefined);
     return saved ? merge(base, saved) : base;
   }) as any;
 }

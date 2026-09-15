@@ -7,6 +7,7 @@ import { drugs as seedDrugs } from "@/data/mock";
 import type { DrugStock, StaffMember } from "@/data/types";
 import { staff as seedStaff } from "@/data/mock";
 import { audit } from "@/store/useAudit";
+import { persisted } from "@/platform/persist";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 
@@ -36,7 +37,7 @@ type CatalogState = {
 const withActive = <T extends object>(rows: T[]) => rows.map((r) => ({ active: true, ...r }));
 const withId = <T extends object>(rows: T[]) => rows.map((r) => ({ id: rid(), ...r }));
 
-export const useCatalog = create<CatalogState>((set) => ({
+export const useCatalog = create<CatalogState>(persisted<CatalogState>("catalog", (set) => ({
   drugs: withActive(seedDrugs),
   labTests: withActive(withId(LAB_TESTS)),
   diagnoses: withActive(DIAGNOSES),
@@ -100,4 +101,4 @@ export const useCatalog = create<CatalogState>((set) => ({
       };
     });
   },
-}));
+})));

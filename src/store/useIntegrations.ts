@@ -15,6 +15,7 @@ import { useLedger } from "@/store/accounting/useLedger";
 import { useAR } from "@/store/accounting/useAR";
 import { ACCT } from "@/data/accounting/coa";
 import { SERVICE_TYPES } from "@/data/catalog";
+import { useRevenueCycle } from "@/billing/useRevenueCycle";
 
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
@@ -42,6 +43,10 @@ type IntegrationsState = {
   postedPayrollBatches: string[];
   settledPayrollBatches: string[];
   dispensedRxIds: string[];
+  syncedRevenueInvoiceIds: string[];
+  syncedRevenuePaymentIds: string[];
+  accountingInvoiceByRevenueId: Record<string, string>;
+  accountingCustomerByAccountId: Record<string, string>;
 
   setAutoSync: (on: boolean) => void;
   pendingCounts: () => { emrBilling: number; payrollAccrual: number; payrollSettlement: number; pharmacy: number };
@@ -58,6 +63,10 @@ export const useIntegrations = create<IntegrationsState>((set, get) => ({
   postedPayrollBatches: [],
   settledPayrollBatches: [],
   dispensedRxIds: [],
+  syncedRevenueInvoiceIds: [],
+  syncedRevenuePaymentIds: [],
+  accountingInvoiceByRevenueId: {},
+  accountingCustomerByAccountId: {},
 
   setAutoSync: (on) => {
     set({ autoSync: on });
@@ -67,7 +76,10 @@ export const useIntegrations = create<IntegrationsState>((set, get) => ({
   pendingCounts: () => {
     const emr = useEmr.getState();
     const done = get().syncedEmrInvoiceIds;
-    const emrBilling = emr.invoices.filter((i) => !done.includes(i.id) && i.status !== "Waived").length;
+    const revenue = useRevenueCycle.getState();
+    const pendingRevenueInvoices = revenue.invoices.filter((invoice) => !invoice.id.startsWith("legacy-") && !get().syncedRevenueInvoiceIds.includes(invoice.id)).length;
+    const pendingRevenuePayments = revenue.payments.filter((payment) => payment.status === "SUCCEEDED" && !payment.id.startsWith("legacy-") && !get().syncedRevenuePaymentIds.includes(payment.id)).length;
+    const emrBilling = emr.invoices.filter((i) => !done.includes(i.id) && i.status !== "Waived").length + pendingRevenueInvoices + pendingRevenuePayments;
 
     const slips = usePayroll.getState().payslips;
     const batches = [...new Set(slips.map((s) => s.batch))];
@@ -80,9 +92,14 @@ export const useIntegrations = create<IntegrationsState>((set, get) => ({
 
   syncEmrBilling: () => {
     const emr = useEmr.getState();
+    const revenue = useRevenueCycle.getState();
     const done = new Set(get().syncedEmrInvoiceIds);
     const result: SyncResult = { module: "EMR Billing", created: 0, skipped: 0, errors: [] };
     const newlySynced: string[] = [];
+    const syncedRevenueInvoices: string[] = [];
+    const syncedRevenuePayments: string[] = [];
+    const accountingInvoiceByRevenueId = { ...get().accountingInvoiceByRevenueId };
+    const accountingCustomerByAccountId = { ...get().accountingCustomerByAccountId };
 
     for (const inv of emr.invoices) {
       if (done.has(inv.id)) continue;
@@ -115,7 +132,65 @@ export const useIntegrations = create<IntegrationsState>((set, get) => ({
       newlySynced.push(inv.id);
     }
 
-    set((s) => ({ syncedEmrInvoiceIds: [...s.syncedEmrInvoiceIds, ...newlySynced], lastSyncAt: new Date().toISOString(), results: [result, ...s.results.filter((x) => x.module !== result.module)] }));
+    // New revenue-cycle documents are posted independently. An invoice and its
+    // later payments have separate idempotency ledgers, so partial payments can
+    // never be lost merely because the invoice was synchronized earlier.
+    for (const invoice of revenue.invoices) {
+      if (invoice.id.startsWith("legacy-") || get().syncedRevenueInvoiceIds.includes(invoice.id)) continue;
+      const patient = emr.patientById(invoice.patientId);
+      const customerName = invoice.payer === "NHIS"
+        ? "NHIS — National Scheme"
+        : patient ? `${patient.firstName} ${patient.lastName} — ${patient.mrn}` : `Patient ${invoice.patientId}`;
+      const customerId = accountingApi.ensureCustomer({ key: invoice.patientId, name: customerName, type: invoice.payer === "NHIS" ? "NHIS" : "Patient" });
+      const lines = invoice.lines.map((line) => {
+        const service = revenue.serviceCatalog.find((item) => item.code === line.serviceCode);
+        return {
+          id: `sl-${Math.random().toString(36).slice(2, 7)}`,
+          accountNumber: Number(service?.revenueAccountCode) || revenueAccountFor(line.serviceCode),
+          description: `${line.description}${patient ? ` — ${patient.firstName} ${patient.lastName}` : ""}`,
+          qty: line.quantity,
+          unitPrice: round2(line.unitPriceMinor / 100),
+          taxRateId: "tax-vat-exempt",
+        };
+      });
+      const posted = accountingApi.createAndIssueInvoice({ customerId, date: invoice.issuedAt, lines, emrInvoiceId: invoice.id, notes: `Patient account ${invoice.number} · encounter ${invoice.encounterId}` });
+      if (!posted.ok) { result.errors.push(`${invoice.number}: ${posted.error}`); continue; }
+      accountingInvoiceByRevenueId[invoice.id] = posted.invoiceId;
+      accountingCustomerByAccountId[invoice.accountId] = customerId;
+      syncedRevenueInvoices.push(invoice.id);
+      result.created++;
+    }
+
+    const invoiceMapping = accountingInvoiceByRevenueId;
+    for (const payment of revenue.payments) {
+      if (payment.id.startsWith("legacy-") || payment.status !== "SUCCEEDED" || get().syncedRevenuePaymentIds.includes(payment.id)) continue;
+      const allocations = revenue.allocations.filter((allocation) => allocation.paymentId === payment.id);
+      let postedAll = allocations.length > 0;
+      for (const allocation of allocations) {
+        const sourceInvoice = revenue.invoices.find((invoice) => invoice.id === allocation.invoiceId);
+        const accountingInvoiceId = invoiceMapping[allocation.invoiceId];
+        const customerId = sourceInvoice ? accountingCustomerByAccountId[sourceInvoice.accountId] : undefined;
+        if (!sourceInvoice || !accountingInvoiceId || !customerId) { postedAll = false; result.errors.push(`${payment.id}: invoice accounting link is not available`); continue; }
+        const method = payment.method === "CARD_POS" ? { label: "POS" as const, account: ACCT.bank }
+          : payment.method === "CASH" ? { label: "Cash" as const, account: ACCT.cashOnHand }
+          : payment.method === "INSURANCE" ? { label: "NHIS Remittance" as const, account: ACCT.bank }
+          : { label: "Bank Transfer" as const, account: ACCT.bank };
+        const posted = accountingApi.recordCustomerReceipt({ customerId, invoiceId: accountingInvoiceId, amount: round2(allocation.amountMinor / 100), date: payment.paymentDate,
+          method: method.label, depositAccountNumber: method.account, reference: payment.reference ?? payment.id });
+        if (!posted.ok) { postedAll = false; result.errors.push(`${payment.id}: ${posted.error}`); }
+        else result.created++;
+      }
+      if (postedAll) syncedRevenuePayments.push(payment.id);
+    }
+
+    set((s) => ({
+      syncedEmrInvoiceIds: [...s.syncedEmrInvoiceIds, ...newlySynced],
+      syncedRevenueInvoiceIds: [...s.syncedRevenueInvoiceIds, ...syncedRevenueInvoices],
+      syncedRevenuePaymentIds: [...s.syncedRevenuePaymentIds, ...syncedRevenuePayments],
+      accountingInvoiceByRevenueId,
+      accountingCustomerByAccountId,
+      lastSyncAt: new Date().toISOString(), results: [result, ...s.results.filter((x) => x.module !== result.module)],
+    }));
     if (result.created || result.errors.length) audit(`synced ${result.created} EMR invoice(s) to Accounting`, "integrations/emr-billing");
     return result;
   },

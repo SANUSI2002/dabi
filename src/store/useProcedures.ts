@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { audit } from "@/store/useAudit";
 import { useIdentity } from "@/store/useIdentity";
 import { seedProcedures, defaultChecklist, type ProcedureRecord, type ProcedureStatus } from "@/data/procedures";
+import { persisted } from "@/platform/persist";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 const now = () => new Date().toISOString();
@@ -29,7 +30,7 @@ type ProceduresState = {
   cancelProcedure: (id: string, reason: string) => void;
 };
 
-export const useProcedures = create<ProceduresState>((set, get) => ({
+export const useProcedures = create<ProceduresState>(persisted<ProceduresState>("procedures", (set, get) => ({
   procedures: seedProcedures,
 
   proceduresFor: (patientId) => (!patientId ? [] : get().procedures.filter((procedure) => procedure.patientId === patientId)),
@@ -134,7 +135,7 @@ export const useProcedures = create<ProceduresState>((set, get) => ({
     audit("cancelled procedure", `procedure/${id}`, { meta: { reason } });
     set((state) => ({ procedures: state.procedures.map((procedure) => (procedure.id === id ? { ...procedure, status: "Cancelled", cancelledReason: reason } : procedure)) }));
   },
-}));
+})));
 
 export const PROCEDURE_LIFECYCLE: ProcedureStatus[] = [
   "Requested", "Scheduled", "Consented", "Pre-procedure", "Performed", "Recovery", "Follow-up", "Cancelled",

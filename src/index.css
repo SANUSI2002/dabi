@@ -84,6 +84,24 @@
   .nav-link-active {
     @apply bg-brand-gradient text-white shadow-glow hover:bg-brand-gradient hover:text-white;
   }
+  .cc-th {
+    @apply whitespace-nowrap px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400;
+  }
+  .cc-td {
+    @apply whitespace-nowrap px-3 py-3 text-xs text-slate-600;
+  }
+  .cc-label {
+    @apply mb-1.5 block text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400;
+  }
+  .form-area {
+    @apply min-h-24 w-full rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15;
+  }
+  .public-button-primary {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-3 text-sm font-extrabold text-slate-950 transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 active:translate-y-0;
+  }
+  .public-button-secondary {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-extrabold text-slate-800 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:text-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 active:translate-y-0;
+  }
 }
 
 @layer utilities {
@@ -94,6 +112,24 @@
   .glass {
     background: rgba(255, 255, 255, 0.72);
     backdrop-filter: blur(14px);
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+.public-grid {
+  background-image: linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: linear-gradient(to bottom, black, transparent 90%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

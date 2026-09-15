@@ -9,6 +9,7 @@ import {
   type CarePlan, type CareActivity, type CarePlanActivityStatus, type CareGoal, type CareGoalStatus,
 } from "@/data/clinical";
 import type { Patient } from "@/data/types";
+import { persisted } from "@/platform/persist";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 const now = () => new Date().toISOString();
@@ -96,7 +97,7 @@ export function selectAllergiesFor(
   }));
 }
 
-export const useClinical = create<ClinicalState>((set, get) => ({
+export const useClinical = create<ClinicalState>(persisted<ClinicalState>("clinical", (set, get) => ({
   conditions: seedConditions,
   allergies: seedAllergies,
   carePlans: seedCarePlans,
@@ -238,7 +239,7 @@ export const useClinical = create<ClinicalState>((set, get) => ({
     }));
     audit("added care plan goal", `clinical/care-plan/${planId}`);
   },
-}));
+})));
 
 /** true when a care activity is past its due date and not yet done/cancelled */
 export function isActivityOverdue(activity: CareActivity): boolean {

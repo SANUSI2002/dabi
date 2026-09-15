@@ -53,6 +53,8 @@ export type QueueStatus = "Waiting" | "In Progress" | "Completed" | "Referred";
 export type QueueEntry = {
   id: string;
   patientId: string;
+  encounterId?: string;
+  appointmentId?: string;
   station: Station;
   priority: "Normal" | "Urgent" | "Emergency";
   complaint?: string;
@@ -87,6 +89,8 @@ export type Prescription = {
 export type LabOrder = {
   id: string;
   patientId: string;
+  /** Encounter that originated the request; required for clinical-to-financial traceability. */
+  encounterId?: string;
   test: string;
   category: string;
   urgency: "Routine" | "Urgent";
@@ -123,10 +127,13 @@ export type LabOrder = {
 };
 
 export type EncounterStatus = "in-progress" | "signed" | "amended" | "cancelled";
+export type ClinicalEncounterStatus = "PLANNED" | "CHECKED_IN" | "IN_PROGRESS" | "AWAITING_LAB" | "AWAITING_PHARMACY" | "READY_FOR_DISCHARGE" | "COMPLETED" | "CANCELLED";
 
 export type Encounter = {
   id: string;
   patientId: string;
+  appointmentId?: string;
+  queueEntryId?: string;
   date: string;
   provider: string;
   complaint: string;
@@ -139,6 +146,8 @@ export type Encounter = {
   station: Station;
   // document lifecycle — older mock records have no status and are treated as signed
   status?: EncounterStatus;
+  /** Care-journey lifecycle, deliberately separate from note signing status. */
+  clinicalStatus?: ClinicalEncounterStatus;
   signedBy?: string;
   signedAt?: string;
   amendedBy?: string;
@@ -195,6 +204,8 @@ export type Appointment = {
   type: "General" | "ANC" | "PNC" | "Follow-up" | "Immunization" | "Specialist";
   reason?: string;
   status: "Scheduled" | "Attended" | "No-Show" | "Cancelled";
+  encounterId?: string;
+  checkedInAt?: string;
 };
 
 export type DrugStock = {

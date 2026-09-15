@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { LAB_TEST_CONFIGS, defaultConfigFor, type LabTestConfig, type ResultField } from "@/data/labConfig";
 import { LAB_TESTS } from "@/data/catalog";
 import { audit } from "@/store/useAudit";
+import { persisted } from "@/platform/persist";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 
@@ -13,7 +14,7 @@ type LabConfigState = {
   setTemplate: (testName: string, fields: ResultField[]) => void;
 };
 
-export const useLabConfig = create<LabConfigState>((set, get) => ({
+export const useLabConfig = create<LabConfigState>(persisted<LabConfigState>("lab-config", (set, get) => ({
   configs: LAB_TEST_CONFIGS,
 
   configFor: (testName) => {
@@ -49,6 +50,6 @@ export const useLabConfig = create<LabConfigState>((set, get) => ({
       return { configs: base.map((c) => (c.testName === testName ? { ...c, resultTemplate: fields } : c)) };
     });
   },
-}));
+})));
 
 export const newResultField = (): ResultField => ({ id: rid(), label: "", type: "text" });

@@ -81,7 +81,7 @@ export const NAV: NavGroup[] = [
   {
     title: "Clinical",
     items: [
-      { to: "/", label: "Dashboard", icon: LayoutDashboard },
+      { to: "/workspace", label: "Dashboard", icon: LayoutDashboard },
       { to: "/queue", label: "Clinical Queue", icon: ListChecks, badge: "queue" },
       { to: "/registration", label: "Registration", icon: UserPlus },
       { to: "/appointments", label: "Appointments", icon: CalendarClock },

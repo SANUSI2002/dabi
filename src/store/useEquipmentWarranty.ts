@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { audit } from "@/store/useAudit";
 import { useIdentity } from "@/store/useIdentity";
 import type { WarrantyInfo, WarrantyClaim, WarrantyClaimStatus } from "@/data/equipmentWarranty";
+import { persisted } from "@/platform/persist";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 
@@ -19,7 +20,7 @@ type EquipmentWarrantyState = {
   claimsFor: (equipmentId: string) => WarrantyClaim[];
 };
 
-export const useEquipmentWarranty = create<EquipmentWarrantyState>((set, get) => ({
+export const useEquipmentWarranty = create<EquipmentWarrantyState>(persisted<EquipmentWarrantyState>("equipment-warranty", (set, get) => ({
   warranties: [],
   claims: [],
 
@@ -68,4 +69,4 @@ export const useEquipmentWarranty = create<EquipmentWarrantyState>((set, get) =>
   },
 
   claimsFor: (equipmentId) => get().claims.filter((c) => c.equipmentId === equipmentId),
-}));
+})));

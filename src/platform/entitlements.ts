@@ -10,10 +10,39 @@
 
 export type ProductKey = "emr" | "workforce" | "accounting";
 
-export const PRODUCTS: Record<ProductKey, { label: string; tagline: string }> = {
-  emr: { label: "Sabi EMR", tagline: "Clinical records, diagnostics, wards, hospital operations" },
-  workforce: { label: "Sabi Workforce", tagline: "Employees, org structure, recruitment, HR workflows" },
-  accounting: { label: "Sabi Accounting", tagline: "General ledger, AR/AP, banking, financial reporting" },
+export type CatalogStatus = "Draft" | "Internal" | "Beta" | "Active" | "Deprecated" | "Disabled";
+export type BillingModel = "flat" | "per-user" | "usage" | "hybrid" | "enterprise";
+export type PricingUnit = "month" | "year" | "user" | "active-user" | "doctor" | "bed" | "branch" | "transaction" | "usage" | "quote";
+
+export type ProductDef = {
+  id: ProductKey;
+  label: string;
+  tagline: string;
+  description: string;
+  version: string;
+  status: CatalogStatus;
+  releaseStatus: "Generally Available" | "Beta" | "Internal";
+  basePrice: number;
+  billingModel: BillingModel;
+};
+
+/** Shared product catalog consumed by both the tenant application and Command Center. */
+export const PRODUCTS: Record<ProductKey, ProductDef> = {
+  emr: {
+    id: "emr", label: "Sabi EMR", tagline: "Clinical records, diagnostics, wards, hospital operations",
+    description: "Connected clinical and hospital operations for ambulatory and inpatient care.",
+    version: "2026.9", status: "Active", releaseStatus: "Generally Available", basePrice: 185_000, billingModel: "hybrid",
+  },
+  workforce: {
+    id: "workforce", label: "Sabi Workforce", tagline: "Employees, org structure, recruitment, HR workflows",
+    description: "Workforce administration, time, payroll and employee lifecycle management.",
+    version: "2026.9", status: "Active", releaseStatus: "Generally Available", basePrice: 95_000, billingModel: "per-user",
+  },
+  accounting: {
+    id: "accounting", label: "Sabi Accounting", tagline: "General ledger, AR/AP, banking, financial reporting",
+    description: "Multi-branch financial operations with native EMR and payroll posting.",
+    version: "2026.9", status: "Active", releaseStatus: "Generally Available", basePrice: 125_000, billingModel: "flat",
+  },
 };
 
 export type SubmoduleDef = { key: string; label: string; routes: string[] };
@@ -27,12 +56,17 @@ export type ModuleDef = {
   routes: string[];
   core?: boolean; // cannot be disabled while its product is on (dashboards, directory…)
   submodules?: SubmoduleDef[];
+  status?: CatalogStatus;
+  price?: number;
+  pricingUnit?: PricingUnit;
+  dependencies?: string[];
+  featureEntitlements?: string[];
 };
 
 export const MODULES: ModuleDef[] = [
   // ---------- EMR ----------
   { key: "emr.clinical", product: "emr", label: "Clinical", core: true, description: "Registration, queue, consultation, appointments, medical history",
-    routes: ["/", "/queue", "/registration", "/appointments", "/consultation", "/history", "/patients", "/transfers"] },
+    routes: ["/workspace", "/queue", "/registration", "/appointments", "/consultation", "/history", "/patients", "/transfers"] },
   { key: "emr.wards", product: "emr", label: "In-patient & Wards", description: "Admissions, ward and bed management",
     routes: ["/inpatient"] },
   { key: "emr.procedures", product: "emr", label: "Procedures", description: "Minor/outpatient procedure lifecycle, safety checklist, signed notes",

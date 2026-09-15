@@ -1,10 +1,22 @@
 import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
 import { useAuth } from "@/store/useAuth";
-import { AppShell } from "@/components/layout/AppShell";
-import { WorkforceLayout } from "@/components/layout/WorkforceLayout";
-import LoginDoor from "@/pages/auth/LoginDoor";
+import { useTenant } from "@/store/useTenant";
+import { useTenantSetup } from "@/tenant-setup/useTenantSetup";
+
+const AppShell = lazy(() => import("@/components/layout/AppShell").then((m) => ({ default: m.AppShell })));
+const WorkforceLayout = lazy(() => import("@/components/layout/WorkforceLayout").then((m) => ({ default: m.WorkforceLayout })));
+const SignInPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.SignInPage })));
+const MfaPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.MfaPage })));
+const OrganizationChooserPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.OrganizationChooserPage })));
+const ForgotPasswordPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.ForgotPasswordPage })));
+const SsoPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.SsoPage })));
+const SessionsPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.SessionsPage })));
+const PatientPortalPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.PatientPortalPage })));
+const InvitePage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.InvitePage })));
+const RegistrationStartPage = lazy(() => import("@/registration/pages/OrganizationRegistration").then((m) => ({ default: m.RegistrationStartPage })));
+const OrganizationRegistrationPage = lazy(() => import("@/registration/pages/OrganizationRegistration").then((m) => ({ default: m.OrganizationRegistrationPage })));
+const ApplicationStatusPage = lazy(() => import("@/registration/pages/OrganizationRegistration").then((m) => ({ default: m.ApplicationStatusPage })));
 
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const ClinicalQueue = lazy(() => import("@/pages/clinical/ClinicalQueue"));
@@ -33,6 +45,7 @@ const Referrals = lazy(() => import("@/pages/programs/Referrals"));
 const Surveillance = lazy(() => import("@/pages/programs/Surveillance"));
 const Outreach = lazy(() => import("@/pages/programs/Outreach"));
 const Billing = lazy(() => import("@/pages/admin/Billing"));
+const BillingInvoiceDetail = lazy(() => import("@/pages/admin/BillingInvoiceDetail"));
 const Inventory = lazy(() => import("@/pages/admin/Inventory"));
 const Equipment = lazy(() => import("@/pages/admin/Equipment"));
 const EquipmentCommandCentre = lazy(() => import("@/pages/equipment/CommandCentre"));
@@ -118,6 +131,33 @@ const AcctPeriodEnd = lazy(() => import("@/pages/accounting/PeriodEnd"));
 const AcctConsolidation = lazy(() => import("@/pages/accounting/Consolidation"));
 const AcctIntegrations = lazy(() => import("@/pages/accounting/Integrations"));
 const AcctSettings = lazy(() => import("@/pages/accounting/AccountingSettings"));
+const CommandCenterShell = lazy(() => import("@/command-center/components/CommandCenterShell").then((m) => ({ default: m.CommandCenterShell })));
+const CommandDashboard = lazy(() => import("@/command-center/pages/Dashboard"));
+const CommandOrganizations = lazy(() => import("@/command-center/pages/Organizations"));
+const Tenant360 = lazy(() => import("@/command-center/pages/Tenant360"));
+const CommercialPage = lazy(() => import("@/command-center/pages/CommercialPages"));
+const CustomerIdentityPage = lazy(() => import("@/command-center/pages/CustomerIdentityPages"));
+const VerificationCenter = lazy(() => import("@/command-center/pages/VerificationCenter"));
+const CommercialOnboarding = lazy(() => import("@/command-center/pages/CommercialOnboarding"));
+const TenantProvisioning = lazy(() => import("@/command-center/pages/TenantProvisioning"));
+const TenantFirstRunSetup = lazy(() => import("@/tenant-setup/TenantFirstRunSetup"));
+const TenantSetupManagement = lazy(() => import("@/command-center/pages/TenantSetupManagement"));
+const PlatformOpsPage = lazy(() => import("@/command-center/pages/PlatformOpsPages"));
+const ProductRoadmap = lazy(() => import("@/command-center/pages/ProductRoadmap"));
+const ProductReleases = lazy(() => import("@/command-center/pages/ProductReleases"));
+const PublicShell = lazy(() => import("@/public/PublicShell"));
+const RoadmapPage = lazy(() => import("@/public/pages/RoadmapPage"));
+const HomePage = lazy(() => import("@/public/pages/HomePage"));
+const SabiOsPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.SabiOsPage })));
+const SabiHealthPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.SabiHealthPage })));
+const AIPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.AIPage })));
+const SecurityPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.SecurityPage })));
+const AboutPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.AboutPage })));
+const PricingPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.PricingPage })));
+const SolutionsPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.SolutionsPage })));
+const ResourcesPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.ResourcesPage })));
+const RegisterEntryPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.RegisterEntryPage })));
+const BookDemoPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.BookDemoPage })));
 
 function Loader() {
   return (
@@ -127,23 +167,114 @@ function Loader() {
   );
 }
 
+function WorkspaceGate() {
+  const { authed, identity, activeMembership } = useAuth();
+  const activeTenant = useTenant((state) => state.tenant.id);
+  const setup = useTenantSetup((state) => state.records.find((item) => item.organizationId === activeTenant));
+  if (!authed || !identity) return <Navigate to="/login" replace />;
+  if (identity.kind === "platform") return <Navigate to="/command-center" replace />;
+  if (identity.kind === "patient") return <Navigate to="/patient" replace />;
+  if (!activeMembership) return <Navigate to="/choose-organization" replace />;
+  if (activeMembership.organizationId !== activeTenant) return <Navigate to="/choose-organization" replace />;
+  if (setup && setup.status !== "LIVE") return <Navigate to="/workspace/setup" replace />;
+  return <AppShell />;
+}
+
+function TenantSetupGate() {
+  const { authed, identity, activeMembership } = useAuth();
+  const activeTenant = useTenant((state) => state.tenant.id);
+  const setup = useTenantSetup((state) => state.records.find((item) => item.organizationId === activeTenant));
+  if (!authed || !identity) return <Navigate to="/login" replace />;
+  if (identity.kind !== "organization" || !activeMembership) return <Navigate to={identity.kind === "platform" ? "/command-center" : "/patient"} replace />;
+  if (activeMembership.organizationId !== activeTenant) return <Navigate to="/choose-organization" replace />;
+  if (!activeMembership.role.toLowerCase().includes("administrator")) return <Navigate to="/choose-organization" replace />;
+  if (!setup || setup.status === "LIVE") return <Navigate to="/workspace" replace />;
+  return <TenantFirstRunSetup />;
+}
+
+function CommandCenterGate() {
+  const { authed, identity } = useAuth();
+  return authed && identity?.kind === "platform" ? <CommandCenterShell /> : <Navigate to="/login" replace />;
+}
+
 export default function App() {
-  const authed = useAuth((s) => s.authed);
   const loc = useLocation();
-
-  if (!authed) {
-    return (
-      <AnimatePresence mode="wait">
-        <LoginDoor key="login" />
-      </AnimatePresence>
-    );
-  }
-
   return (
     <Suspense fallback={<Loader />}>
       <Routes location={loc}>
-        <Route element={<AppShell />}>
-          <Route path="/" element={<Dashboard />} />
+        <Route element={<PublicShell />}>
+          <Route index element={<HomePage />} />
+          <Route path="products/sabi-os" element={<SabiOsPage />} />
+          <Route path="products/sabi-health" element={<SabiHealthPage />} />
+          <Route path="ai" element={<AIPage />} />
+          <Route path="roadmap" element={<RoadmapPage />} />
+          <Route path="security" element={<SecurityPage />} />
+          <Route path="about" element={<AboutPage />} />
+          <Route path="pricing" element={<PricingPage />} />
+          <Route path="solutions/:type" element={<SolutionsPage />} />
+          <Route path="resources" element={<ResourcesPage />} />
+          <Route path="register" element={<RegisterEntryPage />} />
+          <Route path="book-demo" element={<BookDemoPage />} />
+        </Route>
+        <Route path="/login" element={<SignInPage />} />
+        <Route path="/mfa" element={<MfaPage />} />
+        <Route path="/choose-organization" element={<OrganizationChooserPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/sso" element={<SsoPage />} />
+        <Route path="/account/sessions" element={<SessionsPage />} />
+        <Route path="/accept-invite" element={<InvitePage />} />
+        <Route path="/patient" element={<PatientPortalPage />} />
+        <Route path="/workspace/setup" element={<TenantSetupGate />} />
+        <Route path="/register/organization" element={<RegistrationStartPage />} />
+        <Route path="/register/organization/:applicationId" element={<OrganizationRegistrationPage />} />
+        <Route path="/register/organization/:applicationId/status" element={<ApplicationStatusPage />} />
+        <Route path="/command-center" element={<CommandCenterGate />}>
+          <Route index element={<CommandDashboard />} />
+          <Route path="organizations" element={<CommandOrganizations />} />
+          <Route path="organizations/:organizationId" element={<Tenant360 />} />
+          <Route path="onboarding" element={<VerificationCenter />} />
+          <Route path="onboarding/:applicationId" element={<VerificationCenter />} />
+          <Route path="provisioning" element={<TenantProvisioning />} />
+          <Route path="provisioning/:applicationId" element={<TenantProvisioning />} />
+          <Route path="setup" element={<TenantSetupManagement />} />
+          <Route path="setup/:organizationId" element={<TenantSetupManagement />} />
+          <Route path="documents" element={<CustomerIdentityPage kind="documents" />} />
+          <Route path="support" element={<CustomerIdentityPage kind="support" />} />
+          <Route path="opportunities" element={<CommercialOnboarding />} />
+          <Route path="opportunities/:applicationId" element={<CommercialOnboarding />} />
+          <Route path="subscriptions" element={<CommercialPage kind="subscriptions" />} />
+          <Route path="licenses" element={<CommercialPage kind="licenses" />} />
+          <Route path="packages" element={<CommercialPage kind="packages" />} />
+          <Route path="catalog" element={<CommercialPage kind="catalog" />} />
+          <Route path="pricing" element={<CommercialPage kind="pricing" />} />
+          <Route path="invoices" element={<CommercialPage kind="invoices" />} />
+          <Route path="transactions" element={<CommercialPage kind="transactions" />} />
+          <Route path="roadmap" element={<ProductRoadmap />} />
+          <Route path="releases" element={<ProductReleases />} />
+          <Route path="users" element={<CustomerIdentityPage kind="users" />} />
+          <Route path="roles" element={<CustomerIdentityPage kind="roles" />} />
+          <Route path="sso" element={<CustomerIdentityPage kind="sso" />} />
+          <Route path="sessions" element={<CustomerIdentityPage kind="sessions" />} />
+          <Route path="entitlements" element={<PlatformOpsPage kind="entitlements" />} />
+          <Route path="feature-flags" element={<PlatformOpsPage kind="feature-flags" />} />
+          <Route path="integrations" element={<PlatformOpsPage kind="integrations" />} />
+          <Route path="notifications" element={<PlatformOpsPage kind="notifications" />} />
+          <Route path="analytics" element={<PlatformOpsPage kind="analytics" />} />
+          <Route path="health" element={<PlatformOpsPage kind="health" />} />
+          <Route path="incidents" element={<PlatformOpsPage kind="incidents" />} />
+          <Route path="jobs" element={<PlatformOpsPage kind="jobs" />} />
+          <Route path="audit" element={<PlatformOpsPage kind="audit" />} />
+          <Route path="branding" element={<PlatformOpsPage kind="branding" />} />
+          <Route path="themes" element={<PlatformOpsPage kind="themes" />} />
+          <Route path="terminology" element={<PlatformOpsPage kind="terminology" />} />
+          <Route path="internal-users" element={<CustomerIdentityPage kind="internal-users" />} />
+          <Route path="security" element={<PlatformOpsPage kind="security" />} />
+          <Route path="settings" element={<PlatformOpsPage kind="settings" />} />
+          <Route path="*" element={<Navigate to="/command-center" replace />} />
+        </Route>
+        <Route element={<WorkspaceGate />}>
+          <Route path="/workspace" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Navigate to="/workspace" replace />} />
           <Route path="/queue" element={<ClinicalQueue />} />
           <Route path="/registration" element={<Registration />} />
           <Route path="/appointments" element={<Appointments />} />
@@ -170,6 +301,7 @@ export default function App() {
           <Route path="/surveillance" element={<Surveillance />} />
           <Route path="/outreach" element={<Outreach />} />
           <Route path="/billing" element={<Billing />} />
+          <Route path="/billing/invoices/:invoiceId" element={<BillingInvoiceDetail />} />
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/equipment" element={<Equipment />} />
           <Route path="/equipment-scada" element={<EquipmentCommandCentre />} />
@@ -258,7 +390,7 @@ export default function App() {
           <Route path="/accounting/consolidation" element={<AcctConsolidation />} />
           <Route path="/accounting/integrations" element={<AcctIntegrations />} />
           <Route path="/accounting/settings" element={<AcctSettings />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/workspace" replace />} />
         </Route>
       </Routes>
     </Suspense>

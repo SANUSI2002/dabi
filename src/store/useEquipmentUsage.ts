@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { audit } from "@/store/useAudit";
 import type { EquipmentUsageSession, UsageOutcome } from "@/data/equipmentUsage";
+import { persisted } from "@/platform/persist";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 
@@ -14,7 +15,7 @@ type EquipmentUsageState = {
   sessionsFor: (equipmentId: string) => EquipmentUsageSession[];
 };
 
-export const useEquipmentUsage = create<EquipmentUsageState>((set, get) => ({
+export const useEquipmentUsage = create<EquipmentUsageState>(persisted<EquipmentUsageState>("equipment-usage", (set, get) => ({
   sessions: [],
 
   startSession: (equipmentId, input) => {
@@ -41,4 +42,4 @@ export const useEquipmentUsage = create<EquipmentUsageState>((set, get) => ({
 
   currentSessionFor: (equipmentId) => get().sessions.find((s) => s.equipmentId === equipmentId && !s.endedAt),
   sessionsFor: (equipmentId) => get().sessions.filter((s) => s.equipmentId === equipmentId),
-}));
+})));

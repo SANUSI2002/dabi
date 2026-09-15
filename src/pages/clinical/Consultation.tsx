@@ -5,7 +5,9 @@ import { PageHeader, Button, Badge, SectionNote } from "@/components/ui/primitiv
 import { Field, Input, Textarea, Select } from "@/components/ui/form";
 import { Modal } from "@/components/ui/Modal";
 import { ClinicalStatusBadge } from "@/components/clinical/ClinicalStatusBadge";
-import { useEmr, serviceLine } from "@/store/useEmr";
+import { useEmr } from "@/store/useEmr";
+import { getRevenueCycleApi } from "@/billing/runtime";
+import { activeFacility } from "@/platform/tenantRuntime";
 import { useClinical } from "@/store/useClinical";
 import { useWards } from "@/store/useWards";
 import { DrugField } from "@/components/clinical/DrugField";
@@ -31,7 +33,7 @@ const EMPTY_SOAP: SoapState = { s: "", o: "", a: "", p: "" };
 
 export default function Consultation() {
   const emr = useEmr();
-  const { queue, patientById, saveEncounter, addLabOrders, advanceQueue, admit, latestVitals, createInvoice } = emr;
+  const { queue, patientById, saveEncounter, addLabOrders, advanceQueue, admit, latestVitals } = emr;
   const addCondition = useClinical((state) => state.addCondition);
   const addCarePlan = useClinical((state) => state.addCarePlan);
   const wards = useWards((state) => state.wards);
@@ -65,6 +67,7 @@ export default function Consultation() {
   const [admitWardId, setAdmitWardId] = useState(wards[0]?.id ?? "");
   const [admitBedId, setAdmitBedId] = useState("");
   const [toast, setToast] = useState("");
+  const [finalizing, setFinalizing] = useState(false);
 
   const dirty = useMemo(
     () =>
@@ -128,10 +131,13 @@ export default function Consultation() {
     (bed) => bed.wardId === admitWardId && bed.active && !occupiedBedLabels.has(`${admitWard?.name}|${bed.label}`),
   );
 
-  function finalize(sign: boolean) {
+  async function finalize(sign: boolean) {
     if (!entry || !patient) return;
+    setFinalizing(true);
     const encounterId = saveEncounter({
       patientId: patient.id,
+      queueEntryId: entry.id,
+      appointmentId: entry.appointmentId,
       provider,
       complaint: soap.s || entry.complaint || "—",
       examination: soap.o,
@@ -142,6 +148,7 @@ export default function Consultation() {
       labs,
       station: "Consultation",
       status: sign ? "signed" : "in-progress",
+      clinicalStatus: !sign ? "IN_PROGRESS" : labs.length ? "AWAITING_LAB" : prescriptions.length ? "AWAITING_PHARMACY" : "COMPLETED",
       visitType,
       followUp: followUp || undefined,
       patientInstructions: instructions || undefined,
@@ -170,32 +177,54 @@ export default function Consultation() {
         description: `Opened at consultation on ${new Date().toLocaleDateString()}.`,
         period: { start: new Date().toISOString() },
         addresses: conditionIds,
-        goals: carePlan.goal.trim() ? [{ id: `goal-${Math.random().toString(36).slice(2, 7)}`, description: carePlan.goal.trim(), status: "active" }] : [],
-        activities: followUp ? [{ id: `act-${Math.random().toString(36).slice(2, 7)}`, description: followUp, owner: provider, status: "scheduled" }] : [],
+        goals: carePlan.goal.trim() ? [{ id: `goal-${encounterId}`, description: carePlan.goal.trim(), status: "active" }] : [],
+        activities: followUp ? [{ id: `act-${encounterId}`, description: followUp, owner: provider, status: "scheduled" }] : [],
       });
     }
 
-    if (labs.length) addLabOrders(patient.id, labs.map((test) => ({ test, category: "Consultation order" })), provider);
+    if (labs.length) addLabOrders(patient.id, labs.map((test) => ({ test, category: "Consultation order" })), provider, encounterId);
 
-    let invoiceMessage = "";
+    let billingMessage = "";
     if (sign) {
-      const invoiceLines = [
-        serviceLine("CONS"),
-        ...(labs.length ? [{ ...serviceLine("LAB"), qty: labs.length }] : []),
-        ...(prescriptions.length ? [serviceLine("PHARM")] : []),
-      ];
-      const invoice = createInvoice(patient.id, invoiceLines);
-      invoiceMessage = invoice.exempt
-        ? ` · invoice ${invoice.number} waived (${patient.payer})`
-        : ` · invoice ${invoice.number} raised — patient to Billing then ${routeStation}`;
+      try {
+        const sourceEventId = `consultation-completed:${encounterId}`;
+        const result = await getRevenueCycleApi().captureCharge({
+          patientId: patient.id,
+          encounterId,
+          branchId: activeFacility().code,
+          payer: patient.payer,
+          visitType,
+          sourceType: "CONSULTATION",
+          sourceId: encounterId,
+          sourceEventId,
+          idempotencyKey: sourceEventId,
+          serviceCode: "CONS",
+          quantity: 1,
+          department: "Consultation",
+          performedBy: provider,
+          performedAt: new Date().toISOString(),
+        });
+        if (result.charge) {
+          await getRevenueCycleApi().updateBillingReadiness({ encounterId, reasons: [
+            ...(labs.length ? [`Laboratory: ${labs.length} specimen${labs.length === 1 ? "" : "s"} pending`] : []),
+            ...(prescriptions.length ? [`Pharmacy: ${prescriptions.length} dispense${prescriptions.length === 1 ? "" : "s"} pending`] : []),
+          ] });
+          billingMessage = ` · consultation charge sent to patient account`;
+        } else if (result.exception) {
+          billingMessage = ` · billing review required (${result.exception.reason.replaceAll("_", " ").toLowerCase()})`;
+        }
+      } catch {
+        billingMessage = " · billing sync pending";
+      }
       advanceQueue(entry.id, routeStation === "Exit" ? "Completed" : "Referred", routeStation as never);
     } else {
       advanceQueue(entry.id, "In Progress");
     }
 
     resetEncounter();
-    setToast(sign ? `Encounter signed${invoiceMessage}` : "Note saved as unsigned draft — patient stays in progress");
+    setToast(sign ? `Encounter signed${billingMessage}` : "Note saved as unsigned draft — patient stays in progress");
     setTimeout(() => setToast(""), 3600);
+    setFinalizing(false);
   }
 
   return (
@@ -509,14 +538,14 @@ export default function Consultation() {
               <span className="text-sm font-semibold text-mist-500">Route to</span>
               <Select value={routeStation} onChange={(event) => setRouteStation(event.target.value)} options={[...STATIONS]} className="w-auto" />
               <div className="ml-auto flex flex-wrap gap-2">
-                <Button variant="ghost" onClick={() => finalize(false)} disabled={!dirty}>
+                <Button variant="ghost" onClick={() => finalize(false)} disabled={!dirty || finalizing}>
                   <Save size={15} /> Save draft
                 </Button>
                 <Button variant="ghost" onClick={() => setAdmitOpen(true)}>
                   <BedDouble size={15} /> Admit
                 </Button>
-                <Button onClick={() => finalize(true)} disabled={!canSign} title={canSign ? undefined : "Record history and assessment first"}>
-                  <FileSignature size={15} /> Sign &amp; finalise
+                <Button onClick={() => finalize(true)} disabled={!canSign || finalizing} title={canSign ? undefined : "Record history and assessment first"}>
+                  <FileSignature size={15} /> {finalizing ? "Finalising…" : "Sign & finalise"}
                 </Button>
               </div>
             </div>

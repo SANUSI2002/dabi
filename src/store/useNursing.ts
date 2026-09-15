@@ -6,6 +6,7 @@ import {
   type NursingObservation, type MedicationAdministration, type AdministrationStatus,
 } from "@/data/nursing";
 import type { Admission, Prescription } from "@/data/types";
+import { persisted } from "@/platform/persist";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 const now = () => new Date().toISOString();
@@ -49,7 +50,7 @@ function slotStatus(scheduledFor: string): AdministrationStatus {
   return "due";
 }
 
-export const useNursing = create<NursingState>((set, get) => ({
+export const useNursing = create<NursingState>(persisted<NursingState>("nursing", (set, get) => ({
   observations: [],
   administrations: [],
 
@@ -137,4 +138,4 @@ export const useNursing = create<NursingState>((set, get) => ({
       };
     });
   },
-}));
+})));

@@ -4,6 +4,7 @@ import { useIdentity } from "@/store/useIdentity";
 import { useEquipment } from "@/store/useEquipment";
 import { useEquipmentEvents } from "@/store/useEquipmentEvents";
 import type { CalibrationRecord, CalibrationResult } from "@/data/equipmentCalibration";
+import { persisted } from "@/platform/persist";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 
@@ -19,7 +20,7 @@ type EquipmentCalibrationState = {
   lastCompletedFor: (equipmentId: string) => CalibrationRecord | undefined;
 };
 
-export const useEquipmentCalibration = create<EquipmentCalibrationState>((set, get) => ({
+export const useEquipmentCalibration = create<EquipmentCalibrationState>(persisted<EquipmentCalibrationState>("equipment-calibration", (set, get) => ({
   records: [],
 
   scheduleCalibration: (equipmentId, scheduledFor, vendor, technician) => {
@@ -84,4 +85,4 @@ export const useEquipmentCalibration = create<EquipmentCalibrationState>((set, g
       .sort((a, b) => (b.performedAt! < a.performedAt! ? -1 : 1));
     return completed[0];
   },
-}));
+})));

@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { auditTrail } from "@/data/mock";
 import { useIdentity } from "@/store/useIdentity";
 import type { AuditEvent, AuditFieldChange } from "@/data/types";
+import { persisted } from "@/platform/persist";
+import { activeTenantId } from "@/platform/tenantRuntime";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 const IP = "102.89.34.17";
@@ -18,7 +20,7 @@ type AuditState = {
   log: (action: string, resource: string, opts?: AuditOpts) => void;
 };
 
-export const useAudit = create<AuditState>((set) => ({
+export const useAudit = create<AuditState>(persisted<AuditState>("audit", (set) => ({
   events: auditTrail,
   log: (action, resource, opts) =>
     set((s) => ({
@@ -32,12 +34,12 @@ export const useAudit = create<AuditState>((set) => ({
           resource,
           ip: IP,
           ...(opts?.changes && opts.changes.length ? { changes: opts.changes } : {}),
-          ...(opts?.meta ? { meta: opts.meta } : {}),
+          meta: { tenantId: activeTenantId(), ...(opts?.meta ?? {}) },
         },
         ...s.events,
       ],
     })),
-}));
+})));
 
 /** fire-and-forget helper for use outside React render */
 export const audit = (action: string, resource: string, opts?: AuditOpts) =>

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import * as seed from "@/data/wards";
 import { audit } from "@/store/useAudit";
 import type { Ward, Bed } from "@/data/wards";
+import { persisted } from "@/platform/persist";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 
@@ -17,7 +18,7 @@ type WardsState = {
   setBedActive: (bedId: string, active: boolean) => void;
 };
 
-export const useWards = create<WardsState>((set, get) => ({
+export const useWards = create<WardsState>(persisted<WardsState>("wards", (set, get) => ({
   wards: seed.wards,
   beds: seed.beds,
 
@@ -49,4 +50,4 @@ export const useWards = create<WardsState>((set, get) => ({
     audit(active ? "reactivated bed" : "retired bed", `wards/bed/${bedId}`);
     set((s) => ({ beds: s.beds.map((b) => (b.id === bedId ? { ...b, active } : b)) }));
   },
-}));
+})));

@@ -2,8 +2,8 @@ import { type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Printer } from "lucide-react";
 import { ShieldPlus } from "lucide-react";
-import { FACILITY } from "@/data/mock";
 import { useIdentity } from "@/store/useIdentity";
+import { useTenant } from "@/store/useTenant";
 import { dateTime } from "@/lib/format";
 
 export function PrintDoc({
@@ -18,6 +18,7 @@ export function PrintDoc({
   children: ReactNode;
 }) {
   const printedBy = useIdentity((s) => s.user.name);
+  const tenant = useTenant((s) => s.tenant);
   return (
     <AnimatePresence>
       {open && (
@@ -50,9 +51,9 @@ export function PrintDoc({
                   <ShieldPlus size={22} />
                 </div>
                 <div>
-                  <p className="font-display text-xl font-extrabold text-mist-900">{FACILITY.name}</p>
+                  <p className="font-display text-xl font-extrabold text-mist-900">{tenant.name}</p>
                   <p className="text-xs text-mist-500">
-                    {FACILITY.code} · {FACILITY.lga} LGA, {FACILITY.state} State · Primary Health Care
+                    {tenant.facilityCode} · {tenant.state}, {tenant.country} · {tenant.tenantId}
                   </p>
                 </div>
               </div>

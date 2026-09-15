@@ -4,6 +4,7 @@ import { useIdentity } from "@/store/useIdentity";
 import { useEquipment } from "@/store/useEquipment";
 import { useEquipmentEvents } from "@/store/useEquipmentEvents";
 import { defaultChecklistFor, type WorkOrder, type WorkOrderSeverity, type PartUsed } from "@/data/equipmentMaintenance";
+import { persisted } from "@/platform/persist";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 
@@ -25,7 +26,7 @@ type EquipmentMaintenanceState = {
   lastPreventiveCompletedAt: (equipmentId: string) => string | undefined;
 };
 
-export const useEquipmentMaintenance = create<EquipmentMaintenanceState>((set, get) => ({
+export const useEquipmentMaintenance = create<EquipmentMaintenanceState>(persisted<EquipmentMaintenanceState>("equipment-maintenance", (set, get) => ({
   workOrders: [],
 
   reportFailure: (equipmentId, description, severity, failureCategory) => {
@@ -139,4 +140,4 @@ export const useEquipmentMaintenance = create<EquipmentMaintenanceState>((set, g
       .sort((a, b) => (b.completedAt! < a.completedAt! ? -1 : 1));
     return completed[0]?.completedAt;
   },
-}));
+})));

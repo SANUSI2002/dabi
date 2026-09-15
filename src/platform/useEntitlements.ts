@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persisted } from "./persist";
+import { persisted, writeTenantState } from "./persist";
 import { audit } from "@/store/useAudit";
 import { MODULES, PRODUCTS, ALWAYS_ON_ROUTES, moduleForRoute, submoduleForRoute, type ProductKey } from "./entitlements";
 
@@ -12,6 +12,9 @@ export type OrgProfile = {
 
 type EntitlementState = {
   org: OrgProfile;
+  subscriptionStatus: "Trialing" | "Active" | "Past Due" | "Grace Period" | "Suspended" | "Expired" | "Cancelled";
+  licenseStatus: "Active" | "Expiring Soon" | "Grace Period" | "Expired" | "Suspended" | "Revoked";
+  accessMode: "full" | "read-only" | "blocked";
   /** product key -> licensed */
   products: Record<ProductKey, boolean>;
   /** module key -> enabled (only meaningful when its product is licensed) */
@@ -30,6 +33,15 @@ type EntitlementState = {
   setProduct: (p: ProductKey, on: boolean) => void;
   setModule: (key: string, on: boolean) => void;
   setSubmodule: (key: string, on: boolean) => void;
+  /** Hydrates the tenant app from the control-plane's resolved response. */
+  applyResolved: (resolved: {
+    organizationId: string;
+    subscriptionStatus: EntitlementState["subscriptionStatus"];
+    licenseStatus: EntitlementState["licenseStatus"];
+    products: Record<string, boolean>;
+    modules: Record<string, boolean>;
+    features: Record<string, boolean>;
+  }) => void;
   applyPreset: (preset: "all" | "emr-only" | "workforce-only" | "accounting-only" | "emr-workforce" | "clinic-lite") => void;
 };
 
@@ -38,6 +50,9 @@ const allSubs = (val: boolean) => Object.fromEntries(MODULES.flatMap((m) => (m.s
 
 const DEFAULTS = {
   org: { id: "org-sabi", name: "Sabi Health Post", slug: "phc-sabi-014", plan: "Enterprise (all modules)" } as OrgProfile,
+  subscriptionStatus: "Active" as const,
+  licenseStatus: "Active" as const,
+  accessMode: "full" as const,
   products: { emr: true, workforce: true, accounting: true } as Record<ProductKey, boolean>,
   modules: allModules(true),
   submodules: allSubs(true),
@@ -96,6 +111,30 @@ export const useEntitlements = create<EntitlementState>(
       audit(`${on ? "enabled" : "disabled"} submodule ${key}`, `platform/entitlements/${key}`);
     },
 
+    applyResolved: (resolved) => {
+      const accessMode: EntitlementState["accessMode"] = resolved.subscriptionStatus === "Active" || resolved.subscriptionStatus === "Trialing"
+        ? "full"
+        : resolved.subscriptionStatus === "Grace Period" || resolved.licenseStatus === "Grace Period"
+          ? "read-only"
+          : "blocked";
+      const current = get();
+      const projection = {
+        org: { ...current.org, id: resolved.organizationId },
+        subscriptionStatus: resolved.subscriptionStatus,
+        licenseStatus: resolved.licenseStatus,
+        accessMode,
+        products: {
+          emr: !!resolved.products.emr,
+          workforce: !!resolved.products.workforce,
+          accounting: !!resolved.products.accounting,
+        },
+        modules: { ...current.modules, ...resolved.modules },
+        submodules: { ...current.submodules, ...resolved.features },
+      };
+      set(projection);
+      writeTenantState("entitlements", projection);
+    },
+
     applyPreset: (preset) => {
       const p = (emr: boolean, workforce: boolean, accounting: boolean) => ({ emr, workforce, accounting });
       const map: Record<string, Record<ProductKey, boolean>> = {
@@ -126,6 +165,9 @@ export function useRouteGate() {
   const products = useEntitlements((s) => s.products);
   const modules = useEntitlements((s) => s.modules);
   const submodules = useEntitlements((s) => s.submodules);
+  const accessMode = useEntitlements((s) => s.accessMode);
+  const subscriptionStatus = useEntitlements((s) => s.subscriptionStatus);
+  const licenseStatus = useEntitlements((s) => s.licenseStatus);
   // products/modules/submodules are in the deps implicitly via the closure
   void products; void modules; void submodules;
   const s = useEntitlements.getState();
@@ -133,5 +175,8 @@ export function useRouteGate() {
     isRouteAllowed: (path: string) => s.isRouteAllowed(path),
     routeBlockReason: (path: string) => s.routeBlockReason(path),
     isModuleEnabled: (key: string) => s.isModuleEnabled(key),
+    accessMode,
+    subscriptionStatus,
+    licenseStatus,
   };
 }

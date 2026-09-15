@@ -18,13 +18,19 @@ export default function AuditLog() {
   const [openId, setOpenId] = useState<string | null>(null);
   const actions = useMemo(() => ["All", ...new Set(events.map((e) => e.action))].slice(0, 14), [events]);
   const rows = events.filter((e) => action === "All" || e.action === action);
+  const exportCsv = () => {
+    const csv = [["Timestamp", "User", "Role", "Action", "Resource", "IP address"], ...rows.map((event) => [event.ts, event.user, event.role, event.action, event.resource, event.ip])]
+      .map((row) => row.map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a"); link.href = url; link.download = `sabi-audit-${new Date().toISOString().slice(0, 10)}.csv`; link.click(); URL.revokeObjectURL(url);
+  };
 
   return (
     <div>
       <PageHeader
         title="Audit Log"
         subtitle="NDPR compliance · full activity history"
-        actions={<Button variant="ghost"><FileDown size={15} /> Export CSV</Button>}
+        actions={<Button variant="ghost" onClick={exportCsv}><FileDown size={15} /> Export CSV</Button>}
       />
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">

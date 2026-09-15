@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { audit } from "@/store/useAudit";
 import { useIdentity } from "@/store/useIdentity";
 import type { EquipmentAlarm, AlarmSeverity, AlarmCategory, TimelineEvent, TimelineEventType, EventSource } from "@/data/equipmentAlarms";
+import { persisted } from "@/platform/persist";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 
@@ -47,7 +48,7 @@ type EquipmentEventsState = {
   openAlarmsFor: (equipmentId: string) => EquipmentAlarm[];
 };
 
-export const useEquipmentEvents = create<EquipmentEventsState>((set, get) => ({
+export const useEquipmentEvents = create<EquipmentEventsState>(persisted<EquipmentEventsState>("equipment-events", (set, get) => ({
   timeline: [],
   alarms: [],
   seenIdempotencyKeys: new Set(),
@@ -147,4 +148,4 @@ export const useEquipmentEvents = create<EquipmentEventsState>((set, get) => ({
   alarmsFor: (equipmentId) => get().alarms.filter((a) => a.equipmentId === equipmentId),
   openAlarmsFor: (equipmentId) =>
     get().alarms.filter((a) => a.equipmentId === equipmentId && !["Resolved", "Closed", "Suppressed"].includes(a.status)),
-}));
+})));

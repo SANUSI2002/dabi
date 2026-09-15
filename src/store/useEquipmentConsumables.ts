@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { audit } from "@/store/useAudit";
 import { useIdentity } from "@/store/useIdentity";
 import type { ConsumableItem, ConsumableUsageEvent, ConsumableUsageSource } from "@/data/equipmentConsumables";
+import { persisted } from "@/platform/persist";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 
@@ -28,7 +29,7 @@ type EquipmentConsumablesState = {
   usageFor: (equipmentId: string) => ConsumableUsageEvent[];
 };
 
-export const useEquipmentConsumables = create<EquipmentConsumablesState>((set, get) => ({
+export const useEquipmentConsumables = create<EquipmentConsumablesState>(persisted<EquipmentConsumablesState>("equipment-consumables", (set, get) => ({
   items: [],
   usageEvents: [],
 
@@ -78,4 +79,4 @@ export const useEquipmentConsumables = create<EquipmentConsumablesState>((set, g
 
   itemsFor: (equipmentId) => get().items.filter((i) => i.equipmentId === equipmentId),
   usageFor: (equipmentId) => get().usageEvents.filter((e) => e.equipmentId === equipmentId),
-}));
+})));

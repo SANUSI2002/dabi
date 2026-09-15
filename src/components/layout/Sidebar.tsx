@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ShieldPlus } from "lucide-react";
 import { NAV, type NavItem } from "@/data/nav";
 import { useEmr } from "@/store/useEmr";
-import { FACILITY } from "@/data/mock";
+import { useTenant } from "@/store/useTenant";
 import { cn } from "@/lib/cn";
 import { useRouteGate } from "@/platform/useEntitlements";
 
@@ -24,7 +24,7 @@ function LeafLink({
   return (
     <NavLink
       to={to}
-      end={to === "/"}
+      end={to === "/workspace"}
       onClick={onNavigate}
       className={({ isActive }) => cn("nav-link", isActive && "nav-link-active")}
     >
@@ -91,6 +91,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const queue = useEmr((s) => s.queue);
   const labs = useEmr((s) => s.labOrders);
   const encounters = useEmr((s) => s.encounters);
+  const tenant = useTenant((s) => s.tenant);
   const { isRouteAllowed } = useRouteGate();
 
   // drop nav items whose route isn't licensed; drop nested items with no allowed children; drop empty groups
@@ -119,7 +120,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           <p className="font-display text-lg font-extrabold tracking-tight text-mist-900">
             Sabi<span className="text-gradient">EMR</span>
           </p>
-          <p className="text-[11px] text-mist-400">{FACILITY.code}</p>
+          <p className="text-[11px] text-mist-400">{tenant.facilityCode}</p>
         </div>
       </div>
 
@@ -148,7 +149,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       <div className="border-t border-mist-100 px-5 py-3 text-[11px] text-mist-400">
-        {FACILITY.name} · {FACILITY.lga}, {FACILITY.state}
+        {tenant.name} · {tenant.state}, {tenant.country}
       </div>
     </aside>
   );

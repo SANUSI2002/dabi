@@ -1,15 +1,14 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Bell, RefreshCw, Wifi, LogOut, ChevronDown, Menu } from "lucide-react";
+import { Search, Bell, RefreshCw, Wifi, LogOut, ChevronDown, Menu, MonitorSmartphone, Building2 } from "lucide-react";
 import { useAuth } from "@/store/useAuth";
-import { useIdentity } from "@/store/useIdentity";
-import { ACCOUNTS } from "@/data/accounts";
 import { initials, shortDate } from "@/lib/format";
-import { FACILITY } from "@/data/mock";
+import { useTenant } from "@/store/useTenant";
 
 export function TopBar({ onMenu }: { onMenu?: () => void }) {
-  const { user, signOut } = useAuth();
-  const setUser = useIdentity((s) => s.setUser);
+  const { user, signOut, identity, memberships } = useAuth();
+  const tenant = useTenant((s) => s.tenant);
   const [menu, setMenu] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -34,8 +33,8 @@ export function TopBar({ onMenu }: { onMenu?: () => void }) {
 
       {/* facility badge */}
       <div className="hidden shrink-0 items-center gap-2 rounded-lg bg-mist-100/70 px-2 py-1 text-xs font-medium text-mist-500 sm:flex">
-        <span className="rounded bg-white px-1.5 py-0.5 font-bold text-brand-700 shadow-sm">{FACILITY.code}</span>
-        <span className="hidden max-w-[140px] truncate xl:inline">{FACILITY.name}</span>
+        <span className="rounded bg-white px-1.5 py-0.5 font-bold text-brand-700 shadow-sm">{tenant.facilityCode}</span>
+        <span className="hidden max-w-[180px] truncate xl:inline">{tenant.name}</span>
       </div>
 
       {/* search — flexible, capped */}
@@ -54,10 +53,10 @@ export function TopBar({ onMenu }: { onMenu?: () => void }) {
         <span className="mr-1 hidden items-center gap-1.5 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700 ring-1 ring-brand-200 sm:flex">
           <Wifi size={13} /> Online
         </span>
-        <button className="hidden rounded-lg p-2 text-mist-500 hover:bg-mist-100 sm:block" aria-label="Refresh">
+        <button onClick={() => window.location.reload()} className="hidden rounded-lg p-2 text-mist-500 hover:bg-mist-100 sm:block" aria-label="Refresh">
           <RefreshCw size={17} />
         </button>
-        <button className="relative rounded-lg p-2 text-mist-500 hover:bg-mist-100" aria-label="Notifications">
+        <button onClick={() => window.alert("You have no new tenant notifications.")} className="relative rounded-lg p-2 text-mist-500 hover:bg-mist-100" aria-label="Notifications">
           <Bell size={17} />
           <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-action-500 ring-2 ring-white" />
         </button>
@@ -87,29 +86,13 @@ export function TopBar({ onMenu }: { onMenu?: () => void }) {
                 className="absolute right-0 mt-2 w-60 overflow-hidden rounded-xl bg-white p-1.5 shadow-pop ring-1 ring-mist-200"
               >
                 <div className="border-b border-mist-100 px-3 py-2 text-xs text-mist-400">
-                  Signed in as <span className="font-medium text-mist-600">{user.username}</span>
+                  Signed in with Sabi ID
+                  <span className="mt-0.5 block truncate font-medium text-mist-700">{identity?.email}</span>
                   <span className="mt-0.5 block text-[11px] text-mist-400">{user.systemRole}</span>
+                  <span className="mt-1 block truncate text-[11px] font-semibold text-brand-700">{tenant.name} · {tenant.tenantId}</span>
                 </div>
-                <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wide text-mist-300">Switch account</p>
-                <div className="max-h-56 overflow-y-auto">
-                  {ACCOUNTS.map((a) => (
-                    <button
-                      key={a.id}
-                      onClick={() => { setUser(a.id); setMenu(false); }}
-                      className={`flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left text-xs hover:bg-mist-50 ${
-                        a.id === user.id ? "font-semibold text-brand-700" : "text-mist-600"
-                      }`}
-                    >
-                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-mist-100 text-[10px] font-bold text-mist-500">
-                        {initials(a.name)}
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block truncate">{a.name}</span>
-                        <span className="block truncate text-[10px] text-mist-400">{a.role}</span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
+                <Link to="/account/sessions" onClick={() => setMenu(false)} className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-mist-600 hover:bg-mist-50"><MonitorSmartphone size={15}/> Sessions & devices</Link>
+                {memberships.length > 1 && <Link to="/choose-organization" onClick={() => setMenu(false)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-mist-600 hover:bg-mist-50"><Building2 size={15}/> Switch organization</Link>}
                 <button
                   onClick={signOut}
                   className="mt-1 flex w-full items-center gap-2 rounded-lg border-t border-mist-100 px-3 py-2 text-sm font-medium text-action-600 hover:bg-action-50"

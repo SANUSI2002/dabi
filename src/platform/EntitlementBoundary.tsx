@@ -15,7 +15,36 @@ export function EntitlementBoundary({ children }: { children: ReactNode }) {
   const allowed = gate.isRouteAllowed(loc.pathname);
   const reason = gate.routeBlockReason(loc.pathname);
 
-  if (allowed) return <>{children}</>;
+  if (gate.accessMode === "blocked") {
+    return (
+      <div className="grid place-items-center py-24">
+        <div className="max-w-lg rounded-2xl border border-amber-200 bg-white p-8 text-center shadow-card">
+          <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-xl bg-amber-100 text-amber-700">
+            <Lock size={22} />
+          </div>
+          <h2 className="font-display text-xl font-bold text-mist-900">Subscription inactive</h2>
+          <p className="mt-2 text-sm leading-6 text-mist-500">
+            Your organization&apos;s Sabi OS subscription is currently {gate.subscriptionStatus.toLowerCase()}.
+            Your data has not been removed. Contact your organization administrator or Sabi Support to restore access.
+          </p>
+          <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-mist-400">
+            License status: {gate.licenseStatus}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (allowed) return (
+    <>
+      {gate.accessMode === "read-only" && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Grace-period access is active. This frontend exposes the policy state; production write APIs must enforce read-only access.
+        </div>
+      )}
+      {children}
+    </>
+  );
 
   const what = reason?.product
     ? `the ${reason.product} product`

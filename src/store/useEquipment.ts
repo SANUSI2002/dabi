@@ -9,6 +9,7 @@ import {
 } from "@/data/equipmentState";
 import { TELEMETRY_PARAMS, severityFor, type TelemetryReading, type TelemetryHistoryPoint } from "@/data/equipmentTelemetry";
 import type { EquipmentAlarm } from "@/data/equipmentAlarms";
+import { persisted } from "@/platform/persist";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 const HISTORY_LIMIT = 200;
@@ -39,7 +40,7 @@ type EquipmentState = {
   connectivityFor: (id: string) => ReturnType<typeof connectivityFromAge>;
 };
 
-export const useEquipment = create<EquipmentState>((set, get) => ({
+export const useEquipment = create<EquipmentState>(persisted<EquipmentState>("equipment", (set, get) => ({
   equipment: EQUIPMENT_SEED,
   heartbeats: Object.fromEntries(EQUIPMENT_SEED.map((e) => [e.id, emptyHeartbeat()])),
   machineStates: Object.fromEntries(EQUIPMENT_SEED.map((e) => [e.id, "Ready" as MachineState])),
@@ -144,7 +145,7 @@ export const useEquipment = create<EquipmentState>((set, get) => ({
     const ageSec = (Date.now() - new Date(hb.lastHeartbeatAt).getTime()) / 1000;
     return connectivityFromAge(ageSec);
   },
-}));
+})));
 
 // Maintenance-state derivation needs the equipment record; kept as a pure function (not a store
 // method) since it doesn't depend on any other store's internal state — the caller supplies
