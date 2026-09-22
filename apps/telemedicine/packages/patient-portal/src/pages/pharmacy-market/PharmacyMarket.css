@@ -1,0 +1,1509 @@
+.sabi-market-main {
+    padding-top: var(--sabi-space-md);
+   
+}
+
+.sabi-market-header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--sabi-space-md);
+    margin: 0 0 var(--sabi-space-lg);
+}
+
+.sabi-market-header h1 {
+    margin: 0;
+    color: var(--sabi-primary-dark);
+    font-size: calc(1.65rem * var(--sabi-font-scale));
+    line-height: 1.15;
+}
+
+.sabi-market-header p {
+    margin: 4px 0 0;
+    color: var(--sabi-text-secondary);
+    font-size: calc(1rem * var(--sabi-font-scale));
+}
+
+.sabi-market-header strong {
+    color: var(--sabi-primary-dark);
+}
+
+.sabi-market-secure {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--sabi-primary-dark);
+    font-size: calc(.82rem * var(--sabi-font-scale));
+    font-weight: 700;
+}
+
+.sabi-market-layout {
+    display: grid;
+    grid-template-columns: minmax(330px, 44%) 1fr;
+    min-height: 650px;
+    background: var(--sabi-surface);
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-lg);
+    overflow: hidden;
+}
+
+.sabi-market-results {
+    background: #f9fbfd;
+    overflow: auto;
+}
+
+.sabi-market-filters {
+    display: flex;
+    gap: 10px;
+    padding: var(--sabi-space-lg);
+    overflow-x: auto;
+    border-bottom: 1px solid var(--sabi-border);
+}
+
+.sabi-market-filters button {
+    white-space: nowrap;
+    border: 1px solid var(--sabi-border);
+    background: var(--sabi-surface);
+    color: var(--sabi-text-secondary);
+    border-radius: 999px;
+    padding: 10px 17px;
+    font: inherit;
+    font-size: calc(.86rem * var(--sabi-font-scale));
+    cursor: pointer;
+    transition: all .15s ease;
+}
+
+.sabi-market-filters button:hover {
+    border-color: var(--sabi-primary);
+    color: var(--sabi-primary-dark);
+}
+
+.sabi-market-filters button.active {
+    background: var(--sabi-gradient-primary, var(--sabi-primary-dark));
+    border-color: transparent;
+    color: #fff;
+}
+
+.sabi-market-location {
+    margin: 0;
+    padding: 13px var(--sabi-space-lg);
+    color: var(--sabi-primary-dark);
+    background: #edf7f6;
+    font-size: calc(.88rem * var(--sabi-font-scale));
+    font-weight: 600;
+}
+
+.sabi-market-location span {
+    font-size: 1.2em;
+    margin-right: 5px;
+}
+
+/* Radius expansion is intentionally scoped to pharmacy availability searches. */
+.sabi-market-radius-control {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 var(--sabi-space-md);
+  padding: var(--sabi-space-md);
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-md);
+  background: var(--sabi-surface-muted, #f6faf8);
+  color: var(--sabi-text-secondary);
+  font-size: .86rem;
+}
+
+.sabi-market-radius-control > div { display: flex; align-items: center; gap: 12px; }
+.sabi-market-radius-control input { flex: 1; accent-color: var(--sabi-primary-dark); }
+.sabi-market-radius-control strong { min-width: 42px; color: var(--sabi-primary-dark); }
+
+.sabi-market-radius-steps { display: flex; gap: 8px; flex-wrap: wrap; }
+.sabi-market-radius-steps button {
+    padding: 7px 14px;
+    border: 1px solid var(--sabi-border);
+    border-radius: 999px;
+    background: var(--sabi-surface);
+    color: var(--sabi-text-primary);
+    font-weight: 700;
+    font-size: .82rem;
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.sabi-market-radius-steps button.active {
+    border-color: transparent;
+    background: var(--sabi-gradient-primary, var(--sabi-primary-dark));
+    color: #fff;
+}
+
+.sabi-select-pharmacy-prefs { margin: var(--sabi-space-md) 0 0; }
+
+.sabi-select-pharmacy-prefs .sabi-booking-mode-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sabi-space-sm);
+    padding: 4px;
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-surface-muted, #f6faf8);
+}
+.sabi-select-pharmacy-prefs .sabi-booking-mode-row button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 10px;
+    border: 0;
+    border-radius: var(--sabi-radius-sm);
+    background: transparent;
+    color: var(--sabi-text-secondary);
+    font-weight: 700;
+    font-size: .86rem;
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease;
+}
+.sabi-select-pharmacy-prefs .sabi-booking-mode-row button.active {
+    background: var(--sabi-surface);
+    color: var(--sabi-primary-dark);
+    box-shadow: 0 2px 8px rgba(0, 47, 44, .12);
+}
+.sabi-select-pharmacy-prefs .sabi-booking-field { display: grid; }
+.sabi-select-pharmacy-prefs .sabi-booking-label {
+    margin-bottom: var(--sabi-space-sm);
+    display: block;
+    color: var(--sabi-text-secondary);
+    font-size: .78rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+.sabi-select-pharmacy-prefs .sabi-booking-field textarea {
+    padding: 10px 12px;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-surface);
+    color: var(--sabi-text-primary);
+    font: inherit;
+    font-size: .88rem;
+    resize: vertical;
+}
+.sabi-select-pharmacy-prefs .sabi-booking-field textarea:focus {
+    outline: none;
+    border-color: var(--sabi-primary);
+}
+
+.sabi-market-list {
+    padding: var(--sabi-space-lg);
+    display: grid;
+    gap: var(--sabi-space-md);
+}
+
+.sabi-market-pharmacy {
+       
+    padding: var(--sabi-space-lg);
+    border: 1px solid var(--sabi-border);
+    transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+    
+}
+
+.sabi-market-pharmacy:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 26px rgba(11, 94, 72, 0.1);
+}
+
+.sabi-market-pharmacy.selected {
+    border-color: transparent;
+    box-shadow: 0 0 0 2px var(--sabi-primary), 0 12px 26px rgba(11, 94, 72, 0.16);
+}
+
+.sabi-market-pharmacy-head {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--sabi-space-md);
+}
+
+.sabi-market-pharmacy h2 {
+    margin: 0 0 9px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: calc(1.18rem * var(--sabi-font-scale));
+}
+
+.sabi-pharmacy-favorite-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--sabi-text-secondary);
+    cursor: pointer;
+    transition: color .15s ease, background .15s ease;
+}
+.sabi-pharmacy-favorite-btn:hover { background: var(--sabi-primary-light); }
+.sabi-pharmacy-favorite-btn.active { color: #F5A623; }
+
+.sabi-market-rating {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: 700;
+    color: var(--sabi-primary-dark);
+}
+
+.sabi-market-rating span {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #b9c7c4;
+    margin: 0 6px;
+}
+
+.sabi-market-hours {
+    height: fit-content;
+    white-space: nowrap;
+    color: #425466;
+    background: #e5edff;
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-size: calc(.78rem * var(--sabi-font-scale));
+    font-weight: 700;
+}
+
+.sabi-market-hours.open {
+    background: #b8f7dc;
+    color: #08754b;
+}
+
+.sabi-market-stock {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: var(--sabi-space-md) 0;
+    padding: 12px;
+    border: 1px solid #d3e8e4;
+    border-radius: var(--sabi-radius-md);
+    background: #f1f8f7;
+    color: var(--sabi-primary-dark);
+    font-weight: 600;
+}
+
+.sabi-market-stock.limited {
+    color: #bb2620;
+    border-color: #f7c3bf;
+    background: #ffe0dc;
+}
+
+.sabi-market-send {
+    width: 100%;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    background: var(--sabi-gradient-primary, var(--sabi-primary));
+    color: #fff;
+    border: 0;
+    border-radius: var(--sabi-radius-md);
+    padding: 14px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease;
+    box-shadow: 0 8px 18px rgba(15, 157, 116, 0.24);
+}
+
+.sabi-market-send:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(15, 157, 116, 0.32);
+}
+
+.sabi-market-pharmacy.selected .sabi-market-send {
+    background: var(--sabi-primary-dark);
+    opacity: .9;
+    cursor: default;
+}
+
+.sabi-market-map {
+    position: relative;
+    overflow: hidden;
+    min-height: 650px;
+}
+
+.sabi-store-address-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.sabi-store-address-link:hover {
+    color: var(--sabi-primary-dark);
+    text-decoration: underline;
+}
+
+/* Explicit Leaflet height: percentage-height map children need a sized parent. */
+.sabi-market-interactive-map {
+    height: 650px;
+}
+
+.sabi-market-distance {
+    border: 2px solid var(--sabi-border);
+    position: relative;
+    z-index: 0;
+    left: 50%;
+    bottom: 40px;
+    top: 5%;
+    transform: translateX(-50%);
+    width: min(380px, calc(100% - 40px));
+    padding: var(--sabi-space-lg);
+}
+
+.sabi-market-distance h2 {
+    margin: 0 0 var(--sabi-space-md);
+    color: var(--sabi-primary-dark);
+    font-size: calc(1.08rem * var(--sabi-font-scale));
+}
+
+.sabi-market-distance div {
+    display: flex;
+    justify-content: space-between;
+    padding: 9px 0;
+    color: var(--sabi-text-secondary);
+}
+
+.sabi-market-distance strong {
+    color: var(--sabi-text-primary);
+}
+
+.sabi-market-distance p {
+    border-top: 1px solid var(--sabi-border);
+    padding-top: var(--sabi-space-md);
+    margin: var(--sabi-space-sm) 0 0;
+    color: var(--sabi-text-secondary);
+    font-size: calc(.82rem * var(--sabi-font-scale));
+    line-height: 1.5;
+}
+
+@media (max-width: 1120px) {
+    .sabi-market-layout {
+        grid-template-columns: minmax(310px, 48%) 1fr;
+    }
+
+    .sabi-market-secure {
+        display: none;
+    }
+}
+
+@media (max-width: 860px) {
+    .sabi-market-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .sabi-market-map {
+        min-height: 500px;
+    }
+
+    .sabi-market-interactive-map {
+        height: 500px;
+    }
+
+    .sabi-market-results {
+        overflow: visible;
+    }
+}
+
+@media (max-width: 560px) {
+    .sabi-market-header {
+        align-items: flex-start;
+    }
+
+    .sabi-market-header h1 {
+        font-size: calc(1.35rem * var(--sabi-font-scale));
+    }
+
+    .sabi-market-layout {
+        margin: 0 -4px;
+    }
+
+    .sabi-market-filters,
+    .sabi-market-list {
+        padding: var(--sabi-space-md);
+    }
+
+    .sabi-market-pharmacy {
+        padding: var(--sabi-space-md);
+    }
+
+    .sabi-market-hours {
+        padding: 6px 9px;
+    }
+
+    .sabi-market-map {
+        min-height: 430px;
+    }
+
+    .sabi-market-interactive-map {
+        height: 430px;
+    }
+
+    .sabi-market-distance {
+        bottom: 18px;
+    }
+}
+
+/* ==========================================================
+   General Pharmacy Marketplace (storefront hero page)
+   PharmacyMarketPage.jsx — prefixed sabi-storefront- to avoid
+   any clash with the sabi-market- classes used by the
+   Select-a-Pharmacy step of the prescription buy flow.
+   ========================================================== */
+
+.sabi-storefront-main {
+    padding-bottom: var(--sabi-space-lg);
+}
+
+.sabi-storefront-hero {
+    position: relative;
+    overflow: hidden;
+    padding: calc(var(--sabi-space-lg) * 1.4) var(--sabi-space-lg);
+    margin-top: var(--sabi-space-md);
+    border-radius: var(--sabi-radius-lg);
+    background: var(--sabi-gradient-dark, var(--sabi-primary-dark));
+    box-shadow: 0 16px 40px rgba(11, 94, 72, 0.22);
+    color: #fff;
+}
+
+.sabi-storefront-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 88% 10%, rgba(255,255,255,0.14), transparent 55%);
+    pointer-events: none;
+}
+
+.sabi-storefront-hero h1 {
+    position: relative;
+    margin: 0;
+    max-width: 640px;
+    font-size: calc(2.1rem * var(--sabi-font-scale));
+    line-height: 1.15;
+}
+
+.sabi-storefront-hero p {
+    position: relative;
+    max-width: 560px;
+    margin: var(--sabi-space-sm) 0 0;
+    color: rgba(255,255,255,0.82);
+    line-height: 1.6;
+}
+
+.sabi-storefront-hero-actions {
+    position: relative;
+    display: flex;
+    gap: var(--sabi-space-sm);
+    margin-top: var(--sabi-space-md);
+}
+
+.sabi-storefront-hero-primary,
+.sabi-storefront-hero-outline {
+    border-radius: var(--sabi-radius-md);
+    padding: 12px 22px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.sabi-storefront-hero-primary {
+    border: none;
+    background: var(--sabi-primary-soft, #1FBE86);
+    color: var(--sabi-primary-dark);
+    box-shadow: 0 8px 20px rgba(31, 190, 134, 0.35);
+}
+
+.sabi-storefront-hero-outline {
+    border: 1px solid rgba(255,255,255,0.35);
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+}
+
+.sabi-storefront-quick-actions {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--sabi-space-md);
+    margin-top: var(--sabi-space-lg);
+}
+
+.sabi-storefront-quick-action {
+    display: grid;
+    justify-items: center;
+    gap: var(--sabi-space-sm);
+    padding: var(--sabi-space-lg) var(--sabi-space-md);
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-lg);
+    background: var(--sabi-surface);
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.sabi-storefront-quick-action:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(11, 94, 72, 0.1);
+}
+
+.sabi-storefront-quick-action span {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+}
+
+.sabi-storefront-quick-action.tone-danger { color: var(--sabi-danger); }
+.sabi-storefront-quick-action.tone-danger span { background: #FEE2E2; color: var(--sabi-danger); }
+
+.sabi-storefront-section {
+    margin-top: calc(var(--sabi-space-lg) * 1.3);
+}
+
+.sabi-storefront-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--sabi-space-md);
+}
+
+.sabi-storefront-section-head h2 {
+    margin: 0;
+    font-size: calc(1.3rem * var(--sabi-font-scale));
+    color: var(--sabi-primary-dark);
+}
+
+.sabi-storefront-section-head button {
+    border: none;
+    background: none;
+    color: var(--sabi-primary);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.sabi-storefront-categories {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: var(--sabi-space-sm);
+}
+
+.sabi-storefront-category {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    padding: var(--sabi-space-md) var(--sabi-space-sm);
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-lg);
+    background: var(--sabi-surface);
+    font-size: .82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s ease;
+}
+
+.sabi-storefront-category span {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+}
+
+.sabi-storefront-category.active {
+    border-color: transparent;
+    background: var(--sabi-gradient-primary, var(--sabi-primary-dark));
+    color: #fff;
+}
+
+.sabi-storefront-category.active span {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+}
+
+.sabi-storefront-pharmacies {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--sabi-space-md);
+}
+
+.sabi-storefront-pharmacy-card {
+    padding: 0;
+    overflow: hidden;
+    transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.sabi-storefront-pharmacy-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 32px rgba(11, 94, 72, 0.14);
+}
+
+.sabi-storefront-pharmacy-photo {
+    position: relative;
+    height: 150px;
+}
+
+.sabi-storefront-pharmacy-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.sabi-storefront-pharmacy-photo span {
+    position: absolute;
+    top: var(--sabi-space-sm);
+    right: var(--sabi-space-sm);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: #fff;
+    color: var(--sabi-text-primary);
+    font-size: .74rem;
+    font-weight: 700;
+}
+
+.sabi-storefront-pharmacy-body {
+    padding: var(--sabi-space-md);
+}
+
+.sabi-storefront-pharmacy-body h3 {
+    margin: 0 0 2px;
+}
+
+.sabi-storefront-pharmacy-body > p {
+    margin: 0 0 var(--sabi-space-sm);
+    color: var(--sabi-text-secondary);
+    font-size: .85rem;
+}
+
+.sabi-storefront-pharmacy-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: var(--sabi-space-md);
+}
+
+.sabi-storefront-pharmacy-tags span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+    font-size: .72rem;
+    font-weight: 700;
+}
+
+.sabi-storefront-pharmacy-tags span.danger {
+    background: #FEE2E2;
+    color: var(--sabi-danger);
+}
+
+.sabi-storefront-visit {
+    width: 100%;
+    padding: 11px;
+    border: none;
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-gradient-primary, var(--sabi-primary-dark));
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.sabi-storefront-promos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sabi-space-md);
+    margin-top: calc(var(--sabi-space-lg) * 1.3);
+}
+
+.sabi-storefront-promo {
+    padding: var(--sabi-space-lg);
+    border-radius: var(--sabi-radius-lg);
+    background: var(--sabi-primary-light);
+}
+
+.sabi-storefront-promo.alt {
+    background: #EAFBF3;
+}
+
+.sabi-storefront-promo h3 {
+    margin: 0 0 6px;
+    color: var(--sabi-primary-dark);
+}
+
+.sabi-storefront-promo p {
+    margin: 0 0 var(--sabi-space-sm);
+    color: var(--sabi-text-secondary);
+}
+
+.sabi-storefront-promo-code {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: var(--sabi-radius-sm);
+    background: var(--sabi-primary-dark);
+    color: #fff;
+    font-weight: 800;
+    font-size: .82rem;
+    letter-spacing: .04em;
+}
+
+.sabi-storefront-promo button {
+    border: none;
+    background: none;
+    color: var(--sabi-primary-dark);
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+}
+
+/* ==========================================================
+   Pharmacy storefront page (PharmacyStorefrontPage.jsx)
+   ========================================================== */
+
+.sabi-store-banner {
+    height: 200px;
+    border-radius: var(--sabi-radius-lg);
+    overflow: hidden;
+    margin-bottom: -48px;
+}
+
+.sabi-store-banner img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.sabi-store-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sabi-space-md);
+    margin: 0 var(--sabi-space-md) var(--sabi-space-lg);
+}
+
+.sabi-store-header h1 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 6px;
+    font-size: calc(1.5rem * var(--sabi-font-scale));
+    color: var(--sabi-primary-dark);
+}
+
+.sabi-store-header h1 svg { color: var(--sabi-primary); }
+
+.sabi-store-header p {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    color: var(--sabi-text-secondary);
+    font-size: .9rem;
+    flex-wrap: wrap;
+}
+
+.sabi-store-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--sabi-border);
+    margin: 0 4px;
+}
+
+.sabi-store-header-cart {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+    font-weight: 700;
+}
+
+.sabi-store-layout {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: var(--sabi-space-lg);
+    align-items: start;
+}
+
+.sabi-store-side {
+    display: grid;
+    gap: var(--sabi-space-md);
+}
+
+.sabi-store-side h3 {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 var(--sabi-space-md);
+    font-size: .95rem;
+}
+
+.sabi-store-pharmacist {
+    display: grid;
+    gap: 2px;
+    margin-bottom: var(--sabi-space-md);
+}
+
+.sabi-store-pharmacist span {
+    color: var(--sabi-text-secondary);
+    font-size: .82rem;
+}
+
+.sabi-store-trust dl {
+    margin: 0;
+}
+
+.sabi-store-trust dl div {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: .85rem;
+}
+
+.sabi-store-trust dt { color: var(--sabi-text-secondary); }
+.sabi-store-trust dd { margin: 0; font-weight: 700; }
+
+.sabi-store-hours div {
+    display: flex;
+    justify-content: space-between;
+    font-size: .85rem;
+    margin-bottom: 6px;
+}
+
+.sabi-store-hours span { color: var(--sabi-text-secondary); }
+
+.sabi-store-insurance-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.sabi-store-insurance-list span {
+    padding: 8px;
+    border-radius: var(--sabi-radius-sm);
+    background: var(--sabi-surface-muted, #F6FAF8);
+    border: 1px solid var(--sabi-border);
+    text-align: center;
+    font-size: .74rem;
+    font-weight: 700;
+    color: var(--sabi-primary-dark);
+}
+
+.sabi-store-products {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--sabi-space-md);
+}
+
+.sabi-store-product {
+    position: relative;
+    padding: var(--sabi-space-md);
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.sabi-store-product:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 26px rgba(11, 94, 72, 0.1);
+}
+
+.sabi-store-product-tag {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: #FEF3C7;
+    color: #92400E;
+    font-size: .65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.sabi-store-product img {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    border-radius: var(--sabi-radius-md);
+    margin-bottom: var(--sabi-space-sm);
+}
+
+.sabi-store-product-category {
+    display: block;
+    color: var(--sabi-text-secondary);
+    font-size: .68rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.sabi-store-product h4 {
+    margin: 0 0 var(--sabi-space-sm);
+    font-size: .92rem;
+}
+
+.sabi-store-product-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.sabi-store-product-footer strong {
+    color: var(--sabi-primary-dark);
+    font-size: 1.05rem;
+}
+
+.sabi-store-product-footer button {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: var(--sabi-radius-sm);
+    background: var(--sabi-gradient-primary, var(--sabi-primary-dark));
+    color: #fff;
+    cursor: pointer;
+}
+
+@media (max-width: 1000px) {
+    .sabi-storefront-quick-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .sabi-storefront-categories { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .sabi-storefront-pharmacies { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .sabi-storefront-promos { grid-template-columns: 1fr; }
+    .sabi-store-layout { grid-template-columns: 1fr; }
+    .sabi-store-products { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 620px) {
+    .sabi-storefront-categories { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .sabi-storefront-pharmacies { grid-template-columns: 1fr; }
+    .sabi-store-products { grid-template-columns: 1fr; }
+}
+
+/* ==========================================================
+   Cart page (CartPage.jsx)
+   ========================================================== */
+
+.sabi-cart-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: var(--sabi-space-lg);
+    align-items: start;
+}
+
+.sabi-cart-group {
+    margin-bottom: var(--sabi-space-lg);
+}
+
+.sabi-cart-group-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--sabi-space-sm);
+}
+
+.sabi-cart-group-head h3 {
+    margin: 0;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sabi-cart-item {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: var(--sabi-space-md);
+    padding: var(--sabi-space-md) 0;
+    border-bottom: 1px solid var(--sabi-page-bg);
+}
+
+.sabi-cart-item:last-child { border-bottom: none; }
+
+.sabi-cart-item img {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--sabi-radius-sm);
+    object-fit: cover;
+}
+
+.sabi-cart-item-name { font-weight: 700; font-size: 0.9rem; margin-bottom: 2px; }
+.sabi-cart-item-category { font-size: 0.74rem; color: var(--sabi-text-secondary); }
+
+.sabi-cart-item-price { font-weight: 800; color: var(--sabi-primary-dark); text-align: right; min-width: 90px; }
+.sabi-cart-item-price small { display: block; font-weight: 600; color: var(--sabi-text-secondary); font-size: 0.7rem; }
+
+.sabi-cart-remove {
+    border: none;
+    background: none;
+    color: var(--sabi-text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+}
+
+.sabi-cart-remove:hover { color: var(--sabi-danger); }
+
+.sabi-cart-summary {
+    background: var(--sabi-surface);
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-lg);
+    padding: var(--sabi-space-lg);
+    position: sticky;
+    top: var(--sabi-space-md);
+}
+
+.sabi-cart-summary h3 { margin: 0 0 var(--sabi-space-md); font-size: 1rem; }
+
+.sabi-cart-summary-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.86rem;
+    color: var(--sabi-text-secondary);
+    padding: 6px 0;
+}
+
+.sabi-cart-summary-row.total {
+    border-top: 1px solid var(--sabi-border);
+    margin-top: 8px;
+    padding-top: 12px;
+    font-weight: 800;
+    font-size: 1rem;
+    color: var(--sabi-text-primary);
+}
+
+/* ==========================================================
+   Checkout page (CheckoutPage.jsx)
+   ========================================================== */
+
+.sabi-checkout-steps {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: var(--sabi-space-lg);
+}
+
+.sabi-checkout-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--sabi-text-secondary);
+}
+
+.sabi-checkout-step .n {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--sabi-page-bg);
+    color: var(--sabi-text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+}
+
+.sabi-checkout-step.active { color: var(--sabi-primary-dark); }
+.sabi-checkout-step.active .n { background: var(--sabi-primary-dark); color: #fff; }
+.sabi-checkout-step.done .n { background: var(--sabi-primary); color: #fff; }
+
+.sabi-checkout-step-line { width: 32px; height: 2px; background: var(--sabi-border); }
+
+.sabi-address-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sabi-space-md); margin-bottom: var(--sabi-space-md); }
+
+.sabi-address-card {
+    border: 2px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-lg);
+    padding: var(--sabi-space-md);
+    cursor: pointer;
+    background: var(--sabi-surface);
+    position: relative;
+}
+
+.sabi-address-card.selected { border-color: var(--sabi-primary-dark); background: #F4F8F7; }
+.sabi-address-card .check { position: absolute; top: 14px; right: 14px; color: var(--sabi-primary-dark); }
+.sabi-address-card h4 { margin: 0 0 4px; display: flex; align-items: center; gap: 8px; font-size: 0.92rem; }
+.sabi-address-card p { margin: 2px 0 0; color: var(--sabi-text-secondary); font-size: 0.82rem; line-height: 1.5; }
+.sabi-address-card .default-tag { display: inline-block; margin-top: 8px; padding: 2px 9px; border-radius: 999px; background: var(--sabi-primary-light); color: var(--sabi-primary-dark); font-size: 0.66rem; font-weight: 800; text-transform: uppercase; }
+
+.sabi-address-add {
+    border: 2px dashed var(--sabi-border);
+    border-radius: var(--sabi-radius-lg);
+    padding: var(--sabi-space-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--sabi-primary-dark);
+    font-weight: 700;
+    cursor: pointer;
+    min-height: 120px;
+}
+
+.sabi-address-add:hover { background: var(--sabi-primary-light); }
+
+.sabi-address-form { background: var(--sabi-surface); border: 1px solid var(--sabi-border); border-radius: var(--sabi-radius-lg); padding: var(--sabi-space-lg); margin-bottom: var(--sabi-space-md); }
+
+.sabi-payment-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sabi-space-md); margin-bottom: var(--sabi-space-md); }
+
+.sabi-payment-card {
+    border: 2px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-lg);
+    padding: var(--sabi-space-md);
+    text-align: center;
+    cursor: pointer;
+    background: var(--sabi-surface);
+}
+
+.sabi-payment-card.selected { border-color: var(--sabi-primary-dark); background: #F4F8F7; }
+.sabi-payment-card .icon { width: 40px; height: 40px; margin: 0 auto 8px; border-radius: 10px; background: var(--sabi-page-bg); color: var(--sabi-primary-dark); display: flex; align-items: center; justify-content: center; }
+.sabi-payment-card strong { display: block; font-size: 0.88rem; }
+
+.sabi-checkout-review-item { display: flex; justify-content: space-between; padding: 8px 0; font-size: 0.85rem; border-bottom: 1px solid var(--sabi-page-bg); }
+.sabi-checkout-review-item:last-child { border-bottom: none; }
+
+/* ==========================================================
+   Order confirmation page
+   ========================================================== */
+
+.sabi-order-success { max-width: 620px; margin: var(--sabi-space-lg) auto 0; text-align: center; }
+.sabi-order-success-check { width: 84px; height: 84px; margin: 0 auto var(--sabi-space-md); border-radius: 50%; background: #EAFBF3; color: var(--sabi-primary-dark); display: flex; align-items: center; justify-content: center; }
+.sabi-order-success h1 { color: var(--sabi-primary-dark); margin: 0 0 8px; }
+.sabi-order-success > p { color: var(--sabi-text-secondary); margin: 0 auto var(--sabi-space-lg); max-width: 460px; line-height: 1.6; }
+.sabi-order-id-box { display: inline-block; background: var(--sabi-page-bg); border-radius: var(--sabi-radius-md); padding: 10px 20px; font-weight: 800; color: var(--sabi-primary-dark); margin-bottom: var(--sabi-space-lg); letter-spacing: 0.03em; }
+
+@media (max-width: 1080px) {
+    .sabi-cart-layout { grid-template-columns: 1fr; }
+    .sabi-address-grid { grid-template-columns: 1fr; }
+    .sabi-payment-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 620px) {
+    .sabi-cart-item { grid-template-columns: 48px minmax(0, 1fr); }
+    .sabi-cart-item img { width: 48px; height: 48px; }
+    .sabi-cart-item-price, .sabi-cart-remove { grid-column: 2; justify-self: start; }
+    .sabi-payment-grid { grid-template-columns: 1fr; }
+}
+
+/* ==========================================================
+   Refill Prescription page
+   ========================================================== */
+
+.sabi-refill-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sabi-space-sm);
+    margin-bottom: 76px;
+}
+
+.sabi-refill-heading,
+.sabi-repeat-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sabi-space-md);
+    margin: 12px 0 var(--sabi-space-md);
+}
+.sabi-refill-heading h1 { margin: 0 0 3px; color: var(--sabi-primary-dark); font-size: 1.5rem; }
+.sabi-refill-heading p { margin: 0; color: var(--sabi-text-secondary); font-size: .9rem; }
+.sabi-refill-heading-note { color: var(--sabi-text-secondary); font-size: .76rem; white-space: nowrap; }
+
+.sabi-refill-card {
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    border: 2px solid transparent;
+    padding: var(--sabi-space-md);
+}
+
+.sabi-refill-card:hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(11, 94, 72, 0.1); }
+.sabi-refill-card.selected { border-color: var(--sabi-primary-dark); }
+.sabi-refill-card.disabled { opacity: 0.7; cursor: not-allowed; }
+.sabi-refill-card.disabled:hover { transform: none; box-shadow: none; }
+
+/* Persistent cart shortcut powered by the shared cart-store summary. */
+.sabi-global-cart-fab {
+    position: fixed;
+    right: 28px;
+    bottom: 28px;
+    z-index: 120;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px 10px 10px;
+    border: 0;
+    border-radius: 999px;
+    background: #265348;
+    color: #fff;
+    box-shadow: 0 14px 32px rgba(0, 47, 44, .35), 0 2px 8px rgba(0, 47, 44, .2);
+    cursor: pointer;
+    animation: sabi-cart-fab-in 220ms ease-out;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sabi-global-cart-fab:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 38px rgba(0, 47, 44, .4), 0 2px 8px rgba(0, 47, 44, .22);
+}
+
+.sabi-global-cart-fab-icon {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .16);
+    flex-shrink: 0;
+}
+
+.sabi-global-cart-fab-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--sabi-danger);
+    color: #fff;
+    font-size: .68rem;
+    font-weight: 800;
+    border: 2px solid var(--sabi-primary-dark);
+}
+
+.sabi-global-cart-fab-copy { display: grid; gap: 2px; text-align: left; }
+.sabi-global-cart-fab-copy strong { font-size: .88rem; font-weight: 800; }
+.sabi-global-cart-fab-copy small { font-size: .74rem; opacity: .88; white-space: nowrap; }
+
+@keyframes sabi-cart-fab-in {
+    from { opacity: 0; transform: translateY(12px) scale(.92); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.sabi-cart-page-header { display: flex; justify-content: space-between; gap: var(--sabi-space-md); align-items: flex-start; }
+.sabi-order-redirect-message { margin: 10px 0 18px; color: var(--sabi-text-secondary); font-size: .86rem; }
+
+@media (max-width: 620px) {
+    .sabi-global-cart-fab { right: 16px; bottom: 16px; padding: 8px 16px 8px 8px; }
+    .sabi-global-cart-fab-copy small { display: none; }
+    .sabi-cart-page-header { flex-direction: column; }
+}
+
+.sabi-refill-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sabi-space-sm); margin-bottom: var(--sabi-space-sm); }
+.sabi-refill-card-id { display: flex; align-items: center; gap: 12px; }
+
+.sabi-refill-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--sabi-primary-light);
+    flex-shrink: 0;
+}
+
+.sabi-refill-icon img { width: 100%; height: 100%; object-fit: cover; }
+
+.sabi-refill-name { font-weight: 700; font-size: 0.95rem; }
+.sabi-refill-category { font-size: 0.72rem; color: var(--sabi-text-secondary); text-transform: uppercase; font-weight: 700; }
+
+.sabi-refill-checkbox { width: 20px; height: 20px; accent-color: var(--sabi-primary-dark); cursor: pointer; }
+
+.sabi-refill-card-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: var(--sabi-space-sm); }
+.sabi-refill-meta-item { background: var(--sabi-page-bg); border-radius: var(--sabi-radius-sm); padding: 8px 10px; }
+.sabi-refill-meta-item .k { display: block; font-size: 0.68rem; color: var(--sabi-text-secondary); font-weight: 700; text-transform: uppercase; margin-bottom: 2px; }
+.sabi-refill-meta-item .v { font-size: 0.9rem; font-weight: 700; }
+.sabi-refill-meta-item .v.tone-critical { color: var(--sabi-danger); }
+.sabi-refill-meta-item .v.tone-low { color: var(--sabi-warning); }
+
+.sabi-refill-card-footer { display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem; color: var(--sabi-text-secondary); }
+.sabi-refill-card-footer span:first-child { display: flex; align-items: center; gap: 6px; }
+.sabi-refill-pharmacy { display: flex; align-items: center; gap: 5px; margin-top: var(--sabi-space-sm); color: var(--sabi-text-secondary); font-size: .74rem; }
+
+.sabi-refill-blocked {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: var(--sabi-radius-sm);
+    background: #FEF2F2;
+    color: var(--sabi-danger);
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.sabi-refill-footer-bar {
+    position: fixed;
+    left: 288px;
+    right: 0;
+    bottom: 0;
+    background: var(--sabi-surface);
+    border-top: 1px solid var(--sabi-border);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 80;
+}
+
+.sabi-refill-count { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 0.88rem; color: var(--sabi-text-secondary); }
+.sabi-refill-count .badge {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+}
+
+/* Repeat-order rows use the same cart data, with a denser reorder presentation. */
+.sabi-repeat-heading { margin-bottom: var(--sabi-space-md); }
+.sabi-repeat-order { margin-bottom: var(--sabi-space-sm); padding: var(--sabi-space-md); }
+.sabi-repeat-order .sabi-cart-group-head { margin-bottom: var(--sabi-space-sm); }
+.sabi-repeat-item { grid-template-columns: minmax(0, 1fr) auto auto; padding: 10px 0; }
+.sabi-repeat-item .sabi-btn-primary,
+.sabi-repeat-item .sabi-btn-outline { min-width: 96px; padding: 8px 10px; font-size: .8rem; }
+.sabi-repeat-totals { max-width: 440px; margin-left: auto; padding: var(--sabi-space-md); background: var(--sabi-page-bg); box-shadow: none; }
+
+/* ==========================================================
+   Emergency Meds page
+   ========================================================== */
+
+.sabi-emergency-drug-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sabi-space-md); }
+
+.sabi-emergency-drug-card {
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    overflow: hidden;
+    background: var(--sabi-surface);
+}
+
+.sabi-emergency-drug-card img { width: 100%; height: 110px; object-fit: cover; }
+.sabi-emergency-drug-body { padding: var(--sabi-space-md); }
+.sabi-emergency-drug-body .cat { font-size: 0.68rem; color: var(--sabi-text-secondary); text-transform: uppercase; font-weight: 700; }
+.sabi-emergency-drug-body strong { display: block; margin: 4px 0; font-size: 0.9rem; }
+.sabi-emergency-drug-body p { margin: 0 0 var(--sabi-space-sm); font-size: 0.78rem; color: var(--sabi-text-secondary); line-height: 1.4; }
+.sabi-emergency-drug-footer { display: flex; align-items: center; justify-content: space-between; }
+.sabi-emergency-drug-footer .price { font-weight: 800; color: var(--sabi-primary-dark); }
+
+@media (max-width: 1080px) {
+    .sabi-refill-grid { grid-template-columns: 1fr; }
+    .sabi-refill-footer-bar { left: 0; }
+    .sabi-emergency-drug-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 620px) {
+    .sabi-emergency-drug-grid { grid-template-columns: 1fr; }
+    .sabi-refill-heading { align-items: flex-start; flex-direction: column; }
+    .sabi-repeat-item { grid-template-columns: minmax(0, 1fr) auto; }
+    .sabi-repeat-item button { grid-column: 1 / -1; width: 100%; }
+}
+
+/* ==========================================================
+   Pharmacy UI consistency pass
+   ========================================================== */
+
+.sabi-storefront-main :is(button, a, input, select, textarea):focus-visible,
+.sabi-market-main :is(button, a, input, select, textarea):focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--sabi-primary) 36%, transparent);
+    outline-offset: 2px;
+}
+
+.sabi-storefront-main :is(.sabi-btn-primary, .sabi-btn-outline, .sabi-btn-ghost),
+.sabi-market-main :is(.sabi-btn-primary, .sabi-btn-outline, .sabi-btn-ghost),
+.sabi-storefront-hero :is(.sabi-storefront-hero-primary, .sabi-storefront-hero-outline) {
+    min-height: 40px;
+    transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease, border-color .16s ease;
+}
+
+.sabi-storefront-main :is(.sabi-btn-primary, .sabi-btn-outline, .sabi-btn-ghost):not(:disabled):hover,
+.sabi-market-main :is(.sabi-btn-primary, .sabi-btn-outline, .sabi-btn-ghost):not(:disabled):hover {
+    transform: translateY(-1px);
+}
+
+.sabi-storefront-main button:disabled,
+.sabi-market-main button:disabled {
+    cursor: not-allowed;
+    opacity: .58;
+    box-shadow: none;
+}
+
+.sabi-storefront-main .sabi-card,
+.sabi-market-main .sabi-card {
+
+    border-color: color-mix(in srgb, var(--sabi-border) 88%, var(--sabi-primary-light));
+}
+
+.sabi-storefront-main .sabi-card :is(h2, h3, h4),
+.sabi-market-main .sabi-card :is(h2, h3, h4) {
+    color: var(--sabi-text-primary);
+}
+
+.sabi-storefront-main .sabi-empty-state,
+.sabi-market-main .sabi-empty-state {
+    display: grid;
+    justify-items: center;
+    gap: var(--sabi-space-sm);
+    padding: clamp(28px, 6vw, 48px) var(--sabi-space-lg);
+    text-align: center;
+    color: var(--sabi-text-secondary);
+}
+
+.sabi-storefront-main .sabi-empty-state svg,
+.sabi-market-main .sabi-empty-state svg {
+    color: var(--sabi-primary-dark);
+}
+
+.sabi-storefront-main .sabi-empty-state h3,
+.sabi-market-main .sabi-empty-state h3,
+.sabi-storefront-main .sabi-empty-state p,
+.sabi-market-main .sabi-empty-state p {
+    margin: 0;
+}
+
+.sabi-pharmacy-empty-state { max-width: 480px; margin: var(--sabi-space-xl) auto; }
+
+.sabi-storefront-main .sabi-toast {
+    border: 1px solid color-mix(in srgb, var(--sabi-primary) 25%, var(--sabi-border));
+    box-shadow: 0 12px 28px rgba(11, 94, 72, .18);
+}
+
+@media (max-width: 620px) {
+    .sabi-storefront-main { padding-bottom: var(--sabi-space-md); }
+    .sabi-storefront-main .sabi-card { border-radius: var(--sabi-radius-md); }
+    .sabi-storefront-hero { padding: var(--sabi-space-lg); }
+    .sabi-storefront-hero-actions { flex-direction: column; }
+    .sabi-storefront-hero :is(.sabi-storefront-hero-primary, .sabi-storefront-hero-outline) { width: 100%; }
+    .sabi-checkout-steps { align-items: flex-start; gap: 5px; }
+    .sabi-checkout-step { flex-direction: column; align-items: center; text-align: center; font-size: .68rem; }
+    .sabi-checkout-step-line { flex: 1; min-width: 12px; margin-top: 12px; }
+    .sabi-cart-summary { position: static; }
+}

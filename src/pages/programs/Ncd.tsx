@@ -6,6 +6,7 @@ import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Grid } from "@/components/ui/form";
 import { PatientPicker } from "@/components/ui/PatientPicker";
+import { PatientLink } from "@/components/ui/PatientLink";
 import { useEmr } from "@/store/useEmr";
 import { shortDate, ageFromDob } from "@/lib/format";
 
@@ -38,7 +39,7 @@ export default function Ncd() {
               const p = patientById(c.patientId);
               return (
                 <Row key={c.id} index={i}>
-                  <Cell className="font-semibold">{p ? `${p.firstName} ${p.lastName}` : "—"}</Cell>
+                  <Cell className="font-semibold"><PatientLink patient={p} /></Cell>
                   <Cell>{p ? ageFromDob(p.dob) : "—"}</Cell>
                   <Cell>{c.condition}</Cell>
                   <Cell>{c.bp ?? "—"}</Cell>

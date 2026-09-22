@@ -87,7 +87,13 @@ export type ResolvedEntitlements = {
 };
 
 export type PlatformRole = "Platform Super Admin" | "Platform Admin" | "Finance Admin" | "Billing Officer" | "Implementation Manager" | "Support Agent" | "Compliance Officer" | "Security Administrator" | "Read Only Auditor" | "Product Lead" | "Product Manager" | "Engineering Lead" | "Designer" | "Executive Viewer" | "Marketing" | "Customer Success";
-export type PlatformPermission = "platform.view" | "organizations.manage" | "subscriptions.manage" | "billing.manage" | "catalog.manage" | "pricing.manage" | "identity.manage" | "security.manage" | "onboarding.manage" | "documents.verify" | "branding.manage" | "operations.manage" | "audit.view" | "support.access.request" | "support.access.approve" | "roadmap.view" | "roadmap.create" | "roadmap.edit" | "roadmap.archive" | "roadmap.manage_dates" | "roadmap.manage_priority" | "roadmap.manage_visibility" | "roadmap.publish" | "roadmap.unpublish" | "roadmap.manage_releases" | "roadmap.view_internal_notes" | "roadmap.comment" | "roadmap.export";
+export type PlatformPermission = "platform.view" | "organizations.manage" | "subscriptions.manage" | "billing.manage" | "catalog.manage" | "pricing.manage" | "identity.manage" | "security.manage" | "onboarding.manage" | "documents.verify" | "branding.manage" | "operations.manage" | "audit.view" | "support.access.request" | "support.access.approve" | "roadmap.view" | "roadmap.create" | "roadmap.edit" | "roadmap.archive" | "roadmap.manage_dates" | "roadmap.manage_priority" | "roadmap.manage_visibility" | "roadmap.publish" | "roadmap.unpublish" | "roadmap.manage_releases" | "roadmap.view_internal_notes" | "roadmap.comment" | "roadmap.export"
+  /** PHASE 10 — SECURITY, RBAC & AUDIT COMPLETION. Sabi Health actions (Phases 3-7) borrowed
+   *  these four Sabi-OS permissions by convenient reuse, not deliberate grant — e.g. Compliance
+   *  Officer's Sabi OS "documents.verify" also silently let them approve Sabi Health doctors,
+   *  which nobody had actually reviewed and decided. Dedicated permissions make every grant an
+   *  explicit RBAC decision (see ROLE_PERMISSIONS in access.ts) instead of an accident of naming. */
+  | "sabihealth.network.manage" | "sabihealth.verification.decide" | "sabihealth.operations.manage" | "sabihealth.billing.manage";
 
 export type PlatformUser = AuditedEntity & {
   name: string; email: string; role: PlatformRole; permissions: PlatformPermission[];

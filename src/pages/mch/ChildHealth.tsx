@@ -7,6 +7,7 @@ import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Grid, Textarea } from "@/components/ui/form";
 import { PatientPicker } from "@/components/ui/PatientPicker";
+import { PatientLink } from "@/components/ui/PatientLink";
 import { useEmr } from "@/store/useEmr";
 import { shortDate, ageFromDob } from "@/lib/format";
 
@@ -46,7 +47,7 @@ export default function ChildHealth() {
                 const p = patientById(v.patientId);
                 return (
                   <Row key={v.id} index={i}>
-                    <Cell className="font-semibold">{p ? `${p.firstName} ${p.lastName}` : "—"}</Cell>
+                    <Cell className="font-semibold"><PatientLink patient={p} /></Cell>
                     <Cell>{p ? ageFromDob(p.dob) : "—"}</Cell>
                     <Cell>{shortDate(v.date)}</Cell>
                     <Cell>{v.weight} kg</Cell>

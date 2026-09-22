@@ -9,6 +9,7 @@ import { useEquipmentMaintenance } from "@/store/useEquipmentMaintenance";
 import { useEquipmentCalibration } from "@/store/useEquipmentCalibration";
 import { useEquipmentUsage } from "@/store/useEquipmentUsage";
 import { startEquipmentSimulator } from "@/lib/equipmentSimulator";
+import { developmentFixturesEnabled } from "@/config/runtime";
 import { MachineStateBadge, ConnectivityBadge, MaintenanceStateBadge, SafetyStateBadge } from "@/components/equipment/EquipmentStatusBadge";
 import { IntegrationBadge } from "@/components/equipment/IntegrationBadge";
 import { OverviewTab } from "./detail/OverviewTab";
@@ -32,7 +33,7 @@ export default function EquipmentDetail() {
   const usage = useEquipmentUsage();
 
   useEffect(() => {
-    startEquipmentSimulator();
+    if (developmentFixturesEnabled) startEquipmentSimulator();
   }, []);
 
   const eq = id ? store.equipmentById(id) : undefined;

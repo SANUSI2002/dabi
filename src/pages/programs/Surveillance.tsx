@@ -6,6 +6,7 @@ import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Select, Textarea } from "@/components/ui/form";
 import { PatientPicker } from "@/components/ui/PatientPicker";
+import { PatientLink } from "@/components/ui/PatientLink";
 import { useEmr } from "@/store/useEmr";
 import { NOTIFIABLE } from "@/data/catalog";
 import { dateTime } from "@/lib/format";
@@ -40,8 +41,7 @@ export default function Surveillance() {
                 return (
                   <Row key={c.id} index={i}>
                     <Cell className="font-semibold">
-                      {p ? `${p.firstName} ${p.lastName}` : "—"}
-                      {c.notes && <span className="mt-0.5 block text-[11px] font-normal text-mist-400">{c.notes}</span>}
+                      <PatientLink patient={p} sub={c.notes} />
                     </Cell>
                     <Cell>{c.disease}</Cell>
                     <Cell>{c.onset}</Cell>

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Plus, Save, Play, GitBranch, X, Link2, Workflow as WorkflowIcon } from "lucide-react";
 import { PageHeader, Button, Badge, Card, EmptyState } from "@/components/ui/primitives";
 import { Modal } from "@/components/ui/Modal";
@@ -40,7 +40,7 @@ export default function WorkflowBuilder() {
 
   const stored = selId ? defById(selId) : undefined;
   const def = draft && draft.id === selId ? draft : stored;
-  const errs = useMemo(() => (selId ? validate(selId) : []), [selId, validate, def?.version]);
+  const errs = selId ? validate(selId) : [];
   const dirty = !!draft && JSON.stringify(draft) !== JSON.stringify(stored);
 
   function edit(patch: Partial<WorkflowDef>) {
@@ -53,9 +53,10 @@ export default function WorkflowBuilder() {
   }
   function addNode(type: WorkflowNodeType) {
     if (!def) return;
+    const positionIndex = def.nodes.length;
     const n: WorkflowNode = {
       id: `n-${rid()}`, type, label: NODE_META[type].label,
-      x: 120 + Math.round(Math.random() * 60), y: 120 + Math.round(Math.random() * 120),
+      x: 120 + (positionIndex % 3) * 30, y: 120 + (positionIndex % 5) * 24,
       ...(type === "approval" || type === "review" ? { approverType: "line-manager" as ApproverType } : {}),
       ...(type === "condition" ? { conditions: [{ id: `c-${rid()}`, field: "amount", op: "gt" as const, value: 0 }], conditionMatch: "all" as const } : {}),
       ...(type === "escalation" ? { afterHours: 48 } : {}),

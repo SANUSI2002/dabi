@@ -101,9 +101,10 @@ export const seedEntitlements: Entitlement[] = [
 
 export const seedLicenses: License[] = seedSubscriptions.map((s) => {
   const org = seedOrganizations.find((o) => o.id === s.organizationId)!;
+  const pharmacyOrganization = org.type === "Pharmacy";
   const days = Math.ceil((new Date(s.expirationDate).getTime() - new Date("2026-09-14").getTime()) / 86_400_000);
   const status: License["status"] = s.status === "Suspended" ? "Suspended" : s.status === "Expired" ? "Expired" : days <= 30 ? "Expiring Soon" : s.status === "Grace Period" ? "Grace Period" : "Active";
-  return { ...meta(`lic-${org.id}`), organizationId: org.id, subscriptionId: s.id, type: s.status === "Trialing" ? "Trial" : s.packageId === "pkg-enterprise" ? "Enterprise" : "Subscription", productIds: ["emr", ...(s.snapshotModuleIds.some((m) => m.startsWith("workforce")) ? ["workforce"] : []), ...(s.snapshotModuleIds.some((m) => m.startsWith("accounting")) ? ["accounting"] : [])], moduleIds: s.snapshotModuleIds, validFrom: s.startDate, validUntil: s.expirationDate, userLimit: org.licensedUsers, branchLimit: Math.max(org.branchCount, 1), facilityLimit: Math.max(org.branchCount, 1), storageLimitGb: org.storageLimitGb, status, lastValidatedAt: NOW };
+  return { ...meta(`lic-${org.id}`), organizationId: org.id, subscriptionId: s.id, type: s.status === "Trialing" ? "Trial" : s.packageId === "pkg-enterprise" ? "Enterprise" : "Subscription", productIds: pharmacyOrganization ? ["pharmacy"] : ["emr", ...(s.snapshotModuleIds.some((m) => m.startsWith("workforce")) ? ["workforce"] : []), ...(s.snapshotModuleIds.some((m) => m.startsWith("accounting")) ? ["accounting"] : [])], moduleIds: pharmacyOrganization ? [] : s.snapshotModuleIds, validFrom: s.startDate, validUntil: s.expirationDate, userLimit: org.licensedUsers, branchLimit: Math.max(org.branchCount, 1), facilityLimit: Math.max(org.branchCount, 1), storageLimitGb: org.storageLimitGb, status, lastValidatedAt: NOW };
 });
 
 export const seedPriceVersions: PriceVersion[] = seedModules.map((m) => ({ ...meta(`price-${m.id}-1`), moduleId: m.id, amount: m.price, currency: m.currency, pricingUnit: m.pricingUnit, effectiveFrom: "2026-07-01", status: "Active" }));

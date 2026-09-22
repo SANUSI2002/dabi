@@ -1,0 +1,396 @@
+.sabi-wellness-main { display: flex; flex-direction: column; gap: var(--sabi-space-lg); }
+
+/* ---------------- Hero ---------------- */
+
+.sabi-wellness-hero {
+    position: relative;
+    overflow: hidden;
+    padding: clamp(28px, 5vw, 48px);
+    border-radius: var(--sabi-radius-lg);
+    background: var(--sabi-gradient-dark, linear-gradient(160deg, #0B5E48 0%, #073D30 100%));
+    color: #fff;
+}
+.sabi-wellness-hero h1 { margin: 0 0 10px; font-size: clamp(1.7rem, 3vw, 2.2rem); font-weight: 800; }
+.sabi-wellness-hero p { margin: 0; max-width: 560px; color: rgba(255, 255, 255, .88); line-height: 1.6; }
+.sabi-wellness-hero-icon { position: absolute; right: -20px; bottom: -20px; opacity: .12; }
+
+/* ---------------- My Engagements button ---------------- */
+
+.sabi-wellness-my-engagements-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 16px 20px;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-lg);
+    background: var(--sabi-surface);
+    cursor: pointer;
+    text-align: left;
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+.sabi-wellness-my-engagements-btn:hover { border-color: var(--sabi-primary); box-shadow: 0 8px 20px rgba(11, 94, 72, .1); }
+.sabi-wellness-my-engagements-icon {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+    flex-shrink: 0;
+}
+.sabi-wellness-my-engagements-text { display: grid; gap: 2px; }
+.sabi-wellness-my-engagements-text strong { font-size: .98rem; color: var(--sabi-text-primary); }
+.sabi-wellness-my-engagements-text span { font-size: .82rem; color: var(--sabi-text-secondary); }
+.sabi-wellness-my-engagements-badge {
+    display: grid;
+    place-items: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--sabi-primary-dark);
+    color: #fff;
+    font-size: .74rem;
+    font-weight: 800;
+}
+.sabi-wellness-my-engagements-btn > svg:last-child { margin-left: auto; color: var(--sabi-text-secondary); flex-shrink: 0; }
+
+/* ---------------- Category grid ---------------- */
+
+.sabi-wellness-section-title { margin: var(--sabi-space-md) 0 var(--sabi-space-sm); font-size: 1.1rem; font-weight: 800; color: var(--sabi-text-primary); }
+
+.sabi-wellness-category-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sabi-space-md); }
+.sabi-wellness-category-card {
+    display: grid;
+    justify-items: start;
+    gap: 6px;
+    padding: 22px;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-lg);
+    background: var(--sabi-surface);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+.sabi-wellness-category-card:hover { border-color: var(--sabi-primary); transform: translateY(-2px); box-shadow: 0 10px 24px rgba(11, 94, 72, .12); }
+.sabi-wellness-category-icon {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+    margin-bottom: 6px;
+}
+.sabi-wellness-category-card strong { font-size: 1.02rem; color: var(--sabi-text-primary); }
+.sabi-wellness-category-desc { font-size: .84rem; color: var(--sabi-text-secondary); }
+.sabi-wellness-category-cta { display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; color: var(--sabi-primary-dark); font-weight: 700; font-size: .82rem; }
+
+/* ---------------- Practitioner list ---------------- */
+
+.sabi-wellness-list-header { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--sabi-space-md); flex-wrap: wrap; }
+.sabi-wellness-list-header h1 { margin: 0 0 4px; font-size: 1.5rem; font-weight: 800; color: var(--sabi-text-primary); }
+.sabi-wellness-list-header p { margin: 0; color: var(--sabi-text-secondary); }
+.sabi-wellness-sort {
+    padding: 10px 14px;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-surface);
+    font-size: .86rem;
+    font-weight: 600;
+}
+
+.sabi-wellness-practitioner-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sabi-space-md); }
+.sabi-wellness-practitioner-card { display: grid; gap: 10px; }
+.sabi-wellness-practitioner-head { display: flex; align-items: center; gap: 12px; }
+.sabi-wellness-avatar {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: var(--sabi-primary-dark);
+    color: #fff;
+    font-weight: 800;
+    font-size: .92rem;
+    flex-shrink: 0;
+}
+.sabi-wellness-avatar.large { width: 68px; height: 68px; font-size: 1.2rem; }
+.sabi-wellness-avatar-photo { width: 84px; height: 84px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.sabi-wellness-practitioner-head strong { display: block; font-size: .96rem; }
+.sabi-wellness-rating { display: flex; align-items: center; gap: 4px; color: #92400E; font-size: .82rem; font-weight: 700; }
+.sabi-wellness-practitioner-specialty { margin: 0; color: var(--sabi-text-secondary); font-size: .84rem; }
+.sabi-wellness-languages { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--sabi-text-secondary); font-size: .82rem; }
+.sabi-wellness-visit-note { margin: 10px 0 0; color: var(--sabi-text-secondary); font-size: .82rem; }
+
+.sabi-wellness-practitioner-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--sabi-border); }
+.sabi-wellness-practitioner-footer small { display: block; color: var(--sabi-text-secondary); font-size: .7rem; text-transform: uppercase; letter-spacing: .03em; }
+.sabi-wellness-practitioner-footer strong { font-size: 1rem; color: var(--sabi-primary-dark); }
+.sabi-wellness-practitioner-footer strong span { font-size: .74rem; font-weight: 600; color: var(--sabi-text-secondary); }
+
+/* ---------------- Profile card ---------------- */
+
+.sabi-wellness-profile-card { display: block; }
+.sabi-wellness-profile-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
+.sabi-wellness-profile-head h1 { margin: 0 0 4px; font-size: 1.3rem; font-weight: 800; }
+.sabi-wellness-profile-head p { margin: 0 0 6px; color: var(--sabi-text-secondary); font-size: .88rem; }
+.sabi-wellness-profile-rate { margin-left: auto; text-align: right; flex-shrink: 0; }
+.sabi-wellness-profile-rate small { display: block; color: var(--sabi-text-secondary); font-size: .72rem; text-transform: uppercase; }
+.sabi-wellness-profile-rate strong { font-size: 1.3rem; color: var(--sabi-primary-dark); }
+.sabi-wellness-profile-rate span { font-size: .78rem; color: var(--sabi-text-secondary); }
+
+/* ---------------- Booking page ---------------- */
+
+.sabi-wellness-duration-row { display: flex; gap: 10px; }
+.sabi-wellness-duration-row button {
+    flex: 1;
+    padding: 14px;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-surface);
+    font-weight: 700;
+    font-size: .92rem;
+    cursor: pointer;
+}
+.sabi-wellness-duration-row button.active { border-color: transparent; background: var(--sabi-gradient-primary, var(--sabi-primary-dark)); color: #fff; }
+
+.sabi-wellness-days-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.sabi-wellness-days-row button {
+    padding: 9px 14px;
+    border: 1px solid var(--sabi-border);
+    border-radius: 999px;
+    background: var(--sabi-surface);
+    font-weight: 700;
+    font-size: .82rem;
+    cursor: pointer;
+}
+.sabi-wellness-days-row button.active { border-color: transparent; background: var(--sabi-primary-light); color: var(--sabi-primary-dark); }
+
+.sabi-wellness-cost-line { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--sabi-border); }
+.sabi-wellness-cost-line span { color: var(--sabi-text-secondary); font-size: .84rem; }
+.sabi-wellness-cost-line strong { font-size: 1.15rem; color: var(--sabi-primary-dark); }
+.sabi-wellness-cost-note { margin: 4px 0 0; color: var(--sabi-text-secondary); font-size: .74rem; }
+
+/* ---------------- Requests / proposal review ---------------- */
+
+.sabi-wellness-request-list { display: grid; gap: var(--sabi-space-md); }
+.sabi-wellness-request-card { display: grid; gap: 10px; }
+.sabi-wellness-request-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--sabi-space-md); }
+.sabi-wellness-request-head strong { display: block; font-size: .96rem; }
+.sabi-wellness-request-head span { font-size: .82rem; color: var(--sabi-text-secondary); }
+.sabi-wellness-request-note { margin: 0; color: var(--sabi-text-secondary); font-size: .84rem; }
+
+.sabi-wellness-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-size: .74rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.sabi-wellness-status-pill.pending { background: #FEF3C7; color: #92400E; }
+.sabi-wellness-status-pill.review { background: var(--sabi-primary-light); color: var(--sabi-primary-dark); }
+.sabi-wellness-status-pill.active { background: #d5fae9; color: #087451; }
+
+.sabi-wellness-proposal-sessions { display: flex; flex-wrap: wrap; gap: 8px; }
+.sabi-wellness-proposal-chip {
+    padding: 6px 12px;
+    border-radius: var(--sabi-radius-sm);
+    background: var(--sabi-page-bg);
+    color: var(--sabi-text-primary);
+    font-size: .78rem;
+    font-weight: 600;
+}
+.sabi-wellness-proposal-chip.muted { color: var(--sabi-text-secondary); }
+
+.sabi-wellness-revise-box { display: grid; gap: 10px; }
+.sabi-wellness-revise-box textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    font: inherit;
+    font-size: .86rem;
+    resize: vertical;
+}
+
+.sabi-wellness-request-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ---------------- Engagement list ---------------- */
+
+.sabi-wellness-engagement-list { display: grid; gap: 10px; }
+.sabi-wellness-engagement-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    text-align: left;
+    border: none;
+    cursor: pointer;
+}
+.sabi-wellness-engagement-card.muted { opacity: .75; }
+.sabi-wellness-engagement-card strong { display: block; font-size: .92rem; }
+.sabi-wellness-engagement-card span { font-size: .8rem; color: var(--sabi-text-secondary); }
+.sabi-wellness-engagement-card .chevron { margin-left: auto; color: var(--sabi-text-secondary); flex-shrink: 0; }
+
+/* ---------------- Engagement detail: progress + sessions ---------------- */
+
+.sabi-wellness-progress-card { display: block; }
+.sabi-wellness-progress-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.sabi-wellness-progress-head strong { font-size: .9rem; }
+.sabi-wellness-progress-head span { color: var(--sabi-primary-dark); font-weight: 800; }
+.sabi-wellness-progress-bar { height: 8px; border-radius: 999px; background: var(--sabi-page-bg); overflow: hidden; }
+.sabi-wellness-progress-fill { height: 100%; background: var(--sabi-gradient-primary, var(--sabi-primary-dark)); border-radius: 999px; transition: width .3s ease; }
+
+.sabi-wellness-session-list { display: grid; gap: 8px; }
+.sabi-wellness-session-row .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; background: var(--sabi-border); }
+.sabi-wellness-session-row .dot.completed { background: #087451; }
+.sabi-wellness-session-row .dot.upcoming { background: #92400E; }
+.sabi-wellness-checkin-times { display: block; font-size: .72rem; color: var(--sabi-primary-dark); margin-top: 2px; }
+.sabi-wellness-session-actions { margin-left: auto; flex-shrink: 0; }
+
+.sabi-wellness-demo-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border: 1px dashed var(--sabi-primary);
+    border-radius: 999px;
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+    font-size: .76rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.sabi-wellness-activity-list { display: grid; gap: 10px; }
+.sabi-wellness-activity-row { display: flex; justify-content: space-between; gap: var(--sabi-space-md); padding-bottom: 10px; border-bottom: 1px solid var(--sabi-border); font-size: .84rem; }
+.sabi-wellness-activity-row:last-child { border-bottom: none; padding-bottom: 0; }
+.sabi-wellness-activity-row small { color: var(--sabi-text-secondary); white-space: nowrap; }
+
+/* ---------------- Wellness-scoped empty state fallback ---------------- */
+
+.sabi-wellness-main .sabi-empty-state {
+    display: grid;
+    justify-items: center;
+    gap: var(--sabi-space-sm);
+    padding: clamp(28px, 6vw, 48px) var(--sabi-space-lg);
+    text-align: center;
+    color: var(--sabi-text-secondary);
+}
+.sabi-wellness-main .sabi-empty-state svg { color: var(--sabi-primary-dark); }
+.sabi-wellness-main .sabi-empty-state h3,
+.sabi-wellness-main .sabi-empty-state p { margin: 0; }
+
+@media (max-width: 1000px) {
+    .sabi-wellness-category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .sabi-wellness-practitioner-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 620px) {
+    .sabi-wellness-category-grid { grid-template-columns: 1fr; }
+    .sabi-wellness-duration-row { flex-direction: column; }
+}
+
+/* ---------------- Custom Time Picker ---------------- */
+
+.sabi-time-picker { display: grid; gap: 6px; }
+.sabi-time-picker-row { display: flex; align-items: center; gap: 6px; }
+.sabi-time-picker-row select {
+    padding: 10px 10px;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-surface);
+    color: var(--sabi-text-primary);
+    font: inherit;
+    font-weight: 700;
+    font-size: .9rem;
+    cursor: pointer;
+}
+.sabi-time-picker-colon { font-weight: 800; color: var(--sabi-text-secondary); }
+.sabi-time-picker-period {
+    display: flex;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    overflow: hidden;
+    margin-left: 4px;
+}
+.sabi-time-picker-period button {
+    padding: 9px 12px;
+    border: 0;
+    background: var(--sabi-surface);
+    color: var(--sabi-text-secondary);
+    font-weight: 800;
+    font-size: .8rem;
+    cursor: pointer;
+}
+.sabi-time-picker-period button.active { background: var(--sabi-gradient-primary, var(--sabi-primary-dark)); color: #fff; }
+
+/* ---------------- Requests: declined status, simple list, view more ---------------- */
+
+.sabi-wellness-status-pill.declined { background: color-mix(in srgb, var(--sabi-danger) 12%, transparent); color: var(--sabi-danger); }
+
+.sabi-wellness-session-simple-list { display: grid; gap: 6px; }
+.sabi-wellness-session-simple-row {
+    padding: 9px 12px;
+    border-radius: var(--sabi-radius-sm);
+    background: var(--sabi-page-bg);
+    color: var(--sabi-text-primary);
+    font-size: .84rem;
+    font-weight: 600;
+}
+.sabi-wellness-view-more-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 4px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--sabi-primary-dark);
+    font-weight: 700;
+    font-size: .82rem;
+    cursor: pointer;
+}
+
+/* ---------------- Schedule editor (add / drop) ---------------- */
+
+.sabi-wellness-editor { display: grid; gap: 12px; }
+.sabi-wellness-editor-list { display: grid; gap: 6px; max-height: 280px; overflow-y: auto; }
+.sabi-wellness-editor-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: var(--sabi-radius-sm);
+    background: var(--sabi-page-bg);
+    font-size: .84rem;
+    font-weight: 600;
+}
+.sabi-wellness-editor-row input[type="checkbox"] { width: 16px; height: 16px; flex-shrink: 0; accent-color: var(--sabi-primary-dark); }
+.sabi-wellness-editor-row span.dropped { text-decoration: line-through; color: var(--sabi-text-secondary); font-weight: 500; }
+.sabi-wellness-editor-row.added { background: var(--sabi-primary-light); color: var(--sabi-primary-dark); }
+.sabi-wellness-editor-row.added svg:first-child { flex-shrink: 0; }
+.sabi-wellness-editor-row.added button {
+    margin-left: auto;
+    border: 0;
+    background: transparent;
+    color: var(--sabi-primary-dark);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.sabi-wellness-add-session-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.sabi-wellness-add-session-row input[type="date"] {
+    padding: 10px 12px;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-surface);
+    font: inherit;
+    font-size: .86rem;
+}

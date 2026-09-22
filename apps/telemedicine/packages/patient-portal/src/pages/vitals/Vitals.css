@@ -1,0 +1,541 @@
+/* ==========================================================
+   Vitals.css — Vital History hub, Select Vital Type, Add Vital
+   Reading, and Vital History pages. Builds on Dashboard.css.
+   ========================================================== */
+
+.sabi-vitals-crumb {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--sabi-primary);
+  font-weight: 700;
+  font-size: calc(0.82rem * var(--sabi-font-scale));
+  text-decoration: none;
+  margin: var(--sabi-space-sm) 0 var(--sabi-space-md);
+}
+
+/* ---------------- Select Vital Type ---------------- */
+
+.sabi-vitals-add-header {
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20em;
+  flex-wrap: wrap;
+  margin-bottom: var(--sabi-space-lg);
+}
+
+.sabi-vitals-add-header h1 { margin: 0 0 6px; font-size: calc(1.65rem * var(--sabi-font-scale)); font-weight: 800; }
+.sabi-vitals-add-header p { margin: 0; max-width: 560px; color: var(--sabi-text-secondary); font-size: calc(0.9rem * var(--sabi-font-scale)); line-height: 1.5; }
+.sabi-vitals-cancel { 
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--sabi-primary);
+  font-weight: 700;
+  font-size: calc(0.82rem * var(--sabi-font-scale));
+  text-decoration: none;
+  margin: var(--sabi-space-sm) 0 var(--sabi-space-md);
+}
+.sabi-vitaltype-grid {
+  display: grid;
+  
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sabi-space-md);
+  margin-bottom: var(--sabi-space-lg);
+}
+
+.sabi-vitaltype-card { 
+  
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+ 
+  
+}
+.sabi-vitaltype-card:hover { box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08); }
+
+.sabi-vitaltype-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--sabi-primary-light);
+  color: var(--sabi-primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--sabi-space-sm);
+}
+
+.sabi-vitaltype-label { font-weight: 800; font-size: calc(0.98rem * var(--sabi-font-scale)); margin-bottom: 4px; }
+.sabi-vitaltype-desc { margin: 0; color: var(--sabi-text-secondary); font-size: calc(0.84rem * var(--sabi-font-scale)); line-height: 1.5; }
+
+.sabi-vitals-help { 
+  display: flex; 
+  gap: var(--sabi-space-md); 
+  align-items: flex-start; 
+  background: #e6f5f0; 
+  border-radius: 3px;
+}
+
+.sabi-vitals-help-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--sabi-surface);
+  color: var(--sabi-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sabi-vitals-help-title { font-weight: 800; font-size: calc(1rem * var(--sabi-font-scale)); margin-bottom: 4px; }
+.sabi-vitals-help-text { margin: 0 0 6px; color: var(--sabi-text-secondary); font-size: calc(0.86rem * var(--sabi-font-scale)); }
+.sabi-vitals-help-link { color: var(--sabi-primary); font-weight: 700; font-size: calc(0.86rem * var(--sabi-font-scale)); cursor: default; }
+
+/* ---------------- Add Vital Reading ---------------- */
+
+.sabi-vitals-form-header { max-width: 560px; margin-bottom: var(--sabi-space-lg); text-align: center; margin-left: auto; margin-right: auto; }
+.sabi-vitals-form-header h1 { margin: 0 0 6px; font-size: calc(1.4rem * var(--sabi-font-scale)); font-weight: 800; }
+.sabi-vitals-form-header p { margin: 0; color: var(--sabi-text-secondary); font-size: calc(0.88rem * var(--sabi-font-scale)); }
+
+.sabi-vitals-form-card {
+  
+  background: var(--sabi-surface);
+  border-radius: var(--sabi-radius-lg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  padding: var(--sabi-space-lg);
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sabi-space-lg);
+}
+
+.sabi-vitals-status {
+  
+  display: flex;
+  align-items: center;
+  gap: var(--sabi-space-sm);
+  background: color-mix(in srgb, var(--sabi-primary) 8%, transparent);
+  color: var(--sabi-primary-dark);
+  border-radius: var(--sabi-radius-md);
+  padding: var(--sabi-space-sm) var(--sabi-space-md);
+}
+
+.sabi-vitals-status-warn { background: color-mix(in srgb, var(--sabi-warning) 12%, transparent); color: var(--sabi-warning); }
+.sabi-vitals-status-danger { background: color-mix(in srgb, var(--sabi-danger) 12%, transparent); color: var(--sabi-danger); }
+
+.sabi-vitals-status-eyebrow { font-size: calc(0.66rem * var(--sabi-font-scale)); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.85; }
+.sabi-vitals-status-label { font-weight: 800; font-size: calc(0.95rem * var(--sabi-font-scale)); }
+.sabi-vitals-status-note { margin-left: auto; font-size: calc(0.82rem * var(--sabi-font-scale)); font-weight: 600; color: var(--sabi-text-secondary); }
+
+.sabi-vitals-slider-block { display: flex; flex-direction: column; gap: 10px; }
+
+.sabi-vitals-slider-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: calc(0.92rem * var(--sabi-font-scale));
+  font-weight: 600;
+}
+
+.sabi-vitals-slider-value {
+  background: var(--sabi-page-bg);
+  border-radius: var(--sabi-radius-sm);
+  padding: 4px 12px;
+  font-weight: 800;
+}
+
+.sabi-vitals-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--sabi-border);
+  outline: none;
+}
+
+.sabi-vitals-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--sabi-primary-dark);
+  cursor: pointer;
+  border: 3px solid var(--sabi-surface);
+  box-shadow: 0 0 0 1px var(--sabi-primary-dark);
+}
+
+.sabi-vitals-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--sabi-primary-dark);
+  cursor: pointer;
+  border: 3px solid var(--sabi-surface);
+  box-shadow: 0 0 0 1px var(--sabi-primary-dark);
+}
+
+.sabi-vitals-slider-scale { display: flex; justify-content: space-between; font-size: calc(0.75rem * var(--sabi-font-scale)); color: var(--sabi-text-secondary); }
+
+.sabi-vitals-notes-label { font-weight: 700; font-size: calc(0.9rem * var(--sabi-font-scale)); margin-bottom: -8px; }
+
+.sabi-vitals-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.sabi-vitals-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--sabi-border);
+  background: var(--sabi-surface);
+  color: var(--sabi-text-primary);
+  font-weight: 600;
+  font-size: calc(0.85rem * var(--sabi-font-scale));
+  border-radius: var(--sabi-radius-md);
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.sabi-vitals-chip.selected { border-color: var(--sabi-primary); background: var(--sabi-primary-light); color: var(--sabi-primary-dark); }
+
+.sabi-vitals-textarea {
+  width: 100%;
+  font-family: inherit;
+  font-size: calc(0.9rem * var(--sabi-font-scale));
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-md);
+  background: var(--sabi-page-bg);
+  padding: var(--sabi-space-sm) var(--sabi-space-md);
+  resize: vertical;
+}
+
+.sabi-vitals-textarea:focus { outline: none; border-color: var(--sabi-primary); }
+
+.sabi-vitals-tip {
+  display: flex;
+  gap: 10px;
+  background: var(--sabi-primary-light);
+  color: var(--sabi-primary-dark);
+  border-radius: var(--sabi-radius-md);
+  padding: var(--sabi-space-md);
+}
+
+.sabi-vitals-tip p { margin: 0; font-size: calc(0.85rem * var(--sabi-font-scale)); line-height: 1.5; }
+
+.sabi-vitals-form-actions { 
+  display: flex; 
+  justify-content: space-between;
+  gap: 10px; 
+
+}
+.sabi-vitals-form-actions .sabi-apt-secondary-btn { 
+  flex: 0 0 auto; 
+  padding-left: 22px; 
+  padding-right: 22px; 
+  color: #fff;
+  background-color: #DC2626;
+}
+
+/* ---------------- Vital History (per-type) ---------------- */
+
+.sabi-vitalhist-grid { grid-template-columns: 260px 1fr; margin-bottom: var(--sabi-space-lg); }
+.sabi-vitalhist-stats { gap: var(--sabi-space-md) !important; }
+
+.sabi-vitalhist-stat { border-left: 4px solid var(--sabi-border); padding: var(--sabi-space-md) !important; }
+.sabi-vitalhist-stat-avg { border-color: var(--sabi-primary); }
+.sabi-vitalhist-stat-peak { border-color: var(--sabi-danger); }
+.sabi-vitalhist-stat-low { border-color: var(--sabi-success); }
+
+.sabi-vitalhist-stat-label { font-size: calc(0.72rem * var(--sabi-font-scale)); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--sabi-text-secondary); margin-bottom: 6px; }
+.sabi-vitalhist-stat-value { font-size: calc(1.4rem * var(--sabi-font-scale)); font-weight: 800; }
+.sabi-vitalhist-stat-value small { font-size: calc(0.75rem * var(--sabi-font-scale)); font-weight: 600; color: var(--sabi-text-secondary); }
+.sabi-vitalhist-stat-meta { font-size: calc(0.74rem * var(--sabi-font-scale)); color: var(--sabi-text-secondary); margin-top: 4px; }
+
+.sabi-vitalhist-chart h3 { margin: 0 0 2px; font-size: calc(1.05rem * var(--sabi-font-scale)); font-weight: 800; }
+.sabi-vitalhist-chart-sub { margin: 0 0 var(--sabi-space-md); font-size: calc(0.82rem * var(--sabi-font-scale)); color: var(--sabi-text-secondary); }
+
+.sabi-vitalhist-bars { display: flex; align-items: flex-end; gap: 10px; height: 160px; padding-top: var(--sabi-space-sm); }
+
+.sabi-vitalhist-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 6px; }
+
+.sabi-vitalhist-bar { width: 60%; min-height: 4px; border-radius: 4px 4px 0 0; background: color-mix(in srgb, var(--sabi-primary) 45%, var(--sabi-primary-light)); }
+.sabi-vitalhist-bar-col span { font-size: calc(0.66rem * var(--sabi-font-scale)); color: var(--sabi-text-secondary); white-space: nowrap; }
+
+.sabi-vitalhist-table-title { margin: 0 0 var(--sabi-space-md); font-size: calc(1rem * var(--sabi-font-scale)); font-weight: 800; }
+
+.sabi-vitalhist-table-wrap { overflow-x: auto; }
+.sabi-vitalhist-table { width: 100%; border-collapse: collapse; font-size: calc(0.86rem * var(--sabi-font-scale)); }
+.sabi-vitalhist-table th {
+  text-align: left;
+  font-size: calc(0.68rem * var(--sabi-font-scale));
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--sabi-text-secondary);
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--sabi-border);
+}
+.sabi-vitalhist-table td { padding: 12px 8px 12px 0; border-bottom: 1px solid var(--sabi-border); vertical-align: top; }
+.sabi-vitalhist-table tr:last-child td { border-bottom: none; }
+
+.sabi-vitalhist-cell-strong { font-weight: 700; }
+.sabi-vitalhist-cell-muted { font-size: calc(0.78rem * var(--sabi-font-scale)); color: var(--sabi-text-secondary); }
+
+.sabi-vitalhist-reading { font-weight: 800; font-size: calc(1rem * var(--sabi-font-scale)); }
+.sabi-vitalhist-reading.tone-good { color: var(--sabi-success); }
+.sabi-vitalhist-reading.tone-warn { color: var(--sabi-warning); }
+.sabi-vitalhist-reading.tone-danger { color: var(--sabi-danger); }
+
+.sabi-vitalhist-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: calc(0.74rem * var(--sabi-font-scale));
+  font-weight: 700;
+  border-radius: var(--sabi-radius-lg);
+  padding: 4px 10px;
+}
+.sabi-vitalhist-pill.tone-good { background: color-mix(in srgb, var(--sabi-success) 14%, transparent); color: var(--sabi-success); }
+.sabi-vitalhist-pill.tone-warn { background: color-mix(in srgb, var(--sabi-warning) 16%, transparent); color: var(--sabi-warning); }
+.sabi-vitalhist-pill.tone-danger { background: color-mix(in srgb, var(--sabi-danger) 14%, transparent); color: var(--sabi-danger); }
+
+.sabi-vitalhist-tag {
+  display: inline-block;
+  font-size: calc(0.7rem * var(--sabi-font-scale));
+  font-weight: 700;
+  background: var(--sabi-page-bg);
+  border-radius: var(--sabi-radius-sm);
+  padding: 2px 8px;
+  margin-bottom: 3px;
+}
+
+/* ---------------- Vitals hub (/vitals) ---------------- */
+
+.sabi-vitalshub-top {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--sabi-space-md);
+  margin-bottom: var(--sabi-space-lg);
+}
+
+.sabi-vitalshub-score {
+ 
+  text-align: center;
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 20px 16px;
+ 
+
+ }
+.sabi-vitalshub-score-trend {
+   margin-top: var(--sabi-space-sm); 
+   font-size: calc(0.84rem * var(--sabi-font-scale)); 
+   font-weight: 700; color: var(--sabi-success); }
+
+.sabi-vitalshub-alert-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--sabi-radius-sm);
+  background: var(--sabi-primary-light);
+  color: var(--sabi-primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--sabi-space-sm);
+}
+
+.sabi-vitalshub-alert-title { font-size: calc(0.82rem * var(--sabi-font-scale)); color: var(--sabi-text-secondary); font-weight: 600; }
+.sabi-vitalshub-alert-value { font-size: calc(1.3rem * var(--sabi-font-scale)); font-weight: 800; margin: 2px 0 6px; }
+.sabi-vitalshub-alert-sub { display: flex; align-items: center; gap: 5px; font-size: calc(0.8rem * var(--sabi-font-scale)); color: var(--sabi-text-secondary); }
+
+.sabi-vitalshub-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--sabi-space-md);
+  margin-bottom: var(--sabi-space-lg);
+}
+.sabi-vitalshub-card{
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px 16px;
+
+  
+}
+.sabi-vitalshub-card-head {
+  display: flex;
+  align-items: center; 
+  justify-content: space-between; 
+  margin-bottom: var(--sabi-space-sm); 
+}
+
+.sabi-vitalshub-card-icon {
+  width: 35px;
+  height: 35px;
+  border-radius: var(--sabi-radius-sm);
+  background: var(--sabi-page-bg);
+  color: var(--sabi-primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sabi-vitalshub-card-label { font-size: calc(0.84rem * var(--sabi-font-scale)); color: var(--sabi-text-secondary); font-weight: 600; }
+.sabi-vitalshub-card-value { font-size: calc(1.25rem * var(--sabi-font-scale)); font-weight: 800; margin: 2px 0 var(--sabi-space-sm); }
+.sabi-vitalshub-card-value small { font-size: calc(0.7rem * var(--sabi-font-scale)); font-weight: 600; color: var(--sabi-text-secondary); }
+.sabi-vitalshub-card-link { font-size: calc(0.82rem * var(--sabi-font-scale)); font-weight: 700; color: var(--sabi-primary); text-decoration: none; }
+
+.sabi-vitalshub-bottom { 
+  grid-template-columns: 1.4fr 1fr; 
+
+}
+.sabi-vitalshub-chart-head h3 { margin: 0 0 2px; font-size: calc(1.05rem * var(--sabi-font-scale)); font-weight: 800; }
+.sabi-vitalshub-bars { 
+  height: 180px;
+}
+
+.sabi-vitalshub-ai { 
+  background: linear-gradient(135deg, var(--sabi-primary-dark) 0%, #14332A 100%); 
+  color: #fff;
+  border-radius: 8px;
+  padding: 12px;
+ 
+}
+.sabi-vitalshub-ai-head { 
+  display: flex; align-items: center; gap: 8px; 
+  margin-bottom: var(--sabi-space-md);
+ }
+.sabi-vitalshub-ai-head h3 { 
+  margin: 0; font-size: calc(1.02rem * var(--sabi-font-scale)); 
+  font-weight: 800; 
+}
+.sabi-vitalshub-ai-quote { 
+  font-size: calc(0.85rem * var(--sabi-font-scale)); 
+  font-style: italic; 
+  line-height: 1.5; 
+  opacity: 0.92; 
+  margin: 0 0 var(--sabi-space-md); }
+.sabi-vitalshub-ai-list { 
+  list-style: none; 
+  margin: 0 0 var(--sabi-space-md); 
+  padding: 0; display: flex; 
+  flex-direction: column; 
+  gap: 8px; }
+.sabi-vitalshub-ai-list li { 
+  display: flex; 
+  align-items: flex-start; 
+  gap: 8px; 
+  font-size: calc(0.85rem * var(--sabi-font-scale)); 
+  line-height: 1.5; }
+.sabi-vitalshub-ai-list svg { 
+  flex-shrink: 0; 
+  margin-top: 3px; 
+  color: #8fe3c0; }
+
+
+  .sabi-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn .2s ease;
+}
+
+.sabi-confirm-modal {
+  width: 420px;
+  max-width: calc(100vw - 2rem);
+  background: #fff;
+  border-radius: 20px;
+  padding: 2rem;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(0,0,0,.18);
+  animation: popIn .2s ease;
+}
+
+.sabi-confirm-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.sabi-confirm-icon.danger {
+  background: #FEF2F2;
+  color: #DC2626;
+}
+
+.sabi-confirm-modal h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.sabi-confirm-modal p {
+  margin: 1rem 0 2rem;
+  color: #64748B;
+  line-height: 1.6;
+}
+
+.sabi-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes popIn {
+  from {
+    transform: scale(.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ---------------- Responsive ---------------- */
+
+@media (max-width: 1080px) {
+  .sabi-vitaltype-grid { grid-template-columns: 1fr 1fr; }
+  .sabi-vitalhist-grid { grid-template-columns: 1fr; }
+  .sabi-vitalshub-top { grid-template-columns: 1fr; }
+  .sabi-vitalshub-grid { grid-template-columns: 1fr 1fr; }
+  .sabi-vitalshub-bottom { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+  .sabi-vitaltype-grid { grid-template-columns: 1fr; }
+  .sabi-vitalshub-grid { grid-template-columns: 1fr; }
+}

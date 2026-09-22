@@ -7,7 +7,6 @@ import {
   BedDouble,
   FileClock,
   FlaskConical,
-  Pill,
   HeartPulse,
   Baby,
   Users,
@@ -63,6 +62,7 @@ import {
   FileText,
   Scissors,
   Radiation,
+  Pill,
   type LucideIcon,
 } from "lucide-react";
 

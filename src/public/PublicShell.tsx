@@ -3,18 +3,15 @@ import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { ArrowRight, Menu, ShieldPlus, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/cn";
+import { EMR_SIGN_IN_URL, TELEMEDICINE_SIGN_IN_URL } from "@/public/ecosystemLinks";
 
 const nav = [
-  ["Products", "/products/sabi-os"],
+  ["Sabi OS", "/products/sabi-os"],
   ["Solutions", "/solutions/hospitals"],
-  ["AI", "/ai"],
-  ["Roadmap", "/roadmap"],
-  ["For Patients", "/products/sabi-health"],
-  ["For Healthcare Organizations", "/solutions/hospital-groups"],
+  ["Telemedicine", TELEMEDICINE_SIGN_IN_URL],
+  ["Pricing", "/pricing"],
   ["Security", "/security"],
   ["About", "/about"],
-  ["Resources", "/resources"],
-  ["Pricing", "/pricing"],
 ] as const;
 
 const meta: Record<string, [string, string]> = {
@@ -22,7 +19,7 @@ const meta: Record<string, [string, string]> = {
   "/products/sabi-os": ["Sabi OS — Healthcare Operating System | Sabi Health", "Explore connected clinical, operational, workforce and finance workflows for modern healthcare organizations."],
   "/products/sabi-health": ["Sabi Health for Patients", "Discover the patient-facing direction for connected records, prescriptions, pharmacy and virtual care."],
   "/ai": ["Sabi Intelligence — Responsible AI Assistance", "Explore how Sabi supports healthcare professionals with documentation, workflow and operational intelligence."],
-  "/roadmap": ["Product Roadmap | Sabi Health", "See selected Sabi Health and Sabi OS product improvements that are planned, in progress, in beta or released."],
+  "/roadmap": ["Product Roadmap | Sabi Health", "See selected Sabi Health and Sabi OS product improvements that are planned, in progress or released."],
   "/security": ["Security & Privacy | Sabi Health", "Learn about Sabi Health's security architecture, tenant isolation, access controls and privacy-by-design principles."],
   "/about": ["About Sabi Health", "Meet the team and mission behind connected healthcare infrastructure for Africa."],
   "/pricing": ["Sabi OS Pricing", "Review current Sabi OS packages sourced from the Sabi Command Center catalog."],
@@ -62,11 +59,10 @@ export default function PublicShell() {
         <div className="mx-auto flex h-[72px] max-w-[1500px] items-center gap-6 px-5 lg:px-8">
           <Brand />
           <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 xl:flex" aria-label="Primary navigation">
-            {nav.map(([label, to]) => <NavLink key={label} to={to} className={({ isActive }) => cn("rounded-full px-3 py-2 text-[12px] font-semibold text-slate-600 transition hover:bg-white hover:text-slate-950", isActive && "bg-white text-brand-700 shadow-sm ring-1 ring-slate-200")}>{label}</NavLink>)}
+            {nav.map(([label, to]) => label === "Telemedicine" ? <a key={label} href={to} className="rounded-full px-3 py-2 text-[12px] font-semibold text-slate-600 transition hover:bg-white hover:text-slate-950">{label}</a> : <NavLink key={label} to={to} className={({ isActive }) => cn("rounded-full px-3 py-2 text-[12px] font-semibold text-slate-600 transition hover:bg-white hover:text-slate-950", isActive && "bg-white text-brand-700 shadow-sm ring-1 ring-slate-200")}>{label}</NavLink>)}
           </nav>
-          <div className="ml-auto hidden items-center gap-2 md:flex">
-            <Link to="/login" className="rounded-xl px-3 py-2 text-sm font-bold text-slate-700 hover:text-brand-700">Sign In</Link>
-            <Link to="/book-demo" className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-800 transition hover:border-brand-300">Book a Demo</Link>
+          <div className="ml-auto hidden items-center gap-2 xl:flex">
+            <a href={EMR_SIGN_IN_URL} className="rounded-xl px-3 py-2 text-sm font-bold text-slate-700 hover:text-brand-700">Sign In</a>
             <Link to="/register" className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-brand-800">Get Started <ArrowRight size={15} /></Link>
           </div>
           <button type="button" onClick={() => setOpen((value) => !value)} className="ml-auto grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-white xl:hidden" aria-expanded={open} aria-label="Toggle navigation">{open ? <X /> : <Menu />}</button>
@@ -75,10 +71,10 @@ export default function PublicShell() {
           {open && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden border-t border-slate-200 bg-white xl:hidden">
               <nav className="mx-auto grid max-w-[1500px] gap-1 px-5 py-5" aria-label="Mobile navigation">
-                {nav.map(([label, to]) => <NavLink key={label} to={to} onClick={() => setOpen(false)} className="rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-brand-50">{label}</NavLink>)}
+                {nav.map(([label, to]) => label === "Telemedicine" ? <a key={label} href={to} onClick={() => setOpen(false)} className="rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-brand-50">{label}</a> : <NavLink key={label} to={to} onClick={() => setOpen(false)} className="rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-brand-50">{label}</NavLink>)}
                 <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-4 sm:grid-cols-3">
-                  <Link to="/login" className="public-button-secondary">Sign In</Link>
-                  <Link to="/book-demo" className="public-button-secondary">Book a Demo</Link>
+                  <a href={EMR_SIGN_IN_URL} className="public-button-secondary">Sign In</a>
+                  <a href={TELEMEDICINE_SIGN_IN_URL} className="public-button-secondary">Telemedicine</a>
                   <Link to="/register" className="public-button-primary col-span-2 sm:col-span-1">Get Started</Link>
                 </div>
               </nav>
@@ -98,7 +94,7 @@ export default function PublicShell() {
             <FooterGroup title="Company" links={[["About", "/about"], ["Team", "/about#team"], ["Careers", "/resources#careers"], ["Contact", "/book-demo"]]} />
             <FooterGroup title="Resources" links={[["Resources", "/resources"], ["Documentation", "/resources#documentation"], ["Help Centre", "/resources#help"], ["System Status", "/resources#status"]]} />
           </div>
-          <div className="flex flex-col gap-4 pt-7 text-xs text-emerald-50/50 sm:flex-row sm:items-center sm:justify-between"><p>© {new Date().getFullYear()} Sabi Health. Product prototype.</p><div className="flex flex-wrap gap-5"><Link to="/resources#privacy">Privacy</Link><Link to="/resources#terms">Terms</Link><Link to="/resources#cookies">Cookies</Link><Link to="/register">Register Organization</Link></div></div>
+          <div className="flex flex-col gap-4 pt-7 text-xs text-emerald-50/50 sm:flex-row sm:items-center sm:justify-between"><p>© {new Date().getFullYear()} Sabi Health.</p><div className="flex flex-wrap gap-5"><Link to="/resources#privacy">Privacy</Link><Link to="/resources#terms">Terms</Link><Link to="/resources#cookies">Cookies</Link><Link to="/register/organization">Register Organization</Link></div></div>
         </div>
       </footer>
     </div>

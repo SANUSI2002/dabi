@@ -1,0 +1,1041 @@
+.sabi-doctor-main {
+    width: 100%;
+    margin: 0 auto;
+    padding-bottom: var(--sabi-space-lg);
+}
+
+.sabi-doctor-hero {
+    position: relative;
+    overflow: hidden;
+    padding: calc(var(--sabi-space-lg) * 1.4) var(--sabi-space-lg);
+    margin-top: var(--sabi-space-md);
+    border-radius: var(--sabi-radius-lg);
+    background: var(--sabi-gradient-dark, linear-gradient(160deg, #0B5E48 0%, #073D30 100%));
+    box-shadow: 0 16px 40px rgba(11, 94, 72, 0.22);
+}
+
+.sabi-doctor-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 85% 0%, rgba(255,255,255,0.14), transparent 55%);
+    pointer-events: none;
+}
+
+.sabi-doctor-eyebrow {
+
+    position: relative;
+    margin: 0 0 var(--sabi-space-xs);
+    color: #B9F2D8;
+    font-size: .8rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.sabi-doctor-hero h1 {
+    position: relative;
+    margin: 0;
+    color: #fff;
+    /* clamp prevents this from dominating on small screens */
+    font-size: clamp(1.4rem, 5vw, calc(2.3rem * var(--sabi-font-scale)));
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+}
+
+.sabi-doctor-hero > p:not(.sabi-doctor-eyebrow) {
+    position: relative;
+    max-width: 630px;
+    margin: var(--sabi-space-sm) 0 0;
+    color: rgba(255,255,255,0.82);
+    line-height: 1.6;
+}
+
+.sabi-doctor-hero-actions {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sabi-space-sm);
+    margin-top: var(--sabi-space-md);
+}
+
+.sabi-doctor-hero-actions .sabi-doctor-primary {
+    border: none;
+    background: var(--sabi-gradient-primary, linear-gradient(135deg, #14B586 0%, #0B5E48 100%));
+    box-shadow: 0 8px 20px rgba(20, 181, 134, 0.35);
+}
+
+.sabi-doctor-hero-actions .sabi-doctor-outline {
+    border: 1px solid rgba(255,255,255,0.35);
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    
+}
+
+.sabi-doctor-hero-actions .sabi-doctor-outline:hover {
+    background: rgba(255,255,255,0.16);
+}
+
+.sabi-doctor-primary,
+.sabi-doctor-outline {
+    border-radius: var(--sabi-radius-md);
+    padding: var(--sabi-space-sm) var(--sabi-space-md);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.sabi-doctor-primary {
+    border: 1px solid var(--sabi-primary-dark);
+    background: var(--sabi-gradient-primary, var(--sabi-primary-dark));
+    color: #fff;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.sabi-doctor-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(11, 94, 72, 0.28);
+}
+
+.sabi-doctor-primary:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.sabi-doctor-outline {
+    border: 1px solid var(--sabi-border);
+    background: var(--sabi-surface);
+    color: var(--sabi-primary-dark);
+    transition: border-color .15s ease, background .15s ease;
+}
+
+.sabi-doctor-outline:hover {
+    border-color: var(--sabi-primary);
+    background: var(--sabi-primary-light);
+}
+
+.sabi-doctor-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--sabi-space-sm);
+    max-width: 700px;
+    margin-top: var(--sabi-space-lg);
+    padding: var(--sabi-space-sm);
+    border: 1px solid transparent;
+    border-radius: var(--sabi-radius-lg);
+    background: var(--sabi-surface);
+    color: var(--sabi-primary-dark);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+}
+
+.sabi-doctor-search input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font: inherit;
+}
+
+.sabi-doctor-search button {
+    border: 0;
+    border-radius: var(--sabi-radius-md);
+    padding: var(--sabi-space-sm) var(--sabi-space-md);
+    background: var(--sabi-primary);
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.sabi-doctor-specialties {
+    margin: calc(var(--sabi-space-lg) * 1.3) 0;
+}
+
+.sabi-doctor-section-heading h2,
+.sabi-doctor-results-head h2,
+.sabi-doctor-filters h2 {
+    margin: 0;
+    font-size: calc(1.2rem * var(--sabi-font-scale));
+}
+
+.sabi-doctor-section-heading p {
+    margin: var(--sabi-space-xs) 0 0;
+    color: var(--sabi-text-secondary);
+}
+
+.sabi-doctor-specialty-grid {
+    display: grid;
+    /* Auto-responsive: 4 columns on wide, reduces naturally */
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--sabi-space-md);
+    margin-top: var(--sabi-space-md);
+}
+
+.sabi-doctor-specialty {
+    display: grid;
+    justify-items: center;
+    gap: var(--sabi-space-sm);
+    min-height: 160px;
+    padding: var(--sabi-space-lg);
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-lg);
+    background: var(--sabi-surface);
+    color: var(--sabi-text-primary);
+    cursor: pointer;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.sabi-doctor-specialty:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(11, 94, 72, 0.1);
+    border-color: var(--sabi-primary);
+}
+
+.sabi-doctor-specialty.active {
+    border-color: transparent;
+    background: var(--sabi-gradient-primary, linear-gradient(135deg, #14B586 0%, #0B5E48 100%));
+    color: #fff;
+    box-shadow: 0 12px 28px rgba(11, 94, 72, 0.28);
+}
+
+.sabi-doctor-specialty.active small {
+    color: rgba(255,255,255,0.8);
+}
+
+.sabi-doctor-specialty span {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+    transition: background .18s ease, color .18s ease;
+}
+
+.sabi-doctor-specialty.active span {
+    background: rgba(255,255,255,0.18);
+    color: #fff;
+}
+
+.sabi-doctor-specialty small {
+    color: var(--sabi-text-secondary);
+}
+
+.sabi-doctor-results {
+         
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: var(--sabi-space-lg);
+    align-items: start;
+}
+
+.sabi-doctor-filters {
+   
+    display: grid;
+    gap: var(--sabi-space-md);
+    position: sticky;
+    top: var(--sabi-space-md);
+    padding: var(--sabi-space-lg);
+}
+
+.sabi-doctor-filter-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sabi-doctor-filter-head button {
+    
+    border: 0;
+    background: none;
+    color: var(--sabi-primary);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.sabi-doctor-filters fieldset {
+    display: grid;
+    gap: var(--sabi-space-sm);
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.sabi-doctor-filters legend {
+    margin-bottom: var(--sabi-space-sm);
+    font-weight: 700;
+}
+
+.sabi-doctor-filters label {
+    color: var(--sabi-text-secondary);
+}
+
+.sabi-doctor-filters input {
+    accent-color: var(--sabi-primary);
+}
+
+.sabi-doctor-filter-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sabi-space-xs);
+}
+
+.sabi-doctor-filter-pills button {
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-sm);
+    padding: var(--sabi-space-xs) var(--sabi-space-sm);
+    background: var(--sabi-surface);
+    color: var(--sabi-text-secondary);
+}
+
+.sabi-doctor-filter-pills .active {
+    border-color: var(--sabi-primary);
+    color: var(--sabi-primary-dark);
+}
+
+.sabi-doctor-match {
+    padding: var(--sabi-space-lg);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-gradient-dark, var(--sabi-primary-dark));
+    color: #fff;
+    box-shadow: 0 10px 26px rgba(11, 94, 72, 0.24);
+}
+
+.sabi-doctor-match h3 {
+    margin: var(--sabi-space-sm) 0;
+}
+
+.sabi-doctor-match p {
+    margin: 0;
+    color: rgba(255,255,255,0.75);
+    font-size: .88rem;
+    line-height: 1.5;
+}
+
+.sabi-doctor-match button {
+    width: 100%;
+    margin-top: var(--sabi-space-md);
+    border: 0;
+    border-radius: var(--sabi-radius-sm);
+    padding: var(--sabi-space-sm);
+    background: #fff;
+    color: var(--sabi-primary-dark);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .15s ease;
+}
+
+.sabi-doctor-match button:disabled {
+    opacity: .7;
+    cursor: not-allowed;
+}
+
+.sabi-doctor-results-head {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--sabi-space-sm);
+    align-items: center;
+    margin-bottom: var(--sabi-space-md);
+}
+
+.sabi-doctor-results-head h2 span {
+    color: var(--sabi-text-secondary);
+    font-size: .9em;
+    font-weight: 500;
+}
+
+.sabi-doctor-results-head > button {
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-sm);
+    padding: var(--sabi-space-xs) var(--sabi-space-sm);
+    background: var(--sabi-surface);
+    color: var(--sabi-text-secondary);
+}
+
+.sabi-doctor-card-grid {
+  
+
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sabi-space-lg);
+}
+
+.sabi-doctor-card {
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-lg);
+    background: var(--sabi-surface);
+    transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.sabi-doctor-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 32px rgba(11, 94, 72, 0.14);
+}
+
+.sabi-doctor-photo {
+    position: relative;
+    width: 100%;
+    height: 220px;
+    overflow: hidden;
+    background: #f3f7f5;
+    border-radius: var(--sabi-radius-md) var(--sabi-radius-md) 0 0;
+}
+
+.sabi-doctor-photo img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    object-position: center 20%;
+}
+.sabi-doctor-photo span,
+.sabi-doctor-photo em {
+    position: absolute;
+    top: var(--sabi-space-sm);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border-radius: 999px;
+    padding: var(--sabi-space-xs) var(--sabi-space-sm);
+    font-size: .72rem;
+    font-style: normal;
+    font-weight: 700;
+}
+
+.sabi-doctor-photo span {
+    left: var(--sabi-space-sm);
+    background: #d5fae9;
+    color: var(--sabi-primary-dark);
+}
+
+.sabi-doctor-photo em {
+    right: var(--sabi-space-sm);
+    background: #fff;
+    color: var(--sabi-text-primary);
+}
+
+.sabi-doctor-card-body {
+    padding: var(--sabi-space-md);
+}
+
+.sabi-doctor-card-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--sabi-space-sm);
+}
+
+.sabi-doctor-card-title > div {
+    min-width: 0;
+}
+
+.sabi-doctor-card-title button {
+    flex-shrink: 0;
+}
+
+.sabi-doctor-card-title h3 {
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sabi-doctor-card-title p {
+    margin: var(--sabi-space-xs) 0 0;
+    color: var(--sabi-primary);
+    font-size: .8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.sabi-doctor-card-title button {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+}
+
+.sabi-doctor-card ul {
+    display: grid;
+    gap: var(--sabi-space-xs);
+    margin: var(--sabi-space-md) 0;
+    padding: 0;
+    list-style: none;
+    color: var(--sabi-text-secondary);
+    font-size: .82rem;
+}
+
+.sabi-doctor-card li {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.sabi-doctor-card .available {
+    color: var(--sabi-primary);
+    font-weight: 700;
+}
+
+.sabi-doctor-card footer {
+    display: flex;
+    align-items: end;
+    gap: var(--sabi-space-sm);
+}
+
+.sabi-doctor-card footer > div {
+    margin-right: auto;
+}
+
+.sabi-doctor-card footer small {
+    display: block;
+    color: var(--sabi-text-secondary);
+    font-size: .65rem;
+}
+
+.sabi-doctor-card footer strong {
+    display: block;
+    margin-top: var(--sabi-space-xs);
+}
+
+.sabi-doctor-card footer button {
+    padding: var(--sabi-space-xs) var(--sabi-space-sm);
+}
+
+.sabi-doctor-empty {
+    grid-column: 1 / -1;
+    padding: var(--sabi-space-lg);
+    border: 1px dashed var(--sabi-border);
+    border-radius: var(--sabi-radius-lg);
+    color: var(--sabi-text-secondary);
+    text-align: center;
+}
+
+.sabi-doctor-toast {
+    position: fixed;
+    z-index: 200;
+    bottom: var(--sabi-space-lg);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: var(--sabi-space-sm) var(--sabi-space-md);
+    border-radius: 999px;
+    background: var(--sabi-text-primary);
+    color: #fff;
+}
+
+@media (max-width: 960px) {
+    .sabi-doctor-results {
+        grid-template-columns: 1fr;
+    }
+
+    .sabi-doctor-filters {
+        grid-template-columns: repeat(3, 1fr);
+        position: static;
+        top: auto;
+    }
+
+    .sabi-doctor-match {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 700px) {
+    .sabi-doctor-card-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .sabi-doctor-filters {
+        grid-template-columns: 1fr;
+    }
+
+    .sabi-doctor-card footer {
+        flex-wrap: wrap;
+    }
+
+    .sabi-doctor-card footer > div {
+        width: 100%;
+    }
+
+    .sabi-doctor-card footer button {
+        flex: 1;
+    }
+}
+
+@media (max-width: 480px) {
+    .sabi-doctor-hero {
+        padding: var(--sabi-space-md);
+    }
+
+    .sabi-doctor-search {
+        flex-wrap: wrap;
+    }
+
+    .sabi-doctor-search button {
+        width: 100%;
+    }
+
+    .sabi-doctor-card-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sabi-doctor-card footer {
+        flex-wrap: wrap;
+    }
+
+    .sabi-doctor-card footer > div {
+        width: 100%;
+    }
+
+    .sabi-doctor-card footer button {
+        flex: 1;
+    }
+}
+
+/* Extra-small: force single column on 320-360px */
+@media (max-width: 360px) {
+    .sabi-doctor-hero h1 { font-size: 1.3rem; }
+    .sabi-doctor-card-grid { grid-template-columns: 1fr; }
+}
+
+/* Booking modal */
+.sabi-booking-modal {
+    padding: var(--sabi-space-lg);
+}
+
+.sabi-booking-doctor {
+    display: flex;
+    align-items: center;
+    gap: var(--sabi-space-md);
+    padding: var(--sabi-space-md);
+    margin-bottom: var(--sabi-space-md);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-surface-muted, #f6faf8);
+}
+
+.sabi-booking-doctor img {
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    border-radius: var(--sabi-radius-md);
+    object-fit: cover;
+}
+
+.sabi-booking-doctor div,
+.sabi-profile-detail-row div {
+    display: grid;
+    gap: 2px;
+}
+
+.sabi-booking-doctor span {
+    color: var(--sabi-text-secondary);
+    font-size: .85rem;
+}
+
+.sabi-booking-doctor-clinic,
+.sabi-booking-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sabi-booking-section { margin-bottom: var(--sabi-space-md); }
+
+.sabi-booking-label {
+    margin-bottom: var(--sabi-space-sm);
+    color: var(--sabi-text-secondary);
+    font-size: .78rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.sabi-booking-type-row,
+.sabi-booking-slots {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sabi-space-sm);
+}
+
+.sabi-booking-type-row button,
+.sabi-booking-slots button,
+.sabi-booking-days button {
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-surface);
+    color: var(--sabi-text-primary);
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+
+.sabi-booking-type-row button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+    font-weight: 700;
+}
+
+.sabi-booking-days {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.sabi-booking-days button {
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    padding: 10px 4px;
+}
+
+.sabi-booking-days button small {
+    color: var(--sabi-text-secondary);
+    font-size: .68rem;
+    text-transform: uppercase;
+}
+
+.sabi-booking-slots button { padding: 10px; font-weight: 600; }
+
+.sabi-booking-type-row button.active,
+.sabi-booking-days button.active,
+.sabi-booking-slots button.active {
+    border-color: transparent;
+    background: var(--sabi-gradient-primary, var(--sabi-primary-dark));
+    color: #fff;
+}
+
+.sabi-booking-days button.active small { color: rgba(255, 255, 255, .85); }
+
+.sabi-booking-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sabi-space-md);
+    padding-top: var(--sabi-space-md);
+    border-top: 1px solid var(--sabi-border);
+}
+
+.sabi-booking-footer small,
+.sabi-profile-side-label {
+    display: block;
+    color: var(--sabi-text-secondary);
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.sabi-booking-footer strong {
+    display: block;
+    margin-top: 2px;
+    color: var(--sabi-primary-dark);
+    font-size: 1.15rem;
+}
+
+.sabi-booking-confirm { padding: 12px 22px; }
+
+.sabi-booking-success {
+    display: grid;
+    justify-items: center;
+    gap: var(--sabi-space-sm);
+    padding: var(--sabi-space-lg) 0;
+    text-align: center;
+}
+
+.sabi-booking-success-icon {
+    display: grid;
+    place-items: center;
+    width: 76px;
+    height: 76px;
+    margin-bottom: var(--sabi-space-xs);
+    border-radius: 50%;
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+}
+
+.sabi-booking-success h4 { margin: 0; font-size: 1.15rem; }
+
+.sabi-booking-success p {
+    max-width: 360px;
+    margin: 0;
+    color: var(--sabi-text-secondary);
+    line-height: 1.5;
+}
+
+.sabi-booking-success-note { font-size: .85rem; }
+.sabi-booking-done { margin-top: var(--sabi-space-sm); padding: 12px 32px; }
+
+/* ---------------- Book in Advance ---------------- */
+
+.sabi-booking-mode-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sabi-space-sm);
+    margin-bottom: var(--sabi-space-md);
+    padding: 4px;
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-surface-muted, #f6faf8);
+}
+
+.sabi-booking-mode-row button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 10px;
+    border: 0;
+    border-radius: var(--sabi-radius-sm);
+    background: transparent;
+    color: var(--sabi-text-secondary);
+    font-weight: 700;
+    font-size: .86rem;
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease;
+}
+
+.sabi-booking-mode-row button.active {
+    background: var(--sabi-surface);
+    color: var(--sabi-primary-dark);
+    box-shadow: 0 2px 8px rgba(0, 47, 44, .12);
+}
+
+.sabi-booking-advance-note {
+    margin: 0 0 var(--sabi-space-md);
+    padding: var(--sabi-space-md);
+    border-radius: var(--sabi-radius-md);
+    background: color-mix(in srgb, var(--sabi-primary) 8%, transparent);
+    color: var(--sabi-text-secondary);
+    font-size: .85rem;
+    line-height: 1.5;
+}
+
+.sabi-booking-advance-note strong { color: var(--sabi-primary-dark); }
+
+.sabi-booking-advance-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sabi-space-md);
+}
+
+.sabi-booking-field { display: grid; }
+
+.sabi-booking-field input,
+.sabi-booking-field textarea {
+    padding: 10px 12px;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-surface);
+    color: var(--sabi-text-primary);
+    font: inherit;
+    font-size: .88rem;
+    resize: vertical;
+}
+
+.sabi-booking-field input:focus,
+.sabi-booking-field textarea:focus {
+    outline: none;
+    border-color: var(--sabi-primary);
+}
+
+.sabi-booking-success-icon-pending {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+@media (max-width: 620px) {
+    .sabi-booking-advance-grid { grid-template-columns: 1fr; }
+}
+
+/* Doctor profile modal */
+.sabi-profile-modal {
+    position: relative;
+    max-width: 800px;
+    max-height: 88vh;
+    padding: 0;
+}
+
+.sabi-profile-close {
+    position: absolute;
+    top: var(--sabi-space-md);
+    right: var(--sabi-space-md);
+    z-index: 2;
+    background: rgba(255, 255, 255, .9);
+}
+
+.sabi-profile-hero {
+    display: flex;
+    align-items: center;
+    gap: var(--sabi-space-lg);
+    padding: var(--sabi-space-lg);
+    background: var(--sabi-gradient-dark, var(--sabi-primary-dark));
+    color: #fff;
+}
+
+.sabi-profile-hero img {
+    width: 108px;
+    height: 108px;
+    flex-shrink: 0;
+    border-radius: var(--sabi-radius-lg);
+    object-fit: cover;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .25);
+}
+
+.sabi-profile-hero-copy { min-width: 0; }
+
+.sabi-profile-verified {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .16);
+    color: #b9f2d8;
+    font-size: .72rem;
+    font-weight: 800;
+}
+
+.sabi-profile-hero-copy h2 { margin: var(--sabi-space-xs) 0 2px; font-size: 1.6rem; }
+.sabi-profile-hero-copy > p { margin: 0; color: rgba(255, 255, 255, .75); font-weight: 600; }
+
+.sabi-profile-stats { display: flex; gap: var(--sabi-space-lg); margin-top: var(--sabi-space-sm); }
+.sabi-profile-stats div { display: grid; gap: 2px; }
+.sabi-profile-stats strong { display: flex; align-items: center; gap: 4px; font-size: 1.05rem; }
+.sabi-profile-stats small { color: rgba(255, 255, 255, .6); font-size: .72rem; text-transform: uppercase; }
+
+.sabi-profile-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 260px;
+    gap: var(--sabi-space-lg);
+    padding: var(--sabi-space-lg);
+}
+
+.sabi-profile-main section { margin-bottom: var(--sabi-space-lg); }
+.sabi-profile-main h4 { margin: 0 0 var(--sabi-space-sm); color: var(--sabi-primary-dark); font-size: 1rem; }
+.sabi-profile-main > section > p { margin: 0 0 var(--sabi-space-md); color: var(--sabi-text-secondary); line-height: 1.6; }
+
+.sabi-profile-detail-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: var(--sabi-space-sm);
+    color: var(--sabi-primary);
+}
+
+.sabi-profile-detail-row strong { color: var(--sabi-text-primary); font-size: .88rem; }
+.sabi-profile-detail-row span { color: var(--sabi-text-secondary); font-size: .85rem; }
+
+.sabi-profile-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.sabi-profile-pills span { padding: 6px 14px; border-radius: 999px; background: var(--sabi-primary-light); color: var(--sabi-primary-dark); font-size: .82rem; font-weight: 700; }
+
+.sabi-profile-affiliations { display: grid; gap: var(--sabi-space-sm); }
+.sabi-profile-affiliations > div { display: flex; align-items: flex-start; gap: 10px; padding: var(--sabi-space-sm) var(--sabi-space-md); border: 1px solid var(--sabi-border); border-radius: var(--sabi-radius-md); color: var(--sabi-primary); }
+.sabi-profile-affiliations strong { display: block; color: var(--sabi-text-primary); font-size: .88rem; }
+.sabi-profile-affiliations span { color: var(--sabi-text-secondary); font-size: .8rem; }
+
+.sabi-profile-side { display: grid; align-content: start; gap: var(--sabi-space-md); }
+.sabi-profile-side-card { display: grid; gap: 6px; padding: var(--sabi-space-md); border: 1px solid var(--sabi-border); border-radius: var(--sabi-radius-md); background: var(--sabi-surface-muted, #f6faf8); }
+.sabi-profile-side-fee { color: var(--sabi-primary-dark); font-size: 1.5rem; }
+.sabi-profile-side-next { margin-bottom: 6px; color: var(--sabi-text-secondary); font-size: .82rem; }
+
+.sabi-profile-book,
+.sabi-profile-message { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px; }
+
+.sabi-profile-trust { display: flex; align-items: flex-start; gap: 10px; padding: var(--sabi-space-md); border-radius: var(--sabi-radius-md); background: var(--sabi-primary-light); color: var(--sabi-primary-dark); }
+.sabi-profile-trust strong { display: block; font-size: .88rem; }
+.sabi-profile-trust span { color: var(--sabi-primary-dark); opacity: .8; font-size: .8rem; }
+
+.sabi-booking-for-note {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0 0 var(--sabi-space-md);
+    padding: 9px 14px;
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+    font-size: .84rem;
+    font-weight: 600;
+}
+
+.sabi-booking-address-grid { display: grid; gap: 8px; }
+.sabi-booking-address-card {
+    position: relative;
+    display: grid;
+    gap: 2px;
+    padding: 12px;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-surface);
+    text-align: left;
+    cursor: pointer;
+}
+.sabi-booking-address-card.selected { border-color: var(--sabi-primary); background: var(--sabi-primary-light); }
+.sabi-booking-address-card strong { font-size: .86rem; }
+.sabi-booking-address-card span { font-size: .78rem; color: var(--sabi-text-secondary); }
+.sabi-booking-address-card .check {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: var(--sabi-primary-dark);
+}
+.sabi-booking-address-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 12px;
+    border: 1px dashed var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: transparent;
+    color: var(--sabi-text-secondary);
+    font-size: .8rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.sabi-booking-address-form { display: grid; gap: 8px; margin-top: 10px; }
+.sabi-booking-address-form input {
+    padding: 10px 12px;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-surface);
+    font: inherit;
+    font-size: .86rem;
+}
+.sabi-booking-address-form input:focus { outline: none; border-color: var(--sabi-primary); }
+.sabi-booking-address-form button { justify-self: start; }
+
+@media (max-width: 640px) {
+    .sabi-modal-overlay { align-items: flex-end; padding: 0; }
+    .sabi-booking-modal,
+    .sabi-profile-modal { width: 100%; max-height: 92vh; border-radius: var(--sabi-radius-lg) var(--sabi-radius-lg) 0 0; }
+    .sabi-booking-modal { padding: var(--sabi-space-md); }
+    .sabi-booking-days { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .sabi-booking-footer { align-items: stretch; flex-direction: column; }
+    .sabi-booking-confirm { width: 100%; }
+    .sabi-profile-hero { align-items: flex-start; gap: var(--sabi-space-md); padding: var(--sabi-space-md); }
+    .sabi-profile-hero img { width: 76px; height: 76px; }
+    .sabi-profile-hero-copy h2 { padding-right: var(--sabi-space-lg); font-size: 1.3rem; }
+    .sabi-profile-stats { gap: var(--sabi-space-md); }
+    .sabi-profile-body { grid-template-columns: 1fr; padding: var(--sabi-space-md); }
+}
+
+.sabi-doctor-booking-for-banner {
+    margin-bottom: var(--sabi-space-md);
+    padding: 12px 18px;
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+    font-size: .86rem;
+    font-weight: 600;
+}

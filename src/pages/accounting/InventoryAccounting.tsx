@@ -154,7 +154,7 @@ export default function InventoryAccounting() {
                     <Row key={m.id} index={i}>
                       <Cell className="whitespace-nowrap text-mist-500">{shortDate(m.date)}</Cell>
                       <Cell className="font-semibold">{items.find((x) => x.id === m.itemId)?.name}</Cell>
-                      <Cell><Badge tone={statusTone(m.type === "Receipt" || m.type === "Return" ? "approved" : m.type === "Issue" ? "submitted" : "returned")}>{m.type}</Badge></Cell>
+                      <Cell><Badge tone={statusTone(m.type === "Receipt" || m.type === "Return" ? "approved" : m.type === "Issue" || m.type === "Transfer" ? "submitted" : "returned")}>{m.type}</Badge></Cell>
                       <Cell className="font-mono">{m.qtyDelta > 0 ? "+" : ""}{m.qtyDelta}</Cell>
                       <Cell className="font-mono">{money(m.unitCost)}</Cell>
                       <Cell className={`font-mono ${m.value < 0 ? "text-action-600" : ""}`}>{money(m.value)}</Cell>

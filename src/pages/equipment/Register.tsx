@@ -11,6 +11,7 @@ import { useEquipmentCalibration } from "@/store/useEquipmentCalibration";
 import { EQUIPMENT_CATEGORIES, type EquipmentCategory, type OwnershipType } from "@/data/equipment";
 import { MachineStateBadge, ConnectivityBadge, MaintenanceStateBadge } from "@/components/equipment/EquipmentStatusBadge";
 import { startEquipmentSimulator } from "@/lib/equipmentSimulator";
+import { developmentFixturesEnabled } from "@/config/runtime";
 
 const OWNERSHIP: OwnershipType[] = ["Owned", "Leased", "Rented", "Donated", "Vendor-owned", "Government-owned"];
 
@@ -26,7 +27,7 @@ export default function Register() {
   });
 
   useEffect(() => {
-    startEquipmentSimulator();
+    if (developmentFixturesEnabled) startEquipmentSimulator();
   }, []);
 
   const filtered = category ? store.equipment.filter((e) => e.category === category) : store.equipment;
@@ -50,7 +51,7 @@ export default function Register() {
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Total Equipment" value={store.equipment.length} tone="brand" icon={<Boxes size={18} />} />
-        <StatCard label="Simulated" value={store.equipment.filter((e) => e.technical.integrationKind === "SIMULATOR").length} tone="mist" delay={0.05} />
+        {developmentFixturesEnabled && <StatCard label="Development sources" value={store.equipment.filter((e) => e.technical.integrationKind === "SIMULATOR").length} tone="mist" delay={0.05} />}
         <StatCard label="Not Configured" value={store.equipment.filter((e) => e.technical.integrationKind === "NOT_CONFIGURED").length} tone="mist" delay={0.1} />
         <StatCard label="Maintenance Overdue" value={store.equipment.filter((e) => maintenanceStateFor(e, maintStore.lastPreventiveCompletedAt(e.id)) === "Overdue").length} tone="action" delay={0.15} />
       </div>

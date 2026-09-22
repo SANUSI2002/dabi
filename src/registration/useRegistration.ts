@@ -2,9 +2,14 @@ import { create } from "zustand";
 import { browserApplicantDraftRepository, findPossibleDraftDuplicates } from "./repository";
 import { APPLICATION_STEPS, createBlankApplication, type ApplicationStep, type OrganizationApplication } from "./domain";
 
+export type InitialPackageSelection = {
+  packageId: string;
+  billingCycle: OrganizationApplication["billingCycle"];
+};
+
 type RegistrationState = {
   applications: OrganizationApplication[];
-  createApplication: () => string;
+  createApplication: (selection?: InitialPackageSelection) => string;
   updateApplication: (applicationId: string, updater: (application: OrganizationApplication) => OrganizationApplication) => void;
   completeStep: (applicationId: string, step: ApplicationStep) => ApplicationStep;
   submitApplication: (applicationId: string) => { reference?: string; error?: string };
@@ -19,8 +24,11 @@ function saveAndSort(applications: OrganizationApplication[]) {
 
 export const useRegistration = create<RegistrationState>((set, get) => ({
   applications: browserApplicantDraftRepository.list(),
-  createApplication: () => {
-    const application = createBlankApplication();
+  createApplication: (selection) => {
+    const application = {
+      ...createBlankApplication(),
+      ...(selection ? { packageId: selection.packageId, billingCycle: selection.billingCycle } : {}),
+    };
     browserApplicantDraftRepository.save(application);
     set((state) => ({ applications: [application, ...state.applications] }));
     return application.id;

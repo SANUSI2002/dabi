@@ -5,6 +5,7 @@ import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Textarea, Grid } from "@/components/ui/form";
 import { PatientPicker } from "@/components/ui/PatientPicker";
+import { PatientLink } from "@/components/ui/PatientLink";
 import { useEmr } from "@/store/useEmr";
 import { shortDate } from "@/lib/format";
 import { useHr } from "@/store/useHr";
@@ -44,8 +45,7 @@ export default function Appointments() {
           return (
             <Row key={a.id} index={i}>
               <Cell className="font-semibold">
-                {p ? `${p.firstName} ${p.lastName}` : "—"}
-                <span className="block text-[11px] font-normal text-mist-400">{a.reason}</span>
+                <PatientLink patient={p} sub={a.reason} />
               </Cell>
               <Cell>{shortDate(a.date)}</Cell>
               <Cell>{a.time}</Cell>

@@ -32,6 +32,7 @@ export default function Registration() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [doc, setDoc] = useState<{ kind: "card" | "birth"; patient: Patient } | null>(null);
   const [acknowledgedDuplicate, setAcknowledgedDuplicate] = useState(false);
+  const [renderedAt] = useState(Date.now);
 
   const setField = (key: keyof typeof BLANK, value: string | boolean) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -45,7 +46,7 @@ export default function Registration() {
   );
 
   const categoryOf = (code: string) => PATIENT_CATEGORIES.find((entry) => entry.code === code);
-  const duplicatePairs = useMemo(() => likelyDuplicatePairs(), [likelyDuplicatePairs, patients.length]);
+  const duplicatePairs = likelyDuplicatePairs();
 
   const matches = useMemo(
     () =>
@@ -56,7 +57,7 @@ export default function Registration() {
   );
   const strongMatch = matches.some((match) => match.score >= 5);
 
-  const dobInFuture = form.dob !== "" && new Date(form.dob).getTime() > Date.now();
+  const dobInFuture = form.dob !== "" && new Date(form.dob).getTime() > renderedAt;
   const ninInvalid = form.nin !== "" && !/^\d{11}$/.test(form.nin.replace(/\s/g, ""));
   const canRegister =
     Boolean(form.firstName.trim() && form.lastName.trim() && form.dob) &&

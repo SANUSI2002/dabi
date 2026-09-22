@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, CircleAlert, FileText, Receipt, Search, Wall
 import { useNavigate } from "react-router-dom";
 import { Badge, Button, PageHeader, StatCard, statusTone } from "@/components/ui/primitives";
 import { EmptyRow, Table, Cell } from "@/components/ui/Table";
+import { PatientLink } from "@/components/ui/PatientLink";
 import { useEmr } from "@/store/useEmr";
 import { minorMoney, useRevenueCycle } from "@/billing/useRevenueCycle";
 import { getRevenueCycleApi } from "@/billing/runtime";
@@ -114,7 +115,13 @@ export default function Billing() {
             <Fragment key={row.account.id}>
               <tr className="transition hover:bg-mist-50/60">
                 <Cell><button className="rounded-lg p-1 text-mist-500 hover:bg-mist-100" onClick={() => setExpanded(open ? null : row.account.id)} aria-label={open ? "Collapse patient account" : "Expand patient account"}>{open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</button></Cell>
-                <Cell className="font-semibold text-mist-900">{row.patient ? `${row.patient.firstName} ${row.patient.lastName}` : "Unknown patient"}<span className="block text-[11px] font-normal text-mist-400">{row.patient?.mrn ?? row.account.patientId}</span></Cell>
+                <Cell className="font-semibold text-mist-900">
+                  {row.patient ? (
+                    <PatientLink patient={row.patient} sub={row.patient.mrn} />
+                  ) : (
+                    <>Unknown patient<span className="block text-[11px] font-normal text-mist-400">{row.account.patientId}</span></>
+                  )}
+                </Cell>
                 <Cell><span className="block font-mono text-xs text-mist-700">{row.account.encounterId}</span><span className="block text-[11px] text-mist-400">{row.account.number}</span></Cell>
                 <Cell>{row.account.visitType}<span className="block text-[11px] text-mist-400">{row.account.payer}</span></Cell>
                 <Cell className="text-right font-semibold tabular-nums">{minorMoney(row.chargeTotal, row.account.currency)}</Cell>

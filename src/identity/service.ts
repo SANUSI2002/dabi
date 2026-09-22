@@ -1,5 +1,6 @@
 import { DEMO_PASSWORD, ORGANIZATION_MEMBERSHIPS, SABI_IDENTITIES } from "./seed";
 import type { AuthResult, OrganizationMembership, SabiIdentity, SignInInput } from "./domain";
+import { developmentFixturesEnabled } from "@/config/runtime";
 
 export interface SabiIdentityService {
   signIn(input: SignInInput): Promise<AuthResult>;
@@ -15,6 +16,7 @@ const membershipsFor = (identityId: string) => ORGANIZATION_MEMBERSHIPS.filter((
 
 export class LocalSabiIdentityService implements SabiIdentityService {
   async signIn(input: SignInInput): Promise<AuthResult> {
+    if (!developmentFixturesEnabled) return { status: "FAILED", message: "Organization authentication is not connected yet. No session was created." };
     await new Promise((resolve) => setTimeout(resolve, 280));
     const identity = SABI_IDENTITIES.find((item) => item.email.toLowerCase() === input.email.trim().toLowerCase());
     if (!identity || input.password !== DEMO_PASSWORD) return { status: "FAILED", message: "Email or password is incorrect." };
@@ -29,6 +31,7 @@ export class LocalSabiIdentityService implements SabiIdentityService {
   }
 
   async verifyMfa(challengeId: string, code: string): Promise<AuthResult> {
+    if (!developmentFixturesEnabled) return { status: "FAILED", message: "Multi-factor authentication is not connected yet." };
     await new Promise((resolve) => setTimeout(resolve, 220));
     const identityId = pendingChallenges.get(challengeId);
     const identity = SABI_IDENTITIES.find((item) => item.id === identityId);
@@ -38,10 +41,12 @@ export class LocalSabiIdentityService implements SabiIdentityService {
   }
 
   async requestPasswordReset(_email: string) {
+    if (!developmentFixturesEnabled) throw new Error("Password recovery is not connected yet.");
     await new Promise((resolve) => setTimeout(resolve, 260));
   }
 
   async requestSso(email: string) {
+    if (!developmentFixturesEnabled) return { configured: false, message: "Organization SSO discovery is not connected yet." };
     await new Promise((resolve) => setTimeout(resolve, 220));
     const configured = email.trim().toLowerCase().endsWith("@sabios.com");
     return { configured, message: configured ? "An SSO connection is configured for this organization." : "No organization SSO connection is configured for that email domain." };

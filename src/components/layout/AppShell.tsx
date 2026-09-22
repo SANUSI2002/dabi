@@ -8,7 +8,19 @@ import { useIntegrations } from "@/store/useIntegrations";
 import { EntitlementBoundary } from "@/platform/EntitlementBoundary";
 import { useTenant } from "@/store/useTenant";
 import { useRevenueCycle } from "@/billing/useRevenueCycle";
+import { EmrRouteLoadingScreen } from "./AppLoadingScreen";
 import "@/store/accounting/bootstrap";
+
+function TimedRouteLoader({ pathname, tenantName }: { pathname: string; tenantName: string }) {
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setVisible(false), 650);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  return <AnimatePresence>{visible && <EmrRouteLoadingScreen pathname={pathname} tenantName={tenantName} />}</AnimatePresence>;
+}
 
 export function AppShell() {
   const [mobileNav, setMobileNav] = useState(false);
@@ -63,7 +75,8 @@ export function AppShell() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar onMenu={() => setMobileNav(true)} />
-        <main className="flex-1 overflow-y-auto bg-mesh">
+        <main className="relative flex-1 overflow-y-auto bg-mesh">
+          <TimedRouteLoader key={loc.key} pathname={loc.pathname} tenantName={tenantName} />
           <div className="mx-auto max-w-[1400px] px-4 py-6 lg:px-8">
             <AnimatePresence mode="wait">
               <PageTransition key={loc.pathname}>

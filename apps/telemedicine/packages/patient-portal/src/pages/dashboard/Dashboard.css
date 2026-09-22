@@ -1,0 +1,1004 @@
+/* ==========================================================
+   Dashboard.css — page-specific rules only
+   Shared shell rules (sidebar, topbar, search, grid, zoom
+   control, modal shell, base section-title, pill) live
+   exclusively in shell.css. Import shell.css BEFORE this file.
+   ========================================================== */
+
+/* ---------------- Shared card base (reference — defined in share.css) ---------------- */
+/* .sabi-card {
+  background: var(--sabi-surface);
+  border-radius: var(--sabi-radius-lg);
+  padding: var(--sabi-space-lg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+} */
+
+/* ---------------- Section title variants ---------------- */
+
+.sabi-section-title.center { justify-content: center; }
+
+.sabi-section-title.eyebrow {
+  font-size: calc(0.78rem * var(--sabi-font-scale));
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sabi-text-secondary);
+}
+
+/* ---------------- Hero ---------------- */
+
+.sabi-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+
+  width: 100%;
+  min-height: 220px;
+
+  /* Fluid padding: from 16px on 320px mobile to 40px on desktop */
+  padding: clamp(16px, 4vw, 40px);
+  border-radius: clamp(16px, 3vw, 32px);
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  background: linear-gradient(
+      135deg,
+      #006B63 0%,
+      #0A6A61 100%
+  );
+}
+
+.sabi-hero-rings {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.sabi-hero-rings .ring {
+  position: absolute;
+  top: 48%;
+  left: 72%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.sabi-hero-rings .ring-1{
+    width:220px;
+    height:220px;
+}
+
+.sabi-hero-rings .ring-2{
+    width:360px;
+    height:360px;
+}
+
+.sabi-hero-rings .ring-3{
+    width:500px;
+    height:500px;
+}
+.sabi-hero-copy {
+  position: relative;
+  z-index: 1;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  /* Use max-width instead of fixed width so it can shrink on small screens */
+  max-width: 380px;
+  width: 100%;
+  flex-shrink: 1;
+  min-width: 0;
+
+  color: #fff;
+}
+
+.sabi-hero-copy h2 {
+  margin: 0 0 var(--sabi-space-xs);
+  font-size:  28px;
+  font-weight: 600;
+  line-height: 36px;
+}
+
+.sabi-hero-copy p {
+  margin-top: 12px;
+
+  font-size: 15px;
+  line-height: 24px;
+
+  color: #D8F2EC;
+
+  width: 100%;
+
+  white-space: normal;
+}
+
+.sabi-hero-cta {
+ margin-top: 32px;
+align-self: flex-start;
+}
+
+.sabi-hero-art {
+  position: relative;
+  z-index: 2;
+
+  /* Fluid: grows to fill available space but never taller than needed */
+  width: clamp(140px, 25vw, 205px);
+  height: auto;
+  min-height: 100px;
+  aspect-ratio: 16 / 9;
+
+  align-self: center;
+  flex-shrink: 0;
+
+  margin: 0;
+
+  border-radius: 12px;
+  overflow: hidden;
+
+  background: #ffffff20;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sabi-hero-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sabi-hero-art-glyph { color: #fff; opacity: 0.9; }
+.sabi-hero-art-glyph svg { width: 56px; height: 56px; }
+
+/* ---------------- Quick actions ---------------- */
+
+.sabi-quick-grid { 
+display: grid;
+  /* Auto-fits 3 columns on desktop, wraps cleanly on smaller screens */
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 24px; /* Matches Figma Auto-layout Gap */
+  margin-top: 16px;
+
+}
+.sabi-quick-card { 
+background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.sabi-quick-icon {
+ width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background-color: #e6f4f1; /* Soft mint/teal tint */
+  color: #0f766e;           /* Accent teal color */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.sabi-quick-icon svg { width: 19px; height: 19px; }
+
+.sabi-quick-title {
+display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.sabi-quick-sub {
+ font-size: 0.775rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.35;
+}
+.sabi-quick-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+  border-color: #cbd5e1;
+}
+
+.sabi-quick-card:focus-visible {
+  outline: 2px solid #0f766e;
+  outline-offset: 2px;
+}
+/* ---------------- Vitals ---------------- */
+
+/* Vitals Grid Container */
+.sabi-vitals-grid {
+  display: grid;
+  /* 2 equal columns on desktop, wraps to 1 column on smaller mobile screens */
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 24px; /* Matches Figma Auto-layout Gap (24px) */
+  margin-top: 16px;
+}
+
+/* Individual Vital Card */
+.sabi-vital {
+  background-color: #f8fafc; /* Subtle light background */
+  border: 1px solid #f1f5f9;
+  border-radius: 14px;
+  padding: 16px;
+  display: grid;
+  /* Left column for text info, Right column for chart graphic */
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto auto;
+  align-items: center;
+  gap: 2px 12px;
+}
+
+/* Vital Label (e.g. "Blood Pressure", "Heart Rate") */
+.sabi-vital-label {
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 0.775rem;
+  font-weight: 500;
+  color: #64748b; /* Slate gray */
+}
+
+/* Vital Value (e.g. "118/72 mmHg") */
+.sabi-vital-value {
+  grid-column: 1;
+  grid-row: 2;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0f172a; /* Dark charcoal */
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.sabi-vital-value small {
+  font-size: 0.725rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+/* Vital Status Indicator (e.g. "Optimal Range", "Steady") */
+.sabi-vital-status {
+  grid-column: 1;
+  grid-row: 3;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #0d9488; /* Sabi teal accent */
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Graphic Container (MiniBars / MiniWave) */
+.sabi-vital > :last-child {
+  grid-column: 2;
+  grid-row: 1 / span 3; /* Spans all 3 rows on the right side */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* ---------------- Lists (consultations) ---------------- */
+/* Card Row Container */
+.sabi-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background-color: #f8fafc; /* Subtle light background tint */
+  border: 1px solid #f1f5f9;
+  border-radius: 14px;
+  gap: 14px;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.sabi-list-item:hover {
+  background-color: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+/* Icon Box */
+.sabi-list-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background-color: #e6f4f1; /* Mint/teal background tint */
+  color: #0f766e;           /* Accent teal color */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Body (Title + Subtitle) */
+.sabi-list-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0; /* Prevents text overflow breaks */
+}
+
+.sabi-list-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sabi-list-sub {
+  font-size: 0.75rem;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Right-aligned Trailing Group */
+.sabi-list-trailing {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* "view" Button Pill */
+.sabi-view-pill {
+  background-color: #e6f4f1;
+  color: #0d9488;
+  border: none;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 0.725rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.sabi-view-pill:hover {
+  background-color: #ccece6;
+}
+
+.sabi-view-pill:active {
+  opacity: 0.8;
+}
+
+/* Status / Custom Badge Pill */
+.sabi-pill {
+  background-color: #f1f5f9;
+  color: #475569;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.725rem;
+  font-weight: 500;
+}
+
+/* Chevron Icon (›) */
+.sabi-list-chevron {
+  color: #94a3b8;
+  font-size: 1.1rem;
+  line-height: 1;
+  user-select: none;
+}
+
+/* ---------------- Score card ---------------- */
+
+.sabi-score-card {
+  background-color: #ffffff;
+  border-radius: 32px;
+  border: 1px solid rgba(189, 201, 198, 0.25);
+  padding: 28px 20px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  /* Remove fixed min-height — it cut off content on small screens */
+  min-height: auto;
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+.sabi-score-top { 
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+}
+
+.sabi-donut {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  margin: var(--sabi-space-sm) auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: conic-gradient(
+    var(--sabi-success) calc(var(--sabi-score, 0) * 3.6deg),
+    var(--sabi-primary-light) 0deg
+  );
+}
+
+.sabi-donut::before { content: ""; position: absolute; inset: 14px; background: var(--sabi-surface); border-radius: 50%; }
+
+.sabi-donut-value {
+  position: relative;
+  font-size: calc(2rem * var(--sabi-font-scale));
+  font-weight: 800;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.sabi-donut-value span {
+  display: block;
+  font-size: calc(0.85rem * var(--sabi-font-scale));
+  font-weight: 500;
+  color: var(--sabi-text-secondary);
+  margin-top: 2px;
+}
+
+.sabi-score-trend {
+ width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #f0fdfa; /* Soft mint/teal trend box tint */
+  border: 1px solid #ccfbf1;
+  padding: 12px 18px;
+  border-radius: 18px;
+  margin-top: auto;
+}
+
+.sabi-score-trend-label {
+ font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.sabi-score-trend-value {
+  font-size: 0.875rem;
+    font-weight: 700;
+    color: #0d9488;
+}
+
+/* ---------------- Mini charts ---------------- */
+
+.sabi-mini-bars { display: flex; align-items: flex-end; gap: 3px; height: 22px; }
+.sabi-mini-bars i { width: 5px; border-radius: 2px; background: var(--sabi-success); display: block; }
+
+/* ---------------- Emergency ID card ---------------- */
+/* Card Container */
+.sabi-emergency-card {
+  background-color: #005c55;
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: #ffffff;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* Header */
+.sabi-emergency-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sabi-emergency-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.sabi-emergency-photo-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  border-radius: 6px;
+  color: #ffffff;
+  padding: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.sabi-emergency-photo-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.sabi-emergency-photo-btn svg,
+.sabi-emergency-link svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Body & Layout */
+.sabi-emergency-body {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* 4x4 ID Pattern Grid */
+.sabi-emergency-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  width: 72px;
+  height: 72px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 6px;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.sabi-emergency-grid span {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+.sabi-emergency-grid span.active {
+  background: #ffffff;
+}
+
+/* Stats Container */
+.sabi-emergency-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.sabi-emergency-stats {
+  display: flex;
+  gap: 16px;
+}
+
+.sabi-stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sabi-emergency-stat-label {
+  font-size: calc(0.625rem * var(--sabi-font-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.sabi-emergency-stat-value {
+  font-size: calc(1rem * var(--sabi-font-scale, 1));
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* Modal Link Button */
+.sabi-emergency-link {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  opacity: 0.9;
+  transition: opacity 0.2s ease;
+}
+
+.sabi-emergency-link:hover {
+  opacity: 1;
+}
+
+/* ---------------- Today's schedule (timeline) ---------------- */
+
+.sabi-timeline { position: relative; }
+
+.sabi-timeline-item {
+  position: relative;
+  display: flex;
+  gap: var(--sabi-space-md);
+  padding-bottom: var(--sabi-space-lg);
+}
+
+.sabi-timeline-item:last-child { padding-bottom: 0; }
+
+.sabi-timeline-marker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sabi-timeline-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--sabi-border);
+  margin-top: 6px;
+}
+
+.sabi-timeline-item.active .sabi-timeline-dot {
+  background: var(--sabi-primary);
+}
+
+.sabi-timeline-line {
+  width: 2px;
+  flex: 1;
+  background: var(--sabi-border);
+  margin-top: 4px;
+}
+
+.sabi-timeline-item:last-child .sabi-timeline-line { display: none; }
+
+.sabi-timeline-time {
+  font-size: calc(0.85rem * var(--sabi-font-scale));
+  font-weight: 700;
+  color: var(--sabi-text-secondary);
+  margin-bottom: 2px;
+}
+
+.sabi-timeline-item.active .sabi-timeline-time { color: var(--sabi-text-primary); }
+
+.sabi-timeline-title {
+  font-size: calc(0.95rem * var(--sabi-font-scale));
+  font-weight: 700;
+  color: var(--sabi-text-primary);
+}
+
+.sabi-timeline-item:not(.active) .sabi-timeline-title { color: var(--sabi-text-secondary); font-weight: 600; }
+
+.sabi-timeline-sub {
+  font-size: calc(0.85rem * var(--sabi-font-scale));
+  color: var(--sabi-primary);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* ---------------- Medications ---------------- */
+/* Card Container — Exact Figma Specs */
+.sabi-med-card {
+  background: #ffffff;
+  border-radius: 20px;                      /* Figma Radius: 20px */
+  border: 1px solid rgba(189, 201, 198, 0.25); /* Figma Border: 1px #BDC9C6 10% */
+  padding: 24px;                            /* Figma Padding: 24px */
+  display: flex;
+  flex-direction: column;                   /* Figma Flow: Vertical */
+  gap: 16px;                                /* Figma Gap: 16px */
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* List Wrapper */
+.sabi-med-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Featured (Active) Medication Box */
+.sabi-med-featured {
+  background-color: #f4f8f7;                /* Soft light green tint */
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sabi-med-featured-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.sabi-med-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background-color: rgba(0, 92, 85, 0.1);
+  color: #005c55;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Typography */
+.sabi-med-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a2b27;
+}
+
+.sabi-med-sub {
+  font-size: 12px;
+  color: #8c9ba5;
+  margin-top: 2px;
+}
+
+/* Primary "Mark as Taken" Button */
+.sabi-med-btn {
+  background-color: #005c55 !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 10px !important;
+  padding: 10px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  width: 100%;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.sabi-med-btn:hover {
+  background-color: #004742 !important;
+}
+
+/* Completed Medication Row */
+.sabi-med-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid #f0f4f3;
+  background-color: #ffffff;
+}
+
+.sabi-med-taken-icon {
+  color: #005c55;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* ---------------- Family avatars ---------------- */
+
+.sabi-family-row { display: flex; align-items: center; gap: var(--sabi-space-sm); }
+
+.sabi-family-avatar {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(0.95rem * var(--sabi-font-scale));
+  font-weight: 700;
+  color: #fff;
+  overflow: hidden;
+}
+
+.sabi-family-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.sabi-family-status {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--sabi-success);
+  border: 2px solid var(--sabi-surface);
+}
+
+.sabi-family-add {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--sabi-primary-light);
+  color: var(--sabi-primary);
+  border: 2px dashed color-mix(in srgb, var(--sabi-primary) 35%, transparent);
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* ---------------- Insight card ---------------- */
+
+.sabi-insight { 
+  display: flex; gap: 
+  var(--sabi-space-sm);
+ }
+.sabi-insight-icon {
+   line-height: 1;
+    flex-shrink: 0;
+   }
+.sabi-insight-icon svg {
+   width: 20px;
+    height: 20px; 
+     color: var(--sabi-primary-dark);
+   }
+.sabi-insight-title { 
+  font-size: calc(0.9rem * var(--sabi-font-scale));
+   font-weight: 700;
+    color: var(--sabi-primary-dark);
+     margin-bottom: 3px; }
+.sabi-insight-text { font-size: calc(0.85rem * var(--sabi-font-scale)); color: var(--sabi-text-secondary); line-height: 1.5; }
+
+/* ---------------- Emergency ID card modal ---------------- */
+
+.sabi-emcard-modal { max-width: 400px; }
+
+.sabi-emcard-note {
+  font-size: calc(0.8rem * var(--sabi-font-scale));
+  color: var(--sabi-text-secondary);
+  line-height: 1.5;
+  margin: 0 0 var(--sabi-space-md);
+}
+
+.sabi-emcard-face { display: flex; flex-direction: column; gap: var(--sabi-space-sm); }
+
+.sabi-emcard-top { display: flex; align-items: center; gap: var(--sabi-space-sm); margin-bottom: var(--sabi-space-xs); }
+
+.sabi-emcard-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--sabi-primary-dark);
+  color: #fff;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sabi-emcard-name { font-weight: 800; font-size: calc(1rem * var(--sabi-font-scale)); }
+.sabi-emcard-sub { font-size: calc(0.8rem * var(--sabi-font-scale)); color: var(--sabi-text-secondary); }
+
+.sabi-emcard-qr {
+  margin-left: auto;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: var(--sabi-radius-sm);
+  background: var(--sabi-page-bg);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 2px;
+  padding: 4px;
+}
+
+.sabi-emcard-qr span { border-radius: 1px; background: var(--sabi-primary-dark); }
+.sabi-emcard-qr span:nth-child(3n) { background: var(--sabi-border); }
+.sabi-emcard-qr span:nth-child(5n) { background: transparent; }
+
+.sabi-emcard-stats { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sabi-space-sm); }
+
+.sabi-emcard-stat-label {
+  font-size: calc(0.66rem * var(--sabi-font-scale));
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sabi-text-secondary);
+}
+
+.sabi-emcard-stat-value { font-size: calc(1.15rem * var(--sabi-font-scale)); font-weight: 800; color: var(--sabi-danger); }
+
+.sabi-emcard-box { background: var(--sabi-page-bg); border-radius: var(--sabi-radius-md); padding: var(--sabi-space-sm) var(--sabi-space-md); }
+
+.sabi-emcard-box-label {
+  font-size: calc(0.66rem * var(--sabi-font-scale));
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sabi-text-secondary);
+  margin-bottom: 6px;
+}
+
+.sabi-emcard-contact { display: flex; align-items: center; gap: 6px; font-size: calc(0.85rem * var(--sabi-font-scale)); font-weight: 600; }
+.sabi-emcard-contact + .sabi-emcard-contact { margin-top: 4px; }
+
+.sabi-emcard-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.sabi-emcard-pill {
+  font-size: calc(0.78rem * var(--sabi-font-scale));
+  font-weight: 600;
+  color: var(--sabi-primary-dark);
+  background: var(--sabi-primary-light);
+  border-radius: var(--sabi-radius-lg);
+  padding: 4px 11px;
+}
+
+.sabi-emcard-pill-danger { color: var(--sabi-danger); background: color-mix(in srgb, var(--sabi-danger) 12%, transparent); }
+
+.sabi-emcard-list { margin: 0; padding-left: 18px; font-size: calc(0.85rem * var(--sabi-font-scale)); }
+.sabi-emcard-list li + li { margin-top: 4px; }
+
+.sabi-emcard-flip {
+  width: 100%;
+  margin-top: var(--sabi-space-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, var(--sabi-primary-dark) 0%, #14332A 100%);
+  color: #fff;
+  border: none;
+  border-radius: var(--sabi-radius-md);
+  padding: 10px;
+  font-weight: 700;
+  font-size: calc(0.88rem * var(--sabi-font-scale));
+  cursor: pointer;
+}
+
+/* ---------------- Responsive (dashboard content only) ---------------- */
+
+/* Dashboard-only visual refinement */
+.sabi-dashboard-home .sabi-main { padding: clamp(12px, 2vw, 20px); }
+.sabi-dashboard-home .sabi-grid { width: 100%; max-width: 1480px; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; }
+.sabi-dashboard-home .sabi-col { gap: 20px; }
+.sabi-dashboard-home .sabi-card:not(.sabi-hero) { border: 1px solid rgba(15, 76, 69, .09); border-radius: 18px; box-shadow: 0 4px 18px rgba(20, 55, 50, .045); }
+.sabi-dashboard-home .sabi-section-title { margin-bottom: 10px; font-size: 1rem; letter-spacing: -.01em; }
+.sabi-dashboard-home .sabi-hero { min-height: 200px; padding: clamp(16px, 4vw, 32px); border-radius: clamp(14px, 3vw, 22px); }
+.sabi-dashboard-home .sabi-hero-copy h2 { font-size: clamp(1.15rem, 4vw, 1.65rem); line-height: 1.2; }
+.sabi-dashboard-home .sabi-hero-copy p { margin-top: 8px; font-size: clamp(0.82rem, 1.8vw, .92rem); line-height: 1.55; }
+.sabi-dashboard-home .sabi-hero-cta { margin-top: 20px; }
+.sabi-dashboard-home .sabi-quick-grid,
+.sabi-dashboard-home .sabi-vitals-grid { gap: 12px; margin-top: 10px; }
+.sabi-dashboard-home .sabi-quick-card { padding: 15px; border-radius: 14px; }
+.sabi-dashboard-home .sabi-score-card { min-height: auto; border-radius: 18px; padding: 22px 18px 18px; }
+
+/* Tablet: single-column dashboard grid */
+@media (max-width: 1080px) {
+  .sabi-dashboard-home .sabi-grid { grid-template-columns: 1fr; }
+}
+
+/* Tablet / large mobile: hero stacks vertically */
+@media (max-width: 860px) {
+  .sabi-hero { flex-direction: column; align-items: flex-start; }
+  .sabi-hero-art {
+    width: 100%;
+    max-width: 100%;
+    aspect-ratio: 21 / 6;
+    align-self: stretch;
+  }
+}
+
+/* Mobile: tighter dashboard padding */
+@media (max-width: 560px) {
+  .sabi-dashboard-home .sabi-main { padding: 12px; }
+  .sabi-dashboard-home .sabi-hero { padding: 20px; border-radius: 16px; min-height: auto; }
+  .sabi-vitals-grid { grid-template-columns: 1fr; }
+  .sabi-quick-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+}
+
+/* Small mobile: single-column everything */
+@media (max-width: 400px) {
+  .sabi-dashboard-home .sabi-hero { padding: 16px; }
+  .sabi-hero-copy h2 { font-size: 1.2rem; }
+  .sabi-quick-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .sabi-vitals-grid { grid-template-columns: 1fr; }
+}

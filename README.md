@@ -1,32 +1,42 @@
-# React + TypeScript + Vite
+# Sabi OS / Sabi Health
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Sabi OS is a multi-tenant healthcare operating system prototype covering EMR, diagnostics, billing, workforce, HR, accounting, organization onboarding, tenant provisioning, and the Sabi Command Center.
 
-Currently, two official plugins are available:
+## Local development
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+`npm run dev` starts the main Sabi platform on port 5173 and the existing
+patient/telemedicine portal on port 5174. To run them separately, use
+`npm run dev:main` and `npm run dev:telemedicine`.
+
+The Vite application is available at `http://127.0.0.1:5173` by default.
+
+For separate Sabi Health, EMR, and Pharmacy Vercel deployments, see [the deployment guide](docs/VERCEL_DEPLOYMENT.md).
+
+## Quality commands
+
+```bash
+npm run lint
+npm test
+npm run build
+npm run check
+```
+
+`npm run check` is the complete local quality gate: lint, the Vitest regression suite, TypeScript compilation, and the production Vite build.
+
+The automated suite currently protects:
+
+- organization-qualified browser persistence;
+- cross-tenant and cross-branch billing fixture isolation;
+- invoice payment-status and allocation reconciliation;
+- public roadmap privacy and internal-field redaction;
+- atomic release shipment and immutable shipped releases;
+- accessible, route-aware Sabi OS loading screens.
+
+## Backend boundary
+
+The current application defaults to local browser adapters while backend services are under development. Revenue-cycle API contracts, service rules, and the PostgreSQL migration are documented in [`docs/revenue-cycle-backend.md`](docs/revenue-cycle-backend.md). Never treat browser identity or tenant values as authoritative in production; backend services must derive organization, branch, actor, and permissions from verified sessions.

@@ -1,0 +1,518 @@
+/* ==========================================================
+   PrescriptionDetail.css — page-specific rules only
+   Shared shell rules (sidebar, topbar, card base) live in
+   shell.css. Import shell.css BEFORE this file.
+   ========================================================== */
+
+/* ---------------- Header ---------------- */
+
+.sabi-rxd-header { margin-bottom: var(--sabi-space-lg); }
+
+.sabi-rxd-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: var(--sabi-primary-dark);
+  font-weight: 600;
+  font-size: calc(0.95rem * var(--sabi-font-scale));
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: var(--sabi-space-lg);
+}
+
+.sabi-rxd-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--sabi-space-md);
+  margin-bottom: var(--sabi-space-sm);
+}
+
+.sabi-rxd-status-badge {
+  background: var(--sabi-primary-dark);
+  color: #fff;
+  font-size: calc(0.72rem * var(--sabi-font-scale));
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border-radius: var(--sabi-radius-lg);
+  padding: 5px 12px;
+}
+
+.sabi-rxd-ref {
+  font-size: calc(0.85rem * var(--sabi-font-scale));
+  color: var(--sabi-text-secondary);
+}
+
+.sabi-rxd-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sabi-space-md);
+  flex-wrap: wrap;
+}
+
+.sabi-rxd-title {
+  margin: 0 0 6px;
+  font-size: calc(2.1rem * var(--sabi-font-scale));
+  font-weight: 800;
+  color: var(--sabi-text-primary);
+}
+
+.sabi-rxd-physician {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: calc(0.95rem * var(--sabi-font-scale));
+  color: var(--sabi-text-secondary);
+}
+
+.sabi-rxd-physician strong { color: var(--sabi-primary-dark); }
+
+.sabi-rxd-title-actions { display: flex; gap: var(--sabi-space-sm); flex-shrink: 0; }
+
+.sabi-rxd-icon-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--sabi-border);
+  background: var(--sabi-surface);
+  color: var(--sabi-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* ---------------- Top grid: diagnosis + why-this-medication ---------------- */
+
+.sabi-rxd-top-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sabi-space-lg);
+  margin-bottom: var(--sabi-space-lg);
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .sabi-rxd-top-grid { grid-template-columns: 1fr; }
+}
+
+.sabi-rxd-card-title {
+  margin: 0 0 var(--sabi-space-md);
+  font-size: calc(1.4rem * var(--sabi-font-scale));
+  font-weight: 700;
+}
+
+/* ---------------- Diagnosis overview ---------------- */
+
+.sabi-rxd-diagnosis-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sabi-space-md);
+}
+
+.sabi-rxd-diagnosis-head .sabi-rxd-card-title { margin-bottom: 0; }
+
+.sabi-rxd-shield-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--sabi-primary-light);
+  color: var(--sabi-primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sabi-rxd-diagnosis-box {
+  background: var(--sabi-page-bg);
+  border-radius: var(--sabi-radius-md);
+  padding: var(--sabi-space-md);
+  margin: var(--sabi-space-md) 0;
+}
+
+.sabi-rxd-diagnosis-label {
+  font-size: calc(0.72rem * var(--sabi-font-scale));
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--sabi-text-secondary);
+  margin-bottom: 6px;
+}
+
+.sabi-rxd-diagnosis-title {
+  font-size: calc(1.15rem * var(--sabi-font-scale));
+  font-weight: 700;
+  color: var(--sabi-primary-dark);
+}
+
+.sabi-rxd-diagnosis-desc {
+  font-size: calc(0.92rem * var(--sabi-font-scale));
+  color: var(--sabi-text-secondary);
+  line-height: 1.6;
+  margin: 0 0 var(--sabi-space-md);
+}
+
+.sabi-rxd-target-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--sabi-primary-light);
+  color: var(--sabi-primary-dark);
+  font-weight: 700;
+  font-size: calc(0.9rem * var(--sabi-font-scale));
+  border-radius: var(--sabi-radius-lg);
+  padding: 10px 16px;
+}
+
+/* ---------------- Why this medication ---------------- */
+
+.sabi-rxd-why-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--sabi-primary-dark);
+}
+
+.sabi-rxd-why-list { display: flex; flex-direction: column; gap: var(--sabi-space-lg); }
+
+.sabi-rxd-why-item {
+  display: flex;
+  gap: var(--sabi-space-md);
+}
+
+.sabi-rxd-why-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--sabi-primary-light);
+  color: var(--sabi-primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sabi-rxd-why-item-title {
+  font-size: calc(1rem * var(--sabi-font-scale));
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.sabi-rxd-why-item-body {
+  font-size: calc(0.9rem * var(--sabi-font-scale));
+  color: var(--sabi-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ---------------- Usage & safety guidelines ---------------- */
+
+.sabi-rxd-usage-card { position: relative; overflow: hidden; margin-bottom: var(--sabi-space-lg); }
+
+.sabi-rxd-usage-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--sabi-space-lg);
+}
+
+@media (max-width: 900px) {
+  .sabi-rxd-usage-grid { grid-template-columns: 1fr; }
+}
+
+.sabi-rxd-usage-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: calc(0.78rem * var(--sabi-font-scale));
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sabi-text-secondary);
+  margin-bottom: var(--sabi-space-md);
+}
+
+.sabi-rxd-usage-label.danger { color: var(--sabi-danger); }
+
+.sabi-rxd-usage-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: calc(0.92rem * var(--sabi-font-scale));
+  color: var(--sabi-text-primary);
+  line-height: 1.6;
+}
+
+.sabi-rxd-usage-list li + li { margin-top: 8px; }
+
+.sabi-rxd-side-effects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: var(--sabi-space-sm);
+}
+
+.sabi-rxd-side-effect-pill {
+  background: var(--sabi-page-bg);
+  color: var(--sabi-text-primary);
+  font-size: calc(0.85rem * var(--sabi-font-scale));
+  font-weight: 600;
+  border-radius: var(--sabi-radius-lg);
+  padding: 7px 14px;
+}
+
+.sabi-rxd-side-effects-note {
+  font-size: calc(0.85rem * var(--sabi-font-scale));
+  color: var(--sabi-text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.sabi-rxd-critical-box {
+  background: color-mix(in srgb, var(--sabi-danger) 8%, transparent);
+  border-radius: var(--sabi-radius-md);
+  padding: var(--sabi-space-md);
+}
+
+.sabi-rxd-critical-title {
+  font-size: calc(0.95rem * var(--sabi-font-scale));
+  font-weight: 700;
+  color: var(--sabi-danger);
+  margin-bottom: 6px;
+}
+
+.sabi-rxd-critical-body {
+  font-size: calc(0.85rem * var(--sabi-font-scale));
+  color: var(--sabi-text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ---------------- Recovery forecast ---------------- */
+
+.sabi-rxd-forecast-card {
+  background: linear-gradient(135deg, var(--sabi-primary-dark) 0%, #14332A 100%);
+  border-radius: var(--sabi-radius-lg);
+  padding: var(--sabi-space-lg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sabi-space-lg);
+  color: #fff;
+  margin-bottom: var(--sabi-space-lg);
+  flex-wrap: wrap;
+}
+
+.sabi-rxd-forecast-body { flex: 1; min-width: 280px; }
+
+.sabi-rxd-forecast-title {
+  margin: 0 0 var(--sabi-space-sm);
+  font-size: calc(1.5rem * var(--sabi-font-scale));
+  font-weight: 800;
+}
+
+.sabi-rxd-forecast-message {
+  font-size: calc(0.95rem * var(--sabi-font-scale));
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.88);
+  margin: 0 0 var(--sabi-space-lg);
+  max-width: 560px;
+}
+
+.sabi-rxd-forecast-stats { display: flex; gap: var(--sabi-space-md); }
+
+.sabi-rxd-forecast-stat {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: var(--sabi-radius-md);
+  padding: var(--sabi-space-sm) var(--sabi-space-md);
+}
+
+.sabi-rxd-forecast-stat-label {
+  font-size: calc(0.68rem * var(--sabi-font-scale));
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 4px;
+}
+
+.sabi-rxd-forecast-stat-value {
+  font-size: calc(1.3rem * var(--sabi-font-scale));
+  font-weight: 800;
+}
+
+.sabi-rxd-forecast-art {
+  width: 200px;
+  height: 180px;
+  flex-shrink: 0;
+  border-radius: var(--sabi-radius-lg);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 700px) {
+  .sabi-rxd-forecast-art { display: none; }
+}
+
+/* ---------------- Bottom action bar ---------------- */
+
+.sabi-rxd-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sabi-space-md);
+  flex-wrap: wrap;
+}
+
+.sabi-rxd-action-label {
+  font-size: calc(0.72rem * var(--sabi-font-scale));
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--sabi-text-secondary);
+  margin-bottom: 4px;
+}
+
+.sabi-rxd-action-value {
+  font-size: calc(1.05rem * var(--sabi-font-scale));
+  font-weight: 700;
+}
+
+.sabi-rxd-action-buttons { display: flex; gap: var(--sabi-space-sm); }
+/* ---------------- Medications-in-prescription card ---------------- */
+
+.sabi-rxd-meds-card {
+  margin-bottom: var(--sabi-space-md);
+}
+
+.sabi-rxd-meds-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sabi-space-md);
+}
+
+.sabi-rxd-meds-head h3 {
+  margin: 0;
+  font-size: calc(1.05rem * var(--sabi-font-scale));
+}
+
+.sabi-rxd-meds-head span {
+  color: var(--sabi-text-secondary);
+  font-size: .85rem;
+  font-weight: 700;
+}
+
+.sabi-rxd-meds-list {
+  display: grid;
+  gap: var(--sabi-space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sabi-rxd-meds-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: var(--sabi-space-sm);
+  padding: var(--sabi-space-sm) var(--sabi-space-md);
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-md);
+  background: var(--sabi-surface);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.sabi-rxd-meds-row:hover {
+  border-color: var(--sabi-primary);
+  background: var(--sabi-primary-light);
+  transform: translateY(-1px);
+}
+
+.sabi-rxd-meds-chevron {
+  margin-left: auto;
+  color: var(--sabi-text-secondary);
+  flex-shrink: 0;
+}
+
+.sabi-rxd-meds-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: var(--sabi-radius-md);
+  background: var(--sabi-primary-light);
+  color: var(--sabi-primary-dark);
+}
+
+.sabi-rxd-meds-list strong {
+  display: block;
+  font-size: .92rem;
+}
+
+.sabi-rxd-meds-list span {
+  color: var(--sabi-text-secondary);
+  font-size: .8rem;
+}
+
+.sabi-rxd-meds-note {
+  margin: var(--sabi-space-md) 0 0;
+  color: var(--sabi-text-secondary);
+  font-size: .82rem;
+  line-height: 1.5;
+}
+
+/* ---------------- Drug detail modal (per-medication) ---------------- */
+
+.sabi-drug-modal-head { align-items: flex-start; }
+
+.sabi-drug-modal-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sabi-space-sm);
+}
+
+.sabi-drug-modal-title h3 {
+  margin: 0;
+  font-size: calc(1.1rem * var(--sabi-font-scale));
+}
+
+.sabi-drug-modal-title p {
+  margin: 2px 0 0;
+  color: var(--sabi-text-secondary);
+  font-size: .82rem;
+}
+
+.sabi-drug-modal-meta {
+  display: flex;
+  gap: var(--sabi-space-lg);
+  margin-bottom: var(--sabi-space-lg);
+  padding-bottom: var(--sabi-space-md);
+  border-bottom: 1px solid var(--sabi-border);
+}
+
+.sabi-drug-modal-meta span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: .88rem;
+}
+
+.sabi-drug-modal-meta strong {
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--sabi-text-secondary);
+}
+
+.sabi-drug-modal-section {
+  margin-bottom: var(--sabi-space-lg);
+}
+
+.sabi-drug-modal-section:last-child {
+  margin-bottom: 0;
+}

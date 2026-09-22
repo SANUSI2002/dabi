@@ -1,0 +1,783 @@
+/* ==========================================================
+   FamilyCircle.css — Family & Care Circle flow
+   Shared shell rules (sidebar, topbar, card, modal, buttons,
+   toast) live in styles/share.css. Import that BEFORE this file.
+   ========================================================== */
+
+/* ---------------- Header ---------------- */
+
+.sabi-fam-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sabi-space-md);
+  flex-wrap: wrap;
+  margin: 0 0 var(--sabi-space-lg);
+}
+
+.sabi-fam-header h1 {
+  margin: 0 0 4px;
+  font-size: calc(1.65rem * var(--sabi-font-scale));
+  font-weight: 800;
+  color: var(--sabi-primary-dark);
+}
+
+.sabi-fam-header p {
+  margin: 0;
+  color: var(--sabi-text-secondary);
+  max-width: 480px;
+  font-size: calc(0.92rem * var(--sabi-font-scale));
+  line-height: 1.5;
+}
+
+.sabi-fam-header-actions { display: flex; gap: var(--sabi-space-sm); flex-shrink: 0; }
+
+/* ---------------- Stats row ---------------- */
+
+.sabi-fam-stats {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--sabi-space-sm);
+  margin-bottom: var(--sabi-space-lg);
+}
+
+.sabi-fam-stat {
+  background: var(--sabi-surface);
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-md);
+  padding: var(--sabi-space-md) var(--sabi-space-sm);
+  text-align: center;
+}
+
+.sabi-fam-stat-icon {
+  width: 34px;
+  height: 34px;
+  margin: 0 auto var(--sabi-space-xs);
+  border-radius: 10px;
+  background: var(--sabi-primary-light);
+  color: var(--sabi-primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sabi-fam-stat.alert .sabi-fam-stat-icon { background: #FEE2E2; color: var(--sabi-danger); }
+
+.sabi-fam-stat-value { font-size: calc(1.2rem * var(--sabi-font-scale)); font-weight: 800; color: var(--sabi-text-primary); }
+.sabi-fam-stat-label { font-size: calc(0.72rem * var(--sabi-font-scale)); color: var(--sabi-text-secondary); font-weight: 600; }
+
+/* ---------------- Layout ---------------- */
+
+.sabi-fam-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: var(--sabi-space-lg);
+  align-items: start;
+}
+
+.sabi-fam-col { display: flex; flex-direction: column; gap: var(--sabi-space-lg); min-width: 0; }
+
+.sabi-fam-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sabi-space-md);
+}
+
+.sabi-fam-section-head h2 { margin: 0; font-size: calc(1.1rem * var(--sabi-font-scale)); }
+
+/* ---------------- Member grid ---------------- */
+
+.sabi-fam-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sabi-space-md);
+}
+
+.sabi-fam-card {
+  background: var(--sabi-surface);
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-lg);
+  padding: var(--sabi-space-md);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sabi-space-sm);
+}
+
+.sabi-fam-card:hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(11, 94, 72, 0.1); }
+
+.sabi-fam-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sabi-space-sm); }
+
+.sabi-fam-card-id { display: flex; align-items: center; gap: 10px; }
+
+.sabi-fam-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.sabi-fam-card-name { font-weight: 700; font-size: calc(0.95rem * var(--sabi-font-scale)); line-height: 1.2; }
+.sabi-fam-relation-pill {
+  display: inline-block;
+  margin-top: 3px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--sabi-primary-light);
+  color: var(--sabi-primary-dark);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.sabi-fam-card-score { text-align: right; }
+.sabi-fam-card-score strong { display: block; font-size: 1.1rem; color: var(--sabi-primary-dark); }
+.sabi-fam-card-score span { font-size: 0.68rem; color: var(--sabi-text-secondary); font-weight: 700; text-transform: uppercase; }
+.sabi-fam-card-age { font-size: 0.78rem; color: var(--sabi-text-secondary); margin-top: 2px; }
+
+.sabi-fam-card-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.sabi-fam-card-meta-item {
+  background: var(--sabi-page-bg);
+  border-radius: var(--sabi-radius-sm);
+  padding: 8px 10px;
+}
+
+.sabi-fam-card-meta-item .k { display: block; font-size: 0.68rem; color: var(--sabi-text-secondary); font-weight: 700; text-transform: uppercase; margin-bottom: 2px; }
+.sabi-fam-card-meta-item .v { font-size: 0.82rem; font-weight: 700; color: var(--sabi-text-primary); }
+
+.sabi-fam-status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; background: var(--sabi-success); }
+.sabi-fam-status-dot.monitoring { background: var(--sabi-warning); }
+.sabi-fam-status-dot.needs-attention { background: var(--sabi-danger); }
+
+.sabi-fam-card-medbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #EAFBF3;
+  border-radius: var(--sabi-radius-sm);
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--sabi-primary-dark);
+}
+
+.sabi-fam-card-medbar span:last-child { font-weight: 600; color: var(--sabi-text-secondary); }
+
+.sabi-fam-card-footer { display: flex; gap: 8px; }
+
+.sabi-fam-card-footer button {
+  flex: 1;
+  border: 1px solid var(--sabi-border);
+  background: var(--sabi-surface);
+  border-radius: var(--sabi-radius-sm);
+  padding: 7px;
+  color: var(--sabi-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sabi-fam-card-footer button:hover { border-color: var(--sabi-primary); color: var(--sabi-primary-dark); }
+
+.sabi-fam-card-emergency {
+  border: none !important;
+  background: #FEE2E2 !important;
+  color: var(--sabi-danger) !important;
+  font-weight: 700;
+  font-size: 0.76rem;
+  gap: 6px;
+}
+
+/* Remove button in card footer — inherits base footer button, adds danger hover */
+.sabi-fam-card-footer-remove:hover {
+  border-color: var(--sabi-danger) !important;
+  color: var(--sabi-danger) !important;
+  background: #FEF2F2 !important;
+}
+
+/* Danger button (used in the remove-member confirmation modal) */
+.sabi-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--sabi-radius-md);
+  padding: 10px 18px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  white-space: nowrap;
+  border: none;
+  background: var(--sabi-danger);
+  color: #fff;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.sabi-btn-danger:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
+.sabi-btn-danger:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* Remove-member confirmation modal: member identity row */
+.sabi-fam-remove-member-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--sabi-radius-md);
+  background: var(--sabi-page-bg);
+  margin-bottom: var(--sabi-space-sm);
+}
+
+.sabi-fam-remove-member-info strong { display: block; font-size: 0.95rem; font-weight: 700; }
+.sabi-fam-remove-member-info span  { font-size: 0.78rem; color: var(--sabi-text-secondary); }
+
+/* Body copy inside the confirmation dialog */
+.sabi-fam-remove-confirm-text {
+  margin: var(--sabi-space-sm) 0 0;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--sabi-text-secondary);
+}
+
+/* Action row at the bottom of the confirmation modal */
+.sabi-fam-remove-modal-actions {
+  display: flex;
+  gap: var(--sabi-space-sm);
+  justify-content: flex-end;
+  margin-top: var(--sabi-space-md);
+  padding-top: var(--sabi-space-md);
+  border-top: 1px solid var(--sabi-border);
+}
+
+
+/* ---------------- Pending member card ---------------- */
+
+.sabi-fam-card-pending {
+  cursor: default;
+  border: 2px dashed var(--sabi-border);
+  background: var(--sabi-page-bg);
+}
+
+.sabi-fam-card-pending:hover { transform: none; box-shadow: none; }
+
+.sabi-fam-pending-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--sabi-radius-sm);
+  background: #FEF3C7;
+  color: #92400E;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* ---------------- Add member tile ---------------- */
+
+.sabi-fam-add-tile {
+  border: 2px dashed var(--sabi-border);
+  border-radius: var(--sabi-radius-lg);
+  background: var(--sabi-page-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 180px;
+  cursor: pointer;
+  color: var(--sabi-primary-dark);
+  font-weight: 700;
+}
+
+.sabi-fam-add-tile:hover { border-color: var(--sabi-primary); background: var(--sabi-primary-light); }
+.sabi-fam-add-tile .icon { width: 44px; height: 44px; border-radius: 50%; background: var(--sabi-primary-light); display: flex; align-items: center; justify-content: center; }
+
+/* ---------------- AI assistant panel ---------------- */
+
+.sabi-fam-ai {
+  background: linear-gradient(160deg, #0F2E27 0%, #1F4E42 100%);
+  border-radius: var(--sabi-radius-lg);
+  padding: var(--sabi-space-lg);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sabi-space-md);
+}
+
+.sabi-fam-ai-head { display: flex; align-items: center; gap: 10px; }
+.sabi-fam-ai-head .icon { width: 34px; height: 34px; border-radius: 10px; background: rgba(255,255,255,0.14); display: flex; align-items: center; justify-content: center; }
+.sabi-fam-ai-head strong { display: block; font-size: 0.95rem; }
+.sabi-fam-ai-head span { font-size: 0.72rem; color: rgba(255,255,255,0.65); }
+
+.sabi-fam-ai-alert { background: rgba(255,255,255,0.08); border-radius: var(--sabi-radius-md); padding: var(--sabi-space-sm) var(--sabi-space-md); }
+.sabi-fam-ai-alert p { margin: 0 0 10px; font-size: 0.84rem; line-height: 1.4; display: flex; gap: 8px; }
+.sabi-fam-ai-alert p svg { flex-shrink: 0; margin-top: 2px; color: #FBBF24; }
+
+.sabi-fam-ai-actions { display: flex; gap: 8px; }
+.sabi-fam-ai-actions button { flex: 1; border: none; border-radius: var(--sabi-radius-sm); padding: 9px; font-weight: 700; font-size: 0.8rem; cursor: pointer; }
+.sabi-fam-ai-actions .primary { background: #2DD4BF; color: #0F2E27; }
+.sabi-fam-ai-actions .primary.danger { background: var(--sabi-danger); color: #fff; }
+.sabi-fam-ai-actions .ghost { background: rgba(255,255,255,0.1); color: #fff; }
+
+/* ---------------- Care calendar ---------------- */
+
+.sabi-fam-calendar-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin: var(--sabi-space-sm) 0; }
+.sabi-fam-calendar-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 0;
+  border-radius: var(--sabi-radius-sm);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--sabi-text-secondary);
+  cursor: default;
+}
+.sabi-fam-calendar-day.active { background: var(--sabi-primary-dark); color: #fff; }
+.sabi-fam-calendar-day .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--sabi-danger); }
+.sabi-fam-calendar-day.active .dot { background: #fff; }
+
+.sabi-fam-event {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--sabi-primary);
+  background: var(--sabi-page-bg);
+  border-radius: 0 var(--sabi-radius-sm) var(--sabi-radius-sm) 0;
+  font-size: 0.82rem;
+}
+.sabi-fam-event + .sabi-fam-event { margin-top: 8px; }
+.sabi-fam-event strong { font-weight: 700; }
+.sabi-fam-event span { color: var(--sabi-text-secondary); font-size: 0.76rem; }
+
+/* ---------------- Timeline ---------------- */
+
+.sabi-fam-timeline-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; }
+.sabi-fam-timeline-item .dot { width: 20px; height: 20px; border-radius: 50%; background: var(--sabi-primary-light); color: var(--sabi-primary-dark); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+.sabi-fam-timeline-item p { margin: 0; font-size: 0.85rem; font-weight: 600; }
+.sabi-fam-timeline-item span { font-size: 0.74rem; color: var(--sabi-text-secondary); }
+
+/* ---------------- Medication monitoring ---------------- */
+
+.sabi-fam-monitor-slot { margin-bottom: var(--sabi-space-md); }
+.sabi-fam-monitor-slot .label { font-size: 0.72rem; font-weight: 800; color: var(--sabi-text-secondary); text-transform: uppercase; margin-bottom: 8px; }
+.sabi-fam-monitor-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.sabi-fam-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--sabi-radius-md);
+  border: 1px solid var(--sabi-border);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.sabi-fam-chip.checked { background: #EAFBF3; border-color: #b8ecd6; color: var(--sabi-primary-dark); }
+.sabi-fam-chip.missed { background: #FEF2F2; border-color: #fecaca; color: var(--sabi-danger); }
+.sabi-fam-chip small { display: block; font-weight: 600; font-size: 0.66rem; opacity: 0.75; }
+
+/* ==========================================================
+   Add Member page
+   ========================================================== */
+
+.sabi-fam-add-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sabi-space-md); margin-bottom: var(--sabi-space-lg); }
+
+.sabi-fam-add-option {
+  background: var(--sabi-surface);
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-lg);
+  padding: var(--sabi-space-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sabi-space-sm);
+}
+
+.sabi-fam-add-option.highlight { background: var(--sabi-primary-light); border-color: transparent; }
+
+.sabi-fam-add-option .icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--sabi-primary-light);
+  color: var(--sabi-primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sabi-fam-add-option h3 { margin: 0; font-size: 1rem; }
+.sabi-fam-add-option p { margin: 0; color: var(--sabi-text-secondary); font-size: 0.84rem; line-height: 1.5; flex: 1; }
+
+.sabi-fam-add-option input[type="text"] {
+  width: 100%;
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-sm);
+  padding: 10px 12px;
+  font-size: 0.86rem;
+}
+
+.sabi-fam-qr-box {
+  width: 120px;
+  height: 120px;
+  margin: 4px auto;
+  border-radius: var(--sabi-radius-md);
+  background: repeating-conic-gradient(var(--sabi-primary-dark) 0% 25%, #fff 0% 50%) 0 0 / 16px 16px;
+  align-self: center;
+}
+
+.sabi-fam-form { background: var(--sabi-surface); border: 1px solid var(--sabi-border); border-radius: var(--sabi-radius-lg); padding: var(--sabi-space-lg); }
+.sabi-fam-form-title { display: flex; align-items: center; gap: 8px; font-weight: 800; margin-bottom: var(--sabi-space-md); }
+.sabi-fam-form-title .bar { width: 4px; height: 18px; background: var(--sabi-primary); border-radius: 2px; }
+
+.sabi-fam-form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sabi-space-md); }
+.sabi-fam-field { display: flex; flex-direction: column; gap: 6px; }
+.sabi-fam-field label { font-size: 0.8rem; font-weight: 700; color: var(--sabi-text-primary); }
+.sabi-fam-field input, .sabi-fam-field select, .sabi-fam-field textarea {
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-sm);
+  padding: 10px 12px;
+  font-size: 0.86rem;
+  font-family: inherit;
+  background: var(--sabi-surface);
+}
+.sabi-fam-field.span-3 { grid-column: span 3; }
+.sabi-fam-field textarea { resize: vertical; min-height: 70px; }
+
+.sabi-fam-form-footer { display: flex; justify-content: flex-end; gap: var(--sabi-space-sm); margin-top: var(--sabi-space-lg); padding-top: var(--sabi-space-md); border-top: 1px solid var(--sabi-border); }
+
+/* ==========================================================
+   Setup Dependent Profile page
+   ========================================================== */
+
+.sabi-fam-dep-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: var(--sabi-space-lg); margin-bottom: var(--sabi-space-lg); }
+
+.sabi-fam-photo-upload {
+  background: var(--sabi-surface);
+  border: 1px dashed var(--sabi-border);
+  border-radius: var(--sabi-radius-lg);
+  padding: var(--sabi-space-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--sabi-space-sm);
+}
+
+.sabi-fam-photo-circle {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 2px dashed var(--sabi-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--sabi-text-secondary);
+  overflow: hidden;
+  background: var(--sabi-page-bg);
+}
+
+.sabi-fam-photo-circle img { width: 100%; height: 100%; object-fit: cover; }
+
+.sabi-fam-photo-circle .edit {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--sabi-primary-dark);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sabi-fam-dep-section { margin-bottom: var(--sabi-space-lg); }
+.sabi-fam-dep-section-title { display: flex; align-items: center; gap: 8px; font-weight: 800; margin-bottom: var(--sabi-space-md); color: var(--sabi-primary-dark); }
+
+.sabi-fam-chips-editable { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sabi-fam-chip-removable {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--sabi-primary-light);
+  color: var(--sabi-primary-dark);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.sabi-fam-chip-removable button { border: none; background: none; color: inherit; cursor: pointer; display: flex; }
+.sabi-fam-chip-add { border: 1px dashed var(--sabi-border); background: none; border-radius: 999px; padding: 6px 12px; font-size: 0.8rem; font-weight: 700; color: var(--sabi-text-secondary); cursor: pointer; }
+
+.sabi-fam-toggle-group { display: inline-flex; border: 1px solid var(--sabi-border); border-radius: var(--sabi-radius-sm); overflow: hidden; }
+.sabi-fam-toggle-group button { border: none; background: var(--sabi-surface); padding: 8px 16px; font-size: 0.82rem; font-weight: 700; color: var(--sabi-text-secondary); cursor: pointer; }
+.sabi-fam-toggle-group button.active { background: var(--sabi-primary-dark); color: #fff; }
+
+.sabi-fam-blood-group { display: inline-flex; border: 1px solid var(--sabi-border); border-radius: var(--sabi-radius-sm); overflow: hidden; }
+.sabi-fam-blood-group button { border: none; border-right: 1px solid var(--sabi-border); background: var(--sabi-surface); padding: 8px 14px; font-weight: 700; font-size: 0.82rem; color: var(--sabi-text-secondary); cursor: pointer; }
+.sabi-fam-blood-group button:last-child { border-right: none; }
+.sabi-fam-blood-group button.active { background: var(--sabi-primary-dark); color: #fff; }
+
+.sabi-fam-checklist { display: flex; flex-direction: column; gap: 8px; }
+.sabi-fam-checklist label { display: flex; align-items: center; gap: 8px; font-size: 0.84rem; }
+
+.sabi-fam-coordination-row { display: flex; align-items: center; justify-content: space-between; padding: 10px; border-radius: var(--sabi-radius-sm); background: var(--sabi-page-bg); margin-bottom: 8px; }
+.sabi-fam-coordination-row .who { display: flex; align-items: center; gap: 10px; }
+.sabi-fam-coordination-row .who strong { display: block; font-size: 0.85rem; }
+.sabi-fam-coordination-row .who span { font-size: 0.72rem; color: var(--sabi-text-secondary); }
+.sabi-fam-coordination-check { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid var(--sabi-border); color: transparent; cursor: pointer; }
+.sabi-fam-coordination-check.checked { background: var(--sabi-primary-dark); border-color: var(--sabi-primary-dark); color: #fff; }
+
+/* ==========================================================
+   Success page
+   ========================================================== */
+
+.sabi-fam-success-wrap { max-width: 760px; margin: var(--sabi-space-lg) auto 0; text-align: center; }
+.sabi-fam-success-check {
+  width: 84px;
+  height: 84px;
+  margin: 0 auto var(--sabi-space-md);
+  border-radius: 50%;
+  background: #EAFBF3;
+  color: var(--sabi-primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sabi-fam-success-wrap h1 { color: var(--sabi-primary-dark); margin: 0 0 8px; }
+.sabi-fam-success-wrap > p { color: var(--sabi-text-secondary); max-width: 520px; margin: 0 auto var(--sabi-space-lg); line-height: 1.6; }
+
+.sabi-fam-success-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: var(--sabi-space-md); text-align: left; }
+
+.sabi-fam-success-card { background: var(--sabi-surface); border: 1px solid var(--sabi-border); border-radius: var(--sabi-radius-lg); padding: var(--sabi-space-lg); }
+.sabi-fam-success-id-row { display: flex; align-items: center; gap: 14px; margin-bottom: var(--sabi-space-md); }
+.sabi-fam-success-id-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--sabi-page-bg);
+  border-radius: var(--sabi-radius-md);
+  padding: 12px 16px;
+  font-weight: 700;
+  color: var(--sabi-primary-dark);
+  letter-spacing: 0.03em;
+}
+.sabi-fam-success-id-box button { border: none; background: var(--sabi-surface); border-radius: var(--sabi-radius-sm); padding: 6px 12px; font-weight: 700; font-size: 0.78rem; color: var(--sabi-primary-dark); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+
+.sabi-fam-success-actions { display: flex; gap: var(--sabi-space-sm); margin-top: var(--sabi-space-lg); padding-top: var(--sabi-space-md); border-top: 1px solid var(--sabi-border); }
+.sabi-fam-success-actions button { flex: 1; }
+
+.sabi-fam-success-steps { background: var(--sabi-primary-dark); color: #fff; border-radius: var(--sabi-radius-lg); padding: var(--sabi-space-lg); }
+.sabi-fam-success-steps h3 { margin: 0 0 var(--sabi-space-md); font-size: 0.95rem; }
+.sabi-fam-success-step { display: flex; gap: 12px; margin-bottom: var(--sabi-space-md); font-size: 0.84rem; line-height: 1.5; }
+.sabi-fam-success-step .n { width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,0.14); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 700; font-size: 0.78rem; }
+
+.sabi-fam-success-banner {
+  margin-top: var(--sabi-space-lg);
+  background: #EAFBF3;
+  color: var(--sabi-primary-dark);
+  border-radius: var(--sabi-radius-md);
+  padding: var(--sabi-space-md);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+/* ==========================================================
+   Join Care Circle page
+   ========================================================== */
+
+.sabi-fam-join-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: var(--sabi-space-lg); align-items: start; }
+.sabi-fam-join-title { margin-bottom: var(--sabi-space-md); }
+.sabi-fam-join-title h1 { margin: 0 0 4px; font-size: calc(1.3rem * var(--sabi-font-scale)); color: var(--sabi-primary-dark); }
+.sabi-fam-join-title p { margin: 0; color: var(--sabi-text-secondary); }
+
+.sabi-fam-perm-required { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sabi-space-sm); }
+.sabi-fam-perm-required .tag { font-size: 0.7rem; font-weight: 800; padding: 3px 10px; border-radius: 999px; background: var(--sabi-primary-light); color: var(--sabi-primary-dark); }
+
+.sabi-fam-perm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sabi-space-md); margin-bottom: var(--sabi-space-md); }
+
+.sabi-fam-perm-card {
+  border: 2px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-lg);
+  padding: var(--sabi-space-md);
+  cursor: pointer;
+  background: var(--sabi-surface);
+  position: relative;
+}
+
+.sabi-fam-perm-card.selected { border-color: var(--sabi-primary-dark); }
+.sabi-fam-perm-card .icon { width: 40px; height: 40px; border-radius: 10px; background: var(--sabi-page-bg); color: var(--sabi-primary-dark); display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+.sabi-fam-perm-card h3 { margin: 0 0 6px; display: flex; align-items: center; gap: 8px; font-size: 0.98rem; }
+.sabi-fam-perm-card p { margin: 0; color: var(--sabi-text-secondary); font-size: 0.82rem; line-height: 1.5; }
+.sabi-fam-perm-card .check { position: absolute; top: 14px; right: 14px; color: var(--sabi-primary-dark); }
+
+.sabi-fam-perm-emergency { border: 1px solid var(--sabi-border); border-radius: var(--sabi-radius-lg); padding: var(--sabi-space-md); display: flex; gap: var(--sabi-space-sm); align-items: flex-start; cursor: pointer; background: var(--sabi-surface); }
+.sabi-fam-perm-emergency.selected { border-color: var(--sabi-primary-dark); border-width: 2px; }
+.sabi-fam-perm-emergency .icon { width: 38px; height: 38px; border-radius: 10px; background: #FEE2E2; color: var(--sabi-danger); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.sabi-fam-perm-emergency h3 { margin: 0 0 4px; font-size: 0.94rem; }
+.sabi-fam-perm-emergency p { margin: 0; color: var(--sabi-text-secondary); font-size: 0.8rem; }
+
+.sabi-fam-info-box { display: flex; gap: 10px; margin-top: var(--sabi-space-md); padding: var(--sabi-space-md); background: var(--sabi-page-bg); border-radius: var(--sabi-radius-md); color: var(--sabi-text-secondary); font-size: 0.8rem; line-height: 1.5; }
+.sabi-fam-info-box svg { flex-shrink: 0; color: var(--sabi-primary-dark); margin-top: 2px; }
+
+.sabi-fam-access-panel { background: var(--sabi-surface); border: 1px solid var(--sabi-border); border-radius: var(--sabi-radius-lg); padding: var(--sabi-space-lg); position: sticky; top: var(--sabi-space-md); }
+.sabi-fam-access-panel h3 { margin: 0 0 var(--sabi-space-md); font-size: 1rem; }
+
+.sabi-fam-access-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--sabi-page-bg); }
+.sabi-fam-access-row:last-of-type { border-bottom: none; }
+.sabi-fam-access-row .label { display: flex; align-items: center; gap: 10px; font-size: 0.86rem; font-weight: 600; }
+.sabi-fam-access-row .label svg { color: var(--sabi-text-secondary); }
+
+.sabi-fam-switch { position: relative; width: 40px; height: 22px; border-radius: 999px; background: var(--sabi-border); border: none; cursor: pointer; flex-shrink: 0; }
+.sabi-fam-switch.on { background: var(--sabi-primary-dark); }
+.sabi-fam-switch .knob { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: left 0.15s ease; }
+.sabi-fam-switch.on .knob { left: 20px; }
+
+/* ==========================================================
+   Member Profile page
+   ========================================================== */
+
+.sabi-fam-profile-hero { display: flex; align-items: center; gap: var(--sabi-space-md); background: var(--sabi-surface); border: 1px solid var(--sabi-border); border-radius: var(--sabi-radius-lg); padding: var(--sabi-space-lg); margin-bottom: var(--sabi-space-lg); flex-wrap: wrap; }
+.sabi-fam-profile-avatar { width: 72px; height: 72px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 1.4rem; flex-shrink: 0; }
+.sabi-fam-profile-hero h1 { margin: 0 0 4px; font-size: calc(1.3rem * var(--sabi-font-scale)); }
+.sabi-fam-profile-hero .meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; color: var(--sabi-text-secondary); font-size: 0.86rem; }
+.sabi-fam-profile-hero-actions { margin-left: auto; display: flex; gap: 8px; }
+
+.sabi-fam-tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--sabi-border); margin-bottom: var(--sabi-space-lg); }
+.sabi-fam-tab { border: none; background: none; padding: 10px 16px; font-weight: 700; font-size: 0.86rem; color: var(--sabi-text-secondary); cursor: pointer; border-bottom: 2px solid transparent; }
+.sabi-fam-tab.active { color: var(--sabi-primary-dark); border-color: var(--sabi-primary-dark); }
+
+.sabi-fam-detail-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sabi-space-md); }
+.sabi-fam-detail-card { background: var(--sabi-surface); border: 1px solid var(--sabi-border); border-radius: var(--sabi-radius-md); padding: var(--sabi-space-md); }
+.sabi-fam-detail-card .k { font-size: 0.72rem; color: var(--sabi-text-secondary); font-weight: 700; text-transform: uppercase; margin-bottom: 6px; }
+.sabi-fam-detail-card .v { font-size: 1rem; font-weight: 700; }
+
+/* ---------------- Responsive ---------------- */
+
+@media (max-width: 1080px) {
+  .sabi-fam-layout { grid-template-columns: 1fr; }
+  .sabi-fam-join-layout { grid-template-columns: 1fr; }
+  .sabi-fam-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .sabi-fam-add-grid { grid-template-columns: 1fr; }
+  .sabi-fam-dep-layout { grid-template-columns: 1fr; }
+  .sabi-fam-form-grid { grid-template-columns: 1fr 1fr; }
+  .sabi-fam-success-layout { grid-template-columns: 1fr; }
+  .sabi-fam-detail-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 640px) {
+  .sabi-fam-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sabi-fam-grid { grid-template-columns: 1fr; }
+  .sabi-fam-perm-grid { grid-template-columns: 1fr; }
+  .sabi-fam-form-grid { grid-template-columns: 1fr; }
+  .sabi-fam-detail-grid { grid-template-columns: 1fr; }
+}
+
+/* ---------------- Member profile: access note + calendar tab ---------------- */
+
+.sabi-fam-access-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: -8px 0 var(--sabi-space-md);
+  padding: 8px 12px;
+  border-radius: var(--sabi-radius-sm);
+  background: var(--sabi-page-bg);
+  color: var(--sabi-text-secondary);
+  font-size: 0.8rem;
+}
+
+.sabi-fam-member-appt-list { display: grid; gap: 8px; }
+.sabi-fam-member-appt-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: var(--sabi-radius-md);
+  background: var(--sabi-page-bg);
+}
+.sabi-fam-member-appt-row .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.sabi-fam-member-appt-row strong { display: block; font-size: 0.86rem; }
+.sabi-fam-member-appt-row span { font-size: 0.76rem; color: var(--sabi-text-secondary); }
+.sabi-fam-member-appt-row .when { margin-left: auto; text-align: right; flex-shrink: 0; }
+.sabi-fam-member-appt-row .when span { display: block; }
+
+/* ---------------- Care Calendar page ---------------- */
+
+.sabi-care-cal-layout { display: grid; grid-template-columns: 280px 1fr; gap: var(--sabi-space-lg); align-items: start; }
+.sabi-care-cal-main { display: grid; gap: var(--sabi-space-lg); }
+
+.sabi-care-cal-members h3 { margin: 0 0 var(--sabi-space-md); font-size: 0.95rem; font-weight: 800; }
+.sabi-care-cal-member-list { display: grid; gap: 6px; }
+.sabi-care-cal-member-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--sabi-radius-md);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+.sabi-care-cal-member-row:hover { background: var(--sabi-page-bg); }
+.sabi-care-cal-member-name { display: grid; gap: 1px; min-width: 0; }
+.sabi-care-cal-member-name strong { font-size: 0.86rem; }
+.sabi-care-cal-member-name small { font-size: 0.72rem; color: var(--sabi-text-secondary); }
+.sabi-care-cal-member-row .chevron { margin-left: auto; color: var(--sabi-text-secondary); flex-shrink: 0; }
+
+.sabi-care-cal-dots { display: flex; gap: 3px; justify-content: center; margin-top: 2px; }
+.sabi-care-cal-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+@media (max-width: 900px) {
+  .sabi-care-cal-layout { grid-template-columns: 1fr; }
+}
+
+/* ---------------- Book Appointment: Hospital vs Doctor choice ---------------- */
+
+.sabi-fam-book-choice { max-width: 460px; }
+.sabi-fam-book-choice-note { margin: 0 0 var(--sabi-space-md); color: var(--sabi-text-secondary); font-size: 0.86rem; }
+.sabi-fam-book-choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sabi-space-md); }
+.sabi-fam-book-choice-card {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  padding: 18px;
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-md);
+  background: var(--sabi-surface);
+  color: var(--sabi-text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+.sabi-fam-book-choice-card:hover { border-color: var(--sabi-primary); background: var(--sabi-primary-light); }
+.sabi-fam-book-choice-card svg { color: var(--sabi-primary-dark); }
+.sabi-fam-book-choice-card strong { font-size: 0.92rem; }
+.sabi-fam-book-choice-card span { font-size: 0.78rem; color: var(--sabi-text-secondary); }
+
+@media (max-width: 480px) {
+  .sabi-fam-book-choice-grid { grid-template-columns: 1fr; }
+}

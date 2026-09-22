@@ -31,7 +31,7 @@ export default function Invoices() {
   const [creditBlock, setCreditBlock] = useState<string | null>(null);
 
   const fxRates = useLedger((s) => s.fxRates);
-  const [f, setF] = useState<{ customerId: string; date: string; dueDate: string; notes: string; currency: string; exchangeRate: number; deferMonths: number; recurMonths: number; projectId: string; lines: EditableLine[] }>({
+  const [f, setF] = useState<{ customerId: string; date: string; dueDate: string; notes: string; currency: string; exchangeRate: number; deferMonths: number; recurMonths: number; projectId: string; lines: EditableLine[] }>(() => ({
     customerId: customers[0]?.id ?? "",
     date: isoDate(new Date()),
     dueDate: isoDate(new Date(Date.now() + 30 * 864e5)),
@@ -42,7 +42,7 @@ export default function Invoices() {
     recurMonths: 0,
     projectId: "",
     lines: [{ accountNumber: 4000, description: "", qty: 1, unitPrice: 0, taxRateId: "tax-vat-exempt" }],
-  });
+  }));
 
   const [payF, setPayF] = useState({ date: isoDate(new Date()), method: "Bank Transfer" as const, account: 1010, amount: 0, reference: "", settlementRate: 0 });
 

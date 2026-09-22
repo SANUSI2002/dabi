@@ -5,6 +5,7 @@ import { Badge, Button, PageHeader, statusTone } from "@/components/ui/primitive
 import { Field, Input, Select, Textarea } from "@/components/ui/form";
 import { Modal } from "@/components/ui/Modal";
 import { Table, Row, Cell, EmptyRow } from "@/components/ui/Table";
+import { PatientLink } from "@/components/ui/PatientLink";
 import { invoiceStatusFor, type PaymentMethod } from "@/billing/domain";
 import { minorMoney, paymentMethodLabel, useRevenueCycle } from "@/billing/useRevenueCycle";
 import { useEmr } from "@/store/useEmr";
@@ -86,7 +87,7 @@ export default function BillingInvoiceDetail() {
               </div>
             </div>
             <div className="grid gap-5 px-6 py-5 sm:grid-cols-2">
-              <div><p className="text-[11px] font-bold uppercase tracking-wider text-mist-400">Patient</p><p className="mt-1 font-semibold text-mist-900">{patient ? `${patient.firstName} ${patient.lastName}` : "Unknown patient"}</p><p className="text-sm text-mist-500">MRN {patient?.mrn ?? "—"}</p><p className="text-sm text-mist-500">Payer: {invoice.payer}</p></div>
+              <div><p className="text-[11px] font-bold uppercase tracking-wider text-mist-400">Patient</p><p className="mt-1 font-semibold text-mist-900">{patient ? <PatientLink patient={patient} /> : "Unknown patient"}</p><p className="text-sm text-mist-500">MRN {patient?.mrn ?? "—"}</p><p className="text-sm text-mist-500">Payer: {invoice.payer}</p></div>
               <div className="sm:text-right"><p className="text-[11px] font-bold uppercase tracking-wider text-mist-400">Invoice information</p><p className="mt-1 text-sm text-mist-600">Invoice date: {shortDate(invoice.issuedAt)}</p><p className="text-sm text-mist-600">Service date: {shortDate(invoice.lines[0]?.serviceDate ?? invoice.issuedAt)}</p><p className="font-mono text-xs text-mist-500">Encounter {invoice.encounterId}</p></div>
             </div>
           </section>

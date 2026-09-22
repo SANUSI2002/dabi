@@ -53,7 +53,7 @@ const DEFAULTS = {
   subscriptionStatus: "Active" as const,
   licenseStatus: "Active" as const,
   accessMode: "full" as const,
-  products: { emr: true, workforce: true, accounting: true } as Record<ProductKey, boolean>,
+  products: { emr: true, workforce: true, accounting: true, pharmacy: false } as Record<ProductKey, boolean>,
   modules: allModules(true),
   submodules: allSubs(true),
 };
@@ -127,6 +127,7 @@ export const useEntitlements = create<EntitlementState>(
           emr: !!resolved.products.emr,
           workforce: !!resolved.products.workforce,
           accounting: !!resolved.products.accounting,
+          pharmacy: !!resolved.products.pharmacy,
         },
         modules: { ...current.modules, ...resolved.modules },
         submodules: { ...current.submodules, ...resolved.features },
@@ -136,7 +137,7 @@ export const useEntitlements = create<EntitlementState>(
     },
 
     applyPreset: (preset) => {
-      const p = (emr: boolean, workforce: boolean, accounting: boolean) => ({ emr, workforce, accounting });
+      const p = (emr: boolean, workforce: boolean, accounting: boolean, pharmacy = false) => ({ emr, workforce, accounting, pharmacy });
       const map: Record<string, Record<ProductKey, boolean>> = {
         all: p(true, true, true),
         "emr-only": p(true, false, false),

@@ -3,6 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ShieldPlus } from "lucide-react";
 import { NAV, type NavItem } from "@/data/nav";
+import { PRESCRIPTION_PENDING_STATUSES } from "@/data/pharmacyOps";
 import { useEmr } from "@/store/useEmr";
 import { useTenant } from "@/store/useTenant";
 import { cn } from "@/lib/cn";
@@ -107,7 +108,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const badges = {
     queue: queue.filter((q) => q.status === "Waiting" || q.status === "In Progress").length,
     lab: labs.filter((l) => l.status === "Pending" || l.status === "Sample Collected").length,
-    rx: encounters.flatMap((e) => e.prescriptions).filter((r) => r.status === "Pending").length,
+    rx: encounters.flatMap((e) => e.prescriptions).filter((r) => (PRESCRIPTION_PENDING_STATUSES as readonly string[]).includes(r.status)).length,
   };
 
   return (

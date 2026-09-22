@@ -43,6 +43,12 @@ export type Vitals = {
   height?: number;
   muac?: number;
   glucose?: number;
+  /** additive — parity with NursingObservation for the Consultation vitals panel */
+  painScore?: number;
+  o2Device?: string;
+  o2Flow?: number;
+  avpu?: "Alert" | "Voice" | "Pain" | "Unresponsive";
+  gcs?: number;
   takenAt: string;
   takenBy: string;
 };
@@ -64,7 +70,10 @@ export type QueueEntry = {
   waitMins: number;
 };
 
-export type PrescriptionStatus = "Pending" | "Dispensed" | "Partially Dispensed" | "Outsourced" | "Refused" | "Cancelled";
+export type PrescriptionStatus =
+  | "Pending" | "Dispensed" | "Partially Dispensed" | "Outsourced" | "Refused" | "Cancelled" | "Held" | "Stopped" | "Replaced"
+  /** pharmacist-verification lifecycle — a prescription is safety-checked before it can be dispensed */
+  | "Under Review" | "Approved" | "Partially Approved" | "Rejected" | "Preparing" | "Ready";
 
 export type Prescription = {
   id: string;
@@ -84,6 +93,31 @@ export type Prescription = {
   refusalReason?: string;
   /** free-text override reason if dispensed despite a safety warning */
   overrideReason?: string;
+  /** ward-round / inpatient medication ordering — additive, optional so existing
+   *  outpatient prescriptions (which don't set these) are unaffected. */
+  startedAt?: string;
+  prescribedBy?: string;
+  priority?: "Routine" | "Urgent" | "STAT";
+  prn?: boolean;
+  prnIndication?: string;
+  specialInstructions?: string;
+  monitoringInstructions?: string;
+  /** the prescription this one replaces (dose/frequency/route change, restart) — the
+   *  replaced prescription's own status becomes Held/Stopped/Replaced, never mutated. */
+  replacesId?: string;
+  /** pharmacist-verification workflow — additive, optional so existing prescriptions
+   *  (created before this workflow existed) are unaffected. */
+  source?: "Online" | "Walk-in" | "Doctor Prescription" | "Inpatient/Ward" | "Emergency" | "Internal";
+  external?: boolean;
+  externalPrescriber?: string;
+  externalPrescriptionDate?: string;
+  /** per-line pharmacist decision when a multi-line order is only partially approved */
+  itemDecisions?: { drugCode: string; decision: "Approved" | "Removed" }[];
+  reviewedBy?: string;
+  reviewedAt?: string;
+  rejectionReason?: string;
+  rejectionNote?: string;
+  refills?: number;
 };
 
 export type LabOrder = {
@@ -217,6 +251,9 @@ export type DrugStock = {
   batches: number;
   stock: number;
   reorder: number;
+  /** links to the fuller clinical/operational record in usePharmacy's DrugMaster —
+   *  optional so a drug can exist in the formulary before that record is filled in. */
+  drugMasterId?: string;
 };
 
 export type StaffMember = {

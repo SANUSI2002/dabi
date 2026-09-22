@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Textarea } from "@/components/ui/form";
 import { money, shortDate, isoDate } from "@/lib/format";
 import { useAP, purchaseTotal } from "@/store/accounting/useAP";
+import { useInventoryAccounting } from "@/store/accounting/useInventoryAccounting";
 import { LineEditor, DocTotals, type EditableLine } from "./_components";
 import type { PurchaseOrder } from "@/data/accounting/payables";
 
@@ -13,6 +14,7 @@ const purchaseAcct = (n: number) => n >= 5000 || (n >= 1200 && n < 1600);
 
 export default function PurchaseOrders() {
   const { vendors, purchaseOrders, vendorById, createPurchaseOrder, sendPurchaseOrder, cancelPurchaseOrder, receiveGoods, convertPOToBill } = useAP();
+  const stockItems = useInventoryAccounting((s) => s.items).filter((i) => i.active);
   const [create, setCreate] = useState(false);
   const [receive, setReceive] = useState<PurchaseOrder | null>(null);
   const [rcv, setRcv] = useState<Record<string, number>>({});
@@ -78,7 +80,7 @@ export default function PurchaseOrders() {
             <Field label="Order date"><Input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
             <Field label="Expected delivery"><Input type="date" value={f.expectedDate} onChange={(e) => setF({ ...f, expectedDate: e.target.value })} /></Field>
           </div>
-          <LineEditor lines={f.lines} onChange={(lines) => setF({ ...f, lines })} accountFilter={purchaseAcct} accountLabel="Item" />
+          <LineEditor lines={f.lines} onChange={(lines) => setF({ ...f, lines })} accountFilter={purchaseAcct} accountLabel="Item" stockItems={stockItems} />
           <DocTotals subtotal={purchaseTotal(f.lines as never)} tax={0} total={purchaseTotal(f.lines as never)} />
           <Field label="Notes"><Textarea value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field>
         </div>

@@ -1,11 +1,12 @@
 import { HttpRevenueCycleApi, type RevenueCycleApi } from "./api";
 import { LocalRevenueCycleApi } from "./localApi";
+import { developmentFixturesEnabled } from "@/config/runtime";
 
 export type RevenueCycleMode = "local" | "api";
 export type AccessTokenProvider = () => Promise<string>;
 
 const requestedMode = import.meta.env.VITE_REVENUE_CYCLE_MODE;
-export const revenueCycleMode: RevenueCycleMode = requestedMode === "api" ? "api" : "local";
+export const revenueCycleMode: RevenueCycleMode = requestedMode === "local" && developmentFixturesEnabled ? "local" : "api";
 export const revenueCycleApiBaseUrl = (import.meta.env.VITE_REVENUE_CYCLE_API_URL || "").replace(/\/$/, "");
 
 const localApi = new LocalRevenueCycleApi();

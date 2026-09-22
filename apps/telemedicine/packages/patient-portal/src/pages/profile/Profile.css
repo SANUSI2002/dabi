@@ -1,0 +1,649 @@
+/* ==========================================================
+   Profile.css — page-specific rules only
+   Shared shell rules (sidebar, topbar, search, grid, base
+   section-title, pill, modal shell) live exclusively in
+   shell.css. Import shell.css BEFORE this file.
+
+   Note: this file previously defined several selectors twice
+   with conflicting values (.sabi-field-row, .sabi-toggle-row,
+   .sabi-text-link, .sabi-security-row, .sabi-danger-zone-card,
+   etc.) — the second definition always won the cascade, making
+   the first a dead duplicate. Deduped to one definition each.
+   ========================================================== */
+
+.sabi-profile-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sabi-space-lg);
+}
+
+/* This grid is 1fr/1fr, unlike the dashboard's content/sidebar-width split */
+.sabi-profile-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 1080px) {
+  .sabi-profile-grid { grid-template-columns: 1fr; }
+}
+
+/* ---------------- Header ---------------- */
+
+.sabi-profile-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sabi-space-md);
+  flex-wrap: wrap;
+  padding: var(--sabi-space-lg);
+  background: var(--sabi-surface);
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-lg);
+}
+
+.sabi-profile-header h1 {
+  margin: 0 0 4px;
+  font-size: clamp(1.4rem, 4vw, 2.2rem);
+  font-weight: 800;
+}
+
+.sabi-profile-header p {
+  margin: 0;
+  color: var(--sabi-text-secondary);
+  font-size: calc(1rem * var(--sabi-font-scale));
+  max-width: 560px;
+}
+
+.sabi-profile-header button {
+  height: 44px;
+}
+
+/* ---------------- Profile summary card ---------------- */
+
+.sabi-profile-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--sabi-space-lg);
+  flex-wrap: wrap;
+  padding: var(--sabi-space-lg);
+  background: var(--sabi-surface);
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-lg);
+}
+
+.sabi-profile-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.sabi-profile-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: var(--sabi-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(1.75rem * var(--sabi-font-scale));
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.sabi-profile-avatar-edit {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--sabi-primary-dark);
+  color: #fff;
+  border: 2px solid var(--sabi-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.sabi-profile-summary-info { flex: 1; min-width: 180px; }
+
+.sabi-profile-summary-info h2 {
+  margin: 0 0 4px;
+  font-size: clamp(1.2rem, 3vw, 1.6rem);
+  font-weight: 700;
+}
+
+.sabi-profile-summary-info p {
+  margin: 0 0 var(--sabi-space-sm);
+  color: var(--sabi-text-secondary);
+  font-size: calc(0.95rem * var(--sabi-font-scale));
+}
+
+.sabi-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sabi-primary-light);
+  color: var(--sabi-primary-dark);
+  border: none;
+  border-radius: var(--sabi-radius-lg);
+  padding: 10px 20px;
+  font-size: calc(0.95rem * var(--sabi-font-scale));
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sabi-profile-summary-toggle {
+  margin-left: auto;
+}
+
+.sabi-profile-summary-toggle .sabi-toggle {
+  width: 52px;
+  height: 28px;
+}
+
+.sabi-profile-summary-toggle .sabi-toggle-track {
+  width: 100%;
+  height: 100%;
+}
+
+.sabi-profile-summary-toggle .sabi-toggle-thumb {
+  width: 20px;
+  height: 20px;
+}
+
+/* ---------------- Section card ---------------- */
+
+.sabi-section-card {
+  background: var(--sabi-surface);
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-lg);
+  padding: var(--sabi-space-lg);
+}
+
+.sabi-section-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sabi-space-md);
+  margin-bottom: var(--sabi-space-lg);
+  flex-wrap: wrap;
+}
+
+.sabi-section-card-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sabi-space-sm);
+}
+
+.sabi-section-card-title h3 {
+  margin: 0;
+  font-size: calc(1.15rem * var(--sabi-font-scale));
+  font-weight: 700;
+}
+
+.sabi-section-card-icon {
+  font-size: 1.2rem;
+  color: var(--sabi-primary-dark);
+}
+
+/* ---------------- Form fields ---------------- */
+
+.sabi-field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sabi-space-md);
+  margin-bottom: var(--sabi-space-md);
+}
+
+.sabi-field-grid:last-child { margin-bottom: 0; }
+
+.sabi-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--sabi-space-md); }
+.sabi-field:last-child { margin-bottom: 0; }
+.sabi-field-grid > .sabi-field { margin-bottom: 0; }
+
+.sabi-field-label {
+  font-size: calc(0.85rem * var(--sabi-font-scale));
+  color: var(--sabi-text-secondary);
+  font-weight: 500;
+}
+
+.sabi-field-label.uppercase {
+  font-size: calc(0.72rem * var(--sabi-font-scale));
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sabi-field-input,
+.sabi-field-textarea,
+.sabi-field-select {
+  background: var(--sabi-page-bg);
+  border: 1px solid transparent;
+  border-radius: var(--sabi-radius-sm);
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: calc(0.95rem * var(--sabi-font-scale));
+  color: var(--sabi-text-primary);
+  width: 100%;
+}
+
+.sabi-field-input:focus,
+.sabi-field-textarea:focus,
+.sabi-field-select:focus {
+  outline: none;
+  border-color: var(--sabi-primary);
+  background: var(--sabi-surface);
+}
+
+.sabi-field-textarea { resize: vertical; min-height: 64px; font-family: inherit; }
+
+.sabi-field-select-wrap { position: relative; }
+
+.sabi-field-select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 36px;
+  cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, var(--sabi-text-secondary) 50%),
+                     linear-gradient(135deg, var(--sabi-text-secondary) 50%, transparent 50%);
+  background-position: calc(100% - 20px) calc(50% - 3px), calc(100% - 14px) calc(50% - 3px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+
+/* ---------------- Toggle switch ---------------- */
+
+.sabi-toggle-list { display: flex; flex-direction: column; gap: var(--sabi-space-sm); }
+
+.sabi-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--sabi-page-bg);
+  border-radius: var(--sabi-radius-sm);
+  padding: 14px 16px;
+  font-size: calc(0.95rem * var(--sabi-font-scale));
+  font-weight: 500;
+}
+
+.sabi-toggle {
+  position: relative;
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.sabi-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+
+.sabi-toggle-track {
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--sabi-border);
+  display: flex;
+  align-items: center;
+  padding: 3px;
+  transition: background 0.15s ease;
+}
+
+.sabi-toggle-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease;
+}
+
+.sabi-toggle input:checked + .sabi-toggle-track {
+  background: var(--sabi-primary-dark);
+}
+
+.sabi-toggle input:checked + .sabi-toggle-track .sabi-toggle-thumb {
+  transform: translateX(18px);
+}
+
+/* ---------------- Consent checkboxes ---------------- */
+
+.sabi-consent-list { display: flex; flex-direction: column; gap: var(--sabi-space-sm); margin-bottom: var(--sabi-space-md); }
+
+.sabi-consent-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sabi-space-sm);
+  background: var(--sabi-page-bg);
+  border-radius: var(--sabi-radius-sm);
+  padding: 14px 16px;
+  cursor: pointer;
+}
+
+.sabi-consent-box {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.sabi-consent-box input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+
+.sabi-consent-check {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--sabi-border);
+  border-radius: 5px;
+  background: var(--sabi-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: transparent;
+}
+
+.sabi-consent-box input:checked + .sabi-consent-check {
+  background: var(--sabi-primary-dark);
+  border-color: var(--sabi-primary-dark);
+  color: #fff;
+}
+
+.sabi-consent-title {
+  display: block;
+  font-size: calc(0.95rem * var(--sabi-font-scale));
+  font-weight: 700;
+}
+
+.sabi-consent-desc {
+  display: block;
+  font-size: calc(0.85rem * var(--sabi-font-scale));
+  color: var(--sabi-text-secondary);
+  margin-top: 2px;
+}
+
+.sabi-text-link {
+  display: block;
+  margin: 0 auto;
+  background: none;
+  border: none;
+  color: var(--sabi-primary-dark);
+  font-weight: 600;
+  font-size: calc(0.9rem * var(--sabi-font-scale));
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* ---------------- Security ---------------- */
+
+.sabi-security-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sabi-space-lg);
+}
+.sabi-field-hint {
+  font-size: 0.8125rem;
+  color: var(--sabi-text-muted, #6b7280);
+  margin-bottom: 6px;
+}
+.sabi-email-success{
+    width:72px;
+    height:72px;
+    border-radius:50%;
+    background:#ECFDF5;
+    color:#16A34A;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin:0 auto 1rem;
+}
+@media (max-width: 700px) {
+  .sabi-security-grid { grid-template-columns: 1fr; }
+}
+
+.sabi-security-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sabi-space-md);
+  background: var(--sabi-page-bg);
+  border-radius: var(--sabi-radius-sm);
+  padding: 14px 16px;
+}
+
+.sabi-security-title { font-size: calc(0.95rem * var(--sabi-font-scale)); font-weight: 700; }
+.sabi-security-sub { font-size: calc(0.82rem * var(--sabi-font-scale)); color: var(--sabi-text-secondary); margin-top: 2px; }
+
+/* ---------------- Danger zone ---------------- */
+
+.sabi-danger-zone-label {
+  font-size: calc(0.78rem * var(--sabi-font-scale));
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sabi-danger);
+  margin-bottom: var(--sabi-space-sm);
+}
+
+.sabi-danger-zone-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sabi-space-lg);
+  background: var(--sabi-surface);
+  border: 1px solid rgba(220, 38, 38, 0.15);
+  border-radius: var(--sabi-radius-md);
+  padding: var(--sabi-space-lg);
+  flex-wrap: wrap;
+}
+
+.sabi-danger-zone-title {
+  font-size: calc(1.05rem * var(--sabi-font-scale));
+  font-weight: 700;
+  color: var(--sabi-danger);
+  margin-bottom: 4px;
+}
+
+.sabi-danger-zone-text {
+  margin: 0;
+  font-size: calc(0.9rem * var(--sabi-font-scale));
+  color: var(--sabi-text-secondary);
+  max-width: 640px;
+  line-height: 1.5;
+}
+
+.sabi-danger-zone-btn {
+  background: var(--sabi-danger) !important;
+  color: #fff !important;
+  border-color: var(--sabi-danger) !important;
+  white-space: normal;   /* the design wraps this to two lines */
+  max-width: 140px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* ---------------- Modal / dialogs ---------------- */
+
+.sabi-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sabi-space-md);
+  z-index: 140;
+  animation: sabi-modal-fade 180ms ease-out;
+}
+
+.sabi-modal {
+  width: min(100%, 520px);
+  max-height: min(92vh, 760px);
+  overflow: auto;
+  background: var(--sabi-surface);
+  border-radius: var(--sabi-radius-lg);
+  border: 1px solid var(--sabi-border);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18);
+  padding: var(--sabi-space-lg);
+  animation: sabi-modal-slide 220ms ease-out;
+}
+
+.sabi-modal.sabi-modal-lg {
+  width: min(100%, 720px);
+}
+
+.sabi-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sabi-space-md);
+  margin-bottom: var(--sabi-space-md);
+}
+
+.sabi-modal-head h3 {
+  margin: 0 0 4px;
+  font-size: calc(1.05rem * var(--sabi-font-scale));
+  font-weight: 800;
+  color: var(--sabi-text-primary);
+}
+
+.sabi-modal-description {
+  margin: 0;
+  color: var(--sabi-text-secondary);
+  font-size: calc(0.9rem * var(--sabi-font-scale));
+  line-height: 1.55;
+}
+
+.sabi-modal-close-btn {
+  min-width: 36px !important;
+  height: 36px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  font-size: 1.15rem !important;
+  line-height: 1 !important;
+}
+
+.sabi-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sabi-space-md);
+}
+
+.sabi-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sabi-space-sm);
+  margin-top: var(--sabi-space-lg);
+}
+
+.sabi-modal-actions .sabi-btn-secondary,
+.sabi-modal-actions .sabi-btn-danger,
+.sabi-modal-actions .sabi-btn-primary {
+  min-width: 120px;
+}
+
+.sabi-password-field {
+  position: relative;
+}
+
+.sabi-password-field input {
+  padding-right: 48px;
+}
+
+.sabi-password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: var(--sabi-text-secondary);
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.sabi-password-strength {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.sabi-password-strength-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--sabi-border);
+  overflow: hidden;
+}
+
+.sabi-password-strength-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.2s ease, background 0.2s ease;
+}
+
+.sabi-password-strength-text {
+  font-size: 0.78rem;
+  color: var(--sabi-text-secondary);
+}
+
+.sabi-form-error {
+  color: var(--sabi-danger);
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.sabi-toast {
+  position: fixed;
+  right: var(--sabi-space-lg);
+  bottom: var(--sabi-space-lg);
+  z-index: 180;
+  max-width: min(92vw, 360px);
+  padding: 12px 16px;
+  border-radius: var(--sabi-radius-md);
+  background: #0f172a;
+  color: #fff;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.22);
+  font-weight: 600;
+}
+
+@keyframes sabi-modal-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes sabi-modal-slide {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ---------------- Responsive ---------------- */
+
+@media (max-width: 860px) {
+  .sabi-field-grid { grid-template-columns: 1fr; }
+  .sabi-field-row { flex-direction: column; align-items: stretch; }
+}
+
+/* Emergency access settings use the existing privacy consent pattern and retain unsaved drafts in session storage. */
+.sabi-emergency-access-intro { margin: 0 0 var(--sabi-space-md); color: var(--sabi-text-secondary); font-size: .9rem; line-height: 1.5; }
+.sabi-emergency-access-footer { display: flex; align-items: center; justify-content: space-between; gap: var(--sabi-space-md); margin-top: var(--sabi-space-md); }
+.sabi-emergency-access-footer span { color: var(--sabi-text-secondary); font-size: .82rem; }
+.sabi-emergency-access-footer .unsaved { color: var(--sabi-warning); font-weight: 600; }
+.sabi-emergency-access-footer .saved { color: var(--sabi-success); }
+.sabi-emergency-access-footer .error { color: var(--sabi-danger); font-weight: 600; }
+.sabi-emergency-access-footer button:disabled { cursor: not-allowed; opacity: .55; }

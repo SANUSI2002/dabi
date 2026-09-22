@@ -17,7 +17,7 @@ import type { Bill } from "@/data/accounting/payables";
 const purchaseAcct = (n: number) => n >= 5000 || (n >= 1200 && n < 1600) || n === 2100;
 
 export default function Bills() {
-  const { vendors, bills, vendorById, createBill, submitBill, decideBill, postBill, voidBill, payVendor, billBalance } = useAP();
+  const { vendors, bills, vendorById, createBill, submitBill, decideBill, voidBill, payVendor, billBalance } = useAP();
   const { canDecide, can } = useAcctControl();
   useIdentity((s) => s.user.id); // re-render on account switch so approval inbox refreshes
   const cashAccts = useLedger((s) => s.accounts).filter((a) => a.subtype === "cash" || a.subtype === "bank");
@@ -51,10 +51,10 @@ export default function Bills() {
   }
 
   const fxRates = useLedger((s) => s.fxRates);
-  const [f, setF] = useState<{ vendorId: string; vendorInvoiceNumber: string; date: string; dueDate: string; notes: string; currency: string; exchangeRate: number; recurMonths: number; lines: EditableLine[] }>({
+  const [f, setF] = useState<{ vendorId: string; vendorInvoiceNumber: string; date: string; dueDate: string; notes: string; currency: string; exchangeRate: number; recurMonths: number; lines: EditableLine[] }>(() => ({
     vendorId: vendors[0]?.id ?? "", vendorInvoiceNumber: "", date: isoDate(new Date()), dueDate: isoDate(new Date(Date.now() + 30 * 864e5)), notes: "", currency: "NGN", exchangeRate: 1, recurMonths: 0,
     lines: [{ accountNumber: 5100, description: "", qty: 1, unitPrice: 0, taxRateId: "tax-vat-exempt" }],
-  });
+  }));
   const [payF, setPayF] = useState({ date: isoDate(new Date()), method: "Bank Transfer" as const, account: 1010, amount: 0, reference: "", wht: 0, settlementRate: 0 });
 
   function submitCreate(submitForApproval: boolean) {

@@ -10,6 +10,7 @@ import {
 import { TELEMETRY_PARAMS, severityFor, type TelemetryReading, type TelemetryHistoryPoint } from "@/data/equipmentTelemetry";
 import type { EquipmentAlarm } from "@/data/equipmentAlarms";
 import { persisted } from "@/platform/persist";
+import { developmentFixturesEnabled } from "@/config/runtime";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 const HISTORY_LIMIT = 200;
@@ -40,10 +41,12 @@ type EquipmentState = {
   connectivityFor: (id: string) => ReturnType<typeof connectivityFromAge>;
 };
 
+const initialEquipment = developmentFixturesEnabled ? EQUIPMENT_SEED : [];
+
 export const useEquipment = create<EquipmentState>(persisted<EquipmentState>("equipment", (set, get) => ({
-  equipment: EQUIPMENT_SEED,
-  heartbeats: Object.fromEntries(EQUIPMENT_SEED.map((e) => [e.id, emptyHeartbeat()])),
-  machineStates: Object.fromEntries(EQUIPMENT_SEED.map((e) => [e.id, "Ready" as MachineState])),
+  equipment: initialEquipment,
+  heartbeats: Object.fromEntries(initialEquipment.map((e) => [e.id, emptyHeartbeat()])),
+  machineStates: Object.fromEntries(initialEquipment.map((e) => [e.id, "Ready" as MachineState])),
   telemetryLatest: {},
   telemetryHistory: {},
   runtimeSecTotal: {},

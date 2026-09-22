@@ -19,6 +19,7 @@ import { useEmr, serviceLine } from "@/store/useEmr";
 import { useClinical, isActivityOverdue } from "@/store/useClinical";
 import { useProcedures } from "@/store/useProcedures";
 import { useRadiology } from "@/store/useRadiology";
+import { useWardRound } from "@/store/useWardRound";
 import { DIAGNOSES, LAB_TESTS } from "@/data/catalog";
 import {
   ALLERGEN_SNOMED, LAB_LOINC, VITAL_LOINC, icd11Concept, localConcept, type VitalKey,
@@ -45,10 +46,12 @@ export default function PatientChart() {
   const clinical = useClinical();
   const proceduresStore = useProcedures();
   const radiologyStore = useRadiology();
+  const wardRoundStore = useWardRound();
   const patient = emr.patientById(id);
   const [doc, setDoc] = useState<"emr" | "card" | "summary" | null>(null);
   const [problemOpen, setProblemOpen] = useState(false);
   const [allergyOpen, setAllergyOpen] = useState(false);
+  const [wardRoundDoctorFilter, setWardRoundDoctorFilter] = useState("All");
 
   if (!patient) {
     return (
@@ -80,6 +83,12 @@ export default function PatientChart() {
   const carePlans = clinical.carePlansFor(patient.id);
   const procedures = proceduresStore.proceduresFor(patient.id);
   const imagingStudies = radiologyStore.studiesFor(patient.id);
+  const wardRounds = admissions
+    .flatMap((admission) => wardRoundStore.roundsFor(admission.id))
+    .filter((round) => round.status !== "draft")
+    .sort((left, right) => +new Date(right.signedAt ?? right.createdAt) - +new Date(left.signedAt ?? left.createdAt));
+  const wardRoundDoctors = Array.from(new Set(wardRounds.map((round) => round.clinicianName)));
+  const filteredWardRounds = wardRoundDoctorFilter === "All" ? wardRounds : wardRounds.filter((round) => round.clinicianName === wardRoundDoctorFilter);
 
   const activeProblems = conditions.filter((condition) => condition.clinicalStatus === "active" || condition.clinicalStatus === "recurrence" || condition.clinicalStatus === "relapse");
   const pastProblems = conditions.filter((condition) => !activeProblems.includes(condition));
@@ -118,6 +127,7 @@ export default function PatientChart() {
     "Vitals",
     `Billing (${invoices.length})`,
     "Admissions",
+    `Ward rounds (${wardRounds.length})`,
   ];
 
   return (
@@ -574,20 +584,48 @@ export default function PatientChart() {
             );
           }
 
+          if (tab.startsWith("Admissions")) {
+            return (
+              <Table columns={["Ward", "Bed", "Diagnosis", "Admitted", "Status", "Outcome"]} caption="Admissions">
+                {admissions.length === 0 && <EmptyRow colSpan={6}>No admissions have been recorded.</EmptyRow>}
+                {admissions.map((admission, index) => (
+                  <Row key={admission.id} index={index}>
+                    <Cell className="font-semibold">{admission.ward}</Cell>
+                    <Cell>{admission.bed}</Cell>
+                    <Cell>{admission.diagnosis}</Cell>
+                    <Cell>{dateTime(admission.admittedAt)}</Cell>
+                    <Cell><Badge tone={admission.status === "Active" ? "brand" : "mist"}>{admission.status}</Badge></Cell>
+                    <Cell>{admission.outcome ?? "—"}</Cell>
+                  </Row>
+                ))}
+              </Table>
+            );
+          }
+
           return (
-            <Table columns={["Ward", "Bed", "Diagnosis", "Admitted", "Status", "Outcome"]} caption="Admissions">
-              {admissions.length === 0 && <EmptyRow colSpan={6}>No admissions have been recorded.</EmptyRow>}
-              {admissions.map((admission, index) => (
-                <Row key={admission.id} index={index}>
-                  <Cell className="font-semibold">{admission.ward}</Cell>
-                  <Cell>{admission.bed}</Cell>
-                  <Cell>{admission.diagnosis}</Cell>
-                  <Cell>{dateTime(admission.admittedAt)}</Cell>
-                  <Cell><Badge tone={admission.status === "Active" ? "brand" : "mist"}>{admission.status}</Badge></Cell>
-                  <Cell>{admission.outcome ?? "—"}</Cell>
-                </Row>
-              ))}
-            </Table>
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Select
+                  value={wardRoundDoctorFilter}
+                  onChange={(event) => setWardRoundDoctorFilter(event.target.value)}
+                  options={["All", ...wardRoundDoctors]}
+                  className="h-9 w-auto py-0 text-sm"
+                />
+              </div>
+              <Table columns={["Date signed", "Doctor", "Progress", "Medication changes", "Status", ""]} caption="Ward round history">
+                {filteredWardRounds.length === 0 && <EmptyRow colSpan={6}>No signed ward rounds recorded yet.</EmptyRow>}
+                {filteredWardRounds.map((round, index) => (
+                  <Row key={round.id} index={index} onClick={() => nav(`/ward-round/${round.admissionId}/${round.id}`)}>
+                    <Cell>{dateTime(round.signedAt ?? round.createdAt)}</Cell>
+                    <Cell className="font-semibold">{round.clinicianName}</Cell>
+                    <Cell>{round.clinicalProgress || "—"}</Cell>
+                    <Cell>{round.medicationChangeIds.length}</Cell>
+                    <Cell><ClinicalStatusBadge kind="note" status={round.status} /></Cell>
+                    <Cell><span className="text-xs text-brand-600">Open</span></Cell>
+                  </Row>
+                ))}
+              </Table>
+            </div>
           );
         }}
       </Tabs>

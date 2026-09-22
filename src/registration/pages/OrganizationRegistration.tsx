@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft, ArrowRight, BadgeCheck, Building2, Check, CheckCircle2, ChevronRight,
   CircleAlert, Clock3, FileCheck2, HeartPulse, Loader2, LockKeyhole, PackageCheck,
@@ -35,17 +35,28 @@ function relativeSaved(date: string) {
 
 export function RegistrationStartPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { applications, createApplication } = useRegistration();
+  const packages = useCommandCenter((state) => state.packages);
   const active = applications.filter((item) => item.status === "DRAFT");
   const submitted = applications.filter((item) => item.status !== "DRAFT");
-  function start() { navigate(`/register/organization/${createApplication()}`); }
+  const requestedPlan = searchParams.get("plan")?.trim().toLowerCase();
+  const selectedPackage = requestedPlan
+    ? packages.find((item) => item.active && (item.id.toLowerCase() === requestedPlan || item.code.toLowerCase() === requestedPlan))
+    : undefined;
+  const billingCycle = searchParams.get("billing")?.toLowerCase() === "annual" ? "Annual" : "Monthly";
+  function start() {
+    const applicationId = createApplication(selectedPackage ? { packageId: selectedPackage.id, billingCycle } : undefined);
+    navigate(`/register/organization/${applicationId}`);
+  }
   return <main className="min-h-screen bg-[#f4faf6]">
     <header className="border-b border-slate-200 bg-white/90 px-5 py-4 backdrop-blur lg:px-8"><div className="mx-auto flex max-w-[1180px] items-center justify-between"><BrandMark/><Link to="/register" className="text-sm font-bold text-slate-500 hover:text-brand-700">Choose another pathway</Link></div></header>
     <section className="px-5 py-14 lg:px-8 lg:py-20"><div className="mx-auto max-w-[960px]"><div className="max-w-3xl"><p className="text-xs font-extrabold uppercase tracking-[.18em] text-brand-700">Organization registration</p><h1 className="mt-4 text-balance font-display text-4xl font-extrabold tracking-[-.045em] text-slate-950 sm:text-5xl">Bring your healthcare organization to Sabi.</h1><p className="mt-5 max-w-2xl text-base leading-7 text-slate-500">Create an application now, save as you go and return whenever you are ready. An application does not create a production tenant or imply regulatory approval.</p></div>
+      {selectedPackage && <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand-200 bg-brand-50 p-4"><div><p className="text-xs font-extrabold uppercase tracking-widest text-brand-700">Selected package</p><p className="mt-1 font-display text-lg font-bold text-slate-950">{selectedPackage.name} · {billingCycle}</p><p className="mt-1 text-xs text-slate-500">This selection will be saved with the new application. It does not activate a subscription or charge a payment method.</p></div><Link className="text-xs font-bold text-brand-700 hover:underline" to="/pricing">Change package</Link></div>}
       <div className="mt-10 grid gap-5 lg:grid-cols-[1fr_300px]"><div className="space-y-4">
         {active.map((application) => <ApplicationCard key={application.id} application={application} action="Resume application" to={`/register/organization/${application.id}`}/>) }
         {active.length === 0 && <div className="rounded-[24px] border border-dashed border-brand-300 bg-white p-8 text-center"><Save className="mx-auto text-brand-700"/><h2 className="mt-4 font-display text-xl font-bold">No application draft yet</h2><p className="mt-2 text-sm text-slate-500">Start with the organization owner. Your non-document draft is saved in this browser.</p></div>}
-        <button onClick={start} className="public-button-primary w-full sm:w-auto"><Building2 size={16}/> Start new application</button>
+        <button onClick={start} className="public-button-primary w-full sm:w-auto"><Building2 size={16}/> {selectedPackage ? `Continue with ${selectedPackage.name}` : "Start new application"}</button>
         {submitted.length > 0 && <div className="pt-7"><h2 className="mb-4 font-display text-lg font-bold">Submitted applications</h2>{submitted.map((application) => <ApplicationCard key={application.id} application={application} action="View status" to={`/register/organization/${application.id}/status`}/>)}</div>}
       </div><aside className="rounded-[24px] bg-slate-950 p-6 text-white"><ShieldCheck className="text-brand-300"/><h2 className="mt-5 font-display text-xl font-bold">Progressive onboarding</h2><p className="mt-3 text-sm leading-6 text-white/55">You can begin without having every compliance document ready. Verification and provisioning happen only after submission and authorized review.</p><div className="mt-6 space-y-3 text-xs text-white/60">{["Draft saved and resumed", "Requirements vary by facility", "No automatic tenant creation"].map((item) => <div key={item} className="flex gap-2"><Check size={15} className="shrink-0 text-brand-300"/>{item}</div>)}</div></aside></div>
     </div></section>

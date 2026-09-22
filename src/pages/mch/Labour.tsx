@@ -6,6 +6,7 @@ import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Textarea, Grid } from "@/components/ui/form";
 import { PatientPicker } from "@/components/ui/PatientPicker";
+import { PatientLink } from "@/components/ui/PatientLink";
 import { BirthCertificateDoc } from "@/components/print/documents";
 import { useEmr } from "@/store/useEmr";
 import { shortDate, dateTime } from "@/lib/format";
@@ -124,7 +125,7 @@ export default function Labour() {
                   const p = patientById(d.patientId);
                   return (
                     <Row key={d.id} index={i}>
-                      <Cell className="font-semibold">{p ? `${p.firstName} ${p.lastName}` : "—"}</Cell>
+                      <Cell className="font-semibold"><PatientLink patient={p} /></Cell>
                       <Cell>{shortDate(d.date)}</Cell>
                       <Cell>{d.mode}</Cell>
                       <Cell>{d.gaWeeks}w</Cell>
@@ -168,7 +169,7 @@ export default function Labour() {
                       <span className="block text-[11px] font-normal text-mist-400">{b.sex} · {b.weight} kg</span>
                     </Cell>
                     <Cell>{dateTime(b.bornAt)}</Cell>
-                    <Cell>{b.motherName}</Cell>
+                    <Cell><PatientLink patient={patientById(b.patientId)} /></Cell>
                     <Cell className="text-mist-500">{b.informantName}<span className="block text-[11px] text-mist-400">{b.informantRelation}</span></Cell>
                     <Cell><Badge tone={statusTone(b.status)}>{b.status}</Badge></Cell>
                     <Cell>

@@ -13,6 +13,7 @@ import { useClinical, isActivityOverdue } from "@/store/useClinical";
 import { monthlyTargets } from "@/data/mock";
 import { useCatalog } from "@/store/useCatalog";
 import { useAudit } from "@/store/useAudit";
+import { PRESCRIPTION_PENDING_STATUSES } from "@/data/pharmacyOps";
 import { LAB_TESTS } from "@/data/catalog";
 import { naira, timeAgo, shortDate } from "@/lib/format";
 
@@ -37,7 +38,7 @@ export default function Dashboard() {
   const completed = queue.filter((entry) => entry.status === "Completed").length;
   const referredCount = queue.filter((entry) => entry.status === "Referred").length;
   const labPending = labOrders.filter((order) => ["Pending", "Sample Collected"].includes(order.status)).length;
-  const rxPending = encounters.flatMap((encounter) => encounter.prescriptions).filter((prescription) => prescription.status === "Pending").length;
+  const rxPending = encounters.flatMap((encounter) => encounter.prescriptions).filter((prescription) => (PRESCRIPTION_PENDING_STATUSES as readonly string[]).includes(prescription.status)).length;
   const lowStock = drugs.filter((drug) => drug.stock <= drug.reorder);
   const activeBeds = beds.filter((bed) => bed.active).length;
   const activeAdmissions = admissions.filter((admission) => admission.status === "Active").length;

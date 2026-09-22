@@ -1,0 +1,561 @@
+.sabi-delivery-main {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+    /* Maps to W: 1024 Fill */
+  height: auto;        /* Maps to H: 1051 Hug */
+  gap: 24px;           /* Auto Layout Gap */
+  padding-top: 16px;
+  padding-right: 16px;
+  padding-bottom: 16px;
+  padding-left: 96px;  /* Maps to Left Padding: 96 */
+  box-sizing: border-box;
+}
+
+.sabi-delivery-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-top: 50px;
+    gap: 9px;
+    margin: -46px 4px 24px;
+    color: var(--sabi-primary-dark);
+    font-weight: 800;
+    font-size: calc(1rem * var(--sabi-font-scale));
+}
+
+.sabi-delivery-header span {
+    font-size: 1.7rem;
+}
+
+.sabi-delivery-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 28px;
+}
+
+.sabi-delivery-map {
+    position: relative;
+    min-height: 650px;
+    padding: 0;
+    overflow: hidden;
+}
+
+/* Explicit Leaflet height: percentage-height map children need a sized parent. */
+.sabi-delivery-interactive-map {
+    height: 650px;
+}
+
+.sabi-delivery-order {
+    position: absolute;
+    z-index: 2;
+    top: 17px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-weight: 800;
+    color: #333;
+}
+
+.sabi-delivery-eta {
+    position: absolute;
+    z-index: 3;
+    left: 32px;
+    top: 28px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 24px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 3px 13px rgba(0,0,0,.1);
+}
+
+.sabi-delivery-eta span {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: #dff5ef;
+    color: var(--sabi-primary-dark);
+}
+
+.sabi-delivery-eta small {
+    display: block;
+    color: var(--sabi-text-secondary);
+    font-weight: 700;
+}
+
+.sabi-delivery-eta strong {
+    font-size: calc(1.6rem * var(--sabi-font-scale));
+    color: var(--sabi-primary-dark);
+}
+
+.sabi-delivery-eta em {
+    font-style: normal;
+    color: var(--sabi-text-secondary);
+}
+
+.sabi-delivery-status {
+    position: absolute;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    left: 30px;
+    right: 30px;
+    bottom: 30px;
+    padding: 22px;
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 3px 13px rgba(0,0,0,.12);
+}
+
+.sabi-delivery-status > span {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #61f0b6;
+    color: var(--sabi-primary-dark);
+}
+
+.sabi-delivery-status h1 {
+    margin: 0;
+    color: var(--sabi-primary-dark);
+    font-size: calc(1.35rem * var(--sabi-font-scale));
+}
+
+.sabi-delivery-status p {
+    margin: 4px 0 0;
+    color: var(--sabi-text-secondary);
+}
+
+.sabi-delivery-status button {
+    margin-left: auto;
+    padding: 15px 25px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--sabi-primary-dark);
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+}
+
+.sabi-delivery-rider {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-top: 30px;
+    padding: 28px;
+}
+
+.sabi-delivery-avatar {
+    display: grid;
+    place-items: center;
+    width: 82px;
+    height: 82px;
+    border-radius: 50%;
+    background: linear-gradient(140deg, #a8e8d6, #08756f);
+    color: #fff;
+    font-size: 1.25rem;
+    font-weight: 800;
+}
+
+.sabi-delivery-rider h2 {
+    margin: 0;
+    font-size: 1.35rem;
+}
+
+.sabi-delivery-rider h2 em {
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: #d5fae9;
+    color: #087451;
+    font-size: .78rem;
+    font-style: normal;
+}
+
+.sabi-delivery-rider p {
+    margin: 5px 0;
+    color: var(--sabi-text-secondary);
+}
+
+.sabi-delivery-rider small {
+    color: var(--sabi-text-secondary);
+}
+
+.sabi-delivery-contact {
+    display: flex;
+    gap: 12px;
+    margin-left: auto;
+}
+
+.sabi-delivery-contact button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 20px;
+    border: 1px solid var(--sabi-primary-dark);
+    border-radius: 12px;
+    background: #fff;
+    color: var(--sabi-primary-dark);
+    font: inherit;
+    font-weight: 700;
+}
+
+.sabi-delivery-contact button + button {
+    background: var(--sabi-primary-dark);
+    color: #fff;
+}
+
+.sabi-delivery-layout aside {
+    display: grid;
+    align-content: start;
+    gap: 28px;
+}
+
+.sabi-delivery-journey {
+    padding: 28px;
+}
+
+.sabi-delivery-journey h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    font-size: 1.4rem;
+}
+
+.sabi-delivery-journey h2 svg {
+    color: var(--sabi-primary-dark);
+}
+
+.sabi-delivery-journey ol {
+    padding: 0;
+    margin: 28px 0 0;
+    list-style: none;
+}
+
+.sabi-delivery-journey li {
+    display: flex;
+    gap: 16px;
+    position: relative;
+    padding-bottom: 25px;
+}
+
+.sabi-delivery-journey li:last-child {
+    padding: 0;
+}
+
+.sabi-delivery-journey li:before {
+    content: "";
+    position: absolute;
+    left: 14px;
+    top: 29px;
+    bottom: 0;
+    width: 2px;
+    background: #dce5f4;
+}
+
+.sabi-delivery-journey li:last-child:before {
+    display: none;
+}
+
+.sabi-delivery-journey li > span {
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #e4edf9;
+    color: #fff;
+}
+
+.sabi-delivery-journey .done > span {
+    background: var(--sabi-primary-dark);
+}
+
+.sabi-delivery-journey .current > span {
+    background: #fff;
+    border: 4px solid var(--sabi-primary-dark);
+}
+
+.sabi-delivery-journey h3 {
+    margin: 2px 0 4px;
+    font-size: 1rem;
+}
+
+.sabi-delivery-journey p {
+    margin: 0;
+    color: var(--sabi-text-secondary);
+    font-size: .82rem;
+}
+
+.sabi-delivery-journey .current h3,
+.sabi-delivery-journey .current p {
+    color: var(--sabi-primary-dark);
+}
+
+.sabi-delivery-pharmacy {
+    display: grid;
+    grid-template-columns: 48px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 27px;
+}
+
+.sabi-delivery-pharmacy-icon {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: #d9f7ea;
+    color: var(--sabi-primary-dark);
+    font-size: 1.8rem;
+}
+
+.sabi-delivery-pharmacy h3 {
+    margin: 0;
+}
+
+.sabi-delivery-pharmacy p {
+    margin: 3px 0;
+    color: var(--sabi-text-secondary);
+    font-size: .84rem;
+}
+
+.sabi-delivery-pharmacy > svg {
+    color: var(--sabi-primary-dark);
+}
+
+.sabi-delivery-pharmacy button {
+    grid-column: 1 / -1;
+    border: 0;
+    border-radius: 12px;
+    padding: 13px;
+    background: #d5fae9;
+    color: #087451;
+    font: inherit;
+    font-weight: 700;
+}
+
+.sabi-delivery-summary {
+    padding: 28px;
+}
+
+.sabi-delivery-summary h2 {
+    margin: 0 0 20px;
+    font-size: 1.35rem;
+}
+
+.sabi-delivery-item {
+    display: grid;
+    grid-template-columns: 48px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    margin: 15px 0;
+}
+
+.sabi-delivery-item > span {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border: 1px solid var(--sabi-border);
+    border-radius: 10px;
+    color: var(--sabi-text-secondary);
+}
+
+.sabi-delivery-item h3 {
+    margin: 0;
+    font-size: .95rem;
+}
+
+.sabi-delivery-item p {
+    margin: 3px 0;
+    color: #cb7500;
+    font-size: .76rem;
+}
+
+.sabi-delivery-summary dl {
+    border-top: 1px solid var(--sabi-border);
+    margin: 23px 0 0;
+    padding-top: 15px;
+}
+
+.sabi-delivery-summary dl div {
+    display: flex;
+    justify-content: space-between;
+    margin: 13px 0;
+    color: var(--sabi-text-secondary);
+}
+
+.sabi-delivery-summary dd {
+    margin: 0;
+    color: var(--sabi-text-primary);
+    font-weight: 700;
+}
+
+.sabi-delivery-summary .free {
+    color: var(--sabi-primary-dark);
+}
+
+.sabi-delivery-summary .total {
+    display: block;
+    margin-top: 24px;
+}
+
+.sabi-delivery-summary .total dt {
+    font-size: .78rem;
+    font-weight: 700;
+}
+
+.sabi-delivery-summary .total dd {
+    font-size: 1.7rem;
+}
+
+@media (max-width: 1050px) {
+    .sabi-delivery-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .sabi-delivery-layout aside {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .sabi-delivery-summary {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 680px) {
+    .sabi-delivery-header {
+        margin: 0 0 18px;
+        justify-content: flex-start;
+    }
+
+    .sabi-delivery-map {
+        min-height: 540px;
+    }
+
+    .sabi-delivery-eta {
+        left: 16px;
+        top: 16px;
+        padding: 12px;
+    }
+
+    .sabi-delivery-status {
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        padding: 16px;
+    }
+
+    .sabi-delivery-status button {
+        display: none;
+    }
+
+    .sabi-delivery-rider {
+        flex-wrap: wrap;
+        padding: 20px;
+    }
+
+    .sabi-delivery-contact {
+        width: 100%;
+        margin: 0;
+    }
+
+    .sabi-delivery-contact button {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .sabi-delivery-layout aside {
+        grid-template-columns: 1fr;
+    }
+
+    .sabi-delivery-summary {
+        grid-column: auto;
+    }
+}
+
+/* ==========================================================
+   Delivery list page (DeliveryListPage.jsx)
+   ========================================================== */
+
+.sabi-delivery-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 820px;
+}
+
+.sabi-delivery-list-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: var(--sabi-surface);
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-lg);
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sabi-delivery-list-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 26px rgba(11, 94, 72, 0.1);
+}
+
+.sabi-delivery-list-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.sabi-delivery-list-body { flex: 1; min-width: 0; }
+
+.sabi-delivery-list-top { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.sabi-delivery-list-top strong { font-size: 0.95rem; }
+
+.sabi-delivery-status-pill {
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--sabi-page-bg);
+    color: var(--sabi-text-secondary);
+}
+
+.sabi-delivery-status-pill.current { background: #FEF3C7; color: #92400E; }
+.sabi-delivery-status-pill.done { background: #DCFCE7; color: #166534; }
+
+.sabi-delivery-list-meta { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 4px; }
+.sabi-delivery-list-meta span { display: flex; align-items: center; gap: 5px; font-size: 0.8rem; color: var(--sabi-text-secondary); }
+
+.sabi-delivery-list-items { font-size: 0.8rem; color: var(--sabi-text-secondary); }
+
+.sabi-delivery-list-trail {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    flex-shrink: 0;
+    color: var(--sabi-text-secondary);
+    font-size: 0.78rem;
+    font-weight: 700;
+}

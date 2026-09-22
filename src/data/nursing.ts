@@ -19,6 +19,11 @@ export type NursingObservation = {
   fallsRisk?: "Low" | "Moderate" | "High";
   pressureRisk?: "Low" | "Moderate" | "High";
   note?: string;
+  /** additive — ward round vital-sign completeness (oxygen device/flow, consciousness) */
+  o2Device?: string;
+  o2Flow?: number;
+  avpu?: "Alert" | "Voice" | "Pain" | "Unresponsive";
+  gcs?: number;
 };
 
 export type AdministrationStatus = "scheduled" | "due" | "given" | "held" | "refused" | "omitted";

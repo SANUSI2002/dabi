@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { PageHeader, StatCard, Card, SectionNote } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell, EmptyRow } from "@/components/ui/Table";
+import { PatientLink } from "@/components/ui/PatientLink";
 import { Bars } from "@/components/ui/Chart";
 import { Reveal } from "@/components/motion/Reveal";
 import { useEmr } from "@/store/useEmr";
@@ -54,7 +55,7 @@ export default function Malaria() {
                 const patient = patientById(encounter.patientId);
                 return (
                   <Row key={encounter.id} index={index}>
-                    <Cell className="font-semibold">{patient ? `${patient.firstName} ${patient.lastName}` : "—"}</Cell>
+                    <Cell className="font-semibold"><PatientLink patient={patient} /></Cell>
                     <Cell>{shortDate(encounter.date)}</Cell>
                     <Cell>{encounter.diagnoses.map((diagnosis) => diagnosis.name).join(", ")}</Cell>
                     <Cell>{encounter.prescriptions[0]?.drug ?? "—"}</Cell>

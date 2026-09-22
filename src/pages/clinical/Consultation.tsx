@@ -1,15 +1,19 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Trash2, FlaskConical, Pill, FileSignature, Save, BedDouble, ClipboardList } from "lucide-react";
+import { Trash2, FlaskConical, Pill, FileSignature, Save, BedDouble, ClipboardList, HeartPulse, ExternalLink } from "lucide-react";
 import { PageHeader, Button, Badge, SectionNote } from "@/components/ui/primitives";
 import { Field, Input, Textarea, Select } from "@/components/ui/form";
 import { Modal } from "@/components/ui/Modal";
 import { ClinicalStatusBadge } from "@/components/clinical/ClinicalStatusBadge";
+import { VitalTrend, type VitalReading } from "@/components/clinical/VitalTrend";
+import { PhysicalExaminationCard } from "@/components/clinical/PhysicalExaminationCard";
 import { useEmr } from "@/store/useEmr";
 import { getRevenueCycleApi } from "@/billing/runtime";
 import { activeFacility } from "@/platform/tenantRuntime";
 import { useClinical } from "@/store/useClinical";
 import { useWards } from "@/store/useWards";
+import { useWardRound } from "@/store/useWardRound";
 import { DrugField } from "@/components/clinical/DrugField";
 import { DIAGNOSES, LAB_PANELS, STATIONS } from "@/data/catalog";
 import { ENCOUNTER_TEMPLATES, templateByKey } from "@/data/encounterTemplates";
@@ -17,8 +21,56 @@ import { icd11Concept } from "@/data/clinicalCoding";
 import { useHr } from "@/store/useHr";
 import { useIdentity } from "@/store/useIdentity";
 import { useUnsavedGuard, confirmIfDirty } from "@/lib/useUnsavedGuard";
-import { ageFromDob, dateTime } from "@/lib/format";
-import type { Prescription } from "@/data/types";
+import { ageFromDob, dateTime, timeAgo } from "@/lib/format";
+import { EXAMINATION_SYSTEMS, type PhysicalExaminationSystem } from "@/data/wardRound";
+import type { Prescription, Vitals } from "@/data/types";
+
+const CONSULTATION_EXAM_SYSTEMS = EXAMINATION_SYSTEMS.filter((s) => s.key !== "genitourinary");
+
+function emptyExamSystems(): PhysicalExaminationSystem[] {
+  return CONSULTATION_EXAM_SYSTEMS.map((s) => ({ system: s.key, status: "Not Examined" as const }));
+}
+
+function CurrentVitalsPanel({ vitals, onViewTrend }: { vitals: Vitals | undefined; onViewTrend: () => void }) {
+  const bmi = vitals?.weight && vitals?.height ? vitals.weight / (vitals.height / 100) ** 2 : undefined;
+  const rows: [string, string | number | undefined][] = [
+    ["BP", vitals?.bp],
+    ["Heart rate", vitals?.pulse && `${vitals.pulse} bpm`],
+    ["Resp. rate", vitals?.resp && `${vitals.resp} /min`],
+    ["Temperature", vitals?.temp && `${vitals.temp}°C`],
+    ["SpO₂", vitals?.spo2 && `${vitals.spo2}%`],
+    ["Glucose", vitals?.glucose && `${vitals.glucose} mg/dL`],
+    ["Pain score", vitals?.painScore !== undefined ? `${vitals.painScore}/10` : undefined],
+    ["Weight", vitals?.weight && `${vitals.weight} kg`],
+    ["BMI", bmi && bmi.toFixed(1)],
+    ["AVPU / GCS", vitals?.avpu ?? (vitals?.gcs ? `GCS ${vitals.gcs}` : undefined)],
+  ];
+  return (
+    <div className="card space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-mist-400"><HeartPulse size={13} /> Current vitals</p>
+      </div>
+      {!vitals ? (
+        <SectionNote tone="unavailable">No vitals recorded this visit — send the patient to the Vital station.</SectionNote>
+      ) : (
+        <>
+          <div className="space-y-1.5">
+            {rows.filter(([, value]) => value !== undefined && value !== "").map(([label, value]) => (
+              <div key={label} className="flex items-center justify-between rounded-lg bg-mist-50 px-2.5 py-1.5 text-sm">
+                <span className="text-mist-400">{label}</span>
+                <span className="font-semibold text-mist-800">{value}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] text-mist-400">
+            Recorded by {vitals.takenBy} · {dateTime(vitals.takenAt)} · <span className="font-semibold">{timeAgo(vitals.takenAt)}</span>
+          </p>
+        </>
+      )}
+      <Button variant="soft" className="w-full px-2.5 py-1.5 text-xs" onClick={onViewTrend}>View vital trend</Button>
+    </div>
+  );
+}
 
 const NHMIS_GROUPS: Record<string, string[]> = {
   Malaria: ["Presented with fever", "Tested by RDT", "Tested by microscopy", "Confirmed uncomplicated", "Severe malaria", "Treated with ACT", "Severe — pre-referral treatment given"],
@@ -36,6 +88,7 @@ export default function Consultation() {
   const { queue, patientById, saveEncounter, addLabOrders, advanceQueue, admit, latestVitals } = emr;
   const addCondition = useClinical((state) => state.addCondition);
   const addCarePlan = useClinical((state) => state.addCarePlan);
+  const recordExamination = useWardRound((state) => state.recordExamination);
   const wards = useWards((state) => state.wards);
   const beds = useWards((state) => state.beds);
   const currentUser = useIdentity((state) => state.user.name);
@@ -68,11 +121,20 @@ export default function Consultation() {
   const [admitBedId, setAdmitBedId] = useState("");
   const [toast, setToast] = useState("");
   const [finalizing, setFinalizing] = useState(false);
+  const [examSystems, setExamSystems] = useState<PhysicalExaminationSystem[]>(emptyExamSystems());
+  const [trendOpen, setTrendOpen] = useState(false);
+
+  const vitalReadings: VitalReading[] = (emr.vitals[patient?.id ?? ""] ?? []).map((v) => ({
+    at: v.takenAt, by: v.takenBy, bp: v.bp, temp: v.temp, pulse: v.pulse, resp: v.resp, spo2: v.spo2, glucose: v.glucose, painScore: v.painScore,
+  }));
 
   const dirty = useMemo(
     () =>
-      Boolean(soap.s || soap.o || soap.a || soap.p || diagnoses.length || prescriptions.length || labs.length || followUp || instructions || carePlan.title),
-    [soap, diagnoses, prescriptions, labs, followUp, instructions, carePlan.title],
+      Boolean(
+        soap.s || soap.o || soap.a || soap.p || diagnoses.length || prescriptions.length || labs.length || followUp ||
+          instructions || carePlan.title || examSystems.some((s) => s.status !== "Not Examined"),
+      ),
+    [soap, diagnoses, prescriptions, labs, followUp, instructions, carePlan.title, examSystems],
   );
   useUnsavedGuard(dirty);
 
@@ -87,6 +149,7 @@ export default function Consultation() {
     setInstructions("");
     setTemplateKey("");
     setCarePlan({ open: false, title: "", category: "Chronic disease", goal: "" });
+    setExamSystems(emptyExamSystems());
   }
 
   function switchPatient(queueId: string) {
@@ -118,7 +181,7 @@ export default function Consultation() {
   function addPrescription() {
     setPrescriptions((current) => [
       ...current,
-      { id: Math.random().toString(36).slice(2), drug: "", dose: "", frequency: "BD", duration: "3 days", qty: 0, status: "Pending" },
+      { id: Math.random().toString(36).slice(2), drug: "", dose: "", frequency: "BD", duration: "3 days", qty: 0, status: "Under Review", source: "Doctor Prescription" },
     ]);
   }
 
@@ -155,6 +218,10 @@ export default function Consultation() {
       nhmisIndicators: Object.entries(nhmis).filter(([, on]) => on).map(([indicator]) => indicator),
       templateKey: templateKey || undefined,
     });
+
+    if (examSystems.some((system) => system.status !== "Not Examined")) {
+      recordExamination({ patientId: patient.id, encounterId, systems: examSystems });
+    }
 
     const conditionIds: string[] = [];
     diagnoses.forEach((diagnosis) => {
@@ -231,30 +298,57 @@ export default function Consultation() {
     <div>
       <PageHeader title="Consultation" subtitle="Clinician encounter · structured note · coded diagnosis · orders" />
 
-      <div className="grid gap-5 lg:grid-cols-[260px_1fr]">
-        <div className="card h-fit p-2">
-          <p className="px-2 py-1.5 text-[11px] font-bold uppercase tracking-wide text-mist-400">
-            Consultation queue · {consultQueue.length}
-          </p>
-          {consultQueue.map((queueEntry) => {
-            const queuePatient = patientById(queueEntry.patientId);
-            return (
-              <button
-                key={queueEntry.id}
-                onClick={() => switchPatient(queueEntry.id)}
-                aria-current={activeQueueId === queueEntry.id}
-                className={`mb-1 w-full rounded-xl px-3 py-2.5 text-left text-sm transition ${
-                  activeQueueId === queueEntry.id ? "bg-brand-gradient text-white shadow-glow" : "hover:bg-mist-50"
-                }`}
-              >
-                <span className="font-semibold">{queuePatient ? `${queuePatient.firstName} ${queuePatient.lastName}` : "—"}</span>
-                <span className={`block text-[11px] ${activeQueueId === queueEntry.id ? "text-white/80" : "text-mist-400"}`}>
-                  {queuePatient ? `${ageFromDob(queuePatient.dob)} · ${queuePatient.sex}` : ""} · {queueEntry.status}
-                </span>
-              </button>
-            );
-          })}
-          {consultQueue.length === 0 && <p className="p-3 text-sm text-mist-400">The consultation queue is clear.</p>}
+      <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
+        <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+          <div className="card h-fit p-2">
+            <p className="px-2 py-1.5 text-[11px] font-bold uppercase tracking-wide text-mist-400">
+              Consultation queue · {consultQueue.length}
+            </p>
+            {consultQueue.map((queueEntry) => {
+              const queuePatient = patientById(queueEntry.patientId);
+              const active = activeQueueId === queueEntry.id;
+              return (
+                <div
+                  key={queueEntry.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => switchPatient(queueEntry.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      switchPatient(queueEntry.id);
+                    }
+                  }}
+                  aria-current={active}
+                  className={`mb-1 flex w-full cursor-pointer items-center gap-1 rounded-xl px-3 py-2.5 text-left text-sm transition ${
+                    active ? "bg-brand-gradient text-white shadow-glow" : "hover:bg-mist-50"
+                  }`}
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="font-semibold">{queuePatient ? `${queuePatient.firstName} ${queuePatient.lastName}` : "—"}</span>
+                    <span className={`block text-[11px] ${active ? "text-white/80" : "text-mist-400"}`}>
+                      {queuePatient ? `${ageFromDob(queuePatient.dob)} · ${queuePatient.sex}` : ""} · {queueEntry.status}
+                    </span>
+                  </span>
+                  {queuePatient && (
+                    <Link
+                      to={`/patients/${queuePatient.id}`}
+                      onClick={(event) => event.stopPropagation()}
+                      title="View full patient chart"
+                      aria-label={`View full chart for ${queuePatient.firstName} ${queuePatient.lastName}`}
+                      className={`shrink-0 rounded-lg p-1.5 transition ${
+                        active ? "text-white/80 hover:bg-white/20 hover:text-white" : "text-mist-400 hover:bg-mist-100 hover:text-brand-700"
+                      }`}
+                    >
+                      <ExternalLink size={14} />
+                    </Link>
+                  )}
+                </div>
+              );
+            })}
+            {consultQueue.length === 0 && <p className="p-3 text-sm text-mist-400">The consultation queue is clear.</p>}
+          </div>
+          {patient && <CurrentVitalsPanel vitals={vitals} onViewTrend={() => setTrendOpen(true)} />}
         </div>
 
         {!patient ? (
@@ -295,26 +389,6 @@ export default function Consultation() {
                     className="h-8 w-auto py-0 text-xs"
                   />
                 </div>
-              </div>
-              <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-mist-100 pt-3">
-                {vitals ? (
-                  ([
-                    ["BP", vitals.bp],
-                    ["Temp", vitals.temp && `${vitals.temp}°C`],
-                    ["Pulse", vitals.pulse],
-                    ["Resp", vitals.resp],
-                    ["SpO₂", vitals.spo2 && `${vitals.spo2}%`],
-                    ["Weight", vitals.weight && `${vitals.weight} kg`],
-                  ] as const)
-                    .filter(([, value]) => value)
-                    .map(([key, value]) => (
-                      <span key={key} className="chip bg-mist-100 text-mist-600">
-                        <span className="font-normal text-mist-400">{key}</span> {value}
-                      </span>
-                    ))
-                ) : (
-                  <span className="text-xs text-mist-400">No vitals recorded this visit — send the patient to the Vital station.</span>
-                )}
               </div>
             </div>
 
@@ -378,6 +452,24 @@ export default function Consultation() {
                 <Field label="Patient instructions">
                   <Input value={instructions} onChange={(event) => setInstructions(event.target.value)} placeholder="Advice given to the patient" />
                 </Field>
+              </div>
+            </div>
+
+            {/* Physical examination */}
+            <div className="card space-y-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-mist-400">Physical examination</p>
+                <p className="mt-0.5 text-[11px] text-mist-400">Structured findings, in addition to the free-text objective note above.</p>
+              </div>
+              <div className="space-y-2">
+                {examSystems.map((system) => (
+                  <PhysicalExaminationCard
+                    key={system.system}
+                    label={CONSULTATION_EXAM_SYSTEMS.find((s) => s.key === system.system)?.label ?? system.system}
+                    entry={system}
+                    onChange={(next) => setExamSystems((current) => current.map((s) => (s.system === next.system ? next : s)))}
+                  />
+                ))}
               </div>
             </div>
 
@@ -555,6 +647,8 @@ export default function Consultation() {
           </div>
         )}
       </div>
+
+      {patient && <VitalTrend open={trendOpen} onClose={() => setTrendOpen(false)} readings={vitalReadings} />}
 
       <Modal
         open={admitOpen}

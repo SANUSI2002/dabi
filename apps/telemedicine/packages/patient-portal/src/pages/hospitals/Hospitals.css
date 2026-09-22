@@ -1,0 +1,920 @@
+.sabi-hospitals-main { display: flex; flex-direction: column; gap: var(--sabi-space-lg); }
+
+/* ---------------- Hero ---------------- */
+
+.sabi-hospitals-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    overflow: hidden;
+    padding: clamp(28px, 5vw, 48px);
+    border-radius: var(--sabi-radius-lg);
+    background: var(--sabi-gradient-dark, linear-gradient(160deg, #0B5E48 0%, #073D30 100%));
+    color: #fff;
+}
+
+.sabi-hospitals-hero h1 {
+    margin: 0 0 10px;
+    font-size: clamp(1.7rem, 3vw, 2.2rem);
+    font-weight: 800;
+}
+
+.sabi-hospitals-hero p {
+    margin: 0 0 20px;
+    max-width: 520px;
+    color: rgba(255, 255, 255, .88);
+    line-height: 1.6;
+}
+
+.sabi-hospitals-hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+
+.sabi-hospitals-hero-actions .sabi-btn-primary {
+    background: #fff;
+    color: var(--sabi-primary-dark);
+    padding: 12px 22px;
+}
+
+.sabi-hospitals-hero-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 22px;
+    border: 1px solid rgba(255, 255, 255, .3);
+    border-radius: var(--sabi-radius-md);
+    background: rgba(255, 255, 255, .1);
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+   
+}
+.sabi-hospitals-hero-outline:hover { background: rgba(255, 255, 255, .18); }
+
+.sabi-hospitals-hero-icon { position: absolute; right: -20px; bottom: -20px; opacity: .12; }
+
+/* ---------------- Stats ---------------- */
+
+.sabi-hospitals-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--sabi-space-md);
+}
+
+.sabi-hospitals-stat { display: grid; gap: 6px; }
+.sabi-hospitals-stat .icon {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+}
+.sabi-hospitals-stat .label { margin: 0; color: var(--sabi-text-secondary); font-size: .8rem; font-weight: 600; }
+.sabi-hospitals-stat .value { margin: 0; color: var(--sabi-primary-dark); font-size: 1.7rem; font-weight: 800; }
+
+/* ---------------- Search & filters ---------------- */
+
+.sabi-hospitals-search { display: flex; flex-wrap: wrap; gap: var(--sabi-space-md); align-items: center; }
+
+.sabi-hospitals-search-input {
+    flex: 1;
+    min-width: 240px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-page-bg);
+    color: var(--sabi-text-secondary);
+}
+.sabi-hospitals-search-input input {
+    flex: 1;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    font-size: .92rem;
+    color: var(--sabi-text-primary);
+}
+.sabi-hospitals-search-input input:focus { outline: none; }
+
+.sabi-hospitals-filters { display: flex; flex-wrap: wrap; gap: 10px; }
+.sabi-hospitals-filters select {
+    padding: 12px 14px;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-surface);
+    font-size: .86rem;
+    font-weight: 600;
+}
+.sabi-hospitals-insurance-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 11px 16px;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-surface);
+    color: var(--sabi-text-secondary);
+    font-weight: 700;
+    font-size: .84rem;
+    cursor: pointer;
+}
+.sabi-hospitals-insurance-toggle.active {
+    border-color: transparent;
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+}
+
+/* ---------------- Layout ---------------- */
+
+.sabi-hospitals-layout { display: grid; grid-template-columns: 1fr 380px; gap: var(--sabi-space-lg); align-items: start; }
+
+.sabi-hospitals-directory { min-width: 0; }
+.sabi-hospitals-directory-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: var(--sabi-space-md); }
+.sabi-hospitals-directory-head h2 { margin: 0; font-size: 1.3rem; font-weight: 800; color: var(--sabi-text-primary); }
+.sabi-hospitals-directory-head p { margin: 0; color: var(--sabi-text-secondary); font-size: .85rem; }
+
+.sabi-hospitals-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sabi-space-md); }
+
+/* ---------------- Hospital card ---------------- */
+.sabi-hospital-card {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-lg);
+    background: var(--sabi-surface);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.sabi-hospital-card:hover {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    border-color: var(--sabi-primary-light);
+}
+
+.sabi-hospital-card-head { display: flex; justify-content: space-between; align-items: flex-start; }
+
+.sabi-hospital-card-icon {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+}
+
+.sabi-hospital-rating {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #FEF3C7;
+    color: #92400E;
+    font-size: .76rem;
+    font-weight: 800;
+}
+
+.sabi-hospital-card-body { display: grid; gap: 8px; }
+.sabi-hospital-card-body h3 { margin: 0; font-size: 1.02rem; font-weight: 800; color: var(--sabi-text-primary); }
+.sabi-hospital-card-sub { margin: 0; color: var(--sabi-text-secondary); font-size: .78rem; }
+
+.sabi-hospital-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.sabi-hospital-tags span {
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--sabi-page-bg);
+    color: var(--sabi-text-secondary);
+    font-size: .64rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+}
+
+.sabi-hospital-badges { display: flex; flex-wrap: wrap; gap: 12px; }
+.sabi-hospital-badge { display: inline-flex; align-items: center; gap: 5px; font-size: .76rem; font-weight: 700; }
+.sabi-hospital-badge.good { color: #087451; }
+.sabi-hospital-badge.danger { color: var(--sabi-primary-dark); }
+.sabi-hospital-badge.muted { color: var(--sabi-text-secondary); }
+
+.sabi-hospital-card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sabi-hospital-card-actions .sabi-btn-primary { padding: 10px; font-size: .82rem; }
+.sabi-hospital-enroll-btn {
+    padding: 10px;
+    border: 0;
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+    font-weight: 700;
+    font-size: .82rem;
+    cursor: pointer;
+}
+.sabi-hospital-details-btn {
+    grid-column: span 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 9px;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: transparent;
+    color: var(--sabi-text-secondary);
+    font-weight: 700;
+    font-size: .8rem;
+    cursor: pointer;
+}
+.sabi-hospital-details-btn:hover { background: var(--sabi-page-bg); }
+/* ---------------- Sidebar ---------------- */
+
+.sabi-hospitals-sidebar { display: grid; gap: var(--sabi-space-md); }
+.sabi-hospitals-sidebar-head h3 { margin: 0; font-size: 1rem; font-weight: 800; color: var(--sabi-text-primary); }
+.sabi-hospitals-map { height: 260px; border-radius: var(--sabi-radius-lg); overflow: hidden; border: 1px solid var(--sabi-border); }
+
+.sabi-hospitals-memberships { display: grid; gap: var(--sabi-space-sm); }
+.sabi-hospitals-memberships-head h4 { margin: 0; font-size: .88rem; font-weight: 800; color: var(--sabi-text-primary); }
+
+.sabi-hospitals-add-member-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+    border: 0;
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+    font-weight: 700;
+    font-size: .86rem;
+    cursor: pointer;
+}
+
+.sabi-hospitals-memberships-empty { margin: 0; color: var(--sabi-text-secondary); font-size: .82rem; }
+
+.sabi-hospitals-membership-list { display: grid; gap: 8px; }
+.sabi-hospitals-membership-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-page-bg);
+}
+.sabi-hospitals-membership-row .icon {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: var(--sabi-radius-sm);
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+    flex-shrink: 0;
+}
+.sabi-hospitals-membership-row .name { margin: 0; font-size: .82rem; font-weight: 700; }
+.sabi-hospitals-membership-row .plan { margin: 0; font-size: .72rem; color: var(--sabi-text-secondary); }
+.sabi-hospitals-membership-row .verified { margin-left: auto; color: #087451; flex-shrink: 0; }
+
+.sabi-hospitals-manage-btn {
+    padding: 10px;
+    border: 0;
+    background: transparent;
+    color: var(--sabi-primary-dark);
+    font-weight: 700;
+    font-size: .82rem;
+    cursor: pointer;
+}
+.sabi-hospitals-manage-btn:hover { text-decoration: underline; }
+
+@media (max-width: 1000px) {
+    .sabi-hospitals-layout { grid-template-columns: 1fr; }
+    .sabi-hospitals-grid { grid-template-columns: 1fr; }
+    .sabi-hospitals-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ---------------- Hospital detail: plans ---------------- */
+
+.sabi-hospitals-plan-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.sabi-hospitals-plan-card {
+    display: grid;
+    gap: 4px;
+    padding: 14px;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+}
+.sabi-hospitals-plan-card strong { font-size: .88rem; }
+.sabi-hospitals-plan-card span { font-size: .78rem; color: var(--sabi-text-secondary); }
+
+@media (max-width: 620px) {
+    .sabi-hospitals-plan-grid { grid-template-columns: 1fr; }
+}
+
+/* ---------------- Enrollment wizard ---------------- */
+
+.sabi-hospitals-wizard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--sabi-space-md);
+    margin-bottom: var(--sabi-space-md);
+}
+.sabi-hospitals-wizard-header h1 { margin: 0 0 6px; font-size: 1.5rem; font-weight: 800; color: var(--sabi-text-primary); }
+.sabi-hospitals-wizard-header p { margin: 0; max-width: 560px; color: var(--sabi-text-secondary); line-height: 1.5; }
+.sabi-hospitals-tier-tag {
+    flex-shrink: 0;
+    padding: 8px 14px;
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+    font-size: .78rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.sabi-hospitals-wizard-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sabi-space-md);
+    margin-bottom: var(--sabi-space-lg);
+}
+.sabi-hospitals-wizard-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--sabi-text-secondary);
+    font-size: .82rem;
+    font-weight: 700;
+}
+.sabi-hospitals-wizard-step .dot {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--sabi-page-bg);
+    color: var(--sabi-text-secondary);
+}
+.sabi-hospitals-wizard-step.active { color: var(--sabi-primary-dark); }
+.sabi-hospitals-wizard-step.active .dot { background: var(--sabi-primary-light); color: var(--sabi-primary-dark); }
+.sabi-hospitals-wizard-step.done .dot { background: var(--sabi-primary-dark); color: #fff; }
+
+.sabi-hospitals-wizard-layout { display: grid; grid-template-columns: 1fr 320px; gap: var(--sabi-space-lg); align-items: start; }
+.sabi-hospitals-wizard-card h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 1.1rem; font-weight: 800; color: var(--sabi-text-primary); }
+.sabi-hospitals-wizard-note { margin: 0 0 6px; color: var(--sabi-text-secondary); font-size: .86rem; }
+
+.sabi-hospitals-plan-pick {
+    display: grid;
+    gap: 4px;
+    padding: 14px;
+    text-align: left;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-surface);
+    cursor: pointer;
+}
+.sabi-hospitals-plan-pick.selected { border-color: var(--sabi-primary); background: var(--sabi-primary-light); }
+.sabi-hospitals-plan-pick strong { font-size: .9rem; }
+.sabi-hospitals-plan-pick span { font-size: .78rem; color: var(--sabi-text-secondary); }
+
+.sabi-hospitals-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sabi-space-md); margin-top: var(--sabi-space-sm); }
+
+.sabi-hospitals-wizard-card .sabi-booking-field { display: grid; }
+.sabi-hospitals-wizard-card .sabi-booking-label {
+    margin-bottom: 6px;
+    display: block;
+    color: var(--sabi-text-secondary);
+    font-size: .76rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+.sabi-hospitals-wizard-card input[type="text"],
+.sabi-hospitals-wizard-card input[type="date"],
+.sabi-hospitals-wizard-card select,
+.sabi-hospitals-wizard-card textarea {
+    padding: 10px 12px;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-surface);
+    color: var(--sabi-text-primary);
+    font: inherit;
+    font-size: .88rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+.sabi-hospitals-wizard-card input:focus,
+.sabi-hospitals-wizard-card select:focus,
+.sabi-hospitals-wizard-card textarea:focus { outline: none; border-color: var(--sabi-primary); }
+
+.sabi-hospitals-doc-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sabi-space-md); margin-top: var(--sabi-space-sm); }
+.sabi-hospitals-doc-tile {
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+    padding: 22px 12px;
+    border: 2px dashed var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-page-bg);
+    color: var(--sabi-text-secondary);
+    cursor: pointer;
+}
+.sabi-hospitals-doc-tile strong { font-size: .84rem; color: var(--sabi-text-primary); }
+.sabi-hospitals-doc-tile span { font-size: .74rem; }
+.sabi-hospitals-doc-tile.uploaded { border-style: solid; border-color: var(--sabi-primary); background: var(--sabi-primary-light); color: var(--sabi-primary-dark); }
+.sabi-hospitals-doc-tile.uploaded strong { color: var(--sabi-primary-dark); }
+
+.sabi-hospitals-consent-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 14px;
+    margin-top: var(--sabi-space-sm);
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-page-bg);
+    font-size: .84rem;
+    line-height: 1.5;
+    color: var(--sabi-text-secondary);
+}
+.sabi-hospitals-consent-row input { margin-top: 3px; flex-shrink: 0; width: 16px; height: 16px; accent-color: var(--sabi-primary-dark); }
+
+.sabi-hospitals-signature { margin-top: var(--sabi-space-md); }
+.sabi-hospitals-signature-pad {
+    width: 100%;
+    padding: 24px;
+    border: 2px dashed var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-page-bg);
+    color: var(--sabi-text-secondary);
+    font-style: italic;
+    cursor: pointer;
+}
+.sabi-hospitals-signature-pad.signed { border-style: solid; border-color: var(--sabi-primary); background: var(--sabi-primary-light); color: var(--sabi-primary-dark); font-style: normal; font-weight: 700; }
+
+.sabi-hospitals-payment-summary { display: grid; gap: 8px; padding: 14px; margin: var(--sabi-space-sm) 0 var(--sabi-space-md); border-radius: var(--sabi-radius-md); background: var(--sabi-page-bg); }
+.sabi-hospitals-payment-summary div { display: flex; justify-content: space-between; font-size: .86rem; color: var(--sabi-text-secondary); }
+.sabi-hospitals-payment-summary .total { padding-top: 8px; border-top: 1px solid var(--sabi-border); color: var(--sabi-primary-dark); font-weight: 800; font-size: 1rem; }
+
+.sabi-hospitals-payment-methods { display: grid; gap: 10px; }
+.sabi-hospitals-payment-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-surface);
+    text-align: left;
+    cursor: pointer;
+}
+.sabi-hospitals-payment-card.selected { border-color: var(--sabi-primary); background: var(--sabi-primary-light); }
+.sabi-hospitals-payment-card strong { display: block; font-size: .86rem; }
+.sabi-hospitals-payment-card span { font-size: .76rem; color: var(--sabi-text-secondary); }
+
+.sabi-hospitals-review-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: var(--sabi-space-sm); }
+.sabi-hospitals-review-grid div { display: grid; gap: 2px; padding: 12px; border-radius: var(--sabi-radius-md); background: var(--sabi-page-bg); }
+.sabi-hospitals-review-grid span { font-size: .72rem; color: var(--sabi-text-secondary); text-transform: uppercase; letter-spacing: .03em; }
+.sabi-hospitals-review-grid strong { font-size: .88rem; }
+
+.sabi-hospitals-wizard-footer { display: flex; justify-content: space-between; margin-top: var(--sabi-space-lg); padding-top: var(--sabi-space-md); border-top: 1px solid var(--sabi-border); }
+
+.sabi-hospitals-why-card { display: grid; gap: var(--sabi-space-md); }
+.sabi-hospitals-why-card h4 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: .92rem; font-weight: 800; color: var(--sabi-primary-dark); }
+.sabi-hospitals-why-item { display: flex; gap: 10px; }
+.sabi-hospitals-why-item svg { flex-shrink: 0; color: var(--sabi-primary-dark); margin-top: 2px; }
+.sabi-hospitals-why-item strong { display: block; font-size: .84rem; }
+.sabi-hospitals-why-item span { font-size: .78rem; color: var(--sabi-text-secondary); line-height: 1.4; }
+
+.sabi-hospitals-enroll-success {
+    max-width: 520px;
+    margin: 40px auto 0;
+    padding: 40px;
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    text-align: center;
+}
+.sabi-hospitals-enroll-success .icon {
+    width: 72px;
+    height: 72px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+}
+.sabi-hospitals-enroll-success h2 { margin: 4px 0 0; font-size: 1.3rem; font-weight: 800; }
+.sabi-hospitals-enroll-success p { margin: 0; color: var(--sabi-text-secondary); line-height: 1.6; }
+
+@media (max-width: 900px) {
+    .sabi-hospitals-wizard-layout { grid-template-columns: 1fr; }
+    .sabi-hospitals-form-grid { grid-template-columns: 1fr; }
+    .sabi-hospitals-doc-grid { grid-template-columns: 1fr; }
+    .sabi-hospitals-review-grid { grid-template-columns: 1fr; }
+}
+
+/* ---------------- Book Hospital Appointment ---------------- */
+
+.sabi-hospitals-step-num {
+    display: inline-grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--sabi-primary-dark);
+    color: #fff;
+    font-size: .78rem;
+    font-weight: 800;
+}
+
+.sabi-hospitals-booking-steps { display: grid; gap: var(--sabi-space-lg); }
+
+.sabi-hospitals-type-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sabi-space-md); margin-top: var(--sabi-space-sm); }
+.sabi-hospitals-type-card {
+    display: grid;
+    justify-items: start;
+    gap: 6px;
+    padding: 18px;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-surface);
+    color: var(--sabi-text-primary);
+    text-align: left;
+    cursor: pointer;
+}
+.sabi-hospitals-type-card svg { color: var(--sabi-primary-dark); }
+.sabi-hospitals-type-card strong { font-size: .92rem; }
+.sabi-hospitals-type-card span { font-size: .8rem; color: var(--sabi-text-secondary); }
+.sabi-hospitals-type-card.active { border-color: var(--sabi-primary); background: var(--sabi-primary-light); }
+
+.sabi-hospitals-specialist-grid { display: grid; gap: 10px; margin-top: 10px; }
+.sabi-hospitals-specialist-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-surface);
+}
+.sabi-hospitals-specialist-card.active { border-color: var(--sabi-primary); background: var(--sabi-primary-light); }
+.sabi-hospitals-specialist-pick {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    min-width: 0;
+}
+.sabi-hospitals-specialist-card .avatar {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+    flex-shrink: 0;
+}
+.sabi-hospitals-specialist-card strong { display: block; font-size: .86rem; }
+.sabi-hospitals-specialist-card span { display: block; font-size: .76rem; color: var(--sabi-text-secondary); }
+.sabi-hospitals-specialist-card .rating { display: flex; align-items: center; gap: 4px; color: #92400E; margin-top: 2px; }
+.sabi-hospitals-specialist-card .check { color: var(--sabi-primary-dark); flex-shrink: 0; }
+.sabi-hospitals-specialist-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.sabi-hospitals-view-profile-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    border: 1px solid var(--sabi-border);
+    border-radius: 999px;
+    background: var(--sabi-surface);
+    color: var(--sabi-text-secondary);
+    font-size: .72rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.sabi-hospitals-view-profile-btn:hover { background: var(--sabi-page-bg); }
+
+.sabi-hospitals-specialist-profile { display: flex; align-items: center; gap: 14px; }
+.sabi-hospitals-specialist-profile .avatar {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+    flex-shrink: 0;
+}
+.sabi-hospitals-specialist-profile strong { display: block; font-size: .9rem; margin-bottom: 4px; }
+.sabi-hospitals-specialist-profile .rating { display: flex; align-items: center; gap: 4px; color: #92400E; font-size: .8rem; margin-bottom: 2px; }
+.sabi-hospitals-specialist-profile span:not(.rating) { display: block; font-size: .8rem; color: var(--sabi-text-secondary); }
+
+.sabi-hospitals-booking-for { display: grid; gap: 10px; }
+.sabi-hospitals-booking-for-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.sabi-hospitals-booking-for-chip {
+    padding: 8px 16px;
+    border: 1px solid var(--sabi-border);
+    border-radius: 999px;
+    background: var(--sabi-surface);
+    color: var(--sabi-text-primary);
+    font-weight: 700;
+    font-size: .84rem;
+    cursor: pointer;
+}
+.sabi-hospitals-booking-for-chip.active { border-color: transparent; background: var(--sabi-gradient-primary, var(--sabi-primary-dark)); color: #fff; }
+.sabi-hospitals-booking-for-locked {
+    display: inline-flex;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+    font-size: .84rem;
+}
+
+.sabi-hospitals-enroll-required {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+.sabi-hospitals-enroll-required svg { color: var(--sabi-danger); flex-shrink: 0; }
+.sabi-hospitals-enroll-required > div { flex: 1; min-width: 220px; }
+.sabi-hospitals-enroll-required strong { display: block; font-size: .9rem; margin-bottom: 4px; }
+.sabi-hospitals-enroll-required span { font-size: .82rem; color: var(--sabi-text-secondary); }
+
+.sabi-hospitals-enroll-success .icon.pending { background: #FEF3C7; color: #92400E; }
+
+
+.sabi-booking-days {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 8px;
+}
+.sabi-booking-days button {
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    padding: 10px 4px;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-surface);
+    color: var(--sabi-text-primary);
+    cursor: pointer;
+}
+.sabi-booking-days button small { color: var(--sabi-text-secondary); font-size: .66rem; text-transform: uppercase; }
+.sabi-booking-days button.active { border-color: transparent; background: var(--sabi-gradient-primary, var(--sabi-primary-dark)); color: #fff; }
+.sabi-booking-days button.active small { color: rgba(255, 255, 255, .85); }
+
+.sabi-booking-slots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+.sabi-booking-slots button {
+    padding: 10px;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-surface);
+    font-weight: 600;
+    font-size: .84rem;
+    cursor: pointer;
+}
+.sabi-booking-slots button.active { border-color: transparent; background: var(--sabi-gradient-primary, var(--sabi-primary-dark)); color: #fff; }
+
+.sabi-hospitals-booking-summary h4 { margin: 0 0 12px; font-size: .92rem; font-weight: 800; }
+.sabi-hospitals-booking-summary .row { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 12px; color: var(--sabi-text-secondary); }
+.sabi-hospitals-booking-summary .row svg { margin-top: 3px; color: var(--sabi-primary-dark); flex-shrink: 0; }
+.sabi-hospitals-booking-summary .row span { display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .03em; }
+.sabi-hospitals-booking-summary .row strong { display: block; font-size: .86rem; color: var(--sabi-text-primary); }
+.sabi-hospitals-booking-summary .row em { display: block; font-style: normal; font-size: .76rem; color: var(--sabi-text-secondary); }
+
+.sabi-hospitals-secure-note { display: flex; gap: 10px; }
+.sabi-hospitals-secure-note svg { color: var(--sabi-primary-dark); flex-shrink: 0; margin-top: 2px; }
+.sabi-hospitals-secure-note strong { display: block; font-size: .86rem; margin-bottom: 2px; }
+.sabi-hospitals-secure-note span { font-size: .78rem; color: var(--sabi-text-secondary); line-height: 1.5; }
+
+@media (max-width: 900px) {
+    .sabi-hospitals-type-grid { grid-template-columns: 1fr; }
+    .sabi-booking-days { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .sabi-booking-slots { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ---------------- Digital check-in ---------------- */
+
+.sabi-hospitals-checkin-ready {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--sabi-space-md);
+    flex-wrap: wrap;
+}
+.sabi-hospitals-checkin-ready strong { display: block; font-size: .96rem; margin-bottom: 3px; }
+.sabi-hospitals-checkin-ready span { display: block; font-size: .84rem; color: var(--sabi-text-secondary); max-width: 420px; }
+
+.sabi-hospitals-queue-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sabi-space-md); }
+.sabi-hospitals-queue-card { text-align: center; }
+.sabi-hospitals-queue-card .label { display: flex; align-items: center; justify-content: center; gap: 4px; color: var(--sabi-text-secondary); font-size: .78rem; font-weight: 700; margin-bottom: 6px; }
+.sabi-hospitals-queue-card .big { font-size: 1.8rem; font-weight: 800; color: var(--sabi-primary-dark); }
+.sabi-hospitals-queue-card .big small { font-size: 1rem; font-weight: 600; color: var(--sabi-text-secondary); }
+
+.sabi-hospitals-checkin-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sabi-space-md); }
+.sabi-hospitals-checkin-grid h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: .9rem; font-weight: 800; }
+.sabi-hospitals-parking-row { display: flex; gap: var(--sabi-space-md); margin: 10px 0; }
+.sabi-hospitals-parking-row div { flex: 1; padding: 10px; text-align: center; border-radius: var(--sabi-radius-md); background: var(--sabi-primary-light); }
+.sabi-hospitals-parking-row span { display: block; font-size: .68rem; color: var(--sabi-primary-dark); font-weight: 700; }
+.sabi-hospitals-parking-row strong { font-size: 1.2rem; color: var(--sabi-primary-dark); }
+
+.sabi-hospitals-help-row { display: flex; align-items: center; gap: 12px; }
+.sabi-hospitals-help-row svg { color: var(--sabi-primary-dark); flex-shrink: 0; }
+.sabi-hospitals-help-row > div { flex: 1; }
+.sabi-hospitals-help-row strong { display: block; font-size: .88rem; }
+.sabi-hospitals-help-row span { font-size: .8rem; color: var(--sabi-text-secondary); }
+
+.sabi-hospitals-entry-pass { text-align: center; }
+.sabi-hospitals-entry-pass h4 { margin: 0 0 14px; font-size: .92rem; font-weight: 800; }
+.sabi-hospitals-qr-box { display: grid; place-items: center; padding: 24px; margin-bottom: 10px; border-radius: var(--sabi-radius-md); background: var(--sabi-page-bg); color: var(--sabi-primary-dark); }
+.sabi-hospitals-entry-pass > p { margin: 0 0 10px; font-size: .78rem; color: var(--sabi-text-secondary); }
+.sabi-hospitals-entry-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: var(--sabi-page-bg);
+    color: var(--sabi-text-secondary);
+    font-size: .74rem;
+    font-weight: 700;
+}
+.sabi-hospitals-entry-status.active { background: var(--sabi-primary-light); color: var(--sabi-primary-dark); }
+
+.sabi-hospitals-appt-summary h4 { margin: 0 0 12px; font-size: .9rem; font-weight: 800; }
+.sabi-hospitals-appt-summary .row { display: flex; gap: 10px; margin-bottom: 12px; }
+.sabi-hospitals-appt-summary .row svg { color: var(--sabi-primary-dark); flex-shrink: 0; margin-top: 2px; }
+.sabi-hospitals-appt-summary .row span { display: block; font-size: .68rem; color: var(--sabi-text-secondary); text-transform: uppercase; }
+.sabi-hospitals-appt-summary .row strong { display: block; font-size: .84rem; }
+
+@media (max-width: 700px) {
+    .sabi-hospitals-checkin-grid { grid-template-columns: 1fr; }
+}
+
+/* ---------------- Family Hospital Enrollment ---------------- */
+
+.sabi-hospitals-enroll-banner {
+    padding: 12px 18px;
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+    font-size: .86rem;
+    font-weight: 600;
+}
+
+.sabi-family-hosp-value-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sabi-space-md); }
+.sabi-family-hosp-value-row .sabi-card { display: grid; gap: 6px; }
+.sabi-family-hosp-value-row svg { color: var(--sabi-primary-dark); }
+.sabi-family-hosp-value-row strong { font-size: .92rem; }
+.sabi-family-hosp-value-row span { font-size: .8rem; color: var(--sabi-text-secondary); }
+
+.sabi-family-hosp-head { display: flex; justify-content: space-between; align-items: center; }
+.sabi-family-hosp-head h2 { margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--sabi-text-primary); }
+
+.sabi-family-hosp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sabi-space-md); }
+
+.sabi-family-hosp-card { display: grid; gap: 12px; }
+.sabi-family-hosp-card-head { display: flex; align-items: center; gap: 10px; }
+.sabi-family-hosp-card-head .avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.sabi-family-hosp-card-head strong { display: block; font-size: .92rem; }
+.sabi-family-hosp-card-head .tag { display: block; font-size: .76rem; color: var(--sabi-text-secondary); }
+.sabi-family-hosp-card-head .sabi-icon-btn { margin-left: auto; border: 0; background: transparent; color: var(--sabi-text-secondary); cursor: pointer; }
+
+.sabi-family-hosp-status-row { display: flex; justify-content: space-between; align-items: center; font-size: .8rem; color: var(--sabi-text-secondary); font-weight: 600; }
+.sabi-family-hosp-status-row .pill { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; font-size: .74rem; font-weight: 700; }
+.sabi-family-hosp-status-row .pill.enrolled { background: #d5fae9; color: #087451; }
+.sabi-family-hosp-status-row .pill.pending { background: #FEF3C7; color: #92400E; }
+.sabi-family-hosp-status-row .pill.not-enrolled { background: var(--sabi-page-bg); color: var(--sabi-text-secondary); }
+
+.sabi-family-hosp-facility { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: var(--sabi-radius-md); background: var(--sabi-page-bg); }
+.sabi-family-hosp-facility svg { color: var(--sabi-primary-dark); flex-shrink: 0; }
+.sabi-family-hosp-facility strong { display: block; font-size: .84rem; }
+.sabi-family-hosp-facility span { display: block; font-size: .74rem; color: var(--sabi-text-secondary); }
+.sabi-family-hosp-facility.empty { justify-content: center; text-align: center; color: var(--sabi-text-secondary); font-size: .8rem; border: 1px dashed var(--sabi-border); }
+
+.sabi-family-hosp-patient-id { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: .8rem; }
+.sabi-family-hosp-patient-id strong { color: var(--sabi-primary-dark); }
+.sabi-family-hosp-note { margin: 0; font-size: .78rem; color: var(--sabi-text-secondary); }
+
+.sabi-family-hosp-add-tile {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 6px;
+    padding: 24px;
+    text-align: center;
+    border: 2px dashed var(--sabi-border);
+    border-radius: var(--sabi-radius-lg);
+    background: var(--sabi-page-bg);
+    color: var(--sabi-text-secondary);
+    cursor: pointer;
+}
+.sabi-family-hosp-add-tile svg { color: var(--sabi-primary-dark); }
+.sabi-family-hosp-add-tile strong { color: var(--sabi-text-primary); font-size: .92rem; }
+.sabi-family-hosp-add-tile span { font-size: .8rem; max-width: 260px; }
+.sabi-family-hosp-add-tile .cta { color: var(--sabi-primary-dark); font-weight: 700; }
+
+.sabi-family-hosp-partners { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sabi-space-md); }
+.sabi-family-hosp-partner { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.sabi-family-hosp-partner strong { display: block; font-size: .88rem; }
+.sabi-family-hosp-partner span { display: block; font-size: .76rem; color: var(--sabi-text-secondary); }
+.sabi-family-hosp-partner .chevron { margin-left: auto; color: var(--sabi-text-secondary); flex-shrink: 0; }
+
+@media (max-width: 900px) {
+    .sabi-family-hosp-value-row { grid-template-columns: 1fr; }
+    .sabi-family-hosp-grid { grid-template-columns: 1fr; }
+    .sabi-family-hosp-partners { grid-template-columns: 1fr; }
+}
+
+/* ---------------- Family plan picker (enrollment wizard) ---------------- */
+
+.sabi-hospitals-plan-pick em { font-style: normal; font-size: .72rem; color: var(--sabi-text-secondary); margin-top: 2px; }
+
+.sabi-hospitals-family-plan-box {
+    margin-top: var(--sabi-space-md);
+    padding: 14px;
+    border: 1px dashed var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-page-bg);
+}
+.sabi-hospitals-family-plan-head span { font-size: .82rem; font-weight: 700; color: var(--sabi-text-primary); }
+
+.sabi-hospitals-family-plan-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.sabi-hospitals-family-plan-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+    font-size: .78rem;
+    font-weight: 700;
+}
+.sabi-hospitals-family-plan-chip button {
+    border: 0;
+    background: transparent;
+    color: var(--sabi-primary-dark);
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+}
+
+.sabi-hospitals-family-plan-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.sabi-hospitals-family-plan-add-btn {
+    padding: 8px 14px;
+    border: 1px solid var(--sabi-border);
+    border-radius: 999px;
+    background: var(--sabi-surface);
+    color: var(--sabi-primary-dark);
+    font-weight: 700;
+    font-size: .8rem;
+    cursor: pointer;
+}
+.sabi-hospitals-family-plan-add-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.sabi-hospitals-confirm-modal { max-width: 420px; padding: var(--sabi-space-lg); }
+.sabi-hospitals-confirm-modal h3 { margin: 0 0 8px; font-size: 1.05rem; font-weight: 800; }
+.sabi-hospitals-confirm-modal p { margin: 0 0 16px; color: var(--sabi-text-secondary); font-size: .88rem; line-height: 1.5; }
+.sabi-hospitals-confirm-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+/* ---------------- Hospital detail: contact + enroll note ---------------- */
+
+.sabi-hospitals-contact-grid { display: grid; gap: 8px; }
+.sabi-hospitals-contact-grid div { display: flex; align-items: center; gap: 8px; font-size: .84rem; color: var(--sabi-text-secondary); }
+.sabi-hospitals-contact-grid svg { color: var(--sabi-primary-dark); flex-shrink: 0; }
+
+.sabi-hospitals-enroll-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    padding: 10px 14px;
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+    font-size: .82rem;
+    font-weight: 600;
+}

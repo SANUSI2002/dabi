@@ -1,0 +1,741 @@
+/* ==========================================================
+   Appointments.css — Appointments + Reschedule Appointment
+   Builds on shared --sabi-* tokens/classes from Dashboard.css.
+   ========================================================== */
+
+.sabi-apt-header {
+ 
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sabi-space-md);
+  flex-wrap: wrap;
+  margin: var(--sabi-space-sm) 0 var(--sabi-space-lg);
+}
+
+.sabi-apt-header h1 {
+  
+  margin: 0 0 6px;
+  font-size: calc(1.65rem * var(--sabi-font-scale));
+  font-weight: 800;
+  color: var(--sabi-text-primary);
+}
+
+.sabi-apt-header p {
+  
+  margin: 0;
+  max-width: 600px;
+  color: var(--sabi-text-secondary);
+  font-size: calc(0.98rem * var(--sabi-font-scale));
+  line-height: 1.5;
+}
+
+.sabi-apt-book-btn {
+ 
+   flex-shrink: 0; 
+   display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: auto;
+  margin-bottom: auto;
+
+ }
+
+/* ---------------- Stats ---------------- */
+
+.sabi-apt-stats {
+  display: grid;
+  /* auto-responsive: 4 columns on desktop, collapses via media queries */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sabi-space-md);
+  margin-bottom: var(--sabi-space-lg);
+}
+.sabi-apt-stat-card{
+ 
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px 16px;
+
+}
+
+
+.sabi-apt-stat-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--sabi-radius-sm);
+  background: var(--sabi-page-bg);
+  color: var(--sabi-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--sabi-space-sm);
+}
+
+.sabi-apt-stat-label {
+  font-size: calc(0.78rem * var(--sabi-font-scale));
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--sabi-text-secondary);
+  margin-bottom: 4px;
+}
+
+.sabi-apt-stat-value { font-size: calc(1.7rem * var(--sabi-font-scale)); font-weight: 800; }
+
+/* ---------------- Filter tabs ---------------- */
+
+.sabi-apt-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: var(--sabi-space-lg);
+}
+
+.sabi-apt-tab {
+  border: 1px solid var(--sabi-border);
+  background: var(--sabi-surface);
+  color: var(--sabi-text-secondary);
+  font-weight: 600;
+  font-size: calc(0.86rem * var(--sabi-font-scale));
+  border-radius: var(--sabi-radius-lg);
+  padding: 8px 18px;
+  cursor: pointer;
+}
+
+.sabi-apt-tab.active { background: var(--sabi-primary); border-color: var(--sabi-primary); color: #fff; }
+
+/* ---------------- Layout ---------------- */
+
+.sabi-apt-grid { grid-template-columns: 1.15fr 1fr; margin-bottom: var(--sabi-space-lg); }
+
+/* ---------------- Calendar ---------------- */
+.sabi-apt-calendar{
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 20px 16px;
+ 
+ 
+}
+
+.calendar-selectors {
+  display: flex;
+  gap: 8px;
+}
+
+
+.calendar-selectors select {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+.sabi-apt-calendar-head {
+ 
+  display: flex;
+  align-items: center;
+  gap: var(--sabi-space-sm);
+  margin-bottom: var(--sabi-space-md);
+}
+
+.sabi-apt-calendar-head h3 { margin: 0; font-size: calc(1.05rem * var(--sabi-font-scale)); font-weight: 800; flex-shrink: 0; }
+
+.sabi-resched-month-pill {
+  background: var(--sabi-page-bg);
+  color: var(--sabi-text-primary);
+  font-weight: 700;
+  font-size: calc(0.82rem * var(--sabi-font-scale));
+  border-radius: var(--sabi-radius-md);
+  padding: 6px 12px;
+}
+
+.sabi-apt-calendar-nav { 
+  display: flex; 
+  gap: 6px; 
+  margin-left: auto; 
+}
+
+.sabi-apt-calendar-nav button {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--sabi-border);
+  background: var(--sabi-surface);
+  color: var(--sabi-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sabi-apt-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.sabi-apt-calendar-weekdays span {
+  text-align: center;
+  font-size: calc(0.78rem * var(--sabi-font-scale));
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--sabi-text-secondary);
+  padding-bottom: 6px;
+}
+
+.sabi-apt-day {
+  
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--sabi-radius-sm);
+  font-size: calc(0.85rem * var(--sabi-font-scale));
+  font-weight: 600;
+  color: #1a1818f5;
+  background: #FCFAFF;
+  
+}
+
+.sabi-apt-day.muted { color: var(--sabi-border); }
+
+.sabi-apt-day.selected { background: var(--sabi-primary-dark); color: #fff; }
+
+.sabi-apt-day-btn { 
+ 
+  border: none;
+  background: #FCFAFF;
+  cursor: pointer;
+ }
+.sabi-apt-day-btn:hover:not(.muted):not(.selected) { background: var(--sabi-page-bg); }
+.sabi-apt-day-btn:disabled { cursor: not-allowed; }
+.sabi-apt-day.disabled { color: var(--sabi-border); background: transparent; opacity: .65; }
+.sabi-apt-day.today { box-shadow: inset 0 0 0 1px var(--sabi-primary); }
+.sabi-apt-day-btn:focus-visible,
+.sabi-apt-calendar-nav button:focus-visible,
+.calendar-selectors select:focus-visible { outline: 2px solid var(--sabi-primary); outline-offset: 2px; }
+
+.sabi-apt-day-dot {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--sabi-primary);
+}
+
+.sabi-apt-day.selected .sabi-apt-day-dot { background: #fff; }
+
+/* ---------------- Upcoming appointments list ---------------- */
+
+.sabi-apt-list { display: flex; flex-direction: column; gap: var(--sabi-space-md); }
+
+.sabi-apt-item {
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-md);
+  padding: var(--sabi-space-md);
+}
+
+.sabi-apt-item-top { display: flex; gap: var(--sabi-space-sm); align-items: flex-start; }
+
+.sabi-apt-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 700;
+  font-size: calc(0.85rem * var(--sabi-font-scale));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sabi-apt-item-body { flex: 1; min-width: 0; }
+.sabi-apt-item-name { font-weight: 800; font-size: calc(0.95rem * var(--sabi-font-scale)); }
+.sabi-apt-item-sub { font-size: calc(0.82rem * var(--sabi-font-scale)); color: var(--sabi-text-secondary); margin-top: 1px; }
+.sabi-apt-item-location { font-size: calc(0.78rem * var(--sabi-font-scale)); color: var(--sabi-text-secondary); margin-top: 2px; }
+
+.sabi-apt-item-when { text-align: right; flex-shrink: 0; }
+.sabi-apt-item-date { font-weight: 700; color: var(--sabi-primary); font-size: calc(0.85rem * var(--sabi-font-scale)); }
+.sabi-apt-item-time { font-size: calc(0.78rem * var(--sabi-font-scale)); color: var(--sabi-text-secondary); }
+
+.sabi-apt-item-actions { display: flex; gap: 8px; margin-top: var(--sabi-space-md); }
+
+.sabi-apt-item-pending {
+  border: 2px dashed var(--sabi-border);
+  background: var(--sabi-page-bg);
+}
+
+.sabi-apt-pending-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: var(--sabi-space-sm);
+  padding: 8px 12px;
+  border-radius: var(--sabi-radius-sm);
+  background: #FEF3C7;
+  color: #92400E;
+  font-size: .8rem;
+  font-weight: 700;
+}
+
+.sabi-apt-item-declined {
+  border: 1px solid color-mix(in srgb, var(--sabi-danger) 30%, transparent);
+  background: color-mix(in srgb, var(--sabi-danger) 4%, transparent);
+}
+
+.sabi-apt-declined-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: var(--sabi-space-sm);
+  padding: 8px 12px;
+  border-radius: var(--sabi-radius-sm);
+  background: color-mix(in srgb, var(--sabi-danger) 10%, transparent);
+  color: var(--sabi-danger);
+  font-size: .8rem;
+  font-weight: 700;
+}
+
+.sabi-apt-accept-btn,
+.sabi-apt-decline-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 0;
+  border-radius: var(--sabi-radius-md);
+  padding: 10px;
+  font-weight: 700;
+  font-size: calc(0.86rem * var(--sabi-font-scale));
+  cursor: pointer;
+}
+.sabi-apt-accept-btn { background: var(--sabi-gradient-primary, linear-gradient(135deg, #14B586 0%, #0B5E48 100%)); color: #fff; }
+.sabi-apt-decline-btn { background: transparent; border: 1px solid var(--sabi-danger); color: var(--sabi-danger); }
+.sabi-apt-decline-btn:hover { background: color-mix(in srgb, var(--sabi-danger) 8%, transparent); }
+
+.sabi-apt-request-detail { margin-top: var(--sabi-space-sm); }
+.sabi-apt-request-detail span {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--sabi-text-secondary);
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.sabi-apt-request-detail p {
+  margin: 0;
+  font-size: .86rem;
+  line-height: 1.5;
+}
+
+.sabi-apt-view-btn,
+.sabi-apt-secondary-btn {
+  flex: 1;
+  text-align: center;
+  border: 1px solid var(--sabi-border);
+  background: var(--sabi-surface);
+  color: var(--sabi-text-primary);
+  font-weight: 600;
+  font-size: calc(0.86rem * var(--sabi-font-scale));
+  border-radius: var(--sabi-radius-md);
+  padding: 10px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sabi-apt-view-btn { background: var(--sabi-primary-light); color: var(--sabi-primary-dark); border-color: transparent; }
+
+.sabi-apt-join-btn,
+.sabi-apt-checkin-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: var(--sabi-radius-md);
+  padding: 10px;
+  font-weight: 700;
+  font-size: calc(0.86rem * var(--sabi-font-scale));
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sabi-apt-join-btn {
+  background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%);
+  box-shadow: 0 6px 16px rgba(185, 28, 28, .25);
+}
+.sabi-apt-join-btn:hover { filter: brightness(1.05); }
+
+.sabi-apt-checkin-btn {
+  background: var(--sabi-gradient-primary, linear-gradient(135deg, #14B586 0%, #0B5E48 100%));
+  box-shadow: 0 6px 16px rgba(11, 94, 72, .22);
+}
+.sabi-apt-checkin-btn:hover { filter: brightness(1.05); }
+
+.sabi-apt-housecall-note {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 10px;
+  border-radius: var(--sabi-radius-md);
+  background: var(--sabi-page-bg);
+  color: var(--sabi-text-secondary);
+  font-size: calc(0.8rem * var(--sabi-font-scale));
+  font-weight: 600;
+}
+
+button.sabi-emcard-contact {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+button.sabi-emcard-contact:hover {
+  color: var(--sabi-primary-dark);
+  text-decoration: underline;
+}
+
+/* ---------------- Nearby healthcare ---------------- */
+
+.sabi-nearby-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sabi-space-md);
+}
+.sabi-nearby-card{
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px 16px;
+ 
+  width: 100%;
+
+
+}
+.sabi-nearby-thumb {
+   
+  height: 90px;
+  border-radius: var(--sabi-radius-md);
+  background: var(--sabi-primary-light);
+  color: var(--sabi-primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--sabi-space-sm);
+}
+
+.sabi-nearby-name {
+   
+   font-weight: 700; 
+   font-size: calc(0.9rem * var(--sabi-font-scale)); 
+   margin-bottom: 4px; }
+
+.sabi-nearby-distance {
+   
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: calc(0.78rem * var(--sabi-font-scale));
+  color: var(--sabi-text-secondary);
+  margin-bottom: var(--sabi-space-sm);
+}
+
+.sabi-nearby-tags { 
+  display: flex; 
+  flex-wrap: wrap; 
+  gap: 6px;
+  margin-bottom: 1.5em;
+   
+}
+
+.sabi-nearby-tag {
+   
+  font-size: calc(0.7rem * var(--sabi-font-scale));
+  font-weight: 700;
+  color: var(--sabi-primary-dark);
+  background: var(--sabi-primary-light);
+  border-radius: var(--sabi-radius-lg);
+  padding: 3px 10px;
+}
+
+/* ---------------- Reschedule page ---------------- */
+.sabi-resched-confirm-btn {
+  width: 100%;
+  margin-top: 12px;
+  background: #054B43;
+  color: #FFFFFF;
+  border: none;
+  border-radius: var(--sabi-radius-md);
+  font-weight: 700;
+  padding: 12px 20px;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+.sabi-resched-confirm-btn:hover:not(:disabled) { background: #06615A; }
+.sabi-resched-confirm-btn:active:not(:disabled) { transform: scale(0.98); }
+.sabi-resched-confirm-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+
+
+
+
+
+
+
+
+
+.sabi-resched-cancel {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  text-align: center;
+  background: #ffffff;
+  color: var(--sabi-danger, #C0392B);
+  border: 1px solid var(--sabi-danger, #C0392B);
+  border-radius: var(--sabi-radius-md);
+  font-weight: 700;
+  padding: 12px 20px;
+  text-decoration: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.sabi-resched-cancel:hover {
+  background: var(--sabi-danger, #C0392B);
+  color: #ffffff;
+}
+
+
+
+.sabi-resched-mode-row { margin: 16px 0; }
+.sabi-resched-days { margin-bottom: 14px; }
+
+.sabi-resched-done-card {
+  max-width: 480px;
+  margin: 40px auto 0;
+  text-align: center;
+}
+.sabi-resched-done-title { margin-top: 0; }
+.sabi-resched-done-text { color: var(--sabi-text-secondary); }
+.sabi-resched-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sabi-space-md);
+  margin: var(--sabi-space-sm) 0 var(--sabi-space-lg);
+}
+
+.sabi-resched-back {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--sabi-border);
+  background: var(--sabi-surface);
+  color: var(--sabi-text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.sabi-resched-header h1 { margin: 0 0 4px; font-size: calc(1.4rem * var(--sabi-font-scale)); font-weight: 800; }
+.sabi-resched-header p { margin: 0; color: var(--sabi-text-secondary); font-size: calc(0.88rem * var(--sabi-font-scale)); }
+
+.sabi-resched-grid { grid-template-columns: 1.2fr 1fr; align-items: start; }
+
+.sabi-resched-current { display: flex; gap: var(--sabi-space-md); margin-bottom: var(--sabi-space-lg); }
+.sabi-resched-current-body { flex: 1; min-width: 0; }
+.sabi-resched-current-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sabi-resched-current-name { font-weight: 800; font-size: calc(1rem * var(--sabi-font-scale)); }
+
+.sabi-resched-booking-pill {
+  font-size: calc(0.68rem * var(--sabi-font-scale));
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--sabi-primary-dark);
+  background: var(--sabi-primary-light);
+  border-radius: var(--sabi-radius-lg);
+  padding: 3px 10px;
+}
+
+.sabi-resched-current-sub { font-size: calc(0.84rem * var(--sabi-font-scale)); color: var(--sabi-text-secondary); margin-top: 3px; }
+.sabi-resched-current-when { font-size: calc(0.84rem * var(--sabi-font-scale)); font-weight: 600; margin-top: 6px; }
+
+.sabi-resched-panel-title { margin: 0 0 2px; font-size: calc(1.05rem * var(--sabi-font-scale)); font-weight: 800; }
+.sabi-resched-panel-sub { margin: 0 0 var(--sabi-space-md); font-size: calc(0.82rem * var(--sabi-font-scale)); color: var(--sabi-text-secondary); }
+
+.sabi-resched-slots {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: var(--sabi-space-lg);
+}
+
+.sabi-resched-slot {
+  border: 1px solid var(--sabi-border);
+  background: var(--sabi-surface);
+  color: var(--sabi-text-primary);
+  font-weight: 600;
+  font-size: calc(0.84rem * var(--sabi-font-scale));
+  border-radius: var(--sabi-radius-md);
+  padding: 10px 6px;
+  cursor: pointer;
+}
+
+.sabi-resched-slot.selected { border-color: var(--sabi-primary); background: var(--sabi-primary-light); color: var(--sabi-primary-dark); }
+
+.sabi-resched-reason-label {
+  display: block;
+  font-size: calc(0.84rem * var(--sabi-font-scale));
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.sabi-resched-reason {
+  width: 100%;
+  font-family: inherit;
+  font-size: calc(0.88rem * var(--sabi-font-scale));
+  color: var(--sabi-text-primary);
+  background: var(--sabi-page-bg);
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-md);
+  padding: var(--sabi-space-sm);
+  resize: vertical;
+}
+
+.sabi-resched-reason:focus { outline: none; border-color: var(--sabi-primary); }
+
+.sabi-resched-cancel { display: flex; margin-top: var(--sabi-space-sm); }
+
+/* ---------------- Responsive ---------------- */
+
+/* Tablet (≤1080px) */
+@media (max-width: 1080px) {
+  .sabi-apt-grid, .sabi-resched-grid { grid-template-columns: 1fr; }
+  .sabi-apt-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sabi-nearby-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* Large mobile (≤768px) */
+@media (max-width: 768px) {
+  .sabi-apt-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sabi-nearby-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Mobile (≤560px) */
+@media (max-width: 560px) {
+  .sabi-apt-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sabi-nearby-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sabi-resched-slots { grid-template-columns: 1fr 1fr; }
+  /* Appointment action buttons stack on small screens */
+  .sabi-apt-item-actions { flex-wrap: wrap; }
+  .sabi-apt-item-actions > * { flex: 1; min-width: calc(50% - 4px); }
+}
+
+/* Small mobile (≤400px) */
+@media (max-width: 400px) {
+  .sabi-apt-stats { grid-template-columns: 1fr; }
+  .sabi-nearby-grid { grid-template-columns: 1fr; }
+  .sabi-apt-item-actions > * { flex: 1 1 100%; }
+  .sabi-apt-stat-value { font-size: calc(1.4rem * var(--sabi-font-scale)); }
+}
+
+/* ---------------- Reschedule: mode toggle + advance request ---------------- */
+
+.sabi-booking-mode-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sabi-space-sm);
+    padding: 4px;
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-surface-muted, #f6faf8);
+}
+.sabi-booking-mode-row button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 10px;
+    border: 0;
+    border-radius: var(--sabi-radius-sm);
+    background: transparent;
+    color: var(--sabi-text-secondary);
+    font-weight: 700;
+    font-size: .86rem;
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease;
+}
+.sabi-booking-mode-row button.active {
+    background: var(--sabi-surface);
+    color: var(--sabi-primary-dark);
+    box-shadow: 0 2px 8px rgba(0, 47, 44, .12);
+}
+
+.sabi-booking-days {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+}
+.sabi-booking-days button {
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    padding: 10px 4px;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-surface);
+    color: var(--sabi-text-primary);
+    cursor: pointer;
+}
+.sabi-booking-days button small { color: var(--sabi-text-secondary); font-size: .66rem; text-transform: uppercase; }
+.sabi-booking-days button.active { border-color: transparent; background: var(--sabi-gradient-primary, var(--sabi-primary-dark)); color: #fff; }
+.sabi-booking-days button.active small { color: rgba(255, 255, 255, .85); }
+
+.sabi-resched-advance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sabi-space-md); }
+.sabi-booking-field { display: grid; }
+.sabi-booking-label {
+    margin-bottom: 6px;
+    display: block;
+    color: var(--sabi-text-secondary);
+    font-size: .76rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+.sabi-booking-field input {
+    padding: 10px 12px;
+    border: 1px solid var(--sabi-border);
+    border-radius: var(--sabi-radius-md);
+    background: var(--sabi-surface);
+    color: var(--sabi-text-primary);
+    font: inherit;
+    font-size: .88rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+.sabi-booking-field input:focus { outline: none; border-color: var(--sabi-primary); }
+
+@media (max-width: 620px) {
+    .sabi-booking-days { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .sabi-resched-advance-grid { grid-template-columns: 1fr; }
+}

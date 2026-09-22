@@ -43,4 +43,4 @@ export type AuthResult =
   | { status: "MFA_REQUIRED"; identity: SabiIdentity; memberships: OrganizationMembership[]; challengeId: string }
   | { status: "FAILED"; message: string };
 
-export type PostAuthDestination = "/command-center" | "/choose-organization" | "/workspace" | "/patient";
+export type PostAuthDestination = "/command-center" | "/choose-organization" | "/workspace" | "/patient" | "/pharmacy-portal";

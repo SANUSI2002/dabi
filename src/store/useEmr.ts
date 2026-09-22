@@ -6,6 +6,7 @@ import type {
   Encounter,
   Vitals,
   LabOrder,
+  Prescription,
   Admission,
   Appointment,
   Referral,
@@ -28,6 +29,7 @@ import type {
   BirthRegisterEntry,
 } from "@/data/types";
 import { SERVICE_TYPES, PATIENT_CATEGORIES } from "@/data/catalog";
+import { PRESCRIPTION_PENDING_STATUSES } from "@/data/pharmacyOps";
 import { audit } from "@/store/useAudit";
 import { useIdentity } from "@/store/useIdentity";
 import { persisted } from "@/platform/persist";
@@ -40,7 +42,7 @@ const rid = () => Math.random().toString(36).slice(2, 9);
 const financialReadinessReasons = (encounterId: string, labOrders: LabOrder[], encounters: Encounter[]) => {
   const pendingLabs = labOrders.filter((order) => order.encounterId === encounterId && order.status === "Pending").length;
   const encounter = encounters.find((item) => item.id === encounterId);
-  const pendingPharmacy = encounter?.prescriptions.filter((prescription) => prescription.status === "Pending").length ?? 0;
+  const pendingPharmacy = encounter?.prescriptions.filter((prescription) => (PRESCRIPTION_PENDING_STATUSES as readonly string[]).includes(prescription.status)).length ?? 0;
   return [
     ...(pendingLabs ? [`Laboratory: ${pendingLabs} specimen${pendingLabs === 1 ? "" : "s"} pending`] : []),
     ...(pendingPharmacy ? [`Pharmacy: ${pendingPharmacy} dispense${pendingPharmacy === 1 ? "" : "s"} pending`] : []),
@@ -91,6 +93,15 @@ type EmrState = {
 
   saveEncounter: (e: Omit<Encounter, "id" | "date">) => string;
   amendEncounter: (id: string, patch: Partial<Pick<Encounter, "examination" | "assessment" | "plan" | "followUp" | "patientInstructions">>, note: string) => void;
+  /** Ward Round support — a lightweight encounter that holds the round's medication
+   *  orders/changes, separate from saveEncounter's queue-coupled outpatient flow. */
+  createWardRoundEncounter: (patientId: string, provider: string) => string;
+  appendPrescriptions: (encounterId: string, prescriptions: Prescription[]) => void;
+  setPrescriptionStatus: (encounterId: string, prescriptionId: string, status: Prescription["status"]) => void;
+  /** general patch — used by the pharmacist-verification workflow to set richer
+   *  fields (itemDecisions/reviewedBy/rejectionReason/…) in one place. */
+  updatePrescription: (encounterId: string, prescriptionId: string, patch: Partial<Prescription>) => void;
+  signEncounterById: (encounterId: string, signedBy: string) => void;
   addLabOrders: (patientId: string, tests: { test: string; category: string }[], orderedBy?: string, encounterId?: string) => void;
   collectSample: (id: string, sampleType: string) => void;
   startProcessing: (id: string) => void;
@@ -383,6 +394,53 @@ export const useEmr = create<EmrState>(persisted<EmrState>("emr", (set, get) => 
     }));
   },
 
+  createWardRoundEncounter: (patientId, provider) => {
+    const id = rid();
+    const nowIso = new Date().toISOString();
+    set((s) => ({
+      encounters: [
+        {
+          id, patientId, date: nowIso, provider,
+          complaint: "Ward round",
+          diagnoses: [], prescriptions: [], labs: [],
+          station: "Consultation",
+          status: "in-progress",
+          clinicalStatus: "IN_PROGRESS",
+          visitType: "Ward Round",
+        },
+        ...s.encounters,
+      ],
+    }));
+    return id;
+  },
+
+  appendPrescriptions: (encounterId, prescriptions) => {
+    set((s) => ({
+      encounters: s.encounters.map((e) => (e.id === encounterId ? { ...e, prescriptions: [...e.prescriptions, ...prescriptions] } : e)),
+    }));
+  },
+
+  setPrescriptionStatus: (encounterId, prescriptionId, status) => {
+    get().updatePrescription(encounterId, prescriptionId, { status });
+  },
+
+  updatePrescription: (encounterId, prescriptionId, patch) => {
+    set((s) => ({
+      encounters: s.encounters.map((e) =>
+        e.id === encounterId
+          ? { ...e, prescriptions: e.prescriptions.map((r) => (r.id === prescriptionId ? { ...r, ...patch } : r)) }
+          : e,
+      ),
+    }));
+  },
+
+  signEncounterById: (encounterId, signedBy) => {
+    const nowIso = new Date().toISOString();
+    set((s) => ({
+      encounters: s.encounters.map((e) => (e.id === encounterId ? { ...e, status: "signed", signedBy, signedAt: nowIso } : e)),
+    }));
+  },
+
   addLabOrders: (patientId, tests, orderedBy = "Dr. Adaeze Okonjo", encounterId) =>
     set((s) => ({
       labOrders: [
@@ -548,7 +606,9 @@ export const useEmr = create<EmrState>(persisted<EmrState>("emr", (set, get) => 
     const who = useIdentity.getState().user.name;
     const rx = get().encounters.find((e) => e.id === encounterId)?.prescriptions.find((r) => r.id === rxId);
     if (!rx) return;
-    if (rx.status !== "Pending") return;
+    // "Ready" — passed pharmacist verification (Prescription Queue); "Pending" —
+    // never went through review (kept for anything that skips that workflow).
+    if (!["Pending", "Ready"].includes(rx.status)) return;
     const nowIso = new Date().toISOString();
     const full = opts.quantity >= rx.qty;
     audit(full ? "dispensed medication" : "partially dispensed medication", `pharmacy/${rx.drug}`, {
@@ -1014,6 +1074,11 @@ export const referralStatus = (raw: string): "Requested" | "Accepted" | "Decline
   if (raw === "Acknowledged") return "Accepted";
   return raw as never;
 };
+
+/** every prescription ever written for a patient, across all their encounters —
+ *  the source list the MAR, Ward Round and Medications tab all filter/derive from. */
+export const prescriptionsForPatient = (encounters: Encounter[], patientId: string) =>
+  encounters.filter((encounter) => encounter.patientId === patientId).flatMap((encounter) => encounter.prescriptions);
 
 /** an open referral is overdue when no response has come within the window for its urgency */
 export const referralOverdue = (referral: Referral) => {

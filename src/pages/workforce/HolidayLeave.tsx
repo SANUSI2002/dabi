@@ -22,12 +22,10 @@ export default function HolidayLeave() {
   const [lOpen, setLOpen] = useState(false);
   const [hf, setHf] = useState({ name: "", date: "", scope: "Organisation" as const, scopeValue: "All facilities", paid: true, workRequiresApproval: true });
   const [lf, setLf] = useState({ staffId: staff[0]?.id ?? "", type: "Annual Leave", from: "", to: "", paid: true, note: "" });
+  const [renderedAt] = useState(Date.now);
 
   const pendingLeave = leave.filter((l) => l.status === "Pending");
-  const onLeaveNow = leave.filter((l) => {
-    const now = Date.now();
-    return l.status === "Approved" && +new Date(l.to) <= now && +new Date(l.from) >= now - 30 * 864e5;
-  });
+  const onLeaveNow = leave.filter((l) => l.status === "Approved" && +new Date(l.to) <= renderedAt && +new Date(l.from) >= renderedAt - 30 * 864e5);
 
   return (
     <div>

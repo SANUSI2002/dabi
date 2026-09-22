@@ -12,8 +12,8 @@ export default function GeneralLedger() {
   const { accounts, entries, balanceOf } = useLedger();
   const active = accounts.filter((a) => a.isActive).sort((a, b) => a.number - b.number);
   const [acctNo, setAcctNo] = useState<number>(active[0]?.number ?? 1000);
-  const [from, setFrom] = useState(isoDate(new Date(Date.now() - 90 * 864e5)));
-  const [to, setTo] = useState(isoDate(new Date()));
+  const [from, setFrom] = useState(() => isoDate(new Date(Date.now() - 90 * 864e5)));
+  const [to, setTo] = useState(() => isoDate(new Date()));
   const [print, setPrint] = useState(false);
 
   const account = accounts.find((a) => a.number === acctNo);
@@ -32,12 +32,12 @@ export default function GeneralLedger() {
       })
       .sort((a, b) => new Date(a.e.date).getTime() - new Date(b.e.date).getTime() || a.e.number.localeCompare(b.e.number));
 
-    let running = openingBal;
-    const out = movements.map(({ e, l }) => {
-      running += debitNormal ? l.debit - l.credit : l.credit - l.debit;
-      return { entry: e, line: l, running };
-    });
-    return { opening: openingBal, rows: out, closing: running };
+    const out = movements.reduce<Array<{ entry: (typeof movements)[number]["e"]; line: (typeof movements)[number]["l"]; running: number }>>((rows, { e, l }) => {
+      const previous = rows.at(-1)?.running ?? openingBal;
+      const running = previous + (debitNormal ? l.debit - l.credit : l.credit - l.debit);
+      return [...rows, { entry: e, line: l, running }];
+    }, []);
+    return { opening: openingBal, rows: out, closing: out.at(-1)?.running ?? openingBal };
   }, [acctNo, entries, balanceOf, fromT, toT, debitNormal]);
 
   const periodDr = rows.reduce((n, r) => n + r.line.debit, 0);

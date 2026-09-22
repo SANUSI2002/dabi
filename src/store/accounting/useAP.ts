@@ -130,6 +130,8 @@ type APState = {
   sendPurchaseOrder: (id: string) => void;
   cancelPurchaseOrder: (id: string) => void;
   receiveGoods: (poId: string, received: { poLineId: string; qtyReceived: number }[], notes?: string) => void;
+  /** records that these receipt lines have been received into physical stock, so they can't be received twice */
+  markGoodsReceiptStocked: (id: string, poLineIds: string[]) => void;
   convertPOToBill: (id: string) => string | undefined;
 
   // bills
@@ -286,7 +288,7 @@ export const useAP = create<APState>((set, get) => {
         vendorId: po.vendorId,
         date: new Date().toISOString(),
         receivedBy: useIdentity.getState().user.id,
-        lines: po.lines.map((l) => ({ poLineId: l.id, description: l.description, qtyOrdered: l.qty, qtyReceived: received.find((r) => r.poLineId === l.id)?.qtyReceived ?? 0 })),
+        lines: po.lines.map((l) => ({ poLineId: l.id, description: l.description, qtyOrdered: l.qty, qtyReceived: received.find((r) => r.poLineId === l.id)?.qtyReceived ?? 0, itemId: l.itemId })),
         notes,
         createdAt: new Date().toISOString(),
       };
@@ -297,6 +299,10 @@ export const useAP = create<APState>((set, get) => {
       }));
       audit(`recorded goods receipt ${gr.number}`, `accounting/goods-receipts/${gr.number}`);
     },
+    markGoodsReceiptStocked: (id, poLineIds) =>
+      set((s) => ({
+        goodsReceipts: s.goodsReceipts.map((g) => (g.id === id ? { ...g, stockedLineIds: [...new Set([...(g.stockedLineIds ?? []), ...poLineIds])] } : g)),
+      })),
     convertPOToBill: (id) => {
       const po = get().purchaseOrders.find((x) => x.id === id);
       if (!po) return;

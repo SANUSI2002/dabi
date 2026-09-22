@@ -42,6 +42,7 @@ function clearSession() {
 function routeFor(identity: SabiIdentity, membership?: OrganizationMembership): PostAuthDestination {
   if (identity.kind === "platform") return "/command-center";
   if (identity.kind === "patient") return "/patient";
+  if (membership?.products.includes("pharmacy")) return "/pharmacy-portal";
   return membership ? "/workspace" : "/choose-organization";
 }
 
@@ -58,7 +59,7 @@ type AuthState = {
   user: Account;
   signIn: (input: SignInInput) => Promise<SignInActionResult>;
   verifyMfa: (code: string) => Promise<SignInActionResult>;
-  activateMembership: (membershipId: string) => Promise<{ destination?: "/workspace"; error?: string }>;
+  activateMembership: (membershipId: string) => Promise<{ destination?: PostAuthDestination; error?: string }>;
   destination: () => PostAuthDestination | "/login";
   signOut: () => void;
 };
@@ -125,7 +126,7 @@ export const useAuth = create<AuthState>((set, get) => {
         const session = writeSession(identity, membership, get().session?.rememberMe ?? false, get().session?.mfaVerified ?? false);
         set({ authed: true, tenantId: organization.id, activeMembership: membership, session, user: accountById(membership.accountId) });
         audit("selected organization", "identity/membership", { meta: { identityId: identity.id, membershipId: membership.id } });
-        return { destination: "/workspace" };
+        return { destination: routeFor(identity, membership) };
       } catch (error) {
         return { error: error instanceof Error ? error.message : "Unable to open this organization." };
       }

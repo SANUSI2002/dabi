@@ -20,7 +20,7 @@ export default function TaxCenter() {
   const [payId, setPayId] = useState<string | null>(null);
   const [payAcct, setPayAcct] = useState(1010);
   const [rf, setRf] = useState({ name: "", kind: "VAT" as TaxKind, rate: 0, accountNumber: 2200 });
-  const [pf, setPf] = useState<{ type: ReturnType; start: string; end: string }>({ type: "VAT", start: isoDate(new Date(Date.now() - 30 * 864e5)), end: isoDate(new Date()) });
+  const [pf, setPf] = useState<{ type: ReturnType; start: string; end: string }>(() => ({ type: "VAT", start: isoDate(new Date(Date.now() - 30 * 864e5)), end: isoDate(new Date()) }));
   const [msg, setMsg] = useState<string | null>(null);
 
   const netDue = returns.filter((r) => r.status !== "Paid").reduce((n, r) => n + Math.max(0, r.netPayable), 0);

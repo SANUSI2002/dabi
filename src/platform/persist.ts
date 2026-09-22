@@ -14,7 +14,9 @@ import { DEFAULT_TENANT_ID, activeTenantId, tenantStorageKey } from "./tenantRun
 // (entitlements, terminology, master data, org structure, workflows) persist
 // cleanly and are wired now.
 
-const PREFIX = "sabi-os:";
+// Production and development never share browser-persisted records. This keeps
+// local fixtures from becoming apparent production data when origins overlap.
+const PREFIX = import.meta.env.PROD ? "sabi-os:production:" : "sabi-os:development:";
 const VERSION = 1;
 
 type Envelope<T> = { v: number; t: number; data: T };

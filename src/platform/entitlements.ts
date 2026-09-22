@@ -8,7 +8,7 @@
 // `useEntitlements` decides, for the current org, whether a route may render —
 // this is the client-side stand-in for an API gateway checking entitlements.
 
-export type ProductKey = "emr" | "workforce" | "accounting";
+export type ProductKey = "emr" | "workforce" | "accounting" | "pharmacy";
 
 export type CatalogStatus = "Draft" | "Internal" | "Beta" | "Active" | "Deprecated" | "Disabled";
 export type BillingModel = "flat" | "per-user" | "usage" | "hybrid" | "enterprise";
@@ -42,6 +42,11 @@ export const PRODUCTS: Record<ProductKey, ProductDef> = {
     id: "accounting", label: "Sabi Accounting", tagline: "General ledger, AR/AP, banking, financial reporting",
     description: "Multi-branch financial operations with native EMR and payroll posting.",
     version: "2026.9", status: "Active", releaseStatus: "Generally Available", basePrice: 125_000, billingModel: "flat",
+  },
+  pharmacy: {
+    id: "pharmacy", label: "Sabi Pharmacy", tagline: "Independent pharmacy operations and marketplace fulfilment",
+    description: "Tenant-isolated catalogue, prescription fulfilment, dispensing, delivery and marketplace operations for pharmacy organizations.",
+    version: "2026.9", status: "Beta", releaseStatus: "Beta", basePrice: 0, billingModel: "enterprise",
   },
 };
 

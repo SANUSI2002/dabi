@@ -18,6 +18,7 @@ import {
   seedSessions, seedSubscriptions, seedTenantUsers, seedThemes, seedUsage, seedWorkflows,
 } from "./seed";
 import { hasPermission } from "./access";
+import { developmentFixturesEnabled } from "@/config/runtime";
 
 type CommandCenterState = {
   organizations: Organization[]; branches: OrganizationBranch[]; products: ProductCatalogItem[];
@@ -103,19 +104,22 @@ function applyTenantProjection(state: Pick<CommandCenterState, "subscriptions" |
 export const useCommandCenter = create<CommandCenterState>(
   persisted<CommandCenterState>("command-center-v1", (set, get) => {
     const audit = (event: Omit<PlatformAuditEvent, "id" | "timestamp" | "correlationId" | "actorId" | "actorName" | "actorRole">, explicitActor?: PlatformUser) => {
+      // No platform user exists to attribute this to yet (e.g. production before any platform
+      // user record has been created) — skip the audit write rather than crash or invent an actor.
       const actor = explicitActor ?? get().platformUsers[0];
+      if (!actor) return;
       set((state) => ({ auditEvents: [{ ...event, id: uid("audit"), timestamp: new Date().toISOString(), correlationId: uid("corr"), actorId: actor.id, actorName: actor.name, actorRole: actor.role }, ...state.auditEvents] }));
     };
 
     return {
-      organizations: seedOrganizations, branches: seedBranches, products: [...seedProducts, ...futureProducts], modules: seedModules,
-      prices: seedPriceVersions, packages: seedPackages, packageVersions: seedPackageVersions,
-      subscriptions: seedSubscriptions, entitlements: seedEntitlements, licenses: seedLicenses,
-      platformUsers: seedPlatformUsers, tenantUsers: seedTenantUsers, sessions: seedSessions,
-      invoices: seedInvoices, payments: seedPayments, documents: seedDocuments, workflows: seedWorkflows,
-      onboardingTasks: seedOnboardingTasks, themes: seedThemes, featureFlags: seedFeatureFlags,
-      integrations: seedIntegrations, incidents: seedIncidents, serviceHealth: seedHealth, usage: seedUsage,
-      auditEvents: seedAuditEvents, notificationTemplates: seedNotificationTemplates,
+      organizations: developmentFixturesEnabled ? seedOrganizations : [], branches: developmentFixturesEnabled ? seedBranches : [], products: developmentFixturesEnabled ? [...seedProducts, ...futureProducts] : [], modules: developmentFixturesEnabled ? seedModules : [],
+      prices: developmentFixturesEnabled ? seedPriceVersions : [], packages: developmentFixturesEnabled ? seedPackages : [], packageVersions: developmentFixturesEnabled ? seedPackageVersions : [],
+      subscriptions: developmentFixturesEnabled ? seedSubscriptions : [], entitlements: developmentFixturesEnabled ? seedEntitlements : [], licenses: developmentFixturesEnabled ? seedLicenses : [],
+      platformUsers: developmentFixturesEnabled ? seedPlatformUsers : [], tenantUsers: developmentFixturesEnabled ? seedTenantUsers : [], sessions: developmentFixturesEnabled ? seedSessions : [],
+      invoices: developmentFixturesEnabled ? seedInvoices : [], payments: developmentFixturesEnabled ? seedPayments : [], documents: developmentFixturesEnabled ? seedDocuments : [], workflows: developmentFixturesEnabled ? seedWorkflows : [],
+      onboardingTasks: developmentFixturesEnabled ? seedOnboardingTasks : [], themes: developmentFixturesEnabled ? seedThemes : [], featureFlags: developmentFixturesEnabled ? seedFeatureFlags : [],
+      integrations: developmentFixturesEnabled ? seedIntegrations : [], incidents: developmentFixturesEnabled ? seedIncidents : [], serviceHealth: developmentFixturesEnabled ? seedHealth : [], usage: developmentFixturesEnabled ? seedUsage : [],
+      auditEvents: developmentFixturesEnabled ? seedAuditEvents : [], notificationTemplates: developmentFixturesEnabled ? seedNotificationTemplates : [],
       supportAccessSessions: [], customRoles: [], platformSettings: {},
       provisioningCommits: [],
       recordAuditEvent: (event, actorId) => {
@@ -137,7 +141,7 @@ export const useCommandCenter = create<CommandCenterState>(
           primaryContact: "Pending assignment", accountManager: "Unassigned", implementationManager: "Unassigned",
           status: "Prospect", billingStatus: "Current", onboardingStatus: "Not Started", activeUsers: 0, licensedUsers: 0,
           storageUsedGb: 0, storageLimitGb: 0, branchCount: 0, createdDate: now.slice(0, 10), timezone: "Africa/Lagos",
-          locale: "en-NG", currency: "NGN", createdAt: now, updatedAt: now, createdBy: get().platformUsers[0].id,
+          locale: "en-NG", currency: "NGN", createdAt: now, updatedAt: now, createdBy: get().platformUsers[0]?.id ?? "unknown",
         };
         set((state) => ({ organizations: [organization, ...state.organizations] }));
         audit({ organizationId: id, resourceType: "Organization", resourceId: id, action: "Created organization prospect", newValue: { name: organization.name, tenantId: organization.tenantId } });
@@ -169,7 +173,7 @@ export const useCommandCenter = create<CommandCenterState>(
         const now = new Date();
         const nowIso = now.toISOString();
         const closedAt = new Date(now.getTime() - 1).toISOString();
-        const grant: Entitlement = { id: uid("ent"), organizationId, subscriptionId: subscription.id, targetType: "module", targetKey: moduleKey, source: enabled ? "override" : "revocation", enabled, validFrom: nowIso, reason, createdAt: nowIso, updatedAt: nowIso, createdBy: get().platformUsers[0].id };
+        const grant: Entitlement = { id: uid("ent"), organizationId, subscriptionId: subscription.id, targetType: "module", targetKey: moduleKey, source: enabled ? "override" : "revocation", enabled, validFrom: nowIso, reason, createdAt: nowIso, updatedAt: nowIso, createdBy: get().platformUsers[0]?.id ?? "unknown" };
         const catalogModule = get().modules.find((item) => item.key === moduleKey);
         const includedInSnapshot = subscription.snapshotModuleIds.includes(moduleKey);
         const priceDelta = enabled && !wasEnabled && !includedInSnapshot
@@ -210,7 +214,7 @@ export const useCommandCenter = create<CommandCenterState>(
         const reason = validateReason(rawReason);
         const document = get().documents.find((item) => item.id === documentId);
         if (!document) return;
-        set((state) => ({ documents: state.documents.map((item) => item.id === documentId ? { ...item, status, verifiedBy: state.platformUsers[0].id, verifiedAt: new Date().toISOString(), notes: reason, updatedAt: new Date().toISOString() } : item) }));
+        set((state) => ({ documents: state.documents.map((item) => item.id === documentId ? { ...item, status, verifiedBy: state.platformUsers[0]?.id ?? "unknown", verifiedAt: new Date().toISOString(), notes: reason, updatedAt: new Date().toISOString() } : item) }));
         audit({ organizationId: document.organizationId, resourceType: "OrganizationDocument", resourceId: documentId, action: `${status} document`, previousValue: document.status, newValue: status, reason });
       },
 

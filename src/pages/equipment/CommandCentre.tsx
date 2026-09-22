@@ -8,6 +8,7 @@ import { useEquipmentEvents } from "@/store/useEquipmentEvents";
 import { useEquipmentMaintenance } from "@/store/useEquipmentMaintenance";
 import { useEquipmentUsage } from "@/store/useEquipmentUsage";
 import { startEquipmentSimulator } from "@/lib/equipmentSimulator";
+import { developmentFixturesEnabled } from "@/config/runtime";
 import { MachineStateBadge, ConnectivityBadge, MaintenanceStateBadge, SafetyStateBadge, AlarmSeverityBadge } from "@/components/equipment/EquipmentStatusBadge";
 import { IntegrationBadge } from "@/components/equipment/IntegrationBadge";
 import { timeAgo } from "@/lib/format";
@@ -19,7 +20,7 @@ export default function CommandCentre() {
   const usage = useEquipmentUsage();
 
   useEffect(() => {
-    startEquipmentSimulator();
+    if (developmentFixturesEnabled) startEquipmentSimulator();
   }, []);
 
   const rows = store.equipment.map((eq) => {
@@ -42,7 +43,7 @@ export default function CommandCentre() {
     <div>
       <PageHeader
         title="Equipment SCADA Command Centre"
-        subtitle="Live medical device and facility infrastructure monitoring — simulated telemetry, real alarm/audit trail"
+        subtitle="Medical device and facility infrastructure monitoring from configured equipment integrations"
         actions={
           <>
             <Link to="/equipment-scada/analytics" className="btn-soft px-3 py-1.5 text-xs">Reliability Analytics →</Link>
@@ -64,7 +65,7 @@ export default function CommandCentre() {
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         <Card>
           <h3 className="mb-3 font-display font-bold text-mist-900">Live Equipment Status</h3>
-          <div className="space-y-2">
+          {rows.length === 0 ? <EmptyState title="No equipment telemetry available" hint="Connect an equipment gateway or register equipment to begin monitoring." /> : <div className="space-y-2">
             {rows.map(({ eq, machine, connectivity, maintenance, safety, openAlarms, activeSession }, i) => (
               <Reveal key={eq.id} delay={i * 0.03}>
                 <Link
@@ -96,13 +97,13 @@ export default function CommandCentre() {
                 </Link>
               </Reveal>
             ))}
-          </div>
+          </div>}
         </Card>
 
         <Card>
           <h3 className="mb-3 flex items-center gap-2 font-display font-bold text-mist-900"><BellRing size={16} /> Active Alarm Centre</h3>
           {activeAlarms.length === 0 ? (
-            <EmptyState title="No active alarms" hint="All monitored equipment is within normal parameters." />
+            <EmptyState title="No alarm data available" hint={rows.length ? "No active alarms have been received." : "Alarm data will appear after an equipment integration is connected."} />
           ) : (
             <div className="space-y-2">
               {activeAlarms.slice(0, 12).map((alarm) => {
@@ -126,7 +127,7 @@ export default function CommandCentre() {
       <Card className="mt-4">
         <h3 className="mb-3 flex items-center gap-2 font-display font-bold text-mist-900"><ListChecks size={16} /> Recent Events</h3>
         {events.timeline.length === 0 ? (
-          <EmptyState title="No events yet" hint="Events appear here as simulated devices power on, run, and report activity." />
+          <EmptyState title="No equipment events available" hint="Events will appear after an equipment integration is connected and begins reporting." />
         ) : (
           <div className="max-h-72 space-y-1.5 overflow-y-auto text-xs">
             {events.timeline.slice(0, 40).map((event) => {

@@ -1,0 +1,25 @@
+.sabi-auth-container.right-panel-active .sabi-auth-signin-container {
+  transform: translateX(100%);
+}
+
+.sabi-auth-container.right-panel-active .sabi-auth-signup-container {
+  transform: translateX(100%);
+  opacity: 1;
+  z-index: 5;
+}
+
+.sabi-auth-container.right-panel-active .sabi-auth-overlay-container {
+  transform: translateX(-100%);
+}
+
+.sabi-auth-container.right-panel-active .sabi-auth-overlay {
+  transform: translateX(50%);
+}
+
+.sabi-auth-container.right-panel-active .sabi-auth-overlay-left {
+  transform: translateX(0);
+}
+
+.sabi-auth-container.right-panel-active .sabi-auth-overlay-right {
+  transform: translateX(20%);
+}

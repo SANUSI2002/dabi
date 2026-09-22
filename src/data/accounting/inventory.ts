@@ -7,19 +7,25 @@
 // value on the balance sheet and cost of goods sold on consumption.
 
 export type ValuationMethod = "FIFO" | "Weighted Average";
-export type MovementType = "Receipt" | "Issue" | "Adjustment" | "Write-off" | "Return";
+export type MovementType = "Receipt" | "Issue" | "Adjustment" | "Write-off" | "Return" | "Transfer";
+
+/** stock with no storage location recorded (opening balances) is treated as held here */
+export const DEFAULT_STORE_LOCATION_ID = "loc-main";
 
 export type InventoryItem = {
   id: string;
   sku: string;
   name: string;
-  category: "Drugs" | "Consumables" | "Reagents" | "Other";
+  category: "Drugs" | "Consumables" | "Reagents" | "Other" | "PPE" | "Surgical Supplies" | "Linen" | "Medical Devices";
+  subcategory?: string;
   unit: string;
   valuationMethod: ValuationMethod;
   inventoryAccountNumber: number; // 1200 / 1210
   cogsAccountNumber: number; // 5000 / 5010
   currentQty: number;
   averageCost: number;
+  /** stock at/below this is a hard "Low Stock" alert, distinct from reorderLevel's softer nudge */
+  minLevel?: number;
   reorderLevel: number;
   reorderQty?: number; // B27 — how many to order when low; defaults to reorderLevel * 2 - currentQty
   preferredVendorId?: string; // B27 — used to group reorder POs
@@ -65,6 +71,59 @@ export type CostLayer = {
   remainingQty: number;
   unitCost: number;
   sourceBillId?: string;
+  /** additive — turns a cost layer into a full physical batch record: which
+   *  storage location holds it, its own batch/lot number, and its expiry.
+   *  Optional so existing opening-balance layers (no expiry tracking) are unaffected. */
+  expiryDate?: string;
+  batchNumber?: string;
+  locationId?: string;
+  /** additive — a quarantined layer is held out of every issue/transfer/FEFO
+   *  path until released or written off; absent/"Active" means normal stock. */
+  status?: "Active" | "Quarantined";
+  quarantineReason?: string;
+  quarantinedBy?: string;
+  quarantinedAt?: string;
+};
+
+// A physical move of stock between two storage locations inside ONE entity —
+// unlike StockTransfer (inter-branch, posts intercompany GL), this posts no
+// journal entry: same legal entity, same inventory account, only the location
+// dimension changes.
+export type LocationTransfer = {
+  id: string;
+  itemId: string;
+  qty: number;
+  unitCost: number;
+  fromLocationId: string;
+  toLocationId: string;
+  date: string;
+  reference?: string;
+  requisitionId?: string;
+  createdBy: string;
+  createdAt: string;
+};
+
+export type RequisitionStatus = "Draft" | "Pending Approval" | "Approved" | "Rejected" | "Partially Fulfilled" | "Fulfilled" | "Cancelled";
+export type RequisitionLine = { itemId: string; qtyRequested: number; qtyIssued: number };
+
+// A ward/department asking a store for stock. Deliberately NOT an ApprovableDoc —
+// it creates no vendor liability, so the finance-role approval chain doesn't apply;
+// a single store-supervisor decision is the whole gate.
+export type StockRequisition = {
+  id: string;
+  number: string;
+  requestingLocationId: string;
+  fulfillingLocationId?: string;
+  date: string;
+  neededBy?: string;
+  lines: RequisitionLine[];
+  justification?: string;
+  status: RequisitionStatus;
+  requestedBy: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  rejectionReason?: string;
+  createdAt: string;
 };
 
 export type InventoryMovement = {
@@ -79,6 +138,11 @@ export type InventoryMovement = {
   note?: string;
   journalEntryId?: string;
   createdAt: string;
+  /** additive — where/why stock moved, for Issue movements raised from Stock List */
+  locationId?: string;
+  department?: string;
+  purpose?: string;
+  requisitionId?: string;
 };
 
 const daysAgo = (n: number) => new Date(Date.now() - n * 864e5).toISOString();
@@ -102,3 +166,5 @@ export const seedCostLayers: CostLayer[] = [
 export const seedInventoryMovements: InventoryMovement[] = [];
 export const seedStockTransfers: StockTransfer[] = [];
 export const seedStockCounts: StockCount[] = [];
+export const seedLocationTransfers: LocationTransfer[] = [];
+export const seedStockRequisitions: StockRequisition[] = [];

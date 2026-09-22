@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Users, ShieldAlert, CalendarClock, Award } from "lucide-react";
 import { PageHeader, StatCard, Badge } from "@/components/ui/primitives";
@@ -12,11 +12,12 @@ import { shortDate, initials } from "@/lib/format";
 export default function EmployeeDirectory() {
   const staff = useHr((s) => s.staff);
   const { profiles, bonusPoints, expiringDocuments } = useEmployees();
-  const { departments, jobPositions, employeeTypes, departmentName, jobPositionName, employeeTypeName } = useOrg();
+  const { departments, departmentName, jobPositionName, employeeTypeName } = useOrg();
   const [dept, setDept] = useState("");
+  const [renderedAt] = useState(Date.now);
 
   const expiring = expiringDocuments(45);
-  const contractsEnding = profiles.filter((p) => p.contractEndDate && new Date(p.contractEndDate).getTime() - Date.now() < 30 * 864e5);
+  const contractsEnding = profiles.filter((p) => p.contractEndDate && new Date(p.contractEndDate).getTime() - renderedAt < 30 * 864e5);
 
   const rows = staff
     .map((s) => ({ s, p: profiles.find((x) => x.id === s.id) }))

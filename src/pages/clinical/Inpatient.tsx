@@ -1,14 +1,15 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { BedDouble, Plus, Crown, Pencil, PowerOff, Power, ArrowLeftRight, ClipboardList, Activity, Pill, ShieldAlert } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { BedDouble, Plus, Crown, Pencil, PowerOff, Power, ArrowLeftRight, ClipboardList, Activity, Pill, ShieldAlert, Stethoscope } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard, SectionNote } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell, EmptyRow } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Textarea, Checkbox, Grid } from "@/components/ui/form";
 import { PatientPicker } from "@/components/ui/PatientPicker";
+import { PatientLink } from "@/components/ui/PatientLink";
 import { ClinicalStatusBadge } from "@/components/clinical/ClinicalStatusBadge";
-import { useEmr } from "@/store/useEmr";
+import { useEmr, prescriptionsForPatient } from "@/store/useEmr";
 import { useWards } from "@/store/useWards";
 import { useNursing } from "@/store/useNursing";
 import { useHr } from "@/store/useHr";
@@ -19,10 +20,11 @@ import { MOBILITY_OPTIONS, RISK_LEVELS } from "@/data/nursing";
 import { dateTime, shortDate, timeAgo } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
-const lengthOfStayDays = (admission: Admission) =>
-  Math.max(0, Math.round((Date.now() - new Date(admission.admittedAt).getTime()) / 86400000));
+const lengthOfStayDays = (admission: Admission, now: number) =>
+  Math.max(0, Math.round((now - new Date(admission.admittedAt).getTime()) / 86400000));
 
 export default function Inpatient() {
+  const navigate = useNavigate();
   const emr = useEmr();
   const { admissions, patientById, encounters, admit, dischargeWithSummary, transferBed, setDischargeReady } = emr;
   const { wards, beds, addWard, updateWard, addBed, setBedVip, setBedActive } = useWards();
@@ -34,6 +36,7 @@ export default function Inpatient() {
     const items = (masterData["ward-types"] ?? []).filter((item) => item.active).map((item) => item.label);
     return items.length ? items : ["General Ward", "Maternity Ward"];
   }, [masterData]);
+  const [renderedAt] = useState(Date.now);
 
   const active = admissions.filter((admission) => admission.status === "Active");
   const activeBeds = beds.filter((bed) => bed.active);
@@ -80,8 +83,7 @@ export default function Inpatient() {
   );
 
   const detail = admissions.find((admission) => admission.id === detailId);
-  const prescriptionsFor = (patientId: string) =>
-    encounters.filter((encounter) => encounter.patientId === patientId).flatMap((encounter) => encounter.prescriptions);
+  const prescriptionsFor = (patientId: string) => prescriptionsForPatient(encounters, patientId);
 
   const flowsheetAdmission = active.find((admission) => admission.id === flowsheetId);
   const marAdmission = active.find((admission) => admission.id === marId);
@@ -91,7 +93,7 @@ export default function Inpatient() {
   );
   const noRecentObs = active.filter((admission) => {
     const latest = nursing.observationsFor(admission.id)[0];
-    return !latest || Date.now() - new Date(latest.recordedAt).getTime() > 6 * 3600000;
+    return !latest || renderedAt - new Date(latest.recordedAt).getTime() > 6 * 3600000;
   });
 
   function submitObservation() {
@@ -147,16 +149,31 @@ export default function Inpatient() {
                   return (
                     <Row key={admission.id} index={index} onClick={() => setDetailId(admission.id)}>
                       <Cell className="font-semibold">
-                        {patient ? `${patient.firstName} ${patient.lastName}` : "—"}
+                        <span onClick={(event) => event.stopPropagation()}>
+                          <PatientLink patient={patient} />
+                        </span>
                         {admission.isolation && <Badge tone="action">{admission.isolation}</Badge>}
                       </Cell>
                       <Cell>{admission.ward} · {admission.bed}</Cell>
                       <Cell className="text-mist-500">{admission.service ?? "—"}</Cell>
                       <Cell className="text-mist-500">{admission.admittingClinician ?? "—"}</Cell>
                       <Cell>{admission.diagnosis}</Cell>
-                      <Cell>{lengthOfStayDays(admission)} d</Cell>
+                      <Cell>{lengthOfStayDays(admission, renderedAt)} d</Cell>
                       <Cell>{admission.dischargeReady ? <Badge tone="amber">Ready</Badge> : <span className="text-mist-300">—</span>}</Cell>
-                      <Cell><span className="text-xs text-brand-600">Open</span></Cell>
+                      <Cell>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              navigate(`/ward-round/${admission.id}`);
+                            }}
+                          >
+                            <Stethoscope size={12} /> Ward Round
+                          </button>
+                          <span className="text-xs text-mist-400">Open</span>
+                        </div>
+                      </Cell>
                     </Row>
                   );
                 })}
@@ -355,11 +372,11 @@ export default function Inpatient() {
                 const patient = patientById(admission.patientId);
                 return (
                   <Row key={admission.id} index={index}>
-                    <Cell className="font-semibold">{patient ? `${patient.firstName} ${patient.lastName}` : "—"}</Cell>
+                    <Cell className="font-semibold"><PatientLink patient={patient} /></Cell>
                     <Cell>{admission.ward}</Cell>
                     <Cell className="text-mist-400">{shortDate(admission.admittedAt)}</Cell>
                     <Cell className="text-mist-400">{admission.dischargedAt ? shortDate(admission.dischargedAt) : "—"}</Cell>
-                    <Cell>{lengthOfStayDays({ ...admission, admittedAt: admission.admittedAt })} d</Cell>
+                    <Cell>{lengthOfStayDays({ ...admission, admittedAt: admission.admittedAt }, renderedAt)} d</Cell>
                     <Cell><Badge tone={admission.outcome === "Died" ? "action" : "brand"}>{admission.outcome}</Badge></Cell>
                     <Cell className="text-mist-500">{admission.dischargeDestination ?? "—"}</Cell>
                   </Row>
@@ -437,6 +454,7 @@ export default function Inpatient() {
         footer={detail && detail.status === "Active" ? (
           <>
             <Button variant="ghost" onClick={() => setDetailId(null)}>Close</Button>
+            <Button variant="soft" onClick={() => navigate(`/ward-round/${detail.id}`)}><Stethoscope size={14} /> Ward Round</Button>
             <Button variant="soft" onClick={() => { setTransferForm({ ward: detail.ward, bed: "", reason: "" }); setTransferFor(detail.id); }}><ArrowLeftRight size={14} /> Transfer bed</Button>
             <Button variant="ghost" onClick={() => setDischargeReady(detail.id, !detail.dischargeReady)}>{detail.dischargeReady ? "Unmark discharge-ready" : "Mark discharge-ready"}</Button>
             <Button variant="action" onClick={() => { setDischargeForm({ outcome: DISCHARGE_OUTCOMES[0], summary: "", destination: "" }); setDischargeId(detail.id); }}>Discharge</Button>
@@ -446,7 +464,7 @@ export default function Inpatient() {
         {detail && (
           <div className="space-y-3 text-sm">
             <div className="grid gap-2 sm:grid-cols-2">
-              <p><span className="text-mist-400">Admitted</span> {dateTime(detail.admittedAt)} ({lengthOfStayDays(detail)} d)</p>
+              <p><span className="text-mist-400">Admitted</span> {dateTime(detail.admittedAt)} ({lengthOfStayDays(detail, renderedAt)} d)</p>
               <p><span className="text-mist-400">Attending</span> {detail.admittingClinician ?? "—"}</p>
               <p><span className="text-mist-400">Service</span> {detail.service ?? "—"}</p>
               <p><span className="text-mist-400">Expected discharge</span> {detail.expectedDischarge ? shortDate(detail.expectedDischarge) : "—"}</p>

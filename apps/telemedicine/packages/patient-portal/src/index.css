@@ -1,0 +1,9 @@
+
+
+/* Global design-system tokens and base styles */
+@import "./styles/global.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+

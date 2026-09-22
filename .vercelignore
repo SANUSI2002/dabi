@@ -1,0 +1,5 @@
+artifacts/
+.claude/
+database/
+docs/
+*.log

@@ -9,8 +9,15 @@ lerna-debug.log*
 
 node_modules
 dist
+dist-health
+dist-emr
+dist-pharmacy
+.vercel
 dist-ssr
 *.local
+.env
+.env.*
+!.env.example
 
 # Editor directories and files
 .vscode/*

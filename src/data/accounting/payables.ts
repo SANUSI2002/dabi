@@ -33,6 +33,8 @@ export type PurchaseLine = {
   unitPrice: number;
   taxRateId?: string;
   taxRateIds?: string[]; // B29 — stacked input taxes
+  /** additive — links this line to an InventoryItem so a goods receipt for it can be received into physical stock */
+  itemId?: string;
 };
 
 export type PRStatus = "Draft" | "Pending Approval" | "Approved" | "Rejected" | "Ordered" | "Cancelled";
@@ -70,7 +72,7 @@ export type PurchaseOrder = {
   createdAt: string;
 };
 
-export type GoodsReceiptLine = { poLineId: string; description: string; qtyOrdered: number; qtyReceived: number };
+export type GoodsReceiptLine = { poLineId: string; description: string; qtyOrdered: number; qtyReceived: number; itemId?: string };
 
 export type GoodsReceipt = {
   id: string;
@@ -82,6 +84,8 @@ export type GoodsReceipt = {
   lines: GoodsReceiptLine[];
   notes?: string;
   createdAt: string;
+  /** poLineIds already received into physical stock — guards against receiving the same line twice */
+  stockedLineIds?: string[];
 };
 
 export type Bill = {

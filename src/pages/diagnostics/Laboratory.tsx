@@ -13,6 +13,7 @@ import { LabReportDoc } from "@/components/print/documents";
 import { LabProgress } from "@/components/lab/LabProgress";
 import { ClinicalStatusBadge } from "@/components/clinical/ClinicalStatusBadge";
 import { CodedValue } from "@/components/clinical/CodedValue";
+import { PatientLink } from "@/components/ui/PatientLink";
 import { useEmr, labOrderOverdue } from "@/store/useEmr";
 import { useLabConfig } from "@/store/useLabConfig";
 import { useHr } from "@/store/useHr";
@@ -71,8 +72,7 @@ export default function Laboratory() {
   }
 
   function patientName(id: string) {
-    const patient = patientById(id);
-    return patient ? `${patient.firstName} ${patient.lastName}` : "Unknown patient";
+    return <PatientLink patient={patientById(id)} />;
   }
 
   return (
@@ -135,7 +135,7 @@ export default function Laboratory() {
                       <div>
                         <CodedValue concept={labConcept(order.test)} className="font-display text-base font-bold" />
                         <p className="mt-0.5 text-[11px] text-mist-400">
-                          {patient ? `${patient.firstName} ${patient.lastName}` : "—"} · ordered {dateTime(order.orderedAt)} by {order.orderedBy}
+                          <PatientLink patient={patient} /> · ordered {dateTime(order.orderedAt)} by {order.orderedBy}
                           {" · "}expected turnaround {config.turnaroundMinutes} min
                         </p>
                       </div>

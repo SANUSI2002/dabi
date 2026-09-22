@@ -6,6 +6,7 @@ import { Table, Row, Cell, EmptyRow } from "@/components/ui/Table";
 import { useEquipment } from "@/store/useEquipment";
 import { useEquipmentMaintenance } from "@/store/useEquipmentMaintenance";
 import { startEquipmentSimulator } from "@/lib/equipmentSimulator";
+import { developmentFixturesEnabled } from "@/config/runtime";
 import { reliabilityStatsFor, formatHours } from "@/lib/equipmentReliability";
 
 export default function EquipmentAnalytics() {
@@ -13,7 +14,7 @@ export default function EquipmentAnalytics() {
   const maint = useEquipmentMaintenance();
 
   useEffect(() => {
-    startEquipmentSimulator();
+    if (developmentFixturesEnabled) startEquipmentSimulator();
   }, []);
 
   const rows = store.equipment.map((eq) => ({ eq, stats: reliabilityStatsFor(eq, maint.workOrdersFor(eq.id)) }));

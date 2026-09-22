@@ -1,0 +1,1182 @@
+/* ==========================================================
+   share.css  (was shell.css)
+   Every selector here is rendered by shared components
+   (Sidebar, Topbar) used by Dashboard, Profile, and all inner
+   pages. Page files must NOT redeclare any of these selectors —
+   page-specific CSS starts only where these end.
+   ========================================================== */
+
+:root {
+  /* Fixed at 1 — do not add breakpoint escalation here.
+     This was previously found hardcoded to 1.5 in Dashboard.css
+     and escalating to 1.15/1.3 in Profile.css; both are wrong. */
+  --sabi-font-scale: 1;
+  --sabi-page-bg:    #f4f5fc;
+}
+
+/* ── Global box-sizing (safety net — also set in global.css) ── */
+* { box-sizing: border-box; }
+
+/* ──────────────────────────────────────────────────────────
+   Dashboard shell
+   ────────────────────────────────────────────────────────── */
+
+.sabi-dashboard {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  background: var(--sabi-page-bg);
+  font-family: var(--sabi-font-family);
+  color: var(--sabi-text-primary);
+}
+
+.sabi-main {
+  flex: 1;
+  min-width: 0;           /* critical: prevents flex child from overflowing */
+  background: #f8f9ff;
+  padding: var(--sabi-space-md);
+  /* Allow the main area to scroll independently without the sidebar */
+  overflow-x: hidden;
+}
+
+/* ──────────────────────────────────────────────────────────
+   Sidebar
+   ────────────────────────────────────────────────────────── */
+
+.sabi-sidebar {
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  width: 250px;
+  min-width: 250px;
+  height: 100vh; /* fallback for browsers without dynamic viewport support */
+  height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: linear-gradient(180deg, #07594f 0%, #043f3a 58%, #032f2c 100%);
+  border-right: 1px solid rgba(255, 255, 255, .1);
+  transition: width 280ms ease-in-out, min-width 280ms ease-in-out, padding 280ms ease-in-out;
+  z-index: 30;
+  flex-shrink: 0;   /* prevent sidebar from shrinking in flex layouts */
+}
+
+.sabi-sidebar-top {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.sabi-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;           /* reduced from 15px — prevents crowding on narrow viewports */
+  padding: 4px 8px 16px;
+  position: relative;
+  min-width: 0;
+}
+
+.sabi-sidebar-brand-icon {
+  width: 45px;
+  height: 45px;
+  border-radius: 10px;
+  background-color: rgba(0, 92, 85, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 45px;
+  object-fit: cover;
+  transition: width 280ms ease-in-out, height 280ms ease-in-out, border-radius 280ms ease-in-out;
+}
+
+.sabi-sidebar-brand-text {
+  flex: 1 1 0;         /* grows to fill space between logo and toggle — eliminates overlap */
+  min-width: 0;
+  overflow: hidden;
+  transition: opacity 160ms ease, transform 220ms ease, max-width 280ms ease;
+}
+
+.sabi-sidebar-brand .name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.sabi-sidebar-brand .tagline {
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(232, 255, 249, .62);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Navigation ── */
+
+.sabi-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 0;
+  margin-top: 20px;
+}
+
+.sabi-nav-link {
+  display: block;
+  text-decoration: none;
+}
+
+.sabi-nav-link .sabi-nav-row { width: 100%; }
+
+.sabi-nav-row {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: var(--sabi-space-sm);
+  padding: 8px var(--sabi-space-md);
+  border-radius: var(--sabi-radius-md);
+  font-size: calc(0.9rem * var(--sabi-font-scale));
+  font-weight: 400;
+  line-height: 20px;
+  color: rgba(242, 255, 252, .78);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  position: relative;
+  transition: background 180ms ease, color 180ms ease, padding 280ms ease, justify-content 280ms ease;
+}
+
+/* Label wrapper so long nav text truncates instead of clipping */
+.sabi-nav-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  max-width: 180px;
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 140ms ease, transform 180ms ease, max-width 280ms ease;
+}
+
+.sabi-nav-large .sabi-nav-row         { font-size: calc(1rem   * var(--sabi-font-scale)); }
+.sabi-sidebar-footer-large .sabi-nav-row { font-size: calc(0.95rem * var(--sabi-font-scale)); }
+
+.sabi-nav-row svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+.sabi-nav-row:hover { background: rgba(255, 255, 255, .1); }
+
+.sabi-nav-row:focus-visible,
+.sabi-sidebar-toggle:focus-visible,
+.sabi-mobile-sidebar-trigger:focus-visible {
+  outline: 3px solid rgba(206, 255, 243, .85);
+  outline-offset: 2px;
+}
+
+.sabi-nav-row.active {
+  background: rgba(220, 255, 244, .18);
+  color: #fff;
+  font-weight: 700;
+}
+
+.sabi-nav-row.danger { color: var(--sabi-danger); }
+.sabi-nav-row.danger:hover { background: color-mix(in srgb, var(--sabi-danger) 10%, transparent); }
+
+/* ── Sidebar footer ── */
+
+.sabi-sidebar-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, .12);
+}
+
+/* ── Collapse toggle ── */
+
+.sabi-sidebar-toggle {
+  /* margin-left: auto removed — brand-text now has flex: 1 1 0 which pushes the button
+     to the right naturally without relying on auto-margin */
+  flex-shrink: 0;      /* never allow the button to shrink */
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, .08);
+  color: #fff;
+  cursor: pointer;
+  transition: background 180ms ease, border-color 180ms ease, transform 280ms ease;
+}
+
+.sabi-sidebar-toggle:hover {
+  background: rgba(255, 255, 255, .16);
+  border-color: rgba(255, 255, 255, .34);
+}
+
+.sabi-sidebar-toggle svg { transition: transform 280ms ease-in-out; }
+
+/* ── Mobile-only close button inside the sidebar brand header ──────────────
+   This replaces the external fixed trigger while the sidebar is open on mobile.
+   It lives inside .sabi-sidebar-brand and participates in the flex layout,
+   so it can NEVER overlap the logo or brand text.
+   Hidden everywhere by default; activated only by the mobile media query.
+   ────────────────────────────────────────────────────────────────────────── */
+.sabi-sidebar-mobile-close {
+  display: none;
+}
+
+/* ── Collapsed state (desktop) ── */
+
+.sabi-sidebar.collapsed {
+  width: 72px;
+  min-width: 72px;
+  padding-inline: 10px;
+}
+
+.sabi-sidebar.collapsed .sabi-sidebar-brand { justify-content: center; padding-inline: 0; }
+.sabi-sidebar.collapsed .sabi-sidebar-brand-icon { width: 40px; height: 40px; flex-basis: 40px; border-radius: 9px; }
+.sabi-sidebar.collapsed .sabi-sidebar-brand-text,
+.sabi-sidebar.collapsed .sabi-nav-label {
+  max-width: 0;
+  opacity: 0;
+  transform: translateX(-6px);
+  pointer-events: none;
+}
+
+.sabi-sidebar.collapsed .sabi-sidebar-toggle {
+  position: absolute;
+  right: -15px;
+  top: 12px;
+  z-index: 2;
+  border-color: rgba(7, 89, 79, .22);
+  background: var(--sabi-surface);
+  color: var(--sabi-primary-dark);
+  box-shadow: 0 4px 12px rgba(0, 47, 44, .16);
+}
+
+.sabi-sidebar.collapsed .sabi-sidebar-toggle svg { transform: rotate(180deg); }
+.sabi-sidebar.collapsed .sabi-nav-row { justify-content: center; gap: 0; padding-inline: 10px; }
+.sabi-sidebar.collapsed .sabi-nav-row.active { border-radius: 12px; }
+
+/* Tooltip for collapsed sidebar items */
+.sabi-sidebar.collapsed .sabi-nav-row[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 14px);
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px);
+  z-index: 50;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: #102a27;
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .18);
+  font-size: .78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease 150ms, transform 140ms ease 150ms;
+}
+
+.sabi-sidebar.collapsed .sabi-nav-row[data-tooltip]:hover::after,
+.sabi-sidebar.collapsed .sabi-nav-row[data-tooltip]:focus-visible::after {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+/* ── Mobile sidebar trigger + backdrop (hidden by default on desktop) ── */
+
+.sabi-mobile-sidebar-trigger,
+.sabi-sidebar-backdrop { display: none; }
+
+/* ──────────────────────────────────────────────────────────
+   Sidebar responsive rules
+   ────────────────────────────────────────────────────────── */
+
+/* TABLET  (641 – 860px): auto-collapse sidebar to icon-only.
+   The trigger is shown below 860px so users can always open it. */
+@media (min-width: 641px) and (max-width: 860px) {
+  .sabi-sidebar { width: 72px; min-width: 72px; padding-inline: 10px; }
+  .sabi-sidebar-brand { justify-content: center; padding-inline: 0; }
+  .sabi-sidebar-brand-icon { width: 40px; height: 40px; flex-basis: 40px; }
+  .sabi-sidebar-brand-text,
+  .sabi-sidebar .sabi-nav-label { max-width: 0; opacity: 0; transform: translateX(-6px); pointer-events: none; }
+  .sabi-sidebar-toggle { display: none; }
+  .sabi-nav-row { justify-content: center; gap: 0; padding-inline: 10px; }
+  .sabi-nav-row[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: calc(100% + 14px);
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 50;
+    padding: 7px 10px;
+    border-radius: 8px;
+    background: #102a27;
+    color: #fff;
+    font-size: .78rem;
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .sabi-nav-row[data-tooltip]:hover::after,
+  .sabi-nav-row[data-tooltip]:focus-visible::after { opacity: 1; }
+}
+
+/* MOBILE  (≤640px): sidebar is off-canvas; trigger button is always visible */
+@media (max-width: 640px) {
+  .sabi-dashboard { display: block; }
+  .sabi-main {
+    width: 100%;
+    /* Normal padding — the topbar row 1 has its own padding-left guard for the trigger */
+    padding: var(--sabi-space-sm);
+  }
+
+  /* ── In-flow mobile header bar ───────────────────────────────────────
+     Replaces the old position:fixed floating trigger. The button renders
+     as the first block-level child of .sabi-dashboard (display:block on
+     mobile) and sticks to the viewport top as the user scrolls.
+     It NEVER overlaps the sidebar, logo, or any other element because it
+     participates in normal document flow — no z-index tricks needed.
+     ────────────────────────────────────────────────────────────────────── */
+  .sabi-mobile-sidebar-trigger {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 56px;
+    padding: 10px 16px;
+    background: var(--sabi-surface);
+    border: none;
+    border-bottom: 1px solid var(--sabi-border);
+    color: var(--sabi-primary-dark);
+    cursor: pointer;
+    position: sticky;
+    top: 0;
+    z-index: 42;
+    box-shadow: 0 2px 8px rgba(0, 47, 44, .06);
+    text-align: left;
+    box-sizing: border-box;
+  }
+
+  /* Pill-shaped icon wrapper inside the header trigger */
+  .sabi-mobile-sidebar-trigger-icon {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: var(--sabi-primary-light);
+    color: var(--sabi-primary-dark);
+  }
+
+  /* Brand label rendered beside the hamburger icon */
+  .sabi-mobile-sidebar-trigger-label {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--sabi-primary-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sabi-sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 34;
+    display: block;
+    border: 0;
+    background: rgba(3, 47, 44, .38);
+  }
+
+  .sabi-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 40;
+    width: 250px;
+    min-width: 250px;
+    height: 100dvh;
+    transform: translateX(-105%);
+    transition: transform 280ms ease-in-out;
+    box-shadow: 16px 0 34px rgba(0, 47, 44, .24);
+  }
+
+  .sabi-sidebar.mobile-open { transform: translateX(0); }
+  .sabi-sidebar-toggle { display: none; }
+
+  /* ── Mobile trigger: hide the fixed external button while sidebar is open ──
+     The .is-open class is added via React state in Sidebar.jsx.
+     This eliminates the overlap with the sidebar logo area completely. */
+  .sabi-mobile-sidebar-trigger.is-open { display: none; }
+
+  /* ── Mobile close button: shown inside the brand header when sidebar is open ──
+     Participates in the brand flex row → logo [flex-1 text] [close-btn]
+     Guaranteed not to overlap the logo because flex layout distributes space. */
+  .sabi-sidebar.mobile-open .sabi-sidebar-mobile-close {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    min-width: 36px;
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    border: 1px solid rgba(255, 255, 255, .22);
+    background: rgba(255, 255, 255, .1);
+    color: #fff;
+    cursor: pointer;
+    transition: background 180ms ease, border-color 180ms ease;
+  }
+
+  .sabi-sidebar.mobile-open .sabi-sidebar-mobile-close:hover,
+  .sabi-sidebar.mobile-open .sabi-sidebar-mobile-close:focus-visible {
+    background: rgba(255, 255, 255, .2);
+    border-color: rgba(255, 255, 255, .38);
+  }
+
+  /* Reset any collapsed overrides on mobile — mobile is always full-width */
+  .sabi-sidebar.collapsed {
+    width: 250px;
+    min-width: 250px;
+    padding-inline: 14px;
+  }
+
+  .sabi-sidebar.collapsed .sabi-sidebar-brand { justify-content: flex-start; padding-inline: 8px; }
+  .sabi-sidebar.collapsed .sabi-sidebar-brand-icon { width: 45px; height: 45px; flex-basis: 45px; }
+  .sabi-sidebar.collapsed .sabi-sidebar-brand-text,
+  .sabi-sidebar.collapsed .sabi-nav-label {
+    max-width: 180px;
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+
+  .sabi-sidebar.collapsed .sabi-nav-row {
+    justify-content: flex-start;
+    gap: var(--sabi-space-sm);
+    padding-inline: var(--sabi-space-md);
+  }
+
+  .sabi-sidebar.collapsed .sabi-nav-row::after { display: none; }
+}
+
+/* The trigger is enabled exclusively inside the ≤640px block where the
+   sidebar is fully off-canvas. At tablet (641–860px) the icon-rail sidebar
+   is still visible in-flow — no external trigger is needed or wanted there. */
+
+
+/* ──────────────────────────────────────────────────────────
+   Topbar
+   ────────────────────────────────────────────────────────── */
+
+/*
+  Desktop layout (>640px):
+    [Search .........] [Emergency] [Bell] [Profile]
+
+  Mobile layout (≤640px) — 2-row CSS grid:
+    Row 1: [← 58px guard →] [Emergency] [Bell] [Avatar]
+    Row 2: [Search .................................]
+  The 58px guard clears the fixed mobile sidebar trigger (42px wide + 14px left + 2px gap).
+*/
+.sabi-topbar {
+  width: 100%;
+  border-radius: 20px;
+  height: auto;
+  min-height: 60px;
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: var(--sabi-space-md);
+  background: var(--sabi-surface);
+  box-sizing: border-box;
+  /* Prevent any child from causing horizontal overflow */
+  overflow: visible;
+}
+
+/* Search bar — desktop: use order:-1 so it appears first even though it's second in DOM.
+   DOM order (actions then search) is required for the mobile 2-row CSS Grid.
+   On desktop flex, `order` restores the correct visual sequence. */
+.sabi-search {
+  flex: 1;
+  min-width: 0;
+  max-width: 448px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--sabi-page-bg);
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 0 16px;
+  color: var(--sabi-text-secondary);
+  order: -1; /* appear first on desktop flex */
+}
+
+.sabi-search svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+.sabi-search input {
+  flex: 1;
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 0.9rem;
+  min-width: 0;
+  color: var(--sabi-text-primary);
+}
+
+.sabi-search input::placeholder { color: var(--sabi-text-secondary); }
+
+/* Actions group — emergency + bell + profile always together */
+.sabi-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  margin-left: auto;
+  min-width: 0;
+  order: 0; /* after search on desktop */
+}
+
+.sabi-icon-btn {
+  width: 36px;              /* bumped from 24px for better tap target */
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.sabi-icon-btn svg { width: 19px; height: 19px; }
+.sabi-icon-btn.location { color: var(--sabi-danger); }
+
+.sabi-bell .dot {
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--sabi-danger);
+  border: 1.5px solid var(--sabi-surface);
+}
+
+/* ──────────────────────────────────────────────────────────
+   Notifications dropdown
+   ────────────────────────────────────────────────────────── */
+
+.sabi-notif-wrap { position: relative; }
+
+.sabi-notif-panel {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  width: 340px;
+  max-height: 420px;
+  overflow-y: auto;
+  background: var(--sabi-surface);
+  border-radius: var(--sabi-radius-lg);
+  box-shadow: 0 20px 44px rgba(0, 47, 44, .18);
+  z-index: 110;
+}
+
+.sabi-notif-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sabi-space-sm);
+  padding: var(--sabi-space-md);
+  border-bottom: 1px solid var(--sabi-border);
+  position: sticky;
+  top: 0;
+  background: var(--sabi-surface);
+}
+
+.sabi-notif-panel-head h4 { margin: 0; font-size: .95rem; }
+.sabi-notif-panel-head button {
+  border: 0;
+  background: none;
+  color: var(--sabi-primary-dark);
+  font-size: .78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sabi-notif-empty {
+  margin: 0;
+  padding: var(--sabi-space-lg);
+  text-align: center;
+  color: var(--sabi-text-secondary);
+  font-size: .85rem;
+}
+
+.sabi-notif-list { display: grid; }
+
+.sabi-notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: var(--sabi-space-md);
+  border: 0;
+  border-bottom: 1px solid var(--sabi-border);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sabi-notif-item.unread { background: var(--sabi-primary-light); }
+.sabi-notif-item:last-child { border-bottom: 0; }
+
+.sabi-notif-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--sabi-surface-muted, #f6faf8);
+  color: var(--sabi-primary-dark);
+}
+
+.sabi-notif-body { display: grid; gap: 2px; min-width: 0; }
+.sabi-notif-body strong { font-size: .84rem; }
+.sabi-notif-body span { font-size: .78rem; color: var(--sabi-text-secondary); overflow-wrap: break-word; }
+.sabi-notif-body small { font-size: .7rem; color: var(--sabi-text-secondary); margin-top: 2px; }
+
+/* On small screens, notification panel must not overflow the viewport edge */
+@media (max-width: 620px) {
+  .sabi-notif-panel {
+    /* Clamp width so it never exceeds the viewport */
+    width: min(92vw, 340px);
+    /* Anchor to the right edge of the trigger rather than further right */
+    right: -4px;
+    left: auto;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────
+   Emergency badge
+   ────────────────────────────────────────────────────────── */
+
+.sabi-emergency-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, var(--sabi-danger) 0%, #a31515 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: clamp(0.75rem, 1.8vw, 0.88rem);
+  border: none;
+  border-radius: var(--sabi-radius-lg);
+  padding: 8px 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+  /* Ensure minimum touch target */
+  min-height: 40px;
+  min-width: 40px;
+  justify-content: center;
+}
+
+.sabi-emergency-badge svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+/* Tablet: trim label slightly */
+@media (max-width: 860px) {
+  .sabi-emergency-badge { padding: 8px 11px; }
+}
+
+/* Compact mode on small mobile: icon + short label */
+@media (max-width: 480px) {
+  .sabi-emergency-badge {
+    padding: 0;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    font-size: 0;
+    gap: 0;
+    /* icon remains visible — text is 0px so label disappears gracefully */
+  }
+  .sabi-emergency-badge svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────
+   Profile (topbar area)
+   ────────────────────────────────────────────────────────── */
+
+.sabi-profile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  /* Do NOT set a fixed min-width or width — let it shrink naturally */
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.sabi-profile-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  border-radius: var(--sabi-radius-md);
+  min-width: 0;
+}
+
+.sabi-profile .avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--sabi-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: calc(0.88rem * var(--sabi-font-scale));
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.sabi-profile .avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Profile text wrapper — constrained so long names can't stretch the topbar */
+.sabi-profile-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: clamp(80px, 12vw, 160px);
+}
+
+.sabi-profile .name {
+  font-size: clamp(0.78rem, 1.5vw, 0.9rem);
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.sabi-profile .id {
+  font-size: clamp(0.65rem, 1.2vw, 0.78rem);
+  color: var(--sabi-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Tablet: hide the Patient ID, keep the name */
+@media (max-width: 860px) {
+  .sabi-profile .id { display: none; }
+  .sabi-profile-text { max-width: clamp(60px, 10vw, 120px); }
+}
+
+/* Small mobile: hide name too — avatar only */
+@media (max-width: 480px) {
+  .sabi-profile .name { display: none; }
+  .sabi-profile .id { display: none; }
+  .sabi-profile-text { display: none; }
+  .sabi-profile .avatar { width: 38px; height: 38px; }
+}
+
+/* Profile dropdown menu */
+.sabi-profile-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 170px;
+  background: var(--sabi-surface);
+  border: 1px solid #e5e7eb;
+  border-radius: var(--sabi-radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  z-index: 100;
+}
+
+.sabi-profile-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: none;
+  font-size: calc(0.9rem * var(--sabi-font-scale));
+  font-weight: 500;
+  color: var(--sabi-text-primary);
+  text-decoration: none;
+  border-radius: var(--sabi-radius-md);
+  cursor: pointer;
+  text-align: left;
+}
+
+.sabi-profile-menu-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+.sabi-profile-menu-item:hover { background: var(--sabi-page-bg); }
+.sabi-profile-menu-item.sabi-logout { color: var(--sabi-danger); }
+.sabi-profile-menu-item.sabi-logout:hover { background: color-mix(in srgb, var(--sabi-danger) 10%, transparent); }
+
+/* ──────────────────────────────────────────────────────────
+   Zoom control
+   ────────────────────────────────────────────────────────── */
+
+.sabi-zoom-control {
+  display: flex;
+  align-items: center;
+  background: var(--sabi-page-bg);
+  border-radius: var(--sabi-radius-lg);
+  padding: 3px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.sabi-zoom-btn {
+  border: none;
+  background: transparent;
+  color: var(--sabi-text-secondary);
+  font-weight: 700;
+  font-size: 1.22rem;
+  border-radius: var(--sabi-radius-lg);
+  padding: 6px 9px;
+  cursor: pointer;
+  min-width: 32px;        /* ensure a decent tap target */
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sabi-zoom-btn.active {
+  background: var(--sabi-surface);
+  color: var(--sabi-primary-dark);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* ──────────────────────────────────────────────────────────
+   Layout grid (two-column content + sidebar)
+   ────────────────────────────────────────────────────────── */
+
+.sabi-grid {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--sabi-space-md);
+  align-items: start;
+}
+
+.sabi-col {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  min-width: 0;
+}
+
+/* ──────────────────────────────────────────────────────────
+   Section title (base)
+   ────────────────────────────────────────────────────────── */
+
+.sabi-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: calc(1.15rem * var(--sabi-font-scale));
+  font-weight: 700;
+  margin-bottom: var(--sabi-space-md);
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.sabi-section-title .action {
+  font-size: calc(0.9rem * var(--sabi-font-scale));
+  font-weight: 600;
+  color: var(--sabi-primary);
+  cursor: pointer;
+}
+
+.sabi-pill {
+  font-size: calc(0.8rem * var(--sabi-font-scale));
+  font-weight: 700;
+  color: var(--sabi-primary);
+  background: var(--sabi-primary-light);
+  border-radius: var(--sabi-radius-lg);
+  padding: var(--sabi-space-xs) var(--sabi-space-sm);
+  flex-shrink: 0;
+}
+
+/* ──────────────────────────────────────────────────────────
+   Shared modal shell
+   ────────────────────────────────────────────────────────── */
+
+.sabi-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sabi-space-md);
+  z-index: 100;
+  /* Allow the overlay to scroll so tall modals don't get cut off */
+  overflow-y: auto;
+}
+
+.sabi-modal {
+  background: var(--sabi-surface);
+  border-radius: var(--sabi-radius-lg);
+  width: 100%;
+  max-width: 420px;
+  /* Use dvh so the modal respects the visible viewport on mobile browsers */
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  padding: var(--sabi-space-lg);
+  /* Prevent the modal itself from going wider than the screen */
+  max-width: min(420px, calc(100vw - 32px));
+  position: relative;
+}
+
+.sabi-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sabi-space-md);
+  gap: var(--sabi-space-sm);
+}
+
+.sabi-modal-head h3 {
+  margin: 0;
+  font-size: calc(1.05rem * var(--sabi-font-scale));
+  font-weight: 800;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.sabi-modal-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--sabi-background);
+  color: var(--sabi-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Large modal variant — single definition (was duplicated) */
+.sabi-modal-lg {
+  max-width: min(720px, calc(100vw - 32px));
+}
+
+/* On mobile, large modals slide up from the bottom */
+@media (max-width: 640px) {
+  .sabi-modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .sabi-modal,
+  .sabi-modal-lg {
+    max-width: 100%;
+    max-height: 92dvh;
+    border-radius: var(--sabi-radius-lg) var(--sabi-radius-lg) 0 0;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────
+   Shared card base
+   ────────────────────────────────────────────────────────── */
+
+.sabi-card {
+  background: var(--sabi-surface);
+  border-radius: var(--sabi-radius-lg);
+  padding: var(--sabi-space-lg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* ──────────────────────────────────────────────────────────
+   Shared button base
+   ────────────────────────────────────────────────────────── */
+
+.sabi-btn-primary,
+.sabi-btn-outline,
+.sabi-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--sabi-radius-md);
+  padding: 10px 18px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
+}
+
+.sabi-btn-primary {
+  background: var(--sabi-gradient-primary, var(--sabi-primary-dark));
+  color: #fff;
+  border: none;
+}
+
+.sabi-btn-primary:hover:not(:disabled) { filter: brightness(1.05); transform: translateY(-1px); }
+.sabi-btn-primary:disabled { opacity: .55; cursor: not-allowed; }
+
+.sabi-btn-outline {
+  background: var(--sabi-surface);
+  color: var(--sabi-primary-dark);
+  border: 1px solid var(--sabi-border);
+}
+
+.sabi-btn-outline:hover:not(:disabled) { border-color: var(--sabi-primary); background: var(--sabi-primary-light); }
+
+.sabi-btn-ghost {
+  background: transparent;
+  color: var(--sabi-primary-dark);
+  border: none;
+}
+
+.sabi-btn-ghost:hover:not(:disabled) { background: var(--sabi-primary-light); }
+
+/* ──────────────────────────────────────────────────────────
+   Responsive — layout grid & global spacing
+   ────────────────────────────────────────────────────────── */
+
+/* Tablet / small laptop: single-column layout */
+@media (max-width: 1080px) {
+  .sabi-grid { grid-template-columns: 1fr; gap: 24px; }
+  .sabi-col  { gap: 24px; }
+}
+
+/* ──────────────────────────────────────────────────────────
+   TOPBAR RESPONSIVE RULES
+   ────────────────────────────────────────────────────────── */
+
+/*
+  Tablet (641–860px):
+  Sidebar is icon-only (72px). Reduce topbar padding and gaps.
+  Search keeps single-row layout but is narrower.
+*/
+@media (min-width: 641px) and (max-width: 860px) {
+  .sabi-topbar {
+    padding: 10px 14px;
+    gap: 8px;
+    border-radius: 16px;
+  }
+  .sabi-topbar-actions { gap: 8px; }
+  .sabi-search { max-width: 280px; }
+}
+
+/*
+  Mobile (≤640px):
+  Switch to CSS Grid 2-row layout.
+  Row 1: actions (emergency + bell + profile), padded left to clear hamburger
+  Row 2: search bar spanning full width
+  This prevents ANY element from overlapping.
+*/
+@media (max-width: 640px) {
+  .sabi-topbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    /* Topbar sits directly below the in-flow sticky mobile header */
+    margin-top: 0;
+    min-height: auto;
+    align-items: stretch;
+  }
+
+  /* Row 1 — actions group right-aligned. No left padding guard needed:
+     the in-flow mobile header bar above .sabi-main owns the ☰ trigger. */
+  .sabi-topbar-actions {
+    grid-row: 1;
+    grid-column: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-left: 0;
+    padding-left: 0;
+    min-height: 44px;
+  }
+
+  /* Row 2 — search spans full width */
+  .sabi-search {
+    grid-row: 2;
+    grid-column: 1;
+    flex: unset;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    height: 44px;
+  }
+}
+
+/* Very small mobile (≤400px): tighten further */
+@media (max-width: 400px) {
+  .sabi-topbar {
+    padding: 8px 10px;
+    gap: 8px;
+    border-radius: 12px;
+  }
+  .sabi-topbar-actions {
+    gap: 6px;
+    /* padding-left guard removed — trigger is in-flow, not fixed */
+  }
+  .sabi-search { height: 42px; }
+}
+
+/* ──────────────────────────────────────────────────────────
+   Main content area spacing
+   ────────────────────────────────────────────────────────── */
+
+/* Small mobile: tighten main padding */
+@media (max-width: 560px) {
+  .sabi-main { padding: 12px; }
+}

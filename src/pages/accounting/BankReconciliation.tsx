@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { CheckCircle2, AlertTriangle, Play, Link2 } from "lucide-react";
 import { PageHeader, Button, Badge, Card, StatCard, EmptyState } from "@/components/ui/primitives";
 import { Table, Row, Cell } from "@/components/ui/Table";
@@ -19,7 +19,7 @@ export default function BankReconciliation() {
 
   const active = reconciliations.find((r) => r.accountNumber === acctNo && r.status === "In Progress");
   const progress = active ? reconciliationProgress(active.id) : null;
-  const movements = useMemo(() => (active ? glMovements(acctNo, active.statementDate) : []), [active, glMovements, acctNo]);
+  const movements = active ? glMovements(acctNo, active.statementDate) : [];
   const stmtLines = statementLines.filter((l) => l.accountNumber === acctNo);
 
   function matchStatementLine(lineId: string) {

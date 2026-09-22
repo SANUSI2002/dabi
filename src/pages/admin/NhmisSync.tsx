@@ -10,7 +10,7 @@ export default function NhmisSync() {
   const emr = useEmr();
   const log = useAudit((s) => s.log);
   const [state, setState] = useState<"idle" | "syncing" | "done">("idle");
-  const [lastSync, setLastSync] = useState(new Date(Date.now() - 6 * 3600e3).toISOString());
+  const [lastSync, setLastSync] = useState(() => new Date(Date.now() - 6 * 3600e3).toISOString());
 
   // Record counts are drawn only from what this EMR actually holds — no
   // dataset here is padded with an invented baseline. A dataset this build

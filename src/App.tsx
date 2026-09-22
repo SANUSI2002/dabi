@@ -1,8 +1,11 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/store/useAuth";
 import { useTenant } from "@/store/useTenant";
 import { useTenantSetup } from "@/tenant-setup/useTenantSetup";
+import { AppLoadingScreen } from "@/components/layout/AppLoadingScreen";
+import { hasPharmacyPortalAccess } from "@/pharmacy/access";
+import { deploymentSurface, otherSurfaceUrl } from "@/deployment/surface";
 
 const AppShell = lazy(() => import("@/components/layout/AppShell").then((m) => ({ default: m.AppShell })));
 const WorkforceLayout = lazy(() => import("@/components/layout/WorkforceLayout").then((m) => ({ default: m.WorkforceLayout })));
@@ -17,6 +20,8 @@ const InvitePage = lazy(() => import("@/identity/pages/IdentityPages").then((m) 
 const RegistrationStartPage = lazy(() => import("@/registration/pages/OrganizationRegistration").then((m) => ({ default: m.RegistrationStartPage })));
 const OrganizationRegistrationPage = lazy(() => import("@/registration/pages/OrganizationRegistration").then((m) => ({ default: m.OrganizationRegistrationPage })));
 const ApplicationStatusPage = lazy(() => import("@/registration/pages/OrganizationRegistration").then((m) => ({ default: m.ApplicationStatusPage })));
+const PharmacyPortal = lazy(() => import("@/pharmacy/PharmacyPortal"));
+const PharmacyLoginPage = lazy(() => import("@/pharmacy/PharmacyLoginPage"));
 
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const ClinicalQueue = lazy(() => import("@/pages/clinical/ClinicalQueue"));
@@ -24,6 +29,7 @@ const Registration = lazy(() => import("@/pages/clinical/Registration"));
 const Appointments = lazy(() => import("@/pages/clinical/Appointments"));
 const Consultation = lazy(() => import("@/pages/clinical/Consultation"));
 const Inpatient = lazy(() => import("@/pages/clinical/Inpatient"));
+const WardRound = lazy(() => import("@/pages/clinical/WardRound"));
 const MedicalHistory = lazy(() => import("@/pages/clinical/MedicalHistory"));
 const PatientChart = lazy(() => import("@/pages/clinical/PatientChart"));
 const Transfers = lazy(() => import("@/pages/clinical/Transfers"));
@@ -47,6 +53,7 @@ const Outreach = lazy(() => import("@/pages/programs/Outreach"));
 const Billing = lazy(() => import("@/pages/admin/Billing"));
 const BillingInvoiceDetail = lazy(() => import("@/pages/admin/BillingInvoiceDetail"));
 const Inventory = lazy(() => import("@/pages/admin/Inventory"));
+const InventoryItemDetail = lazy(() => import("@/pages/admin/InventoryItemDetail"));
 const Equipment = lazy(() => import("@/pages/admin/Equipment"));
 const EquipmentCommandCentre = lazy(() => import("@/pages/equipment/CommandCentre"));
 const EquipmentRegister = lazy(() => import("@/pages/equipment/Register"));
@@ -133,6 +140,23 @@ const AcctIntegrations = lazy(() => import("@/pages/accounting/Integrations"));
 const AcctSettings = lazy(() => import("@/pages/accounting/AccountingSettings"));
 const CommandCenterShell = lazy(() => import("@/command-center/components/CommandCenterShell").then((m) => ({ default: m.CommandCenterShell })));
 const CommandDashboard = lazy(() => import("@/command-center/pages/Dashboard"));
+const SabiHealthDashboard = lazy(() => import("@/command-center/pages/SabiHealthDashboard"));
+const SabiHealthVerificationCenter = lazy(() => import("@/command-center/pages/sabihealth/VerificationCenter"));
+const SabiHealthConsultations = lazy(() => import("@/command-center/pages/sabihealth/Consultations"));
+const SabiHealthConsultationDetail = lazy(() => import("@/command-center/pages/sabihealth/ConsultationDetail"));
+const SabiHealthPrescriptions = lazy(() => import("@/command-center/pages/sabihealth/Prescriptions"));
+const SabiHealthPrescriptionDetail = lazy(() => import("@/command-center/pages/sabihealth/PrescriptionDetail"));
+const SabiHealthOrders = lazy(() => import("@/command-center/pages/sabihealth/Orders"));
+const SabiHealthOrderDetail = lazy(() => import("@/command-center/pages/sabihealth/OrderDetail"));
+const SabiHealthPayments = lazy(() => import("@/command-center/pages/sabihealth/Payments"));
+const SabiHealthPatients = lazy(() => import("@/command-center/pages/sabihealth/Patients"));
+const SabiHealthPatientDetail = lazy(() => import("@/command-center/pages/sabihealth/PatientDetail"));
+const SabiHealthDoctors = lazy(() => import("@/command-center/pages/sabihealth/Doctors"));
+const SabiHealthDoctorDetail = lazy(() => import("@/command-center/pages/sabihealth/DoctorDetail"));
+const SabiHealthPharmacies = lazy(() => import("@/command-center/pages/sabihealth/Pharmacies"));
+const SabiHealthPharmacyDetail = lazy(() => import("@/command-center/pages/sabihealth/PharmacyDetail"));
+const SabiHealthLaboratories = lazy(() => import("@/command-center/pages/sabihealth/Laboratories"));
+const SabiHealthLaboratoryDetail = lazy(() => import("@/command-center/pages/sabihealth/LaboratoryDetail"));
 const CommandOrganizations = lazy(() => import("@/command-center/pages/Organizations"));
 const Tenant360 = lazy(() => import("@/command-center/pages/Tenant360"));
 const CommercialPage = lazy(() => import("@/command-center/pages/CommercialPages"));
@@ -158,14 +182,6 @@ const SolutionsPage = lazy(() => import("@/public/pages/ContentPages").then((m) 
 const ResourcesPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.ResourcesPage })));
 const RegisterEntryPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.RegisterEntryPage })));
 const BookDemoPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.BookDemoPage })));
-
-function Loader() {
-  return (
-    <div className="grid place-items-center py-32">
-      <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-brand-200 border-t-brand-600" />
-    </div>
-  );
-}
 
 function WorkspaceGate() {
   const { authed, identity, activeMembership } = useAuth();
@@ -197,10 +213,30 @@ function CommandCenterGate() {
   return authed && identity?.kind === "platform" ? <CommandCenterShell /> : <Navigate to="/login" replace />;
 }
 
+function PharmacyPortalGate() {
+  const { authed, identity, activeMembership } = useAuth();
+  if (!authed || !identity) return <Navigate to="/pharmacy/login" replace />;
+  if (identity.kind !== "organization" || !activeMembership) return <Navigate to={identity.kind === "platform" ? "/command-center" : "/patient"} replace />;
+  if (!hasPharmacyPortalAccess(activeMembership)) return <Navigate to="/pharmacy/login" replace />;
+  return <PharmacyPortal />;
+}
+
 export default function App() {
   const loc = useLocation();
+  const surface = deploymentSurface(import.meta.env.VITE_DEPLOYMENT_SURFACE);
+  const crossSurfaceUrl = otherSurfaceUrl(loc.pathname, loc.search, surface, {
+    health: import.meta.env.VITE_SABI_HEALTH_URL,
+    emr: import.meta.env.VITE_SABI_EMR_URL,
+    pharmacy: import.meta.env.VITE_SABI_PHARMACY_URL,
+  });
+  useEffect(() => {
+    if (crossSurfaceUrl) window.location.replace(crossSurfaceUrl);
+  }, [crossSurfaceUrl]);
+  if (crossSurfaceUrl) return <div className="grid min-h-screen place-items-center bg-slate-50 p-6 text-center text-sm text-slate-600">Opening the correct Sabi workspace… <a className="ml-1 font-bold text-emerald-700 underline" href={crossSurfaceUrl}>Continue</a></div>;
+  if (loc.pathname === "/" && surface === "emr") return <Navigate to="/login" replace />;
+  if (loc.pathname === "/" && surface === "pharmacy") return <Navigate to="/pharmacy/login" replace />;
   return (
-    <Suspense fallback={<Loader />}>
+    <Suspense fallback={<AppLoadingScreen pathname={loc.pathname} />}>
       <Routes location={loc}>
         <Route element={<PublicShell />}>
           <Route index element={<HomePage />} />
@@ -224,12 +260,35 @@ export default function App() {
         <Route path="/account/sessions" element={<SessionsPage />} />
         <Route path="/accept-invite" element={<InvitePage />} />
         <Route path="/patient" element={<PatientPortalPage />} />
+        <Route path="/pharmacy/login" element={<PharmacyLoginPage />} />
+        <Route path="/pharmacy-portal/login" element={<PharmacyLoginPage />} />
+        <Route path="/pharmacy-portal" element={<PharmacyPortalGate />} />
         <Route path="/workspace/setup" element={<TenantSetupGate />} />
         <Route path="/register/organization" element={<RegistrationStartPage />} />
         <Route path="/register/organization/:applicationId" element={<OrganizationRegistrationPage />} />
         <Route path="/register/organization/:applicationId/status" element={<ApplicationStatusPage />} />
+        <Route path="/signup/organisation/:type" element={<Navigate to="/register/organization" replace />} />
+        <Route path="/signup/organization/:type" element={<Navigate to="/register/organization" replace />} />
         <Route path="/command-center" element={<CommandCenterGate />}>
           <Route index element={<CommandDashboard />} />
+          <Route path="sabi-health" element={<SabiHealthDashboard />} />
+          <Route path="sabi-health/verification" element={<SabiHealthVerificationCenter />} />
+          <Route path="sabi-health/verification/:subjectId" element={<SabiHealthVerificationCenter />} />
+          <Route path="sabi-health/consultations" element={<SabiHealthConsultations />} />
+          <Route path="sabi-health/consultations/:consultationId" element={<SabiHealthConsultationDetail />} />
+          <Route path="sabi-health/prescriptions" element={<SabiHealthPrescriptions />} />
+          <Route path="sabi-health/prescriptions/:prescriptionId" element={<SabiHealthPrescriptionDetail />} />
+          <Route path="sabi-health/orders" element={<SabiHealthOrders />} />
+          <Route path="sabi-health/orders/:orderId" element={<SabiHealthOrderDetail />} />
+          <Route path="sabi-health/payments" element={<SabiHealthPayments />} />
+          <Route path="sabi-health/patients" element={<SabiHealthPatients />} />
+          <Route path="sabi-health/patients/:patientId" element={<SabiHealthPatientDetail />} />
+          <Route path="sabi-health/doctors" element={<SabiHealthDoctors />} />
+          <Route path="sabi-health/doctors/:doctorId" element={<SabiHealthDoctorDetail />} />
+          <Route path="sabi-health/pharmacies" element={<SabiHealthPharmacies />} />
+          <Route path="sabi-health/pharmacies/:pharmacyId" element={<SabiHealthPharmacyDetail />} />
+          <Route path="sabi-health/laboratories" element={<SabiHealthLaboratories />} />
+          <Route path="sabi-health/laboratories/:laboratoryId" element={<SabiHealthLaboratoryDetail />} />
           <Route path="organizations" element={<CommandOrganizations />} />
           <Route path="organizations/:organizationId" element={<Tenant360 />} />
           <Route path="onboarding" element={<VerificationCenter />} />
@@ -280,6 +339,7 @@ export default function App() {
           <Route path="/appointments" element={<Appointments />} />
           <Route path="/consultation" element={<Consultation />} />
           <Route path="/inpatient" element={<Inpatient />} />
+          <Route path="/ward-round/:admissionId/:roundId?" element={<WardRound />} />
           <Route path="/history" element={<MedicalHistory />} />
           <Route path="/patients/:id" element={<PatientChart />} />
           <Route path="/transfers" element={<Transfers />} />
@@ -303,6 +363,7 @@ export default function App() {
           <Route path="/billing" element={<Billing />} />
           <Route path="/billing/invoices/:invoiceId" element={<BillingInvoiceDetail />} />
           <Route path="/inventory" element={<Inventory />} />
+          <Route path="/inventory/item/:itemId" element={<InventoryItemDetail />} />
           <Route path="/equipment" element={<Equipment />} />
           <Route path="/equipment-scada" element={<EquipmentCommandCentre />} />
           <Route path="/equipment-scada/register" element={<EquipmentRegister />} />

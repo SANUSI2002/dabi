@@ -4,7 +4,7 @@ import type { AllergyIntolerance } from "./clinical";
 // not a drug knowledge base — the interface must not imply clinical validation.
 
 export type SafetyAlert = {
-  kind: "allergy" | "duplicate" | "stock";
+  kind: "allergy" | "duplicate" | "stock" | "controlled";
   severity: "high" | "moderate" | "info";
   message: string;
 };
