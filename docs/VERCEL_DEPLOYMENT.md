@@ -42,6 +42,8 @@ npm run build:telemedicine
 
 ## Domains and Git
 
+The public landing page's **Sign In** link opens a service chooser at `/access` (`/login` is also a chooser on the Health deployment). Direct sign-in entry points are `sabi-emr.vercel.app/login` for hospital organizations, `sabi-pharmacy.vercel.app/pharmacy/login` for pharmacy organizations, `sabi-command-center.vercel.app/command-center/login` for platform staff, and `sabi-telemedicine.vercel.app/login` for patients. The Telemedicine sign-in is its existing application; these routes do not create production identities or credentials.
+
 1. The five projects above are created under the `sanusi2002s-projects` Vercel scope and deployed directly from this checkout. The Git remote is `https://github.com/SANUSI2002/dabi.git`.
 2. Git auto-deployment is **not yet connected**. `vercel git connect` reported that the Vercel account needs a GitHub Login Connection. Connect GitHub `SANUSI2002` to the Vercel account and grant access to `dabi`, then connect the same repository to each of the five projects. Until then, a Git push does not trigger Vercel deployment; use the CLI or dashboard to deploy manually.
 3. Once an owned domain is available, assign its apex or `www` to `sabi-health`, then `emr`, `pharmacy`, `command`, and `care` subdomains to the corresponding projects in **Settings → Domains**. Follow the DNS records Vercel shows for the registrar; do not guess the target CNAME.

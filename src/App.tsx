@@ -10,6 +10,7 @@ import { deploymentSurface, otherSurfaceUrl } from "@/deployment/surface";
 const AppShell = lazy(() => import("@/components/layout/AppShell").then((m) => ({ default: m.AppShell })));
 const WorkforceLayout = lazy(() => import("@/components/layout/WorkforceLayout").then((m) => ({ default: m.WorkforceLayout })));
 const SignInPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.SignInPage })));
+const AccessPage = lazy(() => import("@/public/pages/AccessPage"));
 const MfaPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.MfaPage })));
 const OrganizationChooserPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.OrganizationChooserPage })));
 const ForgotPasswordPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.ForgotPasswordPage })));
@@ -210,7 +211,7 @@ function TenantSetupGate() {
 
 function CommandCenterGate() {
   const { authed, identity } = useAuth();
-  return authed && identity?.kind === "platform" ? <CommandCenterShell /> : <Navigate to="/login" replace />;
+  return authed && identity?.kind === "platform" ? <CommandCenterShell /> : <Navigate to="/command-center/login" replace />;
 }
 
 function PharmacyPortalGate() {
@@ -255,7 +256,10 @@ export default function App() {
           <Route path="register" element={<RegisterEntryPage />} />
           <Route path="book-demo" element={<BookDemoPage />} />
         </Route>
-        <Route path="/login" element={<SignInPage />} />
+        <Route path="/login" element={surface === "health" ? <AccessPage /> : <SignInPage intent={surface === "emr" ? "emr" : surface === "command-center" ? "platform" : "shared"} />} />
+        <Route path="/access" element={<AccessPage />} />
+        <Route path="/emr/login" element={<SignInPage intent="emr" />} />
+        <Route path="/command-center/login" element={<SignInPage intent="platform" />} />
         <Route path="/mfa" element={<MfaPage />} />
         <Route path="/choose-organization" element={<OrganizationChooserPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />

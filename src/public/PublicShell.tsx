@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { ArrowRight, Menu, ShieldPlus, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/cn";
-import { EMR_SIGN_IN_URL, TELEMEDICINE_SIGN_IN_URL } from "@/public/ecosystemLinks";
+import { TELEMEDICINE_SIGN_IN_URL } from "@/public/ecosystemLinks";
 
 const nav = [
   ["Sabi OS", "/products/sabi-os"],
@@ -62,7 +62,7 @@ export default function PublicShell() {
             {nav.map(([label, to]) => label === "Telemedicine" ? <a key={label} href={to} className="rounded-full px-3 py-2 text-[12px] font-semibold text-slate-600 transition hover:bg-white hover:text-slate-950">{label}</a> : <NavLink key={label} to={to} className={({ isActive }) => cn("rounded-full px-3 py-2 text-[12px] font-semibold text-slate-600 transition hover:bg-white hover:text-slate-950", isActive && "bg-white text-brand-700 shadow-sm ring-1 ring-slate-200")}>{label}</NavLink>)}
           </nav>
           <div className="ml-auto hidden items-center gap-2 xl:flex">
-            <a href={EMR_SIGN_IN_URL} className="rounded-xl px-3 py-2 text-sm font-bold text-slate-700 hover:text-brand-700">Sign In</a>
+            <Link to="/access" className="rounded-xl px-3 py-2 text-sm font-bold text-slate-700 hover:text-brand-700">Sign In</Link>
             <Link to="/register" className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-brand-800">Get Started <ArrowRight size={15} /></Link>
           </div>
           <button type="button" onClick={() => setOpen((value) => !value)} className="ml-auto grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-white xl:hidden" aria-expanded={open} aria-label="Toggle navigation">{open ? <X /> : <Menu />}</button>
@@ -73,7 +73,7 @@ export default function PublicShell() {
               <nav className="mx-auto grid max-w-[1500px] gap-1 px-5 py-5" aria-label="Mobile navigation">
                 {nav.map(([label, to]) => label === "Telemedicine" ? <a key={label} href={to} onClick={() => setOpen(false)} className="rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-brand-50">{label}</a> : <NavLink key={label} to={to} onClick={() => setOpen(false)} className="rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-brand-50">{label}</NavLink>)}
                 <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-4 sm:grid-cols-3">
-                  <a href={EMR_SIGN_IN_URL} className="public-button-secondary">Sign In</a>
+                  <Link to="/access" onClick={() => setOpen(false)} className="public-button-secondary">Sign In</Link>
                   <a href={TELEMEDICINE_SIGN_IN_URL} className="public-button-secondary">Telemedicine</a>
                   <Link to="/register" className="public-button-primary col-span-2 sm:col-span-1">Get Started</Link>
                 </div>

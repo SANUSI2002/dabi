@@ -6,8 +6,11 @@ describe("Sabi deployment surfaces", () => {
     expect(surfaceForPath("/products/sabi-health")).toBe("health");
     expect(surfaceForPath("/telemedicine/pharmacy-market")).toBe("telemedicine");
     expect(surfaceForPath("/command-center/packages")).toBe("command-center");
+    expect(surfaceForPath("/command-center/login")).toBe("command-center");
     expect(surfaceForPath("/workspace")).toBe("emr");
     expect(surfaceForPath("/pharmacy-portal")).toBe("pharmacy");
+    expect(surfaceForPath("/access")).toBe("health");
+    expect(surfaceForPath("/emr/login")).toBe("emr");
     expect(surfaceForPath("/login")).toBe("shared");
   });
 
@@ -16,6 +19,7 @@ describe("Sabi deployment surfaces", () => {
     expect(otherSurfaceUrl("/pharmacy/login", "", "health", origins)).toBe("https://pharmacy.example.test/pharmacy/login");
     expect(otherSurfaceUrl("/workspace", "?tab=queue", "health", origins)).toBe("https://emr.example.test/workspace?tab=queue");
     expect(otherSurfaceUrl("/command-center/packages", "", "health", origins)).toBe("https://command.example.test/command-center/packages");
+    expect(otherSurfaceUrl("/command-center/login", "", "health", origins)).toBe("https://command.example.test/command-center/login");
     expect(otherSurfaceUrl("/telemedicine/login", "", "health", origins)).toBe("https://care.example.test/login");
     expect(otherSurfaceUrl("/login", "", "pharmacy", origins)).toBeNull();
     expect(otherSurfaceUrl("/pharmacy/login", "", "health", {})).toBeNull();
