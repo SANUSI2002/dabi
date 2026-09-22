@@ -15,7 +15,7 @@ patient/telemedicine portal on port 5174. To run them separately, use
 
 The Vite application is available at `http://127.0.0.1:5173` by default.
 
-For separate Sabi Health, EMR, and Pharmacy Vercel deployments, see [the deployment guide](docs/VERCEL_DEPLOYMENT.md).
+For separate landing, EMR, Pharmacy, Command Center, and Telemedicine Vercel deployments, see [the deployment guide](docs/VERCEL_DEPLOYMENT.md).
 
 ## Quality commands
 

@@ -8,8 +8,8 @@ const telemedicineRoot = resolve(repoRoot, "apps/telemedicine");
 const patientRoot = resolve(telemedicineRoot, "packages/patient-portal");
 const surface = process.argv[2];
 
-if (!["health", "emr", "pharmacy"].includes(surface)) {
-  throw new Error("Choose one deployment: health, emr, or pharmacy.");
+if (!["health", "emr", "pharmacy", "command-center", "telemedicine"].includes(surface)) {
+  throw new Error("Choose one deployment: health, emr, pharmacy, command-center, or telemedicine.");
 }
 
 function run(label, script, args, cwd, env = {}) {
@@ -26,15 +26,27 @@ function run(label, script, args, cwd, env = {}) {
 const typeScript = resolve(repoRoot, "node_modules/typescript/bin/tsc");
 const vite = resolve(repoRoot, "node_modules/vite/bin/vite.js");
 const output = resolve(repoRoot, `dist-${surface}`);
+const patientVite = resolve(telemedicineRoot, "node_modules/vite/bin/vite.js");
+
+if (surface === "telemedicine") {
+  if (!existsSync(patientVite)) {
+    throw new Error("Telemedicine dependencies are missing. Run: npm ci --prefix apps/telemedicine");
+  }
+  const healthOrigin = process.env.VITE_SABI_HEALTH_URL?.trim().replace(/\/$/, "");
+  run("Telemedicine", patientVite, ["build", "--base", "/", "--outDir", output, "--emptyOutDir"], patientRoot, {
+    VITE_HOSPITAL_ONBOARDING_URL: process.env.VITE_HOSPITAL_ONBOARDING_URL || (healthOrigin ? `${healthOrigin}/register/organization` : "/register/organization"),
+  });
+  console.log(`Prepared ${surface} deployment in ${output}`);
+  process.exit(0);
+}
 
 run("Root", typeScript, ["-b", "--pretty", "false"], repoRoot);
 run("Root", vite, ["build", "--outDir", output], repoRoot, {
   VITE_DEPLOYMENT_SURFACE: surface,
-  VITE_TELEMEDICINE_SIGN_IN_URL: process.env.VITE_TELEMEDICINE_SIGN_IN_URL || "/telemedicine/login",
+  VITE_TELEMEDICINE_SIGN_IN_URL: process.env.VITE_TELEMEDICINE_SIGN_IN_URL || (process.env.VITE_SABI_TELEMEDICINE_URL ? `${process.env.VITE_SABI_TELEMEDICINE_URL.trim().replace(/\/$/, "")}/login` : "/telemedicine/login"),
 });
 
 if (surface === "health") {
-  const patientVite = resolve(telemedicineRoot, "node_modules/vite/bin/vite.js");
   if (!existsSync(patientVite)) {
     throw new Error("Telemedicine dependencies are missing. Run: npm ci --prefix apps/telemedicine");
   }

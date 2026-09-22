@@ -11,6 +11,8 @@
     "build:health": "node scripts/build-vercel.mjs health",
     "build:emr": "node scripts/build-vercel.mjs emr",
     "build:pharmacy": "node scripts/build-vercel.mjs pharmacy",
+    "build:command-center": "node scripts/build-vercel.mjs command-center",
+    "build:telemedicine": "node scripts/build-vercel.mjs telemedicine",
     "lint": "oxlint src",
     "test": "vitest run",
     "test:watch": "vitest",

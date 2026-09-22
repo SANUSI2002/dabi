@@ -12,6 +12,8 @@ dist
 dist-health
 dist-emr
 dist-pharmacy
+dist-command-center
+dist-telemedicine
 .vercel
 dist-ssr
 *.local

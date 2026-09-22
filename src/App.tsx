@@ -228,6 +228,8 @@ export default function App() {
     health: import.meta.env.VITE_SABI_HEALTH_URL,
     emr: import.meta.env.VITE_SABI_EMR_URL,
     pharmacy: import.meta.env.VITE_SABI_PHARMACY_URL,
+    "command-center": import.meta.env.VITE_SABI_COMMAND_CENTER_URL,
+    telemedicine: import.meta.env.VITE_SABI_TELEMEDICINE_URL,
   });
   useEffect(() => {
     if (crossSurfaceUrl) window.location.replace(crossSurfaceUrl);
@@ -235,6 +237,7 @@ export default function App() {
   if (crossSurfaceUrl) return <div className="grid min-h-screen place-items-center bg-slate-50 p-6 text-center text-sm text-slate-600">Opening the correct Sabi workspace… <a className="ml-1 font-bold text-emerald-700 underline" href={crossSurfaceUrl}>Continue</a></div>;
   if (loc.pathname === "/" && surface === "emr") return <Navigate to="/login" replace />;
   if (loc.pathname === "/" && surface === "pharmacy") return <Navigate to="/pharmacy/login" replace />;
+  if (loc.pathname === "/" && surface === "command-center") return <Navigate to="/command-center" replace />;
   return (
     <Suspense fallback={<AppLoadingScreen pathname={loc.pathname} />}>
       <Routes location={loc}>

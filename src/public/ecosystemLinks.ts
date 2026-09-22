@@ -1,6 +1,9 @@
+const telemedicineOrigin = import.meta.env.VITE_SABI_TELEMEDICINE_URL?.trim().replace(/\/$/, "");
+
 export const TELEMEDICINE_SIGN_IN_URL =
   import.meta.env.VITE_TELEMEDICINE_SIGN_IN_URL?.trim() ||
   import.meta.env.VITE_TELEMEDICINE_URL?.trim() ||
+  (telemedicineOrigin ? `${telemedicineOrigin}/login` : "") ||
   (import.meta.env.DEV ? "http://127.0.0.1:5174/login" : "/telemedicine/login");
 
 const emrOrigin = import.meta.env.VITE_SABI_EMR_URL?.trim().replace(/\/$/, "");
