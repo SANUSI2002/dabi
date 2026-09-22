@@ -3,3 +3,11 @@ artifacts/
 database/
 docs/
 *.log
+.env*
+.vercel/
+dist/
+dist-health/
+dist-emr/
+dist-pharmacy/
+dist-command-center/
+dist-telemedicine/
