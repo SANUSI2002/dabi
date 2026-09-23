@@ -3,6 +3,7 @@ import { AlertTriangle, BadgeCheck, Building2, Check, FileCheck2, FileUp, Loader
 import { REGULATORS, resolveComplianceRequirements } from "@/compliance/rules";
 import { corporateVerificationProvider, documentVerificationProvider, facilityVerificationProvider, professionalVerificationProvider } from "@/compliance/providers";
 import { useComplianceUploads } from "@/compliance/useComplianceUploads";
+import { apiConfigured } from "@/config/runtime";
 import type { OrganizationApplication } from "../domain";
 
 export type ComplianceStepProps = {
@@ -97,7 +98,23 @@ export function OfficerStep({ application, update, onNext, setMessage }: Complia
   return <><Header eyebrow="Step 5 · Operating officer" title="Who is clinically responsible for this facility?" copy="Professional credentials remain attached to the verification case even when a licence is expired. Sabi never silently removes the person or marks them verified from browser data."/><form onSubmit={submit}><div className="grid gap-5 sm:grid-cols-2"><Field label="Full name"><input required className="input" autoComplete="name" value={officer.fullName} onChange={(e) => setOfficer({ fullName: e.target.value })}/></Field><Field label="Role"><input required className="input" value={officer.role} onChange={(e) => setOfficer({ role: e.target.value })}/></Field><Field label="Profession"><select className="input" value={officer.profession} onChange={(e) => setOfficer({ profession: e.target.value })}><option>Medical Practitioner</option><option>Dentist</option><option>Nurse</option><option>Midwife</option><option>Laboratory Scientist</option><option>Other regulated professional</option></select></Field><Field label="Professional regulatory body"><select className="input" value={officer.regulatorId} onChange={(e) => setOfficer({ regulatorId: e.target.value })}>{professionalRegulators.map((item) => <option value={item.id} key={item.id}>{item.shortName} — {item.name}</option>)}</select></Field><Field label="Professional registration / folio number"><input required className="input" value={officer.registrationNumber} onChange={(e) => setOfficer({ registrationNumber: e.target.value.toUpperCase().trimStart() })}/></Field><Field label="Practising licence number"><input required className="input" value={officer.practisingLicenceNumber} onChange={(e) => setOfficer({ practisingLicenceNumber: e.target.value.toUpperCase().trimStart() })}/></Field><Field label="Licence expiry date"><input required type="date" className="input" value={officer.licenceExpiryDate} onChange={(e) => setOfficer({ licenceExpiryDate: e.target.value })}/></Field><Field label="Email"><input required type="email" className="input" autoComplete="email" value={officer.email} onChange={(e) => setOfficer({ email: e.target.value })}/></Field><Field label="Phone"><input required type="tel" className="input" autoComplete="tel" value={officer.phone} onChange={(e) => setOfficer({ phone: e.target.value })}/></Field></div><button type="button" disabled={busy} onClick={requestCheck} className="public-button-secondary mt-6"><UserRoundCheck size={16}/>{busy ? "Requesting…" : "Request professional verification"}</button>{result && <ManualReviewNotice><b>Manual review required.</b> {result}</ManualReviewNotice>}<ContinueButton busy={busy}/></form></>;
 }
 
-export function DocumentsStep({ application, update, onNext, setMessage }: ComplianceStepProps) {
+export function DocumentsStep(props: ComplianceStepProps) {
+  return apiConfigured ? <LiveDocumentsStep application={props.application} onNext={props.onNext}/> : <FixtureDocumentsStep {...props}/>;
+}
+
+function LiveDocumentsStep({ application, onNext }: Pick<ComplianceStepProps, "application" | "onNext">) {
+  const resolved = useMemo(() => resolveComplianceRequirements(application), [application]);
+  return <>
+    <Header eyebrow="Step 7 · Documents" title="Review the evidence you will need." copy="Secure document collection is not connected to this test release. Please do not select or upload files here. Sabi will request evidence through a secure workflow during review."/>
+    <div className="mb-6 rounded-2xl border border-brand-200 bg-brand-50 p-5">
+      <div className="flex items-start gap-3"><ShieldCheck size={20} className="mt-0.5 shrink-0 text-brand-700"/><div><h2 className="font-display font-bold text-brand-950">{resolved.jurisdiction?.name ?? "Manual-review jurisdiction"}</h2><p className="mt-1 text-sm leading-6 text-brand-900/65">{resolved.requirementSets.length ? resolved.requirementSets.map((set) => `${set.name} v${set.version}`).join(" · ") : "No active automatic requirement set"}</p></div></div>
+    </div>
+    {resolved.fallback ? <ManualReviewNotice>A reviewer will determine the applicable document requirements for this jurisdiction and facility type.</ManualReviewNotice> : <div className="space-y-3">{resolved.requirements.map((requirement) => <section key={requirement.id} className="rounded-2xl border border-slate-200 bg-white p-4"><div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-500"><FileCheck2 size={18}/></span><div><div className="flex flex-wrap items-center gap-2"><h2 className="font-display text-sm font-bold text-slate-900">{requirement.label}</h2><span className={`rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase ${requirement.required ? "bg-red-50 text-red-700" : "bg-slate-100 text-slate-500"}`}>{requirement.required ? "Required later" : "If available"}</span></div><p className="mt-1 text-xs leading-5 text-slate-500">{requirement.description}</p></div></div></section>)}</div>}
+    <button type="button" onClick={onNext} className="public-button-primary mt-6">Continue without uploading</button>
+  </>;
+}
+
+function FixtureDocumentsStep({ application, update, onNext, setMessage }: ComplianceStepProps) {
   const resolved = useMemo(() => resolveComplianceRequirements(application), [application]);
   const allDocuments = useComplianceUploads((state) => state.documents);
   const documents = useMemo(() => allDocuments.filter((item) => item.applicationId === application.id), [allDocuments, application.id]);
