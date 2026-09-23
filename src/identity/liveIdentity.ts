@@ -23,13 +23,16 @@ async function requestApi<T>(path: string, options: RequestInit = {}): Promise<T
   });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const error = new Error(body.message || body.error?.message || 'Identity service is unavailable.') as Error & { status: number; code?: string };
+    const fieldError = Array.isArray(body.errors) ? body.errors[0] : undefined;
+    const error = new Error(fieldError?.field && fieldError?.message ? `${fieldError.field}: ${fieldError.message}` : body.message || body.error?.message || 'Identity service is unavailable.') as Error & { status: number; code?: string };
     error.status = response.status;
     error.code = body.error?.code;
     throw error;
   }
   return body as T;
 }
+
+export const liveApiRequest = requestApi;
 
 const request = <T,>(path: string, options: RequestInit = {}) => requestApi<T>(`/api/v1/auth${path}`, options);
 

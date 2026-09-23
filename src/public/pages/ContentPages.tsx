@@ -6,6 +6,8 @@ import { useCommandCenter } from "@/command-center/useCommandCenter";
 import { CheckList, Eyebrow, JourneyMap, ProductWindow, PublicCta, SectionHeading, Status } from "@/public/components";
 import { categoryCards } from "@/public/content";
 import { TELEMEDICINE_SIGN_IN_URL } from "@/public/ecosystemLinks";
+import { apiConfigured } from "@/config/runtime";
+import { useLivePackages } from "@/registration/useLivePackages";
 
 function PageHero({ eyebrow, title, copy, actions, aside }: { eyebrow: string; title: string; copy: string; actions?: ReactNode; aside?: ReactNode }) {
   return <section className="relative overflow-hidden bg-[#071e16] px-5 py-20 text-white lg:px-8 lg:py-28"><div className="public-grid absolute inset-0 opacity-25" /><div className="relative mx-auto grid max-w-[1350px] gap-12 lg:grid-cols-[.85fr_1.15fr] lg:items-center"><div><Eyebrow>{eyebrow}</Eyebrow><h1 className="text-balance font-display text-4xl font-extrabold leading-[1.02] tracking-[-.05em] sm:text-6xl">{title}</h1><p className="mt-6 max-w-2xl text-lg leading-8 text-emerald-50/65">{copy}</p>{actions && <div className="mt-9 flex flex-wrap gap-3">{actions}</div>}</div>{aside && <div>{aside}</div>}</div></section>;
@@ -54,6 +56,21 @@ export function AboutPage() {
 }
 
 export function PricingPage() {
+  return apiConfigured ? <LivePricingPage /> : <FixturePricingPage />;
+}
+
+function LivePricingPage() {
+  const { packages, loading, error } = useLivePackages();
+  const money = (minor: number) => new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(minor / 100);
+  return <><PageHero eyebrow="Sabi OS pricing" title="Published Sabi packages." copy="These are the price versions published by Sabi Command Center. Choosing a plan starts an application, not a subscription or payment." actions={<PublicCta to="/book-demo">Request pricing consultation</PublicCta>} />
+    <section className="px-5 py-24 lg:px-8"><div className="mx-auto max-w-[1350px]"><div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">{packages.map((item) => { const version = item.versions.find((candidate) => candidate.version === item.publishedVersion); if (!version) return null; return <article key={item.id} className={`relative flex flex-col rounded-[26px] border bg-white p-6 ${item.recommended ? "border-brand-400 shadow-xl" : "border-slate-200"}`}><h2 className="font-display text-2xl font-extrabold">{item.name}</h2><p className="mt-3 min-h-12 text-sm leading-6 text-slate-500">{item.description}</p><p className="mt-7 font-display text-3xl font-extrabold">{money(version.monthlyPriceMinor)}</p><p className="mt-1 text-xs text-slate-400">per month · before applicable taxes</p><div className="my-6 h-px bg-slate-100"/><CheckList items={[`Up to ${item.branchLimit} branches`, `${item.storageLimitGb} GB storage limit`, `${item.supportLevel.toLowerCase()} support`, `${version.moduleKeys.length} included products`]} /><div className="mt-auto pt-7"><PublicCta to={`/register/organization?plan=${encodeURIComponent(item.code.toLowerCase())}&billing=monthly`}>Choose package</PublicCta></div></article>; })}
+      {loading && <p role="status" className="col-span-full text-center text-sm text-slate-500">Loading published packages…</p>}
+      {error && <p role="alert" className="col-span-full rounded-xl bg-red-50 p-4 text-center text-sm text-red-700">{error}</p>}
+      {!loading && !error && packages.length === 0 && <div className="col-span-full rounded-[26px] border border-dashed border-slate-300 bg-white p-10 text-center"><h2 className="font-display text-xl font-bold">No packages are published yet.</h2><p className="mt-2 text-sm text-slate-500">Sabi operations must publish a package before applicants can choose a plan.</p></div>}</div><p className="mt-8 text-center text-xs leading-5 text-slate-500">Choosing a package records a preference. It does not create a tenant, activate a subscription or process a payment.</p></div></section>
+  </>;
+}
+
+function FixturePricingPage() {
   const packages = useCommandCenter((state) => state.packages);
   const versions = useCommandCenter((state) => state.packageVersions);
   const rows = packages.filter((item) => item.active).map((item) => ({ ...item, version: versions.find((v) => v.id === item.currentVersionId) })).filter((item) => item.version?.status === "Published");

@@ -4,6 +4,7 @@ import type { FacilityRegistrationStatus } from "@/compliance/domain";
 
 export type ApplicationStatus =
   | "DRAFT"
+  | "AWAITING_EMAIL"
   | "SUBMITTED"
   | "UNDER_REVIEW"
   | "NEEDS_INFORMATION"
@@ -118,6 +119,7 @@ export type OrganizationApplication = {
   createdAt: string;
   updatedAt: string;
   submittedAt?: string;
+  serverApplicationId?: string;
 };
 
 export type ApplicantDraftRepository = {

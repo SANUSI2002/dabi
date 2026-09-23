@@ -85,7 +85,7 @@ function createCase(application: OrganizationApplication, applications: Organiza
   ];
   const createdAt = application.submittedAt ?? now();
   return {
-    id: uid("vcase"), applicationId: application.id, status: application.status === "DRAFT" || application.status === "WITHDRAWN" ? "SUBMITTED" : application.status,
+    id: uid("vcase"), applicationId: application.id, status: application.status === "DRAFT" || application.status === "WITHDRAWN" || application.status === "AWAITING_EMAIL" ? "SUBMITTED" : application.status,
     risk, riskFlags, checks, notes: [], informationRequests: [], events: [{ id: uid("vevt"), action: "Application entered verification queue", actorId: "system", actorName: "Sabi workflow", actorRole: "SYSTEM", timestamp: createdAt, newValue: "SUBMITTED" }], createdAt, updatedAt: createdAt,
   };
 }
@@ -127,7 +127,7 @@ export const useVerificationCenter = create<VerificationCenterState>(
     cases: [],
     syncApplications: () => {
       const applications = useRegistration.getState().applications;
-      const eligible = applications.filter((item) => item.status !== "DRAFT" && item.status !== "WITHDRAWN");
+      const eligible = applications.filter((item) => item.status !== "DRAFT" && item.status !== "WITHDRAWN" && item.status !== "AWAITING_EMAIL");
       const existing = new Set(get().cases.map((item) => item.applicationId));
       const added = eligible.filter((item) => !existing.has(item.id)).map((item) => createCase(item, applications));
       if (added.length) set((state) => ({ cases: [...added, ...state.cases] }));

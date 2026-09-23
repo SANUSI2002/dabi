@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { browserApplicantDraftRepository, findPossibleDraftDuplicates } from "./repository";
 import { APPLICATION_STEPS, createBlankApplication, type ApplicationStep, type OrganizationApplication } from "./domain";
+import { apiConfigured } from "@/config/runtime";
+import { liveSubmitApplication } from "./livePlatform";
 
 export type InitialPackageSelection = {
   packageId: string;
@@ -12,7 +14,7 @@ type RegistrationState = {
   createApplication: (selection?: InitialPackageSelection) => string;
   updateApplication: (applicationId: string, updater: (application: OrganizationApplication) => OrganizationApplication) => void;
   completeStep: (applicationId: string, step: ApplicationStep) => ApplicationStep;
-  submitApplication: (applicationId: string) => { reference?: string; error?: string };
+  submitApplication: (applicationId: string) => Promise<{ reference?: string; error?: string }>;
   possibleDuplicates: (applicationId: string) => OrganizationApplication[];
 };
 
@@ -51,11 +53,20 @@ export const useRegistration = create<RegistrationState>((set, get) => ({
     }));
     return nextStep;
   },
-  submitApplication: (applicationId) => {
+  submitApplication: async (applicationId) => {
     const application = get().applications.find((item) => item.id === applicationId);
     if (!application) return { error: "Application not found." };
     if (application.status !== "DRAFT") return { reference: application.reference };
     if (!APPLICATION_STEPS.slice(0, -1).every((step) => application.completedSteps.includes(step.key))) return { error: "Complete every application section before submitting." };
+    if (apiConfigured) {
+      try {
+        const response = await liveSubmitApplication(application);
+        get().updateApplication(applicationId, (item) => ({ ...item, status: response.data.status === "SUBMITTED" ? "SUBMITTED" : "AWAITING_EMAIL", reference: response.data.reference, serverApplicationId: response.data.id, submittedAt: response.data.submittedAt ?? undefined }));
+        return { reference: response.data.reference };
+      } catch (cause) {
+        return { error: cause instanceof Error ? cause.message : "The application could not be submitted. Please retry." };
+      }
+    }
     const now = new Date().toISOString();
     get().updateApplication(applicationId, (item) => ({ ...item, status: "SUBMITTED", submittedAt: now, updatedAt: now, completedSteps: [...new Set<ApplicationStep>([...item.completedSteps, "review"])] }));
     return { reference: application.reference };
