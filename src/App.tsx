@@ -6,6 +6,7 @@ import { useTenantSetup } from "@/tenant-setup/useTenantSetup";
 import { AppLoadingScreen } from "@/components/layout/AppLoadingScreen";
 import { hasPharmacyPortalAccess } from "@/pharmacy/access";
 import { deploymentSurface, otherSurfaceUrl } from "@/deployment/surface";
+import { apiConfigured } from "@/config/runtime";
 
 const AppShell = lazy(() => import("@/components/layout/AppShell").then((m) => ({ default: m.AppShell })));
 const WorkforceLayout = lazy(() => import("@/components/layout/WorkforceLayout").then((m) => ({ default: m.WorkforceLayout })));
@@ -142,6 +143,7 @@ const AcctConsolidation = lazy(() => import("@/pages/accounting/Consolidation"))
 const AcctIntegrations = lazy(() => import("@/pages/accounting/Integrations"));
 const AcctSettings = lazy(() => import("@/pages/accounting/AccountingSettings"));
 const CommandCenterShell = lazy(() => import("@/command-center/components/CommandCenterShell").then((m) => ({ default: m.CommandCenterShell })));
+const LiveCommandCenter = lazy(() => import("@/command-center/LiveCommandCenter"));
 const CommandDashboard = lazy(() => import("@/command-center/pages/Dashboard"));
 const SabiHealthDashboard = lazy(() => import("@/command-center/pages/SabiHealthDashboard"));
 const SabiHealthVerificationCenter = lazy(() => import("@/command-center/pages/sabihealth/VerificationCenter"));
@@ -213,6 +215,7 @@ function TenantSetupGate() {
 
 function CommandCenterGate() {
   const { authed, identity } = useAuth();
+  if (apiConfigured) return <LiveCommandCenter />;
   return authed && identity?.kind === "platform" ? <CommandCenterShell /> : <Navigate to="/command-center/login" replace />;
 }
 
