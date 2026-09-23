@@ -1,6 +1,7 @@
 artifacts/
 .claude/
 database/
+backend/
 docs/
 *.log
 .env*
