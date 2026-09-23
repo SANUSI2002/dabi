@@ -275,6 +275,7 @@ export default function App() {
         <Route path="/sso" element={<SsoPage />} />
         <Route path="/account/sessions" element={<SessionsPage />} />
         <Route path="/accept-invite" element={<InvitePage />} />
+        <Route path="/accept-invite/:id" element={<InvitePage />} />
         <Route path="/patient" element={<PatientPortalPage />} />
         <Route path="/pharmacy/login" element={<PharmacyLoginPage />} />
         <Route path="/pharmacy-portal/login" element={<PharmacyLoginPage />} />

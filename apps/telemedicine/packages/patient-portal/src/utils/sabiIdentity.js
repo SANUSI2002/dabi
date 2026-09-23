@@ -15,7 +15,11 @@ async function request(path, options = {}) {
     headers: { 'Content-Type': 'application/json', 'X-Sabi-Client': 'browser', ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}), ...options.headers },
   });
   const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body.message || body.error?.message || 'Authentication failed.');
+  if (!response.ok) {
+    const error = new Error(body.message || body.error?.message || 'Authentication failed.');
+    error.code = body.error?.code || body.code;
+    throw error;
+  }
   return body;
 }
 
@@ -42,6 +46,9 @@ export async function registerPatient({ firstName, lastName, phoneNumber, email,
     body: JSON.stringify({ firstName, lastName, phoneNumber, email, password, consentGiven: true }),
   });
 }
+
+export const requestEmailVerification = (email) => request('/email-verification/request', { method: 'POST', body: JSON.stringify({ email }) });
+export const confirmEmailVerification = (uid, token) => request('/email-verification/confirm', { method: 'POST', body: JSON.stringify({ uid, token }) });
 
 export async function verifyMfaLogin(value, recovery = false) {
   if (!pendingChallenge) throw new Error('Verification expired. Please sign in again.');

@@ -12,6 +12,8 @@ describe("Sabi deployment surfaces", () => {
     expect(surfaceForPath("/access")).toBe("health");
     expect(surfaceForPath("/emr/login")).toBe("emr");
     expect(surfaceForPath("/login")).toBe("shared");
+    expect(surfaceForPath("/accept-invite/11111111-1111-4111-8111-111111111111")).toBe("shared");
+    expect(surfaceForPath("/identity/account")).toBe("shared");
   });
 
   it("redirects cross-surface paths only when an actual origin is configured", () => {

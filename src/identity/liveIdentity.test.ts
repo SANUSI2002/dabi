@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/config/runtime', () => ({ apiBaseUrl: 'https://api.test' }));
 
-import { liveConfirmPasswordReset, liveRequestPasswordReset, liveSignIn, liveSignOut } from './liveIdentity';
+import { liveConfirmPasswordReset, liveInvitationRoles, liveRequestPasswordReset, liveSignIn, liveSignOut } from './liveIdentity';
 
 const respond = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status,
@@ -33,7 +33,7 @@ describe('live platform identity', () => {
   });
 
   it('does not grant a standard account Command Center access', async () => {
-    const fetcher = vi.fn(async (url: string) => {
+    const fetcher = vi.fn(async (url: string, _options?: RequestInit) => {
       if (url.endsWith('/login')) return respond({ status: 'success', accessToken: 'test-token' });
       if (url.endsWith('/me')) return respond({ user: { id: 'patient-1', email: 'patient@example.test', roles: [] }, organizations: [] });
       if (url.endsWith('/platform-assignment')) return respond({ error: { code: 'PLATFORM_ACCESS_DENIED', message: 'Access denied.' } }, 403);
@@ -78,5 +78,18 @@ describe('live platform identity', () => {
     if (result.kind === 'AUTHENTICATED') {
       expect(result.identity.platform?.roles).toEqual(['SABI_PLATFORM_ADMIN']);
     }
+  });
+
+  it('requests a signed tenant context before listing tenant invitation roles', async () => {
+    const fetcher = vi.fn(async (url: string, _options?: RequestInit) => {
+      if (url.endsWith('/organizations/switch')) return respond({ accessToken: 'tenant-scoped-token' });
+      if (url.endsWith('/organizations/org-1/invitations/roles')) return respond({ data: { roles: ['RECEPTIONIST'] } });
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetcher);
+    const result = await liveInvitationRoles('org-1');
+    expect(result.data.roles).toEqual(['RECEPTIONIST']);
+    expect(JSON.parse((fetcher.mock.calls[0][1] as RequestInit).body as string)).toEqual({ organizationId: 'org-1' });
+    expect((fetcher.mock.calls[1][1] as RequestInit).headers).toMatchObject({ Authorization: 'Bearer tenant-scoped-token' });
   });
 });

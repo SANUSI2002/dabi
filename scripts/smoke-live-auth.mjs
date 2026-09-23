@@ -29,6 +29,17 @@ const registered = await request("/register/patient", {
   method: "POST",
   body: { email, password, firstName: "Sabi", lastName: "Smoke", consentGiven: true },
 });
+if (typeof registered.data.emailSent === 'boolean') {
+  const pending = await fetch(`${base}/api/v1/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Origin: origin, 'X-Sabi-Client': 'browser' },
+    body: JSON.stringify({ email, password }),
+  });
+  const body = await pending.json().catch(() => ({}));
+  if (pending.status !== 403 || body.error?.code !== 'EMAIL_VERIFICATION_REQUIRED') throw new Error(`Unverified account was not blocked: ${pending.status}`);
+  console.log(`Disposable registration smoke test passed: register ${registered.status}, unverified login ${pending.status}. Email delivery and post-verification login require a real test mailbox.`);
+  process.exit(0);
+}
 const login = await request("/login", { method: "POST", body: { email, password }, browser: true });
 if (!login.data.accessToken || !login.cookie) throw new Error("Login did not create a browser session.");
 

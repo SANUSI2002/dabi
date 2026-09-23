@@ -76,14 +76,14 @@ export default function SignupPage() {
     setIsSubmitting(true);
 
     try {
-      await registerPatient({
+      const result = await registerPatient({
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         phoneNumber: form.phone.trim(),
         email: form.email.trim().toLowerCase(),
         password: form.password,
       });
-      navigate("/login", { replace: true, state: { registered: true } });
+      navigate("/verify-email", { replace: true, state: { email: form.email.trim().toLowerCase(), emailSent: result.emailSent } });
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "We could not create your account right now.");
     } finally {

@@ -2,7 +2,7 @@ export type DeploymentSurface = "all" | "health" | "emr" | "pharmacy" | "command
 
 const publicPrefixes = ["/products/", "/solutions/", "/resources", "/register", "/signup/organisation", "/signup/organization"];
 const publicPaths = new Set(["/", "/access", "/ai", "/roadmap", "/security", "/about", "/pricing", "/book-demo"]);
-const sharedAuthPaths = new Set(["/login", "/mfa", "/choose-organization", "/forgot-password", "/sso", "/account/sessions", "/accept-invite"]);
+const sharedAuthPaths = new Set(["/login", "/mfa", "/choose-organization", "/forgot-password", "/sso", "/account/sessions", "/accept-invite", "/identity/account", "/identity/mfa"]);
 
 export function deploymentSurface(value: string | undefined): DeploymentSurface {
   return value === "health" || value === "emr" || value === "pharmacy" || value === "command-center" || value === "telemedicine" ? value : "all";
@@ -10,6 +10,7 @@ export function deploymentSurface(value: string | undefined): DeploymentSurface 
 
 export function surfaceForPath(pathname: string): Exclude<DeploymentSurface, "all"> | "shared" {
   if (pathname.startsWith("/reset-password/")) return "shared";
+  if (pathname.startsWith("/accept-invite/")) return "shared";
   if (pathname.startsWith("/pharmacy/") || pathname.startsWith("/pharmacy-portal")) return "pharmacy";
   if (pathname === "/telemedicine" || pathname.startsWith("/telemedicine/")) return "telemedicine";
   if (pathname === "/command-center" || pathname.startsWith("/command-center/")) return "command-center";

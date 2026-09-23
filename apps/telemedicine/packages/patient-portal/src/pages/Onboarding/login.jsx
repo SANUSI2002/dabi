@@ -24,6 +24,7 @@ export default function SabiHealthLogin() {
   const [videoFailed, setVideoFailed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [verificationRequired, setVerificationRequired] = useState(false);
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaValue, setMfaValue] = useState("");
   const [useRecovery, setUseRecovery] = useState(false);
@@ -31,7 +32,7 @@ export default function SabiHealthLogin() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setBusy(true); setError("");
+    setBusy(true); setError(""); setVerificationRequired(false);
     try {
       if (mfaRequired) { await verifyMfaLogin(mfaValue, useRecovery); navigate('/dashboard', { replace: true }); }
       else {
@@ -40,7 +41,7 @@ export default function SabiHealthLogin() {
         else navigate("/dashboard", { replace: true });
       }
     }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'Sign-in failed.'); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'Sign-in failed.'); setVerificationRequired(cause?.code === 'EMAIL_VERIFICATION_REQUIRED'); }
     finally { setBusy(false); }
   };
 
@@ -131,8 +132,9 @@ export default function SabiHealthLogin() {
 
             {mfaRequired && <div><label className="block text-sm font-semibold text-gray-700 mb-1.5">{useRecovery ? 'Recovery code' : 'Six-digit authenticator code'}</label><input className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm" autoComplete="one-time-code" required value={mfaValue} onChange={(event) => setMfaValue(useRecovery ? event.target.value : event.target.value.replace(/\D/g, '').slice(0, 6))} /><button type="button" className="mt-2 text-xs font-semibold text-emerald-700" onClick={() => { setUseRecovery(!useRecovery); setMfaValue(''); setError(''); }}>{useRecovery ? 'Use authenticator app' : 'Use a recovery code'}</button></div>}
 
-            {location.state?.registered && <p role="status" className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">Your patient account is ready. Sign in to continue.</p>}
+            {location.state?.verified && <p role="status" className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">Your email is verified. Sign in to continue.</p>}
             {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+            {verificationRequired && <Link to="/verify-email" state={{ email }} className="inline-block text-sm font-semibold text-emerald-700 underline">Request a new verification email</Link>}
             <button
               type="submit"
               disabled={busy}

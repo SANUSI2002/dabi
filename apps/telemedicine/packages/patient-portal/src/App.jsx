@@ -19,6 +19,7 @@ import CaregiverOnboarding from "./pages/Onboarding/CaregiverOnboarding";
 import ProfessionalOnboarding from "./pages/Onboarding/ProfessionalOnboarding";
 import OnboardingSubmitted from "./pages/Onboarding/OnboardingSubmitted";
 import SignupPage from "./pages/Onboarding/Signup";
+import VerifyEmail from "./pages/Onboarding/VerifyEmail";
 import AnimatedAuth from "./pages/Onboarding/AnimatedAuth";
 import IdentityVerificationPage from "./pages/Onboarding/IdentityVerification";
 import SuccessPage from "./pages/Onboarding/SuccessPage";
@@ -130,6 +131,8 @@ export default function App() {
               <Route path="/login" element={<SabiHealthLogin />} />
               <Route path="/signup" element={<AccountTypeSelection />} />
               <Route path="/signup/patient" element={<SignupPage />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route path="/verify-email/:uid" element={<VerifyEmail />} />
               <Route path="/signup/caregiver" element={<CaregiverOnboarding />} />
               <Route path="/signup/professional/:type" element={<ProfessionalOnboarding />} />
               <Route path="/signup/organisation/:type" element={<HospitalOnboardingRedirect />} />

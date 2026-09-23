@@ -8,6 +8,7 @@ export type LiveIdentity = {
 };
 
 export type LivePlatformOrganization = { id: string; type: string; name: string; status: string; createdAt: string };
+export type LiveInvitation = { id: string; email: string; scope: 'PLATFORM' | 'ORGANIZATION'; roleCode: string; organizationId: string | null; organizationName: string | null; expiresAt: string; createdAt: string; status: 'PENDING' | 'ACCEPTED' | 'EXPIRED' | 'REVOKED'; existingAccount?: boolean };
 
 let accessToken: string | null = null;
 let identity: LiveIdentity | null = null;
@@ -106,3 +107,16 @@ export const liveConfirmMfa = (code: string) => request<{ recoveryCodes: string[
 export const liveStepUpMfa = (value: string, recovery: boolean) => request('/mfa/step-up', { method: 'POST', body: JSON.stringify({ [recovery ? 'recoveryCode' : 'code']: value }) });
 export const liveRegenerateRecoveryCodes = () => request<{ recoveryCodes: string[] }>('/mfa/recovery/regenerate', { method: 'POST', body: '{}' });
 export const liveDisableMfa = (password: string) => request('/mfa/disable', { method: 'POST', body: JSON.stringify({ password }) });
+export const livePreviewInvitation = (id: string, token: string) => request<{ data: LiveInvitation }>('/invitations/preview', { method: 'POST', body: JSON.stringify({ id, token }) });
+export const liveAcceptInvitation = (id: string, token: string, password: string, fullName?: string) => request<{ data: { scope: string; organizationId: string | null; roleCode: string } }>('/invitations/accept', { method: 'POST', body: JSON.stringify({ id, token, password, ...(fullName ? { fullName } : {}) }) });
+async function invitationRequest<T>(path: string, organizationId: string | undefined, options: RequestInit = {}) {
+  if (!organizationId) return request<T>(`/platform/invitations${path}`, options);
+  // Tenant writes require a freshly signed organization context. A path ID alone is never authority.
+  const selected = await request<{ accessToken: string }>('/organizations/switch', { method: 'POST', body: JSON.stringify({ organizationId }) });
+  if (!selected.accessToken) throw new Error('The identity service did not select this organization.');
+  return request<T>(`/organizations/${organizationId}/invitations${path}`, { ...options, headers: { ...options.headers, Authorization: `Bearer ${selected.accessToken}` } });
+}
+export const liveInvitationRoles = (organizationId?: string) => invitationRequest<{ data: { roles: string[] } }>('/roles', organizationId);
+export const liveListInvitations = (organizationId?: string) => invitationRequest<{ data: { items: LiveInvitation[] } }>('', organizationId);
+export const liveCreateInvitation = (email: string, roleCode: string, organizationId?: string) => invitationRequest<{ data: LiveInvitation }>('', organizationId, { method: 'POST', body: JSON.stringify({ email, roleCode }) });
+export const liveRevokeInvitation = (id: string, organizationId?: string) => invitationRequest<{ data: { id: string; status: string } }>(`/${id}/revoke`, organizationId, { method: 'POST', body: '{}' });
