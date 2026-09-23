@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/config/runtime', () => ({ apiBaseUrl: 'https://api.test' }));
 
-import { liveSignIn, liveSignOut } from './liveIdentity';
+import { liveConfirmPasswordReset, liveRequestPasswordReset, liveSignIn, liveSignOut } from './liveIdentity';
 
 const respond = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status,
@@ -16,6 +16,22 @@ afterEach(async () => {
 });
 
 describe('live platform identity', () => {
+  it('requests and confirms password recovery through the live API', async () => {
+    const fetcher = vi.fn(async (_url: string, _options?: RequestInit) => respond({ status: 'success' }));
+    vi.stubGlobal('fetch', fetcher);
+    await liveRequestPasswordReset('  staff@example.test  ');
+    await liveConfirmPasswordReset('user-id', 'one-time-token', 'a-secure-password1!', 'a-secure-password1!');
+    expect(fetcher.mock.calls[0][0]).toBe('https://api.test/api/v1/auth/password-reset/request');
+    expect(JSON.parse((fetcher.mock.calls[0][1] as RequestInit).body as string)).toEqual({ email: 'staff@example.test' });
+    expect(fetcher.mock.calls[1][0]).toBe('https://api.test/api/v1/auth/password-reset/confirm');
+    expect(JSON.parse((fetcher.mock.calls[1][1] as RequestInit).body as string)).toMatchObject({ token: 'one-time-token', password: 'a-secure-password1!' });
+  });
+
+  it('does not claim recovery success when email delivery is unconfigured', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => respond({ status: 'error', message: 'Password recovery email is not configured yet.' }, 503)));
+    await expect(liveRequestPasswordReset('staff@example.test')).rejects.toThrow('Password recovery email is not configured yet.');
+  });
+
   it('does not grant a standard account Command Center access', async () => {
     const fetcher = vi.fn(async (url: string) => {
       if (url.endsWith('/login')) return respond({ status: 'success', accessToken: 'test-token' });

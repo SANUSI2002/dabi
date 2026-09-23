@@ -17,6 +17,7 @@ const AccessPage = lazy(() => import("@/public/pages/AccessPage"));
 const MfaPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.MfaPage })));
 const OrganizationChooserPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.OrganizationChooserPage })));
 const ForgotPasswordPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.ResetPasswordPage })));
 const SsoPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.SsoPage })));
 const SessionsPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.SessionsPage })));
 const PatientPortalPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.PatientPortalPage })));
@@ -270,6 +271,7 @@ export default function App() {
         <Route path="/mfa" element={<MfaPage />} />
         <Route path="/choose-organization" element={<OrganizationChooserPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password/:uid" element={<ResetPasswordPage />} />
         <Route path="/sso" element={<SsoPage />} />
         <Route path="/account/sessions" element={<SessionsPage />} />
         <Route path="/accept-invite" element={<InvitePage />} />

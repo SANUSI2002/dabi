@@ -32,6 +32,9 @@ async function requestApi<T>(path: string, options: RequestInit = {}): Promise<T
 
 const request = <T,>(path: string, options: RequestInit = {}) => requestApi<T>(`/api/v1/auth${path}`, options);
 
+export const liveRequestPasswordReset = (email: string) => request<{ status: string }>('/password-reset/request', { method: 'POST', body: JSON.stringify({ email: email.trim() }) });
+export const liveConfirmPasswordReset = (uid: string, token: string, password: string, confirmPassword: string) => request<{ status: string }>('/password-reset/confirm', { method: 'POST', body: JSON.stringify({ uid, token, password, confirmPassword }) });
+
 async function loadIdentity(): Promise<LiveIdentity> {
   const me = await request<{ user: LiveIdentity['user']; organizations: LiveIdentity['organizations'] }>('/me');
   let platformAssigned = false;
