@@ -14,16 +14,16 @@ Set Framework Preset to **Other** if Vercel's Vite detection overrides the custo
 
 ## Vercel environment variables
 
-The production projects use these public build-time cross-product URLs. They are Vercel addresses, not owned custom domains:
+The production projects use these public build-time cross-product URLs for the owned domain:
 
 ```text
-VITE_SABI_HEALTH_URL=https://sabi-health-delta.vercel.app
-VITE_SABI_EMR_URL=https://sabi-emr.vercel.app
-VITE_SABI_PHARMACY_URL=https://sabi-pharmacy.vercel.app
-VITE_SABI_COMMAND_CENTER_URL=https://sabi-command-center.vercel.app
-VITE_SABI_TELEMEDICINE_URL=https://sabi-telemedicine.vercel.app
-VITE_TELEMEDICINE_SIGN_IN_URL=https://sabi-telemedicine.vercel.app/login
-VITE_HOSPITAL_ONBOARDING_URL=https://sabi-health-delta.vercel.app/register/organization
+VITE_SABI_HEALTH_URL=https://sabihealth.org
+VITE_SABI_EMR_URL=https://emr.sabihealth.org
+VITE_SABI_PHARMACY_URL=https://pharmacy.sabihealth.org
+VITE_SABI_COMMAND_CENTER_URL=https://command.sabihealth.org
+VITE_SABI_TELEMEDICINE_URL=https://telemedicine.sabihealth.org
+VITE_TELEMEDICINE_SIGN_IN_URL=https://telemedicine.sabihealth.org/login
+VITE_HOSPITAL_ONBOARDING_URL=https://sabihealth.org/register/organization
 ```
 
 `VITE_HOSPITAL_ONBOARDING_URL` belongs to the Telemedicine project; without it, the standalone patient app's hospital-onboarding link would point to its own domain. Also set `VITE_API_BASE_URL` only when the authenticated backend is deployed and its CORS configuration allows all relevant origins. Never put API keys, database credentials, payment secrets, or signing keys into a `VITE_` variable; those are embedded in the public browser bundle. The landing compatibility copy uses Vite's `/telemedicine/` base; the dedicated Telemedicine project uses `/`.
@@ -42,12 +42,12 @@ npm run build:telemedicine
 
 ## Domains and Git
 
-The public landing page's **Sign In** link opens a service chooser at `/access` (`/login` is also a chooser on the Health deployment). Direct sign-in entry points are `sabi-emr.vercel.app/login` for hospital organizations, `sabi-pharmacy.vercel.app/pharmacy/login` for pharmacy organizations, `sabi-command-center.vercel.app/command-center/login` for platform staff, and `sabi-telemedicine.vercel.app/login` for patients. The Telemedicine sign-in is its existing application; these routes do not create production identities or credentials.
+The public landing page's **Sign In** link opens a service chooser at `/access` (`/login` is also a chooser on the Health deployment). Direct sign-in entry points are `emr.sabihealth.org/login` for hospital organizations, `pharmacy.sabihealth.org/pharmacy/login` for pharmacy organizations, `command.sabihealth.org/command-center/login` for platform staff, and `telemedicine.sabihealth.org/login` for patients. The Telemedicine sign-in is its existing application; these routes do not create production identities or credentials. `www.sabihealth.org` redirects to the apex domain.
 
 1. The five projects above are created under the `sanusi2002s-projects` Vercel scope and deployed directly from this checkout. The Git remote is `https://github.com/SANUSI2002/dabi.git`.
 2. Git auto-deployment is **not yet connected**. `vercel git connect` reported that the Vercel account needs a GitHub Login Connection. Connect GitHub `SANUSI2002` to the Vercel account and grant access to `dabi`, then connect the same repository to each of the five projects. Until then, a Git push does not trigger Vercel deployment; use the CLI or dashboard to deploy manually.
-3. Once an owned domain is available, assign its apex or `www` to `sabi-health`, then `emr`, `pharmacy`, `command`, and `care` subdomains to the corresponding projects in **Settings → Domains**. Follow the DNS records Vercel shows for the registrar; do not guess the target CNAME.
-4. Update the public URL variables above to the custom origins and redeploy. Test direct links and refreshes at `/` on the landing site, `/login` on EMR, `/pharmacy/login` on Pharmacy, `/command-center` on Command Center, and `/login` and `/pharmacy-market` on Telemedicine.
+3. `sabihealth.org` and `www` are assigned to `sabi-health`; `emr`, `pharmacy`, `command`, and `telemedicine` are assigned to their corresponding projects in **Settings → Domains**. Keep Namecheap BasicDNS and its Private Email records. Follow the exact custom A/CNAME targets Vercel displays rather than replacing them with generic examples.
+4. After public URL variable changes, redeploy every affected project because Vite embeds these values at build time. Test direct links and refreshes at `/` on the landing site, `/login` on EMR, `/pharmacy/login` on Pharmacy, `/command-center` on Command Center, and `/login` and `/pharmacy-market` on Telemedicine.
 
 ## Release limitation
 

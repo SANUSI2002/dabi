@@ -27,23 +27,27 @@ Run `node scripts/smoke-live-auth.mjs http://127.0.0.1:5173` or use port 5174. T
 
 ## Vercel test deployments
 
-The five existing Vercel projects use `VITE_API_BASE_URL=same-origin` for the root app and `VITE_SABI_IDENTITY_API_URL=same-origin` for telemedicine. The root `vercel.json` routes `/api/:path*` to the dedicated Render test service before the SPA fallback. The backend `CLIENT_URLS` includes the five production Vercel origins and the two local development origins; `CLIENT_URL` points to the Sabi Health site for identity links. No database URL or backend secret is stored in Vercel or this frontend repository.
+The five existing Vercel projects use `VITE_API_BASE_URL=same-origin` for the root app and `VITE_SABI_IDENTITY_API_URL=same-origin` for telemedicine. The root `vercel.json` routes `/api/:path*` to the dedicated Render test service before the SPA fallback. The backend `CLIENT_URLS` includes the five custom-domain origins, the original five Vercel origins, and the two local development origins; `CLIENT_URL=https://sabihealth.org` supplies identity links. No database URL or backend secret is stored in Vercel or this frontend repository.
 
-These Vercel domains are for synthetic testing only:
+These custom domains are for synthetic testing only; the original `.vercel.app` addresses remain available:
 
 | Surface | URL |
 | --- | --- |
-| Sabi Health | `https://sabi-health-delta.vercel.app` |
-| EMR | `https://sabi-emr.vercel.app` |
-| Pharmacy | `https://sabi-pharmacy.vercel.app` |
-| Command Center | `https://sabi-command-center.vercel.app` |
-| Telemedicine | `https://sabi-telemedicine.vercel.app` |
+| Sabi Health | `https://sabihealth.org` |
+| EMR | `https://emr.sabihealth.org` |
+| Pharmacy | `https://pharmacy.sabihealth.org` |
+| Command Center | `https://command.sabihealth.org` |
+| Telemedicine | `https://telemedicine.sabihealth.org` |
 
-Run `node scripts/smoke-live-auth.mjs https://sabi-pharmacy.vercel.app` to verify registration, cookie-backed login, current user, refresh, and logout through a public deployment. The script accepts only the named Sabi test sites, local origins, or the dedicated Render test API.
+Run `node scripts/smoke-live-auth.mjs https://pharmacy.sabihealth.org` to verify registration, cookie-backed login, current user, refresh, and logout through a public deployment. The script accepts only the named Sabi test sites, local origins, or the dedicated Render test API.
 
 Telemedicine's `/signup/patient` now submits to `/api/v1/auth/register/patient`; it no longer claims success after only storing a local fallback. A successful registration returns the patient to `/login`. Dependent registration, professional onboarding, and organization membership provisioning are separate workflows and are not validated by this patient-registration test.
 
 The free Render service can spin down after inactivity, delaying the first request. The free database expires on 23 October 2026 and has no backups. Replace both before any real use. Render currently auto-deploys backend `main` pushes to this test service, so verify `/api/health` and the deploy events after every backend push. The Vercel projects are CLI-deployed rather than Git-connected, so pushing frontend code does not automatically redeploy them.
+
+## Domain-based password recovery
+
+`sabihealth.org` is verified in Resend for outbound mail. Namecheap BasicDNS holds Resend's DKIM record (`resend._domainkey`), return-path CNAMEs (`rsend` and `send`), and a monitoring-only DMARC policy. Leave the separate Namecheap Private Email incoming-mail records intact. The test API uses server-only `RESEND_API_KEY` and `PASSWORD_RESET_EMAIL_FROM=Sabi Health <no-reply@sabihealth.org>`; never copy the API key into Vercel, `VITE_` variables, Git, or documentation. An HTTP 202 from `/api/v1/auth/password-reset/request` with a nonexistent address verifies API configuration, not actual delivery. Test a real mailbox through the UI before relying on recovery, and monitor Resend delivery logs. Rotate any key accidentally displayed or placed in another environment field.
 
 ## Command Center test access
 

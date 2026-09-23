@@ -1,8 +1,8 @@
 import { randomBytes, randomUUID } from "node:crypto";
 
 const base = process.argv[2]?.replace(/\/$/, "");
-if (!base || !/^http:\/\/127\.0\.0\.1:517[34]$|^https:\/\/(?:sabi-health-delta|sabi-emr|sabi-pharmacy|sabi-command-center|sabi-telemedicine)\.vercel\.app$|^https:\/\/sabi-health-api-test\.onrender\.com$/.test(base)) {
-  throw new Error("Pass a local Sabi dev origin, a Sabi Vercel test site, or the dedicated Render test API URL.");
+if (!base || !/^http:\/\/127\.0\.0\.1:517[34]$|^https:\/\/(?:sabi-health-delta|sabi-emr|sabi-pharmacy|sabi-command-center|sabi-telemedicine)\.vercel\.app$|^https:\/\/(?:sabihealth\.org|(?:telemedicine|emr|pharmacy|command)\.sabihealth\.org)$|^https:\/\/sabi-health-api-test\.onrender\.com$/.test(base)) {
+  throw new Error("Pass a local Sabi dev origin, a Sabi custom/Vercel test site, or the dedicated Render test API URL.");
 }
 
 const email = `sabi.smoke+${randomUUID()}@example.test`;
