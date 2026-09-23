@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
+    { "source": "/api/:path*", "destination": "https://sabi-health-api-test.onrender.com/api/:path*" },
     { "source": "/telemedicine/:path*", "destination": "/telemedicine/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]

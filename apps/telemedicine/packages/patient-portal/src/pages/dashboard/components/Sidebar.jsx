@@ -4,6 +4,7 @@ import { ChevronLeft, Menu, X } from "lucide-react";
 import { NavRow } from "../share";
 import { FOOTER_ITEMS, NAV_ITEMS } from "../data";
 import logo from "../../../assets/logo.jpeg";
+import { signOut } from "../../../utils/sabiIdentity";
 
 export function Sidebar() {
   const location = useLocation();
@@ -23,7 +24,8 @@ export function Sidebar() {
     });
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await signOut();
     try {
       localStorage.removeItem("auth");
       localStorage.removeItem("user");

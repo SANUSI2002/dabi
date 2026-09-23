@@ -1,0 +1,29 @@
+name: Frontend checks
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install root dependencies
+        run: npm ci
+      - name: Install telemedicine dependencies
+        run: npm ci --prefix apps/telemedicine
+      - name: Lint, test, and type-check root app
+        run: npm run check
+      - name: Build each deployed surface
+        run: |
+          npm run build:health
+          npm run build:emr
+          npm run build:pharmacy
+          npm run build:command-center
+          npm run build:telemedicine

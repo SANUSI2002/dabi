@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { EmergencyCardModal } from "./EmergencyCardModal";
 import { NotificationsBell } from "../../../notifications/NotificationsBell";
+import { signOut } from "../../../utils/sabiIdentity";
 
 export function Topbar({
   placeholder = "Search records, doctors, or help...",
@@ -28,13 +29,12 @@ export function Topbar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  function handleLogout() {
+  async function handleLogout() {
     setShowProfileMenu(false);
     if (onLogout) {
-      onLogout();
+      await onLogout();
     } else {
-      // fallback default behavior if no handler is passed in
-      localStorage.removeItem("authToken");
+      await signOut();
       navigate("/login");
     }
   }

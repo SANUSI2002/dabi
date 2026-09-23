@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import {
   Mail,
   Lock,
@@ -11,59 +11,37 @@ import {
   Activity,
   HeartPulse,
 } from "lucide-react";
-
-// --- OAuth configuration -------------------------------------------------
-// Replace these with your real registered credentials before shipping.
-// Google: https://console.cloud.google.com/apis/credentials
-// Apple:  https://developer.apple.com/account/resources/identifiers/list/serviceId
-const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
-const GOOGLE_REDIRECT_URI = `${window.location.origin}/auth/google/callback`;
-
-const APPLE_CLIENT_ID = "YOUR_APPLE_SERVICES_ID"; // e.g. com.sabihealth.web
-const APPLE_REDIRECT_URI = `${window.location.origin}/auth/apple/callback`;
-
-function buildGoogleAuthUrl() {
-  const params = new URLSearchParams({
-    client_id: GOOGLE_CLIENT_ID,
-    redirect_uri: GOOGLE_REDIRECT_URI,
-    response_type: "code",
-    scope: "openid email profile",
-    access_type: "offline",
-    prompt: "select_account",
-  });
-  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-}
-
-function buildAppleAuthUrl() {
-  const params = new URLSearchParams({
-    client_id: APPLE_CLIENT_ID,
-    redirect_uri: APPLE_REDIRECT_URI,
-    response_type: "code",
-    scope: "name email",
-    response_mode: "form_post",
-  });
-  return `https://appleid.apple.com/auth/authorize?${params.toString()}`;
-}
+import { restoreSession, signIn, verifyMfaLogin } from "../../utils/sabiIdentity";
+import { useEffect } from "react";
 
 export default function SabiHealthLogin() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaValue, setMfaValue] = useState("");
+  const [useRecovery, setUseRecovery] = useState(false);
+  useEffect(() => { restoreSession().then((user) => { if (user) navigate('/dashboard', { replace: true }); }); }, [navigate]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    navigate("/dashboard");
-  };
-
-  const handleGoogleSignIn = () => {
-    window.location.href = buildGoogleAuthUrl();
-  };
-
-  const handleAppleSignIn = () => {
-    window.location.href = buildAppleAuthUrl();
+    setBusy(true); setError("");
+    try {
+      if (mfaRequired) { await verifyMfaLogin(mfaValue, useRecovery); navigate('/dashboard', { replace: true }); }
+      else {
+        const result = await signIn(email, password);
+        if (result.mfaRequired) setMfaRequired(true);
+        else navigate("/dashboard", { replace: true });
+      }
+    }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'Sign-in failed.'); }
+    finally { setBusy(false); }
   };
 
   return (
@@ -151,11 +129,16 @@ export default function SabiHealthLogin() {
           </Link>
             </div>
 
+            {mfaRequired && <div><label className="block text-sm font-semibold text-gray-700 mb-1.5">{useRecovery ? 'Recovery code' : 'Six-digit authenticator code'}</label><input className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm" autoComplete="one-time-code" required value={mfaValue} onChange={(event) => setMfaValue(useRecovery ? event.target.value : event.target.value.replace(/\D/g, '').slice(0, 6))} /><button type="button" className="mt-2 text-xs font-semibold text-emerald-700" onClick={() => { setUseRecovery(!useRecovery); setMfaValue(''); setError(''); }}>{useRecovery ? 'Use authenticator app' : 'Use a recovery code'}</button></div>}
+
+            {location.state?.registered && <p role="status" className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">Your patient account is ready. Sign in to continue.</p>}
+            {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
             <button
               type="submit"
+              disabled={busy}
               className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-700 via-emerald-800 to-teal-700 text-white font-semibold text-sm shadow-md shadow-emerald-900/25 hover:shadow-lg hover:shadow-emerald-900/30 hover:-translate-y-0.5 active:translate-y-0 transition-all"
             >
-              Sign In
+              {busy ? 'Checking identity…' : mfaRequired ? 'Verify and Sign In' : 'Sign In'}
             </button>
           </form>
 
@@ -170,7 +153,8 @@ export default function SabiHealthLogin() {
           <div className="grid grid-cols-2 gap-2.5">
             <button
               type="button"
-              onClick={handleGoogleSignIn}
+              disabled
+              title="Available when Sabi Identity OIDC is configured"
               className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 bg-white hover:border-emerald-300 hover:shadow-sm hover:-translate-y-0.5 transition-all"
             >
               <GoogleIcon />
@@ -178,7 +162,8 @@ export default function SabiHealthLogin() {
             </button>
             <button
               type="button"
-              onClick={handleAppleSignIn}
+              disabled
+              title="Available when Sabi Identity OIDC is configured"
               className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 bg-white hover:border-emerald-300 hover:shadow-sm hover:-translate-y-0.5 transition-all"
             >
               <AppleIcon />
@@ -199,7 +184,7 @@ export default function SabiHealthLogin() {
 
           <div className="flex items-center justify-center gap-1.5 mt-4 text-gray-400">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="text-[11px] font-medium tracking-wide">END-TO-END ENCRYPTED DATA</span>
+            <span className="text-[11px] font-medium tracking-wide">SECURE SABI IDENTITY SIGN-IN</span>
           </div>
         </div>
       </div>

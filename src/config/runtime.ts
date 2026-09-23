@@ -8,7 +8,10 @@ export const developmentFixturesEnabled =
   import.meta.env.DEV &&
   !disabledValues.has(String(import.meta.env.VITE_ENABLE_DEV_FIXTURES ?? "").toLowerCase());
 
-export const apiBaseUrl = String(import.meta.env.VITE_API_BASE_URL ?? "").trim().replace(/\/$/, "");
+const configuredApiBaseUrl = String(import.meta.env.VITE_API_BASE_URL ?? "").trim().replace(/\/$/, "");
+export const apiBaseUrl = configuredApiBaseUrl === "same-origin"
+  ? (typeof window === "undefined" ? "" : window.location.origin)
+  : configuredApiBaseUrl;
 
 export const apiConfigured = apiBaseUrl.length > 0;
 

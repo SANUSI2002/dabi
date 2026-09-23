@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Shield, TrendingUp, Phone, Mail, Lock, Eye, EyeOff, ArrowRight, IdCard, X } from "lucide-react";
+import { registerPatient } from "../../utils/sabiIdentity";
 // If you want a local video, create `packages/patient-portal/public/signup-bg-video.mp4`.
 // Otherwise this fallback uses a hosted video URL that works immediately.
 const VIDEO_SRC = "https://assets.mixkit.co/videos/29933/29933-720.mp4";
@@ -60,41 +61,34 @@ export default function SignupPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError("");
+    if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim() || form.phone.trim().length < 7) {
+      setSubmitError("Enter your name, a valid phone number and email address.");
+      return;
+    }
+    if (form.password.length < 8 || form.password !== form.confirmPassword) {
+      setSubmitError("Use a password of at least 8 characters and confirm it exactly.");
+      return;
+    }
+    if (!agreed) {
+      setSubmitError("Accept the Terms of Service and Privacy Policy to continue.");
+      return;
+    }
     setIsSubmitting(true);
 
-    const payload = {
-      accountType: role,
-      firstName: form.firstName,
-      lastName: form.lastName,
-      phone: form.phone,
-      email: form.email,
-      password: form.password,
-      agreed,
-    };
-
     try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+      await registerPatient({
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        phoneNumber: form.phone.trim(),
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
       });
-
-      if (!response.ok) {
-        throw new Error("We could not create your account right now.");
-      }
+      navigate("/login", { replace: true, state: { registered: true } });
     } catch (error) {
-      const fallbackPayload = {
-        ...payload,
-        createdAt: new Date().toISOString(),
-      };
-
-      localStorage.setItem("sabi-pending-registration", JSON.stringify(fallbackPayload));
-      console.warn("Registration endpoint unavailable, using local fallback.", error);
+      setSubmitError(error instanceof Error ? error.message : "We could not create your account right now.");
     } finally {
       setIsSubmitting(false);
     }
-
-    navigate("/verify", { state: { registrationPayload: payload } });
   };
 
   // --- OAuth handlers ---
@@ -319,7 +313,7 @@ export default function SignupPage() {
             <div className="w-full bg-white/95 backdrop-blur-md rounded-3xl border border-white/40 shadow-2xl shadow-black/30 p-3 sm:p-4 md:p-5 lg:p-5">
             {/* progress */}
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold text-teal-800">Step 1 of 3: Account Details</span>
+              <span className="text-sm font-semibold text-teal-800">Patient account details</span>
               <span className="text-sm text-slate-500">{progressText}</span>
             </div>
             <div className="h-2 w-full rounded-full bg-slate-100 mb-3 overflow-hidden">

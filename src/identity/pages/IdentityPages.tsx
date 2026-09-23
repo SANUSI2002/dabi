@@ -5,7 +5,8 @@ import { useAuth } from "@/store/useAuth";
 import { demoIdentityOptions, DEMO_PASSWORD } from "@/identity/seed";
 import { identityService } from "@/identity/service";
 import { useCommandCenter } from "@/command-center/useCommandCenter";
-import { developmentFixturesEnabled } from "@/config/runtime";
+import { apiConfigured, developmentFixturesEnabled } from "@/config/runtime";
+import { hasPendingLiveMfa, liveSignIn, liveSignOut, liveVerifyMfa, restoreLiveIdentity, type LiveIdentity } from "@/identity/liveIdentity";
 import { hasPharmacyPortalAccess } from "@/pharmacy/access";
 import { SABI_HEALTH_URL } from "@/public/ecosystemLinks";
 
@@ -31,15 +32,29 @@ function SabiIdLayout({ children, title, copy }: { children: ReactNode; title: s
 export function SignInPage({ intent = "shared" }: { intent?: SignInIntent }) {
   const navigate = useNavigate();
   const { authed, destination, signIn } = useAuth();
-  const [email, setEmail] = useState(developmentFixturesEnabled ? intent === "platform" ? "adaeze@sabios.com" : "amaka@sabi.health" : "");
-  const [password, setPassword] = useState(developmentFixturesEnabled ? DEMO_PASSWORD : "");
+  const [email, setEmail] = useState(developmentFixturesEnabled && !apiConfigured ? intent === "platform" ? "adaeze@sabios.com" : "amaka@sabi.health" : "");
+  const [password, setPassword] = useState(developmentFixturesEnabled && !apiConfigured ? DEMO_PASSWORD : "");
   const [rememberMe, setRememberMe] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  if (authed && hasPortalAccess(intent)) return <Navigate to={intent === "platform" ? "/command-center" : destination()} replace />;
+  useEffect(() => { if (apiConfigured) { restoreLiveIdentity().then((current) => { if (current) navigate('/identity/account', { replace: true }); }); } }, [navigate]);
+  if (!apiConfigured && authed && hasPortalAccess(intent)) return <Navigate to={intent === "platform" ? "/command-center" : destination()} replace />;
 
   async function submit(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError("");
+    if (apiConfigured) {
+      try {
+        const result = await liveSignIn(email, password);
+        if (result.kind === 'MFA') { navigate(`/mfa?context=${intent}`); return; }
+        const current = result.identity;
+        if (intent === 'platform' && !current.platform) throw new Error('This account does not have Command Centre access.');
+        if (intent === 'emr' && !current.organizations.some((membership) => membership.status === 'ACTIVE' && membership.organization.type !== 'PHARMACY')) throw new Error('This account has no active EMR organization membership.');
+        navigate('/identity/account', { replace: true });
+      }
+      catch (cause) { setError(cause instanceof Error ? cause.message : 'Sign-in failed.'); }
+      finally { setBusy(false); }
+      return;
+    }
     const result = await signIn({ email, password, rememberMe });
     setBusy(false);
     if (result.status === "ERROR") return setError(result.message);
@@ -49,10 +64,53 @@ export function SignInPage({ intent = "shared" }: { intent?: SignInIntent }) {
     navigate(destination, { replace: true });
   }
 
-  return <SabiIdLayout title={intent === "platform" ? "Command Center sign in" : intent === "emr" ? "Sabi EMR sign in" : "Sign in to Sabi"} copy={intent === "platform" ? "For authorized Sabi platform staff. Organization and patient accounts cannot enter this workspace." : intent === "emr" ? "Use your healthcare organization's Sabi ID to access its EMR workspace." : "Use one identity for every Sabi product and organization you are authorized to access."}><form className="space-y-4" onSubmit={submit}><label className="block"><span className="label">Email</span><input className="input" required type="email" autoComplete="username" value={email} onChange={(e)=>setEmail(e.target.value)}/></label><label className="block"><span className="label">Password</span><input className="input" required type="password" autoComplete="current-password" value={password} onChange={(e)=>setPassword(e.target.value)}/></label><div className="flex items-center justify-between gap-4"><label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={rememberMe} onChange={(e)=>setRememberMe(e.target.checked)} className="h-4 w-4 rounded border-slate-300 accent-emerald-600"/> Remember me</label><Link className="text-sm font-bold text-brand-700" to="/forgot-password">Forgot password?</Link></div>{error&&<p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p>}<button disabled={busy} className="public-button-primary w-full" type="submit">{busy?<Loader2 size={16} className="animate-spin"/>:<ArrowRight size={16}/>} {busy?"Checking identity…":"Sign In"}</button><Link to="/sso" className="public-button-secondary w-full"><Fingerprint size={16}/> Use organization SSO</Link></form>{authed && !hasPortalAccess(intent) && <button type="button" onClick={() => useAuth.getState().signOut()} className="mt-5 text-sm font-bold text-red-700">Sign out of the current account to switch</button>}{developmentFixturesEnabled&&<><div className="my-7 flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-slate-300"><span className="h-px flex-1 bg-slate-100"/>Development identities<span className="h-px flex-1 bg-slate-100"/></div><div className="grid gap-2">{demoIdentityOptions.filter((option)=>intent === "platform" ? option.id === "id-platform-ada" : intent === "emr" ? option.id !== "id-platform-ada" && option.id !== "id-owner-haven" && option.id !== "id-patient-zoe" : option.id !== "id-owner-haven").map((option)=><button type="button" key={option.id} onClick={()=>{setEmail(option.email);setPassword(DEMO_PASSWORD);setError("");}} className={`flex items-center gap-3 rounded-xl border p-3 text-left transition ${email===option.email?"border-brand-300 bg-brand-50":"border-slate-200 hover:border-brand-200"}`}><span className="grid h-9 w-9 place-items-center rounded-lg bg-white text-brand-700 ring-1 ring-slate-200"><CircleUserRound size={17}/></span><span className="min-w-0 flex-1"><b className="block truncate text-sm text-slate-800">{option.name}</b><span className="block truncate text-xs text-slate-400">{option.label}</span></span><ChevronRight size={15} className="text-slate-300"/></button>)}</div></>}<p className="mt-7 text-center text-sm text-slate-500">New to Sabi? <Link to="/register" className="font-bold text-brand-700">Create an account</Link></p></SabiIdLayout>;
+  return <SabiIdLayout title={intent === "platform" ? "Command Center sign in" : intent === "emr" ? "Sabi EMR sign in" : "Sign in to Sabi"} copy={intent === "platform" ? "For authorized Sabi platform staff. Organization and patient accounts cannot enter this workspace." : intent === "emr" ? "Use your healthcare organization's Sabi ID to access its EMR workspace." : "Use one identity for every Sabi product and organization you are authorized to access."}><form className="space-y-4" onSubmit={submit}><label className="block"><span className="label">Email</span><input className="input" required type="email" autoComplete="username" value={email} onChange={(e)=>setEmail(e.target.value)}/></label><label className="block"><span className="label">Password</span><input className="input" required type="password" autoComplete="current-password" value={password} onChange={(e)=>setPassword(e.target.value)}/></label><div className="flex items-center justify-between gap-4"><label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={rememberMe} onChange={(e)=>setRememberMe(e.target.checked)} className="h-4 w-4 rounded border-slate-300 accent-emerald-600"/> Remember me</label><Link className="text-sm font-bold text-brand-700" to="/forgot-password">Forgot password?</Link></div>{error&&<p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p>}<button disabled={busy} className="public-button-primary w-full" type="submit">{busy?<Loader2 size={16} className="animate-spin"/>:<ArrowRight size={16}/>} {busy?"Checking identity…":"Sign In"}</button>{!apiConfigured && <Link to="/sso" className="public-button-secondary w-full"><Fingerprint size={16}/> Use organization SSO</Link>}</form>{!apiConfigured && authed && !hasPortalAccess(intent) && <button type="button" onClick={() => useAuth.getState().signOut()} className="mt-5 text-sm font-bold text-red-700">Sign out of the current account to switch</button>}{developmentFixturesEnabled&&!apiConfigured&&<><div className="my-7 flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-slate-300"><span className="h-px flex-1 bg-slate-100"/>Development identities<span className="h-px flex-1 bg-slate-100"/></div><div className="grid gap-2">{demoIdentityOptions.filter((option)=>intent === "platform" ? option.id === "id-platform-ada" : intent === "emr" ? option.id !== "id-platform-ada" && option.id !== "id-owner-haven" && option.id !== "id-patient-zoe" : option.id !== "id-owner-haven").map((option)=><button type="button" key={option.id} onClick={()=>{setEmail(option.email);setPassword(DEMO_PASSWORD);setError("");}} className={`flex items-center gap-3 rounded-xl border p-3 text-left transition ${email===option.email?"border-brand-300 bg-brand-50":"border-slate-200 hover:border-brand-200"}`}><span className="grid h-9 w-9 place-items-center rounded-lg bg-white text-brand-700 ring-1 ring-slate-200"><CircleUserRound size={17}/></span><span className="min-w-0 flex-1"><b className="block truncate text-sm text-slate-800">{option.name}</b><span className="block truncate text-xs text-slate-400">{option.label}</span></span><ChevronRight size={15} className="text-slate-300"/></button>)}</div></>}<p className="mt-7 text-center text-sm text-slate-500">New to Sabi? <Link to="/register" className="font-bold text-brand-700">Create an account</Link></p></SabiIdLayout>;
 }
 
-export function MfaPage() {
+export function LiveIdentityPage() {
+  const navigate = useNavigate();
+  const [current, setCurrent] = useState<LiveIdentity | null>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => { restoreLiveIdentity().then(setCurrent).finally(() => setLoading(false)); }, []);
+  if (loading) return <SabiIdLayout title="Checking Sabi ID" copy="Restoring your central identity session."><Loader2 className="animate-spin" /></SabiIdLayout>;
+  if (!current) return <Navigate to="/login" replace />;
+  return <SabiIdLayout title="Your Sabi ID" copy="Your identity and organization memberships come from the central backend. Product workspaces will open once their tenant-scoped APIs are connected.">
+    <p className="text-sm text-slate-600">Signed in as <b>{current.user.email}</b></p>
+    <div className="mt-5 space-y-3">
+      {current.platform && <div className="rounded-xl border border-slate-200 p-4"><b>Command Centre</b><p className="mt-1 text-xs text-slate-500">{current.platform.roles.join(', ')}</p><p className="mt-2 text-xs text-amber-700">Workspace data connection pending</p></div>}
+      {current.organizations.map((membership) => <div key={membership.id} className="rounded-xl border border-slate-200 p-4"><b>{membership.organization.name}</b><p className="mt-1 text-xs text-slate-500">{membership.organization.type} · {membership.roles.join(', ')} · {membership.status}</p><p className="mt-2 text-xs text-amber-700">Workspace data connection pending</p></div>)}
+    </div>
+    <Link to="/identity/mfa" className="public-button-primary mt-6 w-full">Manage authenticator</Link>
+    <button className="public-button-secondary mt-3 w-full" onClick={async () => { await liveSignOut(); navigate('/login', { replace: true }); }}>Sign out</button>
+  </SabiIdLayout>;
+}
+
+export function MfaPage() { return apiConfigured ? <LiveMfaPage /> : <FixtureMfaPage />; }
+
+function LiveMfaPage() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [value, setValue] = useState('');
+  const [recovery, setRecovery] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  if (!hasPendingLiveMfa()) return <Navigate to="/login" replace />;
+  async function submit(event: FormEvent) {
+    event.preventDefault(); setBusy(true); setError('');
+    try {
+      const current = await liveVerifyMfa(value, recovery);
+      const context = searchParams.get('context');
+      if (context === 'platform' && !current.platform) throw new Error('This account does not have Command Centre access.');
+      if (context === 'pharmacy' && !current.organizations.some((membership) => membership.status === 'ACTIVE' && membership.organization.type === 'PHARMACY')) throw new Error('This account has no active pharmacy membership.');
+      if (context === 'emr' && !current.organizations.some((membership) => membership.status === 'ACTIVE' && membership.organization.type !== 'PHARMACY')) throw new Error('This account has no active EMR membership.');
+      navigate('/identity/account', { replace: true });
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Verification failed.'); }
+    finally { setBusy(false); }
+  }
+  return <SabiIdLayout title="Verify it’s you" copy="Use your authenticator app or one unused recovery code to complete Sabi ID sign-in."><form onSubmit={submit} className="space-y-4"><label className="block"><span className="label">{recovery ? 'Recovery code' : 'Six-digit authenticator code'}</span><input className="input" required autoComplete="one-time-code" inputMode={recovery ? 'text' : 'numeric'} value={value} onChange={(event) => setValue(recovery ? event.target.value : event.target.value.replace(/\D/g, '').slice(0, 6))} /></label>{error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}<button className="public-button-primary w-full" disabled={busy || (!recovery && value.length !== 6)}>{busy ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />} Verify and continue</button><button type="button" className="public-button-secondary w-full" onClick={() => { setRecovery(!recovery); setValue(''); setError(''); }}>{recovery ? 'Use authenticator app' : 'Use a recovery code'}</button></form></SabiIdLayout>;
+}
+
+function FixtureMfaPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const context = searchParams.get("context");

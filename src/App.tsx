@@ -10,6 +10,8 @@ import { deploymentSurface, otherSurfaceUrl } from "@/deployment/surface";
 const AppShell = lazy(() => import("@/components/layout/AppShell").then((m) => ({ default: m.AppShell })));
 const WorkforceLayout = lazy(() => import("@/components/layout/WorkforceLayout").then((m) => ({ default: m.WorkforceLayout })));
 const SignInPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.SignInPage })));
+const LiveIdentityPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.LiveIdentityPage })));
+const LiveMfaSettingsPage = lazy(() => import("@/identity/pages/LiveMfaSettingsPage"));
 const AccessPage = lazy(() => import("@/public/pages/AccessPage"));
 const MfaPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.MfaPage })));
 const OrganizationChooserPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.OrganizationChooserPage })));
@@ -257,6 +259,8 @@ export default function App() {
           <Route path="book-demo" element={<BookDemoPage />} />
         </Route>
         <Route path="/login" element={surface === "health" ? <AccessPage /> : <SignInPage intent={surface === "emr" ? "emr" : surface === "command-center" ? "platform" : "shared"} />} />
+        <Route path="/identity/account" element={<LiveIdentityPage />} />
+        <Route path="/identity/mfa" element={<LiveMfaSettingsPage />} />
         <Route path="/access" element={<AccessPage />} />
         <Route path="/emr/login" element={<SignInPage intent="emr" />} />
         <Route path="/command-center/login" element={<SignInPage intent="platform" />} />

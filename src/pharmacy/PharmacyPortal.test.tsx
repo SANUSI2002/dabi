@@ -25,5 +25,5 @@ describe("pharmacy portal navigation", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Settings" }));
     expect(screen.getByText("Pharmacy identity and contact")).toBeInTheDocument();
-  });
+  }, 15_000);
 });

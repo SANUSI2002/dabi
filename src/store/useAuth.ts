@@ -3,6 +3,7 @@ import { audit } from "@/store/useAudit";
 import { useIdentity } from "@/store/useIdentity";
 import { accountById, type Account } from "@/data/accounts";
 import { identityService } from "@/identity/service";
+import { apiConfigured, developmentFixturesEnabled } from "@/config/runtime";
 import { ORGANIZATION_MEMBERSHIPS, SABI_IDENTITIES } from "@/identity/seed";
 import type { OrganizationMembership, PostAuthDestination, SabiIdentity, SabiSession, SignInInput } from "@/identity/domain";
 
@@ -12,6 +13,7 @@ const LEGACY_KEY = "sabi-emr-auth";
 type SignInActionResult = { status: "ROUTE"; destination: PostAuthDestination } | { status: "MFA" } | { status: "ERROR"; message: string };
 
 function readSession(): { session?: SabiSession; identity?: SabiIdentity; membership?: OrganizationMembership } {
+  if (apiConfigured || !developmentFixturesEnabled) return {};
   try {
     const session = JSON.parse(localStorage.getItem(SESSION_KEY) ?? "null") as SabiSession | null;
     if (!session || new Date(session.expiresAt).getTime() <= Date.now()) return {};

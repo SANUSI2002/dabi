@@ -1,5 +1,6 @@
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { restoreSession } from "./utils/sabiIdentity";
 import "./index.css";
 import { ZoomProvider } from "./context/ZoomContext";
 import { Dashboard } from "./pages/dashboard/Dashboard";
@@ -82,6 +83,13 @@ function HospitalOnboardingRedirect() {
   );
 }
 
+function RequirePatientSession() {
+  const [state, setState] = useState('loading');
+  useEffect(() => { let live = true; restoreSession().then((user) => { if (live) setState(user ? 'ready' : 'denied'); }); return () => { live = false; }; }, []);
+  if (state === 'loading') return <div className="grid min-h-screen place-items-center text-sm text-slate-600">Checking Sabi Identity session…</div>;
+  return state === 'ready' ? <Outlet /> : <Navigate to="/login" replace />;
+}
+
 function Logo() {
   const location = useLocation();
 
@@ -130,6 +138,7 @@ export default function App() {
               <Route path="/auth" element={<AnimatedAuth />} />
               <Route path="/verify" element={<IdentityVerificationPage />} />
               <Route path="/success" element={<SuccessPage />} />
+              <Route element={<RequirePatientSession />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/records" element={<Records />} />
@@ -178,6 +187,7 @@ export default function App() {
               <Route path="/wellness-hub/:categoryId" element={<PractitionerListPage />} />
               <Route path="/wellness-hub/:categoryId/:practitionerId" element={<PractitionerDetailPage />} />
               <Route path="/wellness-hub/:categoryId/:practitionerId/book" element={<BookPractitionerPage />} />
+              </Route>
 
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
