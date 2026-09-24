@@ -13,8 +13,9 @@ const labels: Record<string, string> = {
 export default function ApplicationEvidencePage() {
   const { id = '' } = useParams();
   const [accessToken] = useState(() => window.location.hash.slice(1));
+  const validToken = !!id && /^[a-f0-9]{64}$/.test(accessToken);
   const [evidence, setEvidence] = useState<LiveEvidenceList | null>(null);
-  const [loading, setLoading] = useState(!!accessToken);
+  const [loading, setLoading] = useState(validToken);
   const [error, setError] = useState('');
   const [busyKey, setBusyKey] = useState('');
   const [email, setEmail] = useState('');
@@ -24,7 +25,7 @@ export default function ApplicationEvidencePage() {
     // The fragment is not sent to the server. Remove it from browser history
     // immediately and never persist this short-lived applicant capability.
     window.history.replaceState(null, '', window.location.pathname);
-    if (!/^[a-f0-9]{64}$/.test(accessToken) || !id) { setLoading(false); return; }
+    if (!validToken) return;
     let active = true;
     liveApplicantEvidence(id, accessToken).then((response) => {
       if (active) setEvidence(response.data);
@@ -32,7 +33,7 @@ export default function ApplicationEvidencePage() {
       if (active) setError(cause instanceof Error ? cause.message : 'Could not load document requirements.');
     }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [id, accessToken]);
+  }, [id, accessToken, validToken]);
 
   async function upload(key: string, event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];

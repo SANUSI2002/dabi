@@ -1,9 +1,9 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import LiveApplicationsPage from './LiveApplicationsPage';
-import { liveAddReviewNote, liveApprovalReadiness, livePlatformApplicationDetail, livePlatformApplications, livePlatformEvidence, liveReviewNotes, liveStartApplicationReview } from '@/registration/livePlatform';
+import { liveAddReviewNote, liveApprovalReadiness, liveEvidencePreview, livePlatformApplicationDetail, livePlatformApplications, livePlatformEvidence, liveReviewEvidence, liveReviewNotes, liveStartApplicationReview } from '@/registration/livePlatform';
 
-vi.mock('@/registration/livePlatform', () => ({ livePlatformApplications: vi.fn(), livePlatformApplicationDetail: vi.fn(), liveApprovalReadiness: vi.fn(), liveStartApplicationReview: vi.fn(), liveReviewNotes: vi.fn(), liveAddReviewNote: vi.fn(), livePlatformEvidence: vi.fn() }));
+vi.mock('@/registration/livePlatform', () => ({ livePlatformApplications: vi.fn(), livePlatformApplicationDetail: vi.fn(), liveApprovalReadiness: vi.fn(), liveStartApplicationReview: vi.fn(), liveReviewNotes: vi.fn(), liveAddReviewNote: vi.fn(), livePlatformEvidence: vi.fn(), liveEvidencePreview: vi.fn(), liveReviewEvidence: vi.fn() }));
 
 const summary = { id: 'app-1', reference: 'SABI-APP-TEST', organizationName: 'Test Hospital', status: 'SUBMITTED', createdAt: '2026-09-24T00:00:00Z', submittedAt: '2026-09-24T00:00:00Z', packageId: 'package-1', packageVersionId: 'version-1' };
 const detail = {
@@ -66,5 +66,26 @@ describe('live application review workbench', () => {
     expect(await screen.findByText('Licence details require an independent check.')).toBeInTheDocument();
     expect(liveAddReviewNote).toHaveBeenCalledWith('app-1', 'Licence details require an independent check.');
     expect(screen.queryByRole('button', { name: /approve|provision/i })).not.toBeInTheDocument();
+  });
+
+  it('exposes clean-file preview and an audited authenticity decision only when enabled', async () => {
+    vi.mocked(livePlatformApplications).mockResolvedValue({ data: { items: [{ ...summary, status: 'UNDER_REVIEW' }], nextPage: null } });
+    vi.mocked(livePlatformApplicationDetail).mockResolvedValue({ data: { ...detail, status: 'UNDER_REVIEW' } } as never);
+    vi.mocked(liveApprovalReadiness).mockResolvedValue({ data: { ready: false, requiredEvidence: [], blockers: ['SECURE_DOCUMENT_WORKFLOW_NOT_CONNECTED'] } });
+    vi.mocked(liveReviewNotes).mockResolvedValue({ data: { items: [] } });
+    vi.mocked(livePlatformEvidence).mockResolvedValue({ data: { previewAvailable: true, items: [{ id: 'evidence-1', requirementKey: 'OFFICER_LICENCE', fileName: 'officer_licence.pdf', contentType: 'application/pdf', sizeBytes: 1024, sha256: 'a'.repeat(64), scanStatus: 'CLEAN', reviewStatus: 'PENDING', createdAt: '2026-09-24T00:00:00Z' }] } });
+    vi.mocked(liveEvidencePreview).mockResolvedValue({ data: { url: 'https://project.supabase.co/storage/v1/object/sign/evidence', expiresInSeconds: 60 } });
+    vi.mocked(liveReviewEvidence).mockResolvedValue({ data: { id: 'evidence-1', reviewStatus: 'VERIFIED', reviewedAt: '2026-09-24T12:00:00Z' } });
+    render(<LiveApplicationsPage/>);
+    fireEvent.click(screen.getByRole('button', { name: 'UNDER REVIEW' }));
+    fireEvent.click(await screen.findByRole('button', { name: /SABI-APP-TEST/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /Request 60-second private preview/ }));
+    expect(await screen.findByRole('link', { name: 'Open private preview' })).toHaveAttribute('rel', 'noopener noreferrer');
+    fireEvent.click(screen.getByRole('button', { name: 'Record authenticity check' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Registry or verification source' }), { target: { value: 'Test regulator register' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Registry reference' }), { target: { value: 'REG-123' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Mark authentic' }));
+    expect(await screen.findByText(/Review: VERIFIED/)).toBeInTheDocument();
+    expect(liveReviewEvidence).toHaveBeenCalledWith('app-1', 'evidence-1', { decision: 'VERIFIED', sourceName: 'Test regulator register', reference: 'REG-123', note: '' });
   });
 });
