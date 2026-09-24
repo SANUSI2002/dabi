@@ -1,9 +1,9 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import LiveApplicationsPage from './LiveApplicationsPage';
-import { liveApprovalReadiness, livePlatformApplicationDetail, livePlatformApplications, liveStartApplicationReview } from '@/registration/livePlatform';
+import { liveAddReviewNote, liveApprovalReadiness, livePlatformApplicationDetail, livePlatformApplications, liveReviewNotes, liveStartApplicationReview } from '@/registration/livePlatform';
 
-vi.mock('@/registration/livePlatform', () => ({ livePlatformApplications: vi.fn(), livePlatformApplicationDetail: vi.fn(), liveApprovalReadiness: vi.fn(), liveStartApplicationReview: vi.fn() }));
+vi.mock('@/registration/livePlatform', () => ({ livePlatformApplications: vi.fn(), livePlatformApplicationDetail: vi.fn(), liveApprovalReadiness: vi.fn(), liveStartApplicationReview: vi.fn(), liveReviewNotes: vi.fn(), liveAddReviewNote: vi.fn() }));
 
 const summary = { id: 'app-1', reference: 'SABI-APP-TEST', organizationName: 'Test Hospital', status: 'SUBMITTED', createdAt: '2026-09-24T00:00:00Z', submittedAt: '2026-09-24T00:00:00Z', packageId: 'package-1', packageVersionId: 'version-1' };
 const detail = {
@@ -22,6 +22,7 @@ afterEach(() => { cleanup(); vi.resetAllMocks(); });
 
 describe('live application review workbench', () => {
   it('loads server-owned details but does not expose approval or provisioning actions', async () => {
+    vi.mocked(liveReviewNotes).mockResolvedValue({ data: { items: [] } });
     vi.mocked(livePlatformApplications).mockResolvedValue({ data: { items: [summary], nextPage: null } });
     vi.mocked(livePlatformApplicationDetail).mockResolvedValue({ data: detail } as never);
     vi.mocked(liveApprovalReadiness).mockResolvedValue({ data: { ready: false, requiredEvidence: ['OFFICER_LICENCE'], blockers: ['MISSING_DOCUMENT:OFFICER_LICENCE', 'SECURE_DOCUMENT_WORKFLOW_NOT_CONNECTED'] } });
@@ -35,6 +36,7 @@ describe('live application review workbench', () => {
   });
 
   it('requires an explicit confirmation to begin review and updates the status from the server', async () => {
+    vi.mocked(liveReviewNotes).mockResolvedValue({ data: { items: [] } });
     vi.mocked(livePlatformApplications).mockResolvedValue({ data: { items: [summary], nextPage: null } });
     vi.mocked(livePlatformApplicationDetail).mockResolvedValue({ data: detail } as never);
     vi.mocked(liveApprovalReadiness).mockResolvedValue({ data: { ready: false, requiredEvidence: [], blockers: ['SECURE_DOCUMENT_WORKFLOW_NOT_CONNECTED'] } });
@@ -47,5 +49,21 @@ describe('live application review workbench', () => {
     expect(await screen.findByText('UNDER_REVIEW')).toBeInTheDocument();
     expect(liveStartApplicationReview).toHaveBeenCalledWith('app-1');
     expect(screen.queryByRole('button', { name: 'Begin review' })).not.toBeInTheDocument();
+  });
+
+  it('records a reviewer observation without claiming evidence verification', async () => {
+    vi.mocked(livePlatformApplications).mockResolvedValue({ data: { items: [{ ...summary, status: 'UNDER_REVIEW' }], nextPage: null } });
+    vi.mocked(livePlatformApplicationDetail).mockResolvedValue({ data: { ...detail, status: 'UNDER_REVIEW' } } as never);
+    vi.mocked(liveApprovalReadiness).mockResolvedValue({ data: { ready: false, requiredEvidence: ['OFFICER_LICENCE'], blockers: ['MISSING_DOCUMENT:OFFICER_LICENCE'] } });
+    vi.mocked(liveReviewNotes).mockResolvedValue({ data: { items: [] } });
+    vi.mocked(liveAddReviewNote).mockResolvedValue({ data: { id: 'note-1', reviewerId: 'reviewer-1', note: 'Licence details require an independent check.', createdAt: '2026-09-24T12:00:00Z' } });
+    render(<LiveApplicationsPage/>);
+    fireEvent.click(screen.getByRole('button', { name: 'UNDER REVIEW' }));
+    fireEvent.click(await screen.findByRole('button', { name: /SABI-APP-TEST/ }));
+    fireEvent.change(await screen.findByLabelText('Reviewer observation'), { target: { value: 'Licence details require an independent check.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save note' }));
+    expect(await screen.findByText('Licence details require an independent check.')).toBeInTheDocument();
+    expect(liveAddReviewNote).toHaveBeenCalledWith('app-1', 'Licence details require an independent check.');
+    expect(screen.queryByRole('button', { name: /approve|provision/i })).not.toBeInTheDocument();
   });
 });
