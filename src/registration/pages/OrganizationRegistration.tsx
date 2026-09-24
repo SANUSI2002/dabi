@@ -20,7 +20,7 @@ import { ProvisioningApplicantPanel } from "@/provisioning/ProvisioningApplicant
 import { CorporateStep, DocumentsStep, OfficerStep, RegulationStep } from "./ComplianceSteps";
 import { apiConfigured } from "@/config/runtime";
 import { useLivePackages } from "../useLivePackages";
-import { liveVerifyApplication } from "../livePlatform";
+import { liveRequestVerificationLink, liveVerifyApplication } from "../livePlatform";
 
 const SERVICES = ["24/7 operation", "Emergency department", "Inpatient care", "Pharmacy", "Laboratory", "Radiology", "Maternity", "Theatre", "ICU", "Dialysis", "Dental", "Optical", "Ambulance"];
 
@@ -254,6 +254,10 @@ export function ApplicationEmailVerificationPage() {
   const [status, setStatus] = useState<'checking' | 'success' | 'error'>(validLink ? 'checking' : 'error');
   const [message, setMessage] = useState(validLink ? '' : 'This verification link is incomplete or invalid.');
   const [evidenceToken, setEvidenceToken] = useState('');
+  const [ownerEmail, setOwnerEmail] = useState('');
+  const [requestSent, setRequestSent] = useState(false);
+  const [requestBusy, setRequestBusy] = useState(false);
+  const [requestError, setRequestError] = useState('');
   useEffect(() => {
     if (started.current) return;
     started.current = true;
@@ -264,9 +268,17 @@ export function ApplicationEmailVerificationPage() {
       if (draft) useRegistration.getState().updateApplication(draft.id, (item) => ({ ...item, status: 'SUBMITTED', submittedAt: response.data.submittedAt ?? new Date().toISOString(), owner: { ...item.owner, emailVerification: 'VERIFIED' } }));
       if (response.data.evidenceAccessToken) setEvidenceToken(response.data.evidenceAccessToken);
       setStatus('success');
-    }).catch((cause) => { setStatus('error'); setMessage(cause instanceof Error ? cause.message : 'Verification failed.'); });
+    }).catch(() => { setStatus('error'); setMessage('This one-time link may have expired or already been used. If you verified earlier, continue to documents; otherwise request a fresh verification email.'); });
   }, [id, validLink, token]);
-  return <main className="min-h-screen bg-[#f4faf6]"><header className="border-b border-slate-200 bg-white px-5 py-4"><BrandMark/></header><section className="mx-auto max-w-2xl px-5 py-16"><div className="rounded-2xl border border-slate-200 bg-white p-8"><ShieldCheck className="text-brand-700" size={30}/><h1 className="mt-5 font-display text-3xl font-bold">{status === 'checking' ? 'Verifying your email…' : status === 'success' ? 'Application email verified' : 'Verification could not be completed'}</h1><p role={status === 'error' ? 'alert' : 'status'} className="mt-3 text-sm leading-6 text-slate-600">{status === 'success' ? 'Your application is now in the Sabi review queue. No organization account or tenant has been created.' : status === 'checking' ? 'Please wait while Sabi checks your one-time link.' : message}</p>{status === 'success' && evidenceToken && <Link to={`/register/organization/evidence/${id}#${evidenceToken}`} className="mt-5 inline-flex rounded-xl bg-brand-700 px-4 py-2 text-sm font-bold text-white">Continue to requested documents</Link>}<div><Link to="/register/organization" className="mt-6 inline-flex text-sm font-bold text-brand-700">Back to applications</Link></div></div></section></main>;
+  async function requestNewLink(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!id || !ownerEmail.trim()) return;
+    setRequestBusy(true); setRequestError('');
+    try { await liveRequestVerificationLink(id, ownerEmail.trim()); setRequestSent(true); }
+    catch { setRequestError('Could not request a new link right now. Please try again later.'); }
+    finally { setRequestBusy(false); }
+  }
+  return <main className="min-h-screen bg-[#f4faf6]"><header className="border-b border-slate-200 bg-white px-5 py-4"><BrandMark/></header><section className="mx-auto max-w-2xl px-5 py-16"><div className="rounded-2xl border border-slate-200 bg-white p-8"><ShieldCheck className="text-brand-700" size={30}/><h1 className="mt-5 font-display text-3xl font-bold">{status === 'checking' ? 'Verifying your email…' : status === 'success' ? 'Application email verified' : 'Verification could not be completed'}</h1><p role={status === 'error' ? 'alert' : 'status'} className="mt-3 text-sm leading-6 text-slate-600">{status === 'success' ? 'Your application is now in the Sabi review queue. No organization account or tenant has been created.' : status === 'checking' ? 'Please wait while Sabi checks your one-time link.' : message}</p>{status === 'success' && evidenceToken && <Link to={`/register/organization/evidence/${id}#${evidenceToken}`} className="mt-5 inline-flex rounded-xl bg-brand-700 px-4 py-2 text-sm font-bold text-white">Continue to requested documents</Link>}{status === 'error' && id && <div className="mt-6 space-y-5 border-t border-slate-100 pt-5"><div><h2 className="text-sm font-bold text-slate-900">Already verified?</h2><p className="mt-1 text-sm text-slate-600">Open the documents page and request a fresh access link using your application owner email.</p><Link to={`/register/organization/evidence/${id}`} className="mt-3 inline-flex rounded-xl bg-brand-700 px-4 py-2 text-sm font-bold text-white">Continue to document upload</Link></div><form onSubmit={requestNewLink}><label htmlFor="verification-owner-email" className="text-sm font-bold text-slate-900">Not verified yet? Request another email</label><p className="mt-1 text-xs text-slate-500">Use the owner email from the application. For security, new links are limited to one every two minutes.</p>{requestSent ? <p role="status" className="mt-3 rounded-xl bg-brand-50 p-3 text-sm text-brand-800">If verification is still pending, we emailed a fresh link. Check your inbox and spam folder. If you verified already, use the document-upload option above.</p> : <div className="mt-3 flex flex-col gap-2 sm:flex-row"><input id="verification-owner-email" type="email" required autoComplete="email" value={ownerEmail} onChange={(event) => setOwnerEmail(event.target.value)} className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm" placeholder="Application owner email"/><button type="submit" disabled={requestBusy} className="rounded-xl border border-brand-700 px-4 py-2 text-sm font-bold text-brand-700 disabled:opacity-50">{requestBusy ? 'Requesting…' : 'Email new link'}</button></div>}{requestError && <p role="alert" className="mt-2 text-sm text-red-700">{requestError}</p>}</form></div>}<div><Link to="/register/organization" className="mt-6 inline-flex text-sm font-bold text-brand-700">Back to applications</Link></div></div></section></main>;
 }
 
 function ComplianceStatusContent({ application }: { application: OrganizationApplication }) {

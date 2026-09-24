@@ -44,6 +44,7 @@ export const liveSubmitApplication = (application: OrganizationApplication) => {
   }) });
 };
 export const liveVerifyApplication = (id: string, token: string) => liveApiRequest<{ data: LiveApplicationSummary & { evidenceAccessToken?: string } }>(`/api/v1/applications/${encodeURIComponent(id)}/verify`, { method: 'POST', body: JSON.stringify({ token }) });
+export const liveRequestVerificationLink = (id: string, email: string) => liveApiRequest<{ message: string }>(`/api/v1/applications/${encodeURIComponent(id)}/verification-link`, { method: 'POST', body: JSON.stringify({ email }) });
 export const liveRequestEvidenceAccess = (id: string, email: string) => liveApiRequest<{ message: string }>(`/api/v1/applications/${encodeURIComponent(id)}/evidence-access`, { method: 'POST', body: JSON.stringify({ email }) });
 export const liveApplicantEvidence = (id: string, token: string) => liveApiRequest<{ data: LiveEvidenceList }>(`/api/v1/applications/${encodeURIComponent(id)}/evidence`, { headers: { 'X-Sabi-Evidence-Token': token } });
 export async function liveUploadApplicantEvidence(id: string, key: string, token: string, file: File): Promise<{ data: LiveEvidence }> {
