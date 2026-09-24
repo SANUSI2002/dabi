@@ -8,6 +8,10 @@ export type LiveApplicationSummary = { id: string; reference: string; status: st
 export type LivePlatformApplication = LiveApplicationSummary & { organizationName: string; packageId: string; packageVersionId: string };
 export type LivePlatformApplicationDetail = LivePlatformApplication & {
   emailVerifiedAt: string | null;
+  approvedAt: string | null;
+  setupDeadlineAt: string | null;
+  setupSentAt: string | null;
+  setupCompletedAt: string | null;
   billingCycle: 'Monthly' | 'Annual';
   details: {
     owner: { firstName: string; lastName: string; workEmail: string; phone: string };
@@ -61,3 +65,7 @@ export const liveApprovalReadiness = (id: string) => liveApiRequest<{ data: Live
 export const liveStartApplicationReview = (id: string) => liveApiRequest<{ data: LivePlatformApplicationDetail }>(`/api/v1/platform/applications/${encodeURIComponent(id)}/start-review`, { method: 'POST', body: '{}' });
 export const liveReviewNotes = (id: string) => liveApiRequest<{ data: { items: LiveReviewNote[] } }>(`/api/v1/platform/applications/${encodeURIComponent(id)}/review-notes`);
 export const liveAddReviewNote = (id: string, note: string) => liveApiRequest<{ data: LiveReviewNote }>(`/api/v1/platform/applications/${encodeURIComponent(id)}/review-notes`, { method: 'POST', body: JSON.stringify({ note }) });
+export const liveApproveEmr = (id: string) => liveApiRequest<{ data: { id: string; status: 'APPROVED'; organizationId: string; setupDeadlineAt: string; emailSent: boolean } }>(`/api/v1/platform/applications/${encodeURIComponent(id)}/approve-emr`, { method: 'POST', body: '{}' });
+export const liveResendEmrSetup = (id: string) => liveApiRequest<{ data: { id: string; emailSent: boolean; setupDeadlineAt: string } }>(`/api/v1/platform/applications/${encodeURIComponent(id)}/resend-owner-setup`, { method: 'POST', body: '{}' });
+export const livePreviewEmrSetup = (id: string, token: string) => liveApiRequest<{ data: { organizationName: string; email: string; setupDeadlineAt: string; existingAccount: boolean } }>(`/api/v1/applications/${encodeURIComponent(id)}/owner-setup/preview`, { method: 'POST', body: JSON.stringify({ token }) });
+export const liveCompleteEmrSetup = (id: string, token: string, password: string, confirmPassword: string) => liveApiRequest<{ data: { organizationId: string; loginPath: string } }>(`/api/v1/applications/${encodeURIComponent(id)}/owner-setup/complete`, { method: 'POST', body: JSON.stringify({ token, password, confirmPassword }) });

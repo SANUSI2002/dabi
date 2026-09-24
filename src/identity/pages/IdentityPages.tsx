@@ -62,7 +62,12 @@ export function SignInPage({ intent = "shared" }: { intent?: SignInIntent }) {
           navigate(current.platform ? '/command-center' : '/identity/mfa?next=command-center', { replace: true });
           return;
         }
-        if (intent === 'emr' && !current.organizations.some((membership) => membership.status === 'ACTIVE' && membership.organization.type !== 'PHARMACY')) throw new Error('This account has no active EMR organization membership.');
+        if (intent === 'emr') {
+          const memberships = current.organizations.filter((membership) => membership.status === 'ACTIVE' && membership.organization.type !== 'PHARMACY');
+          if (!memberships.length) throw new Error('This account has no active EMR organization membership.');
+          navigate(memberships.length === 1 ? `/emr/workspace/${memberships[0].organization.id}` : '/identity/account', { replace: true });
+          return;
+        }
         navigate('/identity/account', { replace: true });
       }
       catch (cause) { setError(cause instanceof Error ? cause.message : 'Sign-in failed.'); }
@@ -88,11 +93,11 @@ export function LiveIdentityPage() {
   useEffect(() => { restoreLiveIdentity().then(setCurrent).finally(() => setLoading(false)); }, []);
   if (loading) return <SabiIdLayout title="Checking Sabi ID" copy="Restoring your central identity session."><Loader2 className="animate-spin" /></SabiIdLayout>;
   if (!current) return <Navigate to="/login" replace />;
-  return <SabiIdLayout title="Your Sabi ID" copy="Your identity and organization memberships come from the central backend. Product workspaces will open once their tenant-scoped APIs are connected.">
+  return <SabiIdLayout title="Your Sabi ID" copy="Choose an authorized organization. Sabi checks membership and EMR entitlement on the server before opening its workspace.">
     <p className="text-sm text-slate-600">Signed in as <b>{current.user.email}</b></p>
     <div className="mt-5 space-y-3">
       {current.platformAssigned && <div className="rounded-xl border border-slate-200 p-4"><b>Command Center</b><p className="mt-1 text-xs text-slate-500">{current.platform ? current.platform.roles.join(', ') : 'Platform assignment verified; authenticator required'}</p><Link className="mt-3 inline-block text-sm font-bold text-brand-700" to={current.platform ? '/command-center' : '/identity/mfa?next=command-center'}>{current.platform ? 'Open Command Center' : 'Set up or verify authenticator'}</Link></div>}
-      {current.organizations.map((membership) => <div key={membership.id} className="rounded-xl border border-slate-200 p-4"><b>{membership.organization.name}</b><p className="mt-1 text-xs text-slate-500">{membership.organization.type} · {membership.roles.join(', ')} · {membership.status}</p><p className="mt-2 text-xs text-amber-700">Workspace data connection pending</p>{membership.status === 'ACTIVE' && membership.permissions.includes('membership.manage') && <InvitationManager organizationId={membership.organization.id} title={`${membership.organization.name} team invitations`}/>}</div>)}
+      {current.organizations.map((membership) => <div key={membership.id} className="rounded-xl border border-slate-200 p-4"><b>{membership.organization.name}</b><p className="mt-1 text-xs text-slate-500">{membership.organization.type} · {membership.roles.join(', ')} · {membership.status}</p>{membership.status === 'ACTIVE' && membership.organization.type !== 'PHARMACY' && <Link className="mt-3 inline-block text-sm font-bold text-brand-700" to={`/emr/workspace/${membership.organization.id}`}>Open EMR workspace</Link>}{membership.status !== 'ACTIVE' && <p className="mt-2 text-xs text-amber-700">Access is pending activation.</p>}{membership.status === 'ACTIVE' && membership.permissions.includes('membership.manage') && <InvitationManager organizationId={membership.organization.id} title={`${membership.organization.name} team invitations`}/>}</div>)}
     </div>
     <Link to="/identity/mfa" className="public-button-primary mt-6 w-full">Manage authenticator</Link>
     <button className="public-button-secondary mt-3 w-full" onClick={async () => { await liveSignOut(); navigate('/login', { replace: true }); }}>Sign out</button>
@@ -120,7 +125,12 @@ function LiveMfaPage() {
         return;
       }
       if (context === 'pharmacy' && !current.organizations.some((membership) => membership.status === 'ACTIVE' && membership.organization.type === 'PHARMACY')) throw new Error('This account has no active pharmacy membership.');
-      if (context === 'emr' && !current.organizations.some((membership) => membership.status === 'ACTIVE' && membership.organization.type !== 'PHARMACY')) throw new Error('This account has no active EMR membership.');
+      if (context === 'emr') {
+        const memberships = current.organizations.filter((membership) => membership.status === 'ACTIVE' && membership.organization.type !== 'PHARMACY');
+        if (!memberships.length) throw new Error('This account has no active EMR membership.');
+        navigate(memberships.length === 1 ? `/emr/workspace/${memberships[0].organization.id}` : '/identity/account', { replace: true });
+        return;
+      }
       navigate('/identity/account', { replace: true });
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Verification failed.'); }
     finally { setBusy(false); }

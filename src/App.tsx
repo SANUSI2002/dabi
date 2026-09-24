@@ -12,6 +12,8 @@ const AppShell = lazy(() => import("@/components/layout/AppShell").then((m) => (
 const WorkforceLayout = lazy(() => import("@/components/layout/WorkforceLayout").then((m) => ({ default: m.WorkforceLayout })));
 const SignInPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.SignInPage })));
 const LiveIdentityPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.LiveIdentityPage })));
+const LiveEmrWorkspace = lazy(() => import("@/identity/pages/LiveEmrWorkspace"));
+const EmrOwnerSetupPage = lazy(() => import("@/registration/pages/EmrOwnerSetupPage"));
 const LiveMfaSettingsPage = lazy(() => import("@/identity/pages/LiveMfaSettingsPage"));
 const AccessPage = lazy(() => import("@/public/pages/AccessPage"));
 const MfaPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.MfaPage })));
@@ -195,6 +197,7 @@ function WorkspaceGate() {
   const { authed, identity, activeMembership } = useAuth();
   const activeTenant = useTenant((state) => state.tenant.id);
   const setup = useTenantSetup((state) => state.records.find((item) => item.organizationId === activeTenant));
+  if (apiConfigured) return <Navigate to="/identity/account" replace />;
   if (!authed || !identity) return <Navigate to="/login" replace />;
   if (identity.kind === "platform") return <Navigate to="/command-center" replace />;
   if (identity.kind === "patient") return <Navigate to="/patient" replace />;
@@ -208,6 +211,7 @@ function TenantSetupGate() {
   const { authed, identity, activeMembership } = useAuth();
   const activeTenant = useTenant((state) => state.tenant.id);
   const setup = useTenantSetup((state) => state.records.find((item) => item.organizationId === activeTenant));
+  if (apiConfigured) return <Navigate to="/identity/account" replace />;
   if (!authed || !identity) return <Navigate to="/login" replace />;
   if (identity.kind !== "organization" || !activeMembership) return <Navigate to={identity.kind === "platform" ? "/command-center" : "/patient"} replace />;
   if (activeMembership.organizationId !== activeTenant) return <Navigate to="/choose-organization" replace />;
@@ -266,6 +270,7 @@ export default function App() {
         </Route>
         <Route path="/login" element={surface === "health" ? <AccessPage /> : <SignInPage intent={surface === "emr" ? "emr" : surface === "command-center" ? "platform" : "shared"} />} />
         <Route path="/identity/account" element={<LiveIdentityPage />} />
+        <Route path="/emr/workspace/:organizationId" element={apiConfigured ? <LiveEmrWorkspace /> : <Navigate to="/login" replace />} />
         <Route path="/identity/mfa" element={<LiveMfaSettingsPage />} />
         <Route path="/access" element={<AccessPage />} />
         <Route path="/emr/login" element={<SignInPage intent="emr" />} />
@@ -288,6 +293,7 @@ export default function App() {
         <Route path="/register/organization/:applicationId/status" element={<ApplicationStatusPage />} />
         <Route path="/register/organization/verify/:id" element={<ApplicationEmailVerificationPage />} />
         <Route path="/register/organization/evidence/:id" element={<ApplicationEvidencePage />} />
+        <Route path="/register/organization/setup/:id" element={<EmrOwnerSetupPage />} />
         <Route path="/signup/organisation/:type" element={<Navigate to="/register/organization" replace />} />
         <Route path="/signup/organization/:type" element={<Navigate to="/register/organization" replace />} />
         <Route path="/command-center" element={<CommandCenterGate />}>

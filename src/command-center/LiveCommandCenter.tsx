@@ -134,7 +134,7 @@ export default function LiveCommandCenter() {
   } else if (path === '/command-center/packages' || path === '/command-center/pricing' || path === '/command-center/catalog') {
     content = identity?.platform?.permissions.includes('platform.catalog.manage') ? <LivePackagesPage /> : <UnavailableSection title="Packages" />;
   } else if (path === '/command-center/onboarding') {
-    content = hasRegistry ? <LiveApplicationsPage /> : <UnavailableSection title="Verification center" />;
+    content = hasRegistry ? <LiveApplicationsPage canApprove={!!identity?.platform?.permissions.includes('platform.onboarding.approve')} /> : <UnavailableSection title="Verification center" />;
   } else if (path === '/command-center/internal-users') {
     content = <><CommandPageHeader eyebrow="Administration" title="Internal users" description="Invite Command Center staff by email with a server-enforced role." />{hasInvites ? <InvitationManager title="Command Center staff invitations" /> : <Panel><p className="p-5 text-sm text-slate-600">Your platform role does not permit staff invitations.</p></Panel>}</>;
   } else {

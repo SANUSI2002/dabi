@@ -46,7 +46,7 @@ async function loadIdentity(): Promise<LiveIdentity> {
     const assignment = await request<{ data: { assigned: boolean } }>('/platform-assignment');
     platformAssigned = assignment.data.assigned;
   } catch (cause) {
-    if ((cause as { code?: string }).code !== 'PLATFORM_ACCESS_DENIED') throw cause;
+    if (!['PLATFORM_ACCESS_DENIED', 'PLATFORM_CONTEXT_REQUIRED'].includes((cause as { code?: string }).code ?? '')) throw cause;
   }
   let platform: LiveIdentity['platform'] = null;
   if (platformAssigned) {
@@ -54,7 +54,7 @@ async function loadIdentity(): Promise<LiveIdentity> {
       const result = await request<{ data: { roles: string[]; permissions: string[] } }>('/platform-context');
       platform = result.data;
     } catch (cause) {
-      if (!['MFA_REQUIRED', 'MFA_ENROLLMENT_REQUIRED'].includes((cause as { code?: string }).code ?? '')) throw cause;
+      if (!['MFA_REQUIRED', 'MFA_ENROLLMENT_REQUIRED', 'PLATFORM_CONTEXT_REQUIRED'].includes((cause as { code?: string }).code ?? '')) throw cause;
     }
   }
   identity = { user: me.user, organizations: me.organizations, platformAssigned, platform };
@@ -123,3 +123,14 @@ export const liveInvitationRoles = (organizationId?: string) => invitationReques
 export const liveListInvitations = (organizationId?: string) => invitationRequest<{ data: { items: LiveInvitation[] } }>('', organizationId);
 export const liveCreateInvitation = (email: string, roleCode: string, organizationId?: string) => invitationRequest<{ data: LiveInvitation }>('', organizationId, { method: 'POST', body: JSON.stringify({ email, roleCode }) });
 export const liveRevokeInvitation = (id: string, organizationId?: string) => invitationRequest<{ data: { id: string; status: string } }>(`/${id}/revoke`, organizationId, { method: 'POST', body: '{}' });
+
+export type LiveEmrAccess = { organizationId: string; facilityId: string; organizationName: string; roles: string[]; permissions: string[]; clinicalApiConnected: boolean };
+export async function liveSelectEmrOrganization(organizationId: string): Promise<LiveEmrAccess> {
+  const selected = await request<{ accessToken: string }>('/organizations/switch', { method: 'POST', body: JSON.stringify({ organizationId }) });
+  if (!selected.accessToken) throw new Error('The identity service did not select this organization.');
+  const result = await request<{ data: LiveEmrAccess }>(`/organizations/${encodeURIComponent(organizationId)}/emr-access`, { headers: { Authorization: `Bearer ${selected.accessToken}` } });
+  // Hold a tenant-scoped token only after the server verifies both membership
+  // and the pinned EMR entitlement. Never use the fixture tenant projection.
+  accessToken = selected.accessToken;
+  return result.data;
+}

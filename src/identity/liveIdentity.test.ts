@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/config/runtime', () => ({ apiBaseUrl: 'https://api.test' }));
 
-import { liveConfirmPasswordReset, liveInvitationRoles, liveRequestPasswordReset, liveSignIn, liveSignOut } from './liveIdentity';
+import { liveConfirmPasswordReset, liveInvitationRoles, liveRequestPasswordReset, liveSelectEmrOrganization, liveSignIn, liveSignOut } from './liveIdentity';
 
 const respond = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status,
@@ -91,5 +91,26 @@ describe('live platform identity', () => {
     expect(result.data.roles).toEqual(['RECEPTIONIST']);
     expect(JSON.parse((fetcher.mock.calls[0][1] as RequestInit).body as string)).toEqual({ organizationId: 'org-1' });
     expect((fetcher.mock.calls[1][1] as RequestInit).headers).toMatchObject({ Authorization: 'Bearer tenant-scoped-token' });
+  });
+
+  it('opens EMR only after a tenant-scoped entitlement check succeeds', async () => {
+    const fetcher = vi.fn(async (url: string, options?: RequestInit) => {
+      if (url.endsWith('/organizations/switch')) return respond({ accessToken: 'signed-org-token' });
+      if (url.endsWith('/organizations/org-1/emr-access')) {
+        expect(options?.headers).toMatchObject({ Authorization: 'Bearer signed-org-token' });
+        return respond({ data: { organizationId: 'org-1', facilityId: 'facility-1', organizationName: 'Hospital A', roles: ['ORGANISATION_OWNER'], clinicalApiConnected: false } });
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetcher);
+    expect((await liveSelectEmrOrganization('org-1')).organizationName).toBe('Hospital A');
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not open EMR when the server rejects an unapproved entitlement', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => url.endsWith('/organizations/switch')
+      ? respond({ accessToken: 'signed-org-token' })
+      : respond({ error: { code: 'EMR_ACCESS_DENIED', message: 'This organization has no active EMR entitlement.' } }, 403)));
+    await expect(liveSelectEmrOrganization('org-1')).rejects.toThrow('This organization has no active EMR entitlement.');
   });
 });
