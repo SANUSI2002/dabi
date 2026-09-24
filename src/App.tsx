@@ -13,6 +13,7 @@ const WorkforceLayout = lazy(() => import("@/components/layout/WorkforceLayout")
 const SignInPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.SignInPage })));
 const LiveIdentityPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.LiveIdentityPage })));
 const LiveEmrWorkspace = lazy(() => import("@/identity/pages/LiveEmrWorkspace"));
+const LiveEmrPatientsPage = lazy(() => import("@/identity/pages/LiveEmrPatientsPage"));
 const EmrOwnerSetupPage = lazy(() => import("@/registration/pages/EmrOwnerSetupPage"));
 const LiveMfaSettingsPage = lazy(() => import("@/identity/pages/LiveMfaSettingsPage"));
 const AccessPage = lazy(() => import("@/public/pages/AccessPage"));
@@ -271,6 +272,7 @@ export default function App() {
         <Route path="/login" element={surface === "health" ? <AccessPage /> : <SignInPage intent={surface === "emr" ? "emr" : surface === "command-center" ? "platform" : "shared"} />} />
         <Route path="/identity/account" element={<LiveIdentityPage />} />
         <Route path="/emr/workspace/:organizationId" element={apiConfigured ? <LiveEmrWorkspace /> : <Navigate to="/login" replace />} />
+        <Route path="/emr/workspace/:organizationId/patients" element={apiConfigured ? <LiveEmrPatientsPage /> : <Navigate to="/login" replace />} />
         <Route path="/identity/mfa" element={<LiveMfaSettingsPage />} />
         <Route path="/access" element={<AccessPage />} />
         <Route path="/emr/login" element={<SignInPage intent="emr" />} />

@@ -124,7 +124,7 @@ export const liveListInvitations = (organizationId?: string) => invitationReques
 export const liveCreateInvitation = (email: string, roleCode: string, organizationId?: string) => invitationRequest<{ data: LiveInvitation }>('', organizationId, { method: 'POST', body: JSON.stringify({ email, roleCode }) });
 export const liveRevokeInvitation = (id: string, organizationId?: string) => invitationRequest<{ data: { id: string; status: string } }>(`/${id}/revoke`, organizationId, { method: 'POST', body: '{}' });
 
-export type LiveEmrAccess = { organizationId: string; facilityId: string; organizationName: string; roles: string[]; permissions: string[]; clinicalApiConnected: boolean };
+export type LiveEmrAccess = { organizationId: string; facilityId: string; organizationName: string; roles: string[]; permissions: string[]; clinicalApiConnected: boolean; patientRegistryEnabled: boolean };
 export async function liveSelectEmrOrganization(organizationId: string): Promise<LiveEmrAccess> {
   const selected = await request<{ accessToken: string }>('/organizations/switch', { method: 'POST', body: JSON.stringify({ organizationId }) });
   if (!selected.accessToken) throw new Error('The identity service did not select this organization.');
