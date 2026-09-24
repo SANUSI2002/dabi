@@ -18,6 +18,7 @@ export type LivePlatformApplicationDetail = LivePlatformApplication & {
     selectedProducts: OrganizationApplication['selectedProducts'];
   };
 };
+export type LiveApprovalReadiness = { ready: boolean; requiredEvidence: string[]; blockers: string[] };
 
 export const livePublicPackages = () => liveApiRequest<{ data: { items: LivePackage[] } }>('/api/v1/catalog/packages');
 export const livePlatformPackages = () => liveApiRequest<{ data: { items: LivePackage[] } }>('/api/v1/platform/packages');
@@ -37,4 +38,5 @@ export const liveSubmitApplication = (application: OrganizationApplication) => {
 export const liveVerifyApplication = (id: string, token: string) => liveApiRequest<{ data: LiveApplicationSummary }>(`/api/v1/applications/${encodeURIComponent(id)}/verify`, { method: 'POST', body: JSON.stringify({ token }) });
 export const livePlatformApplications = (status = 'SUBMITTED', page = 1) => liveApiRequest<{ data: { items: LivePlatformApplication[]; nextPage: number | null } }>(`/api/v1/platform/applications?status=${encodeURIComponent(status)}&page=${page}`);
 export const livePlatformApplicationDetail = (id: string) => liveApiRequest<{ data: LivePlatformApplicationDetail }>(`/api/v1/platform/applications/${encodeURIComponent(id)}`);
+export const liveApprovalReadiness = (id: string) => liveApiRequest<{ data: LiveApprovalReadiness }>(`/api/v1/platform/applications/${encodeURIComponent(id)}/approval-readiness`);
 export const liveStartApplicationReview = (id: string) => liveApiRequest<{ data: LivePlatformApplicationDetail }>(`/api/v1/platform/applications/${encodeURIComponent(id)}/start-review`, { method: 'POST', body: '{}' });

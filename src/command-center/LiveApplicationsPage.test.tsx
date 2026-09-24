@@ -1,9 +1,9 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import LiveApplicationsPage from './LiveApplicationsPage';
-import { livePlatformApplicationDetail, livePlatformApplications, liveStartApplicationReview } from '@/registration/livePlatform';
+import { liveApprovalReadiness, livePlatformApplicationDetail, livePlatformApplications, liveStartApplicationReview } from '@/registration/livePlatform';
 
-vi.mock('@/registration/livePlatform', () => ({ livePlatformApplications: vi.fn(), livePlatformApplicationDetail: vi.fn(), liveStartApplicationReview: vi.fn() }));
+vi.mock('@/registration/livePlatform', () => ({ livePlatformApplications: vi.fn(), livePlatformApplicationDetail: vi.fn(), liveApprovalReadiness: vi.fn(), liveStartApplicationReview: vi.fn() }));
 
 const summary = { id: 'app-1', reference: 'SABI-APP-TEST', organizationName: 'Test Hospital', status: 'SUBMITTED', createdAt: '2026-09-24T00:00:00Z', submittedAt: '2026-09-24T00:00:00Z', packageId: 'package-1', packageVersionId: 'version-1' };
 const detail = {
@@ -24,10 +24,12 @@ describe('live application review workbench', () => {
   it('loads server-owned details but does not expose approval or provisioning actions', async () => {
     vi.mocked(livePlatformApplications).mockResolvedValue({ data: { items: [summary], nextPage: null } });
     vi.mocked(livePlatformApplicationDetail).mockResolvedValue({ data: detail } as never);
+    vi.mocked(liveApprovalReadiness).mockResolvedValue({ data: { ready: false, requiredEvidence: ['OFFICER_LICENCE'], blockers: ['MISSING_DOCUMENT:OFFICER_LICENCE', 'SECURE_DOCUMENT_WORKFLOW_NOT_CONNECTED'] } });
     render(<LiveApplicationsPage/>);
     fireEvent.click(await screen.findByRole('button', { name: /SABI-APP-TEST/ }));
     expect((await screen.findAllByText('Test Hospital Limited')).length).toBeGreaterThan(0);
     expect(screen.getByText(/No compliance evidence has been securely uploaded/)).toBeInTheDocument();
+    expect(await screen.findByText(/2 approval requirements outstanding/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /approve|provision/i })).not.toBeInTheDocument();
     expect(livePlatformApplicationDetail).toHaveBeenCalledWith('app-1');
   });
@@ -35,6 +37,7 @@ describe('live application review workbench', () => {
   it('requires an explicit confirmation to begin review and updates the status from the server', async () => {
     vi.mocked(livePlatformApplications).mockResolvedValue({ data: { items: [summary], nextPage: null } });
     vi.mocked(livePlatformApplicationDetail).mockResolvedValue({ data: detail } as never);
+    vi.mocked(liveApprovalReadiness).mockResolvedValue({ data: { ready: false, requiredEvidence: [], blockers: ['SECURE_DOCUMENT_WORKFLOW_NOT_CONNECTED'] } });
     vi.mocked(liveStartApplicationReview).mockResolvedValue({ data: { ...detail, status: 'UNDER_REVIEW' } } as never);
     render(<LiveApplicationsPage/>);
     fireEvent.click(await screen.findByRole('button', { name: /SABI-APP-TEST/ }));

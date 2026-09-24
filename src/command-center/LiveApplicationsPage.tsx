@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, ArrowLeft, ClipboardCheck, Loader2 } from 'lucide-react';
-import { livePlatformApplicationDetail, livePlatformApplications, liveStartApplicationReview, type LivePlatformApplication, type LivePlatformApplicationDetail } from '@/registration/livePlatform';
+import { liveApprovalReadiness, livePlatformApplicationDetail, livePlatformApplications, liveStartApplicationReview, type LiveApprovalReadiness, type LivePlatformApplication, type LivePlatformApplicationDetail } from '@/registration/livePlatform';
 import { CommandButton, CommandPageHeader, Panel, PanelHeader, StatusPill } from './components/ui';
 
 const filters = ['SUBMITTED', 'UNDER_REVIEW', 'NEEDS_INFORMATION', 'REJECTED'] as const;
@@ -12,10 +12,19 @@ function Fact({ label, value }: { label: string; value?: string | number | null 
 
 function Detail({ application, back, startReview, starting, actionError }: { application: LivePlatformApplicationDetail; back: () => void; startReview: () => void; starting: boolean; actionError: string }) {
   const [confirming, setConfirming] = useState(false);
+  const [readiness, setReadiness] = useState<LiveApprovalReadiness | null>(null);
+  const [readinessError, setReadinessError] = useState('');
+  useEffect(() => {
+    let active = true;
+    liveApprovalReadiness(application.id).then((result) => { if (active) setReadiness(result.data); })
+      .catch((cause) => { if (active) setReadinessError(cause instanceof Error ? cause.message : 'Could not check approval requirements.'); });
+    return () => { active = false; };
+  }, [application.id, application.status]);
   const { owner, organization, corporate, regulatoryRegistration, operatingOfficer, facility, selectedProducts } = application.details;
   return <>
     <CommandPageHeader eyebrow="Sabi OS · Verification center" title={application.reference} description="Server-owned application facts for authorized review. This page does not approve or activate a tenant." actions={<CommandButton variant="secondary" onClick={back}><ArrowLeft size={15}/> Back to queue</CommandButton>} />
     <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><AlertTriangle size={18} className="shrink-0"/><span>No compliance evidence has been securely uploaded or verified. Do not approve or provision this organization from these declarations.</span></div>
+    <Panel className="mb-4"><PanelHeader title="EMR approval gates" description="Checked by the backend; no approval, credential email, or tenant activation is available until every gate passes."/><div className="p-5 text-sm">{readinessError ? <p role="alert" className="text-red-700">{readinessError}</p> : !readiness ? <p role="status" className="inline-flex items-center gap-2 text-slate-500"><Loader2 size={16} className="animate-spin"/> Checking requirements…</p> : <><p className="font-semibold text-amber-800">{readiness.ready ? 'Checks passed; final approval workflow remains disabled.' : `${readiness.blockers.length} approval requirement${readiness.blockers.length === 1 ? '' : 's'} outstanding`}</p><ul className="mt-3 grid gap-2 sm:grid-cols-2">{readiness.blockers.map((blocker) => <li key={blocker} className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">{blocker.replaceAll('_', ' ').replace(':', ': ')}</li>)}</ul></>}</div></Panel>
     {application.status === 'SUBMITTED' && <Panel className="mb-4"><PanelHeader title="Begin review" description="An authorized reviewer can move this verified submission to Under review. This does not approve the organization."/><div className="flex flex-wrap items-center gap-3 p-4">{confirming ? <><CommandButton disabled={starting} onClick={startReview}>{starting ? 'Starting…' : 'Confirm start review'}</CommandButton><CommandButton variant="secondary" disabled={starting} onClick={() => setConfirming(false)}>Cancel</CommandButton></> : <CommandButton onClick={() => setConfirming(true)}>Begin review</CommandButton>}{actionError && <p role="alert" className="text-sm text-red-700">{actionError}</p>}</div></Panel>}
     <div className="grid gap-4 xl:grid-cols-2">
       <Panel><PanelHeader title="Application & package" description="The selected package version is pinned at submission"/><dl className="grid gap-4 p-5 sm:grid-cols-2"><Fact label="Status" value={application.status}/><Fact label="Submitted" value={application.submittedAt ? new Date(application.submittedAt).toLocaleString() : null}/><Fact label="Email verified" value={application.emailVerifiedAt ? new Date(application.emailVerifiedAt).toLocaleString() : null}/><Fact label="Billing cycle" value={application.billingCycle}/><Fact label="Package ID" value={application.packageId}/><Fact label="Package version ID" value={application.packageVersionId}/><Fact label="Products" value={selectedProducts.join(', ')}/></dl></Panel>
@@ -76,7 +85,7 @@ export default function LiveApplicationsPage() {
     finally { setStarting(false); }
   }
 
-  if (selectedId) return detail ? <Detail application={detail} back={back} startReview={startReview} starting={starting} actionError={actionError}/> : <><CommandPageHeader title="Application detail" actions={<CommandButton variant="secondary" onClick={back}><ArrowLeft size={15}/> Back to queue</CommandButton>}/><Panel><div className="p-5 text-sm" role={detailError ? 'alert' : 'status'}>{detailError || <span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin"/> Loading verified application…</span>}</div></Panel></>;
+  if (selectedId) return detail ? <Detail key={`${detail.id}:${detail.status}`} application={detail} back={back} startReview={startReview} starting={starting} actionError={actionError}/> : <><CommandPageHeader title="Application detail" actions={<CommandButton variant="secondary" onClick={back}><ArrowLeft size={15}/> Back to queue</CommandButton>}/><Panel><div className="p-5 text-sm" role={detailError ? 'alert' : 'status'}>{detailError || <span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin"/> Loading verified application…</span>}</div></Panel></>;
 
   return <>
     <CommandPageHeader eyebrow="Sabi OS · Customers" title="Verification center" description="Email-verified hospital applications in the server-owned review queue. Only authorized platform reviewers can see these declarations." />
