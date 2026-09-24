@@ -25,7 +25,7 @@ export type LivePlatformApplicationDetail = LivePlatformApplication & {
 };
 export type LiveApprovalReadiness = { ready: boolean; requiredEvidence: string[]; blockers: string[] };
 export type LiveReviewNote = { id: string; reviewerId: string; note: string; createdAt: string };
-export type LiveEvidence = { id: string; requirementKey: string; fileName: string; contentType: string; sizeBytes: number; sha256: string; scanStatus: string; reviewStatus: string; createdAt: string };
+export type LiveEvidence = { id: string; requirementKey: string; fileName: string; contentType: string; sizeBytes: number; sha256: string; scanStatus: string; unscannedExceptionAt?: string | null; reviewStatus: string; createdAt: string };
 export type LiveEvidenceList = { requiredEvidence: string[] | null; items: LiveEvidence[] };
 
 export const livePublicPackages = () => liveApiRequest<{ data: { items: LivePackage[] } }>('/api/v1/catalog/packages');
@@ -56,8 +56,10 @@ export async function liveUploadApplicantEvidence(id: string, key: string, token
   if (!response.ok) throw new Error(body.error?.message || body.message || 'The document could not be uploaded.');
   return body as { data: LiveEvidence };
 }
-export const livePlatformEvidence = (id: string) => liveApiRequest<{ data: { items: LiveEvidence[]; previewAvailable: boolean } }>(`/api/v1/platform/applications/${encodeURIComponent(id)}/evidence`);
+export const livePlatformEvidence = (id: string) => liveApiRequest<{ data: { items: LiveEvidence[]; previewAvailable: boolean; unscannedExceptionAvailable: boolean } }>(`/api/v1/platform/applications/${encodeURIComponent(id)}/evidence`);
 export const liveEvidencePreview = (applicationId: string, evidenceId: string) => liveApiRequest<{ data: { url: string; expiresInSeconds: number } }>(`/api/v1/platform/applications/${encodeURIComponent(applicationId)}/evidence/${encodeURIComponent(evidenceId)}/preview`);
+export const liveUnscannedEvidenceDownload = (applicationId: string, evidenceId: string) => liveApiRequest<{ data: { url: string; sha256: string; expiresInSeconds: number; warning: string } }>(`/api/v1/platform/applications/${encodeURIComponent(applicationId)}/evidence/${encodeURIComponent(evidenceId)}/unscanned-download`);
+export const liveAcceptUnscannedException = (applicationId: string, evidenceId: string, sha256: string, note: string) => liveApiRequest<{ data: { id: string; scanStatus: string; unscannedExceptionAt: string } }>(`/api/v1/platform/applications/${encodeURIComponent(applicationId)}/evidence/${encodeURIComponent(evidenceId)}/unscanned-exception`, { method: 'POST', body: JSON.stringify({ sha256, note, acknowledgement: 'I ACCEPT THE UNSCANNED DOCUMENT RISK' }) });
 export const liveReviewEvidence = (applicationId: string, evidenceId: string, decision: { decision: 'VERIFIED'; sourceName: string; reference: string; note?: string } | { decision: 'REJECTED'; note: string }) => liveApiRequest<{ data: { id: string; reviewStatus: string; reviewedAt: string } }>(`/api/v1/platform/applications/${encodeURIComponent(applicationId)}/evidence/${encodeURIComponent(evidenceId)}/review`, { method: 'POST', body: JSON.stringify(decision) });
 export const livePlatformApplications = (status = 'SUBMITTED', page = 1) => liveApiRequest<{ data: { items: LivePlatformApplication[]; nextPage: number | null } }>(`/api/v1/platform/applications?status=${encodeURIComponent(status)}&page=${page}`);
 export const livePlatformApplicationDetail = (id: string) => liveApiRequest<{ data: LivePlatformApplicationDetail }>(`/api/v1/platform/applications/${encodeURIComponent(id)}`);
