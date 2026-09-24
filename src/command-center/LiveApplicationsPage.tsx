@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, ArrowLeft, ClipboardCheck, Loader2 } from 'lucide-react';
-import { livePlatformApplicationDetail, livePlatformApplications, type LivePlatformApplication, type LivePlatformApplicationDetail } from '@/registration/livePlatform';
+import { livePlatformApplicationDetail, livePlatformApplications, liveStartApplicationReview, type LivePlatformApplication, type LivePlatformApplicationDetail } from '@/registration/livePlatform';
 import { CommandButton, CommandPageHeader, Panel, PanelHeader, StatusPill } from './components/ui';
 
 const filters = ['SUBMITTED', 'UNDER_REVIEW', 'NEEDS_INFORMATION', 'REJECTED'] as const;
@@ -10,11 +10,13 @@ function Fact({ label, value }: { label: string; value?: string | number | null 
   return <div className="min-w-0"><dt className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{label}</dt><dd className="mt-1 break-words text-sm font-medium text-slate-900">{value || 'Not provided'}</dd></div>;
 }
 
-function Detail({ application, back }: { application: LivePlatformApplicationDetail; back: () => void }) {
+function Detail({ application, back, startReview, starting, actionError }: { application: LivePlatformApplicationDetail; back: () => void; startReview: () => void; starting: boolean; actionError: string }) {
+  const [confirming, setConfirming] = useState(false);
   const { owner, organization, corporate, regulatoryRegistration, operatingOfficer, facility, selectedProducts } = application.details;
   return <>
     <CommandPageHeader eyebrow="Sabi OS · Verification center" title={application.reference} description="Server-owned application facts for authorized review. This page does not approve or activate a tenant." actions={<CommandButton variant="secondary" onClick={back}><ArrowLeft size={15}/> Back to queue</CommandButton>} />
     <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><AlertTriangle size={18} className="shrink-0"/><span>No compliance evidence has been securely uploaded or verified. Do not approve or provision this organization from these declarations.</span></div>
+    {application.status === 'SUBMITTED' && <Panel className="mb-4"><PanelHeader title="Begin review" description="An authorized reviewer can move this verified submission to Under review. This does not approve the organization."/><div className="flex flex-wrap items-center gap-3 p-4">{confirming ? <><CommandButton disabled={starting} onClick={startReview}>{starting ? 'Starting…' : 'Confirm start review'}</CommandButton><CommandButton variant="secondary" disabled={starting} onClick={() => setConfirming(false)}>Cancel</CommandButton></> : <CommandButton onClick={() => setConfirming(true)}>Begin review</CommandButton>}{actionError && <p role="alert" className="text-sm text-red-700">{actionError}</p>}</div></Panel>}
     <div className="grid gap-4 xl:grid-cols-2">
       <Panel><PanelHeader title="Application & package" description="The selected package version is pinned at submission"/><dl className="grid gap-4 p-5 sm:grid-cols-2"><Fact label="Status" value={application.status}/><Fact label="Submitted" value={application.submittedAt ? new Date(application.submittedAt).toLocaleString() : null}/><Fact label="Email verified" value={application.emailVerifiedAt ? new Date(application.emailVerifiedAt).toLocaleString() : null}/><Fact label="Billing cycle" value={application.billingCycle}/><Fact label="Package ID" value={application.packageId}/><Fact label="Package version ID" value={application.packageVersionId}/><Fact label="Products" value={selectedProducts.join(', ')}/></dl></Panel>
       <Panel><PanelHeader title="Applicant" description="Contact details declared by the person submitting"/><dl className="grid gap-4 p-5 sm:grid-cols-2"><Fact label="Name" value={`${owner.firstName} ${owner.lastName}`}/><Fact label="Work email" value={owner.workEmail}/><Fact label="Phone" value={owner.phone}/></dl></Panel>
@@ -34,6 +36,8 @@ export default function LiveApplicationsPage() {
   const [selectedId, setSelectedId] = useState('');
   const [detail, setDetail] = useState<LivePlatformApplicationDetail | null>(null);
   const [detailError, setDetailError] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [starting, setStarting] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -56,13 +60,23 @@ export default function LiveApplicationsPage() {
 
   function changeFilter(value: Filter) {
     setFilter(value); setPage(1); setItems([]); setLoading(true); setError('');
-    setSelectedId(''); setDetail(null); setDetailError('');
+    setSelectedId(''); setDetail(null); setDetailError(''); setActionError('');
   }
 
-  function select(id: string) { setSelectedId(id); setDetail(null); setDetailError(''); }
-  function back() { setSelectedId(''); setDetail(null); setDetailError(''); }
+  function select(id: string) { setSelectedId(id); setDetail(null); setDetailError(''); setActionError(''); }
+  function back() { setSelectedId(''); setDetail(null); setDetailError(''); setActionError(''); }
+  async function startReview() {
+    if (!detail || starting) return;
+    setStarting(true); setActionError('');
+    try {
+      const result = await liveStartApplicationReview(detail.id);
+      setDetail(result.data);
+      setItems((current) => filter === 'SUBMITTED' ? current.filter((item) => item.id !== detail.id) : current.map((item) => item.id === detail.id ? { ...item, status: result.data.status } : item));
+    } catch (cause) { setActionError(cause instanceof Error ? cause.message : 'Could not start review. Refresh the application and try again.'); }
+    finally { setStarting(false); }
+  }
 
-  if (selectedId) return detail ? <Detail application={detail} back={back}/> : <><CommandPageHeader title="Application detail" actions={<CommandButton variant="secondary" onClick={back}><ArrowLeft size={15}/> Back to queue</CommandButton>}/><Panel><div className="p-5 text-sm" role={detailError ? 'alert' : 'status'}>{detailError || <span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin"/> Loading verified application…</span>}</div></Panel></>;
+  if (selectedId) return detail ? <Detail application={detail} back={back} startReview={startReview} starting={starting} actionError={actionError}/> : <><CommandPageHeader title="Application detail" actions={<CommandButton variant="secondary" onClick={back}><ArrowLeft size={15}/> Back to queue</CommandButton>}/><Panel><div className="p-5 text-sm" role={detailError ? 'alert' : 'status'}>{detailError || <span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin"/> Loading verified application…</span>}</div></Panel></>;
 
   return <>
     <CommandPageHeader eyebrow="Sabi OS · Customers" title="Verification center" description="Email-verified hospital applications in the server-owned review queue. Only authorized platform reviewers can see these declarations." />

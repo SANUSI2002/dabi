@@ -1,9 +1,9 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import LiveApplicationsPage from './LiveApplicationsPage';
-import { livePlatformApplicationDetail, livePlatformApplications } from '@/registration/livePlatform';
+import { livePlatformApplicationDetail, livePlatformApplications, liveStartApplicationReview } from '@/registration/livePlatform';
 
-vi.mock('@/registration/livePlatform', () => ({ livePlatformApplications: vi.fn(), livePlatformApplicationDetail: vi.fn() }));
+vi.mock('@/registration/livePlatform', () => ({ livePlatformApplications: vi.fn(), livePlatformApplicationDetail: vi.fn(), liveStartApplicationReview: vi.fn() }));
 
 const summary = { id: 'app-1', reference: 'SABI-APP-TEST', organizationName: 'Test Hospital', status: 'SUBMITTED', createdAt: '2026-09-24T00:00:00Z', submittedAt: '2026-09-24T00:00:00Z', packageId: 'package-1', packageVersionId: 'version-1' };
 const detail = {
@@ -30,5 +30,19 @@ describe('live application review workbench', () => {
     expect(screen.getByText(/No compliance evidence has been securely uploaded/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /approve|provision/i })).not.toBeInTheDocument();
     expect(livePlatformApplicationDetail).toHaveBeenCalledWith('app-1');
+  });
+
+  it('requires an explicit confirmation to begin review and updates the status from the server', async () => {
+    vi.mocked(livePlatformApplications).mockResolvedValue({ data: { items: [summary], nextPage: null } });
+    vi.mocked(livePlatformApplicationDetail).mockResolvedValue({ data: detail } as never);
+    vi.mocked(liveStartApplicationReview).mockResolvedValue({ data: { ...detail, status: 'UNDER_REVIEW' } } as never);
+    render(<LiveApplicationsPage/>);
+    fireEvent.click(await screen.findByRole('button', { name: /SABI-APP-TEST/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Begin review' }));
+    expect(liveStartApplicationReview).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm start review' }));
+    expect(await screen.findByText('UNDER_REVIEW')).toBeInTheDocument();
+    expect(liveStartApplicationReview).toHaveBeenCalledWith('app-1');
+    expect(screen.queryByRole('button', { name: 'Begin review' })).not.toBeInTheDocument();
   });
 });
