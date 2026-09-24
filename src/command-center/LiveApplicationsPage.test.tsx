@@ -1,9 +1,9 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import LiveApplicationsPage from './LiveApplicationsPage';
-import { liveAddReviewNote, liveApprovalReadiness, livePlatformApplicationDetail, livePlatformApplications, liveReviewNotes, liveStartApplicationReview } from '@/registration/livePlatform';
+import { liveAddReviewNote, liveApprovalReadiness, livePlatformApplicationDetail, livePlatformApplications, livePlatformEvidence, liveReviewNotes, liveStartApplicationReview } from '@/registration/livePlatform';
 
-vi.mock('@/registration/livePlatform', () => ({ livePlatformApplications: vi.fn(), livePlatformApplicationDetail: vi.fn(), liveApprovalReadiness: vi.fn(), liveStartApplicationReview: vi.fn(), liveReviewNotes: vi.fn(), liveAddReviewNote: vi.fn() }));
+vi.mock('@/registration/livePlatform', () => ({ livePlatformApplications: vi.fn(), livePlatformApplicationDetail: vi.fn(), liveApprovalReadiness: vi.fn(), liveStartApplicationReview: vi.fn(), liveReviewNotes: vi.fn(), liveAddReviewNote: vi.fn(), livePlatformEvidence: vi.fn() }));
 
 const summary = { id: 'app-1', reference: 'SABI-APP-TEST', organizationName: 'Test Hospital', status: 'SUBMITTED', createdAt: '2026-09-24T00:00:00Z', submittedAt: '2026-09-24T00:00:00Z', packageId: 'package-1', packageVersionId: 'version-1' };
 const detail = {
@@ -19,6 +19,7 @@ const detail = {
 };
 
 afterEach(() => { cleanup(); vi.resetAllMocks(); });
+beforeEach(() => { vi.mocked(livePlatformEvidence).mockResolvedValue({ data: { items: [], previewAvailable: false } }); });
 
 describe('live application review workbench', () => {
   it('loads server-owned details but does not expose approval or provisioning actions', async () => {
@@ -29,7 +30,7 @@ describe('live application review workbench', () => {
     render(<LiveApplicationsPage/>);
     fireEvent.click(await screen.findByRole('button', { name: /SABI-APP-TEST/ }));
     expect((await screen.findAllByText('Test Hospital Limited')).length).toBeGreaterThan(0);
-    expect(screen.getByText(/No compliance evidence has been securely uploaded/)).toBeInTheDocument();
+    expect(screen.getByText(/Evidence may be present in private quarantine/)).toBeInTheDocument();
     expect(await screen.findByText(/2 approval requirements outstanding/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /approve|provision/i })).not.toBeInTheDocument();
     expect(livePlatformApplicationDetail).toHaveBeenCalledWith('app-1');

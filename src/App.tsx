@@ -146,6 +146,7 @@ const AcctSettings = lazy(() => import("@/pages/accounting/AccountingSettings"))
 const CommandCenterShell = lazy(() => import("@/command-center/components/CommandCenterShell").then((m) => ({ default: m.CommandCenterShell })));
 const LiveCommandCenter = lazy(() => import("@/command-center/LiveCommandCenter"));
 const ApplicationEmailVerificationPage = lazy(() => import("@/registration/pages/OrganizationRegistration").then((m) => ({ default: m.ApplicationEmailVerificationPage })));
+const ApplicationEvidencePage = lazy(() => import("@/registration/pages/ApplicationEvidencePage"));
 const CommandDashboard = lazy(() => import("@/command-center/pages/Dashboard"));
 const SabiHealthDashboard = lazy(() => import("@/command-center/pages/SabiHealthDashboard"));
 const SabiHealthVerificationCenter = lazy(() => import("@/command-center/pages/sabihealth/VerificationCenter"));
@@ -286,6 +287,7 @@ export default function App() {
         <Route path="/register/organization/:applicationId" element={<OrganizationRegistrationPage />} />
         <Route path="/register/organization/:applicationId/status" element={<ApplicationStatusPage />} />
         <Route path="/register/organization/verify/:id" element={<ApplicationEmailVerificationPage />} />
+        <Route path="/register/organization/evidence/:id" element={<ApplicationEvidencePage />} />
         <Route path="/signup/organisation/:type" element={<Navigate to="/register/organization" replace />} />
         <Route path="/signup/organization/:type" element={<Navigate to="/register/organization" replace />} />
         <Route path="/command-center" element={<CommandCenterGate />}>

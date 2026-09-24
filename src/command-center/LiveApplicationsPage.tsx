@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, ArrowLeft, ClipboardCheck, Loader2 } from 'lucide-react';
-import { liveAddReviewNote, liveApprovalReadiness, livePlatformApplicationDetail, livePlatformApplications, liveReviewNotes, liveStartApplicationReview, type LiveApprovalReadiness, type LivePlatformApplication, type LivePlatformApplicationDetail, type LiveReviewNote } from '@/registration/livePlatform';
+import { liveAddReviewNote, liveApprovalReadiness, livePlatformApplicationDetail, livePlatformApplications, livePlatformEvidence, liveReviewNotes, liveStartApplicationReview, type LiveApprovalReadiness, type LiveEvidence, type LivePlatformApplication, type LivePlatformApplicationDetail, type LiveReviewNote } from '@/registration/livePlatform';
 import { CommandButton, CommandPageHeader, Panel, PanelHeader, StatusPill } from './components/ui';
 
 const filters = ['SUBMITTED', 'UNDER_REVIEW', 'NEEDS_INFORMATION', 'REJECTED'] as const;
@@ -18,6 +18,9 @@ function Detail({ application, back, startReview, starting, actionError }: { app
   const [note, setNote] = useState('');
   const [notesError, setNotesError] = useState('');
   const [savingNote, setSavingNote] = useState(false);
+  const [evidence, setEvidence] = useState<LiveEvidence[]>([]);
+  const [evidenceError, setEvidenceError] = useState('');
+  const [evidenceLoading, setEvidenceLoading] = useState(true);
   useEffect(() => {
     let active = true;
     liveApprovalReadiness(application.id).then((result) => { if (active) setReadiness(result.data); })
@@ -28,6 +31,13 @@ function Detail({ application, back, startReview, starting, actionError }: { app
     let active = true;
     liveReviewNotes(application.id).then((result) => { if (active) setNotes(result.data.items); })
       .catch((cause) => { if (active) setNotesError(cause instanceof Error ? cause.message : 'Could not load review notes.'); });
+    return () => { active = false; };
+  }, [application.id]);
+  useEffect(() => {
+    let active = true;
+    livePlatformEvidence(application.id).then((result) => { if (active) setEvidence(result.data.items); })
+      .catch((cause) => { if (active) setEvidenceError(cause instanceof Error ? cause.message : 'Could not load evidence metadata.'); })
+      .finally(() => { if (active) setEvidenceLoading(false); });
     return () => { active = false; };
   }, [application.id]);
   async function addNote() {
@@ -43,8 +53,9 @@ function Detail({ application, back, startReview, starting, actionError }: { app
   const { owner, organization, corporate, regulatoryRegistration, operatingOfficer, facility, selectedProducts } = application.details;
   return <>
     <CommandPageHeader eyebrow="Sabi OS · Verification center" title={application.reference} description="Server-owned application facts for authorized review. This page does not approve or activate a tenant." actions={<CommandButton variant="secondary" onClick={back}><ArrowLeft size={15}/> Back to queue</CommandButton>} />
-    <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><AlertTriangle size={18} className="shrink-0"/><span>No compliance evidence has been securely uploaded or verified. Do not approve or provision this organization from these declarations.</span></div>
+    <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><AlertTriangle size={18} className="shrink-0"/><span>Evidence may be present in private quarantine. No file can be previewed or treated as authentic until malware scanning and reviewer verification are enabled. EMR approval remains blocked.</span></div>
     <Panel className="mb-4"><PanelHeader title="EMR approval gates" description="Checked by the backend; no approval, credential email, or tenant activation is available until every gate passes."/><div className="p-5 text-sm">{readinessError ? <p role="alert" className="text-red-700">{readinessError}</p> : !readiness ? <p role="status" className="inline-flex items-center gap-2 text-slate-500"><Loader2 size={16} className="animate-spin"/> Checking requirements…</p> : <><p className="font-semibold text-amber-800">{readiness.ready ? 'Checks passed; final approval workflow remains disabled.' : `${readiness.blockers.length} approval requirement${readiness.blockers.length === 1 ? '' : 's'} outstanding`}</p><ul className="mt-3 grid gap-2 sm:grid-cols-2">{readiness.blockers.map((blocker) => <li key={blocker} className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">{blocker.replaceAll('_', ' ').replace(':', ': ')}</li>)}</ul></>}</div></Panel>
+    <Panel className="mb-4"><PanelHeader title="Submitted evidence" description="Append-only document metadata. File preview and authenticity decisions are deliberately unavailable until scanning and audited review are implemented."/><div className="p-5">{evidenceError ? <p role="alert" className="text-sm text-red-700">{evidenceError}</p> : evidenceLoading ? <p role="status" className="text-sm text-slate-500">Loading evidence history…</p> : evidence.length === 0 ? <p className="text-sm text-slate-500">No evidence submissions recorded.</p> : <ol className="space-y-3">{evidence.map((item) => <li key={item.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4"><div className="flex flex-wrap items-center justify-between gap-2"><b className="text-sm text-slate-900">{item.requirementKey.replaceAll('_', ' ')}</b><span className="text-xs font-semibold text-amber-800">Scan: {item.scanStatus} · Review: {item.reviewStatus}</span></div><p className="mt-1 text-xs text-slate-500">{item.fileName} · {Math.round(item.sizeBytes / 1024)} KB · {new Date(item.createdAt).toLocaleString()}</p><p className="mt-1 break-all font-mono text-[11px] text-slate-500">SHA-256: {item.sha256}</p></li>)}</ol>}</div></Panel>
     {application.status === 'SUBMITTED' && <Panel className="mb-4"><PanelHeader title="Begin review" description="An authorized reviewer can move this verified submission to Under review. This does not approve the organization."/><div className="flex flex-wrap items-center gap-3 p-4">{confirming ? <><CommandButton disabled={starting} onClick={startReview}>{starting ? 'Starting…' : 'Confirm start review'}</CommandButton><CommandButton variant="secondary" disabled={starting} onClick={() => setConfirming(false)}>Cancel</CommandButton></> : <CommandButton onClick={() => setConfirming(true)}>Begin review</CommandButton>}{actionError && <p role="alert" className="text-sm text-red-700">{actionError}</p>}</div></Panel>}
     <Panel className="mb-4"><PanelHeader title="Manual review log" description="Record checks and questions for the Sabi team. Notes are server-owned and audited; they do not verify documents or grant EMR access."/><div className="space-y-4 p-5">{application.status === 'UNDER_REVIEW' && <div><label htmlFor="manual-review-note" className="mb-2 block text-sm font-semibold text-slate-800">Reviewer observation</label><textarea id="manual-review-note" className="min-h-24 w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-emerald-500" maxLength={2000} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Record what was checked, the source, and what still needs verification."/><div className="mt-2 flex items-center justify-between gap-3"><span className="text-xs text-slate-500">At least 10 characters. Do not paste passwords, identity documents, or medical data.</span><CommandButton disabled={savingNote || note.trim().length < 10} onClick={addNote}>{savingNote ? 'Saving…' : 'Save note'}</CommandButton></div></div>}{notesError && <p role="alert" className="text-sm text-red-700">{notesError}</p>}{notes.length === 0 ? <p className="text-sm text-slate-500">No reviewer notes yet.</p> : <ol className="space-y-3">{notes.map((item) => <li key={item.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4"><p className="whitespace-pre-wrap break-words text-sm text-slate-800">{item.note}</p><p className="mt-2 text-xs text-slate-500">{new Date(item.createdAt).toLocaleString()} · Reviewer {item.reviewerId}</p></li>)}</ol>}</div></Panel>
     <div className="grid gap-4 xl:grid-cols-2">

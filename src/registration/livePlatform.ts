@@ -1,4 +1,5 @@
 import { liveApiRequest } from '@/identity/liveIdentity';
+import { apiBaseUrl } from '@/config/runtime';
 import type { OrganizationApplication } from './domain';
 
 export type LivePackageVersion = { id: string; version: number; currency: string; monthlyPriceMinor: number; annualPriceMinor: number; moduleKeys: string[]; status: 'DRAFT' | 'PUBLISHED' | 'RETIRED'; publishedAt: string | null };
@@ -20,6 +21,8 @@ export type LivePlatformApplicationDetail = LivePlatformApplication & {
 };
 export type LiveApprovalReadiness = { ready: boolean; requiredEvidence: string[]; blockers: string[] };
 export type LiveReviewNote = { id: string; reviewerId: string; note: string; createdAt: string };
+export type LiveEvidence = { id: string; requirementKey: string; fileName: string; contentType: string; sizeBytes: number; sha256: string; scanStatus: string; reviewStatus: string; createdAt: string };
+export type LiveEvidenceList = { requiredEvidence: string[] | null; items: LiveEvidence[] };
 
 export const livePublicPackages = () => liveApiRequest<{ data: { items: LivePackage[] } }>('/api/v1/catalog/packages');
 export const livePlatformPackages = () => liveApiRequest<{ data: { items: LivePackage[] } }>('/api/v1/platform/packages');
@@ -36,7 +39,20 @@ export const liveSubmitApplication = (application: OrganizationApplication) => {
     selectedProducts: application.selectedProducts, packageId: application.packageId, billingCycle: application.billingCycle,
   }) });
 };
-export const liveVerifyApplication = (id: string, token: string) => liveApiRequest<{ data: LiveApplicationSummary }>(`/api/v1/applications/${encodeURIComponent(id)}/verify`, { method: 'POST', body: JSON.stringify({ token }) });
+export const liveVerifyApplication = (id: string, token: string) => liveApiRequest<{ data: LiveApplicationSummary & { evidenceAccessToken?: string } }>(`/api/v1/applications/${encodeURIComponent(id)}/verify`, { method: 'POST', body: JSON.stringify({ token }) });
+export const liveRequestEvidenceAccess = (id: string, email: string) => liveApiRequest<{ message: string }>(`/api/v1/applications/${encodeURIComponent(id)}/evidence-access`, { method: 'POST', body: JSON.stringify({ email }) });
+export const liveApplicantEvidence = (id: string, token: string) => liveApiRequest<{ data: LiveEvidenceList }>(`/api/v1/applications/${encodeURIComponent(id)}/evidence`, { headers: { 'X-Sabi-Evidence-Token': token } });
+export async function liveUploadApplicantEvidence(id: string, key: string, token: string, file: File): Promise<{ data: LiveEvidence }> {
+  if (!apiBaseUrl) throw new Error('Sabi API is not configured.');
+  if (!['application/pdf', 'image/jpeg', 'image/png'].includes(file.type) || file.size === 0 || file.size > 10 * 1024 * 1024) throw new Error('Select a PDF, JPEG, or PNG file no larger than 10 MB.');
+  const response = await fetch(`${apiBaseUrl}/api/v1/applications/${encodeURIComponent(id)}/evidence/${encodeURIComponent(key)}`, {
+    method: 'PUT', credentials: 'include', headers: { 'Content-Type': file.type, 'X-Sabi-Client': 'browser', 'X-Sabi-Evidence-Token': token }, body: file,
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.error?.message || body.message || 'The document could not be uploaded.');
+  return body as { data: LiveEvidence };
+}
+export const livePlatformEvidence = (id: string) => liveApiRequest<{ data: { items: LiveEvidence[]; previewAvailable: false } }>(`/api/v1/platform/applications/${encodeURIComponent(id)}/evidence`);
 export const livePlatformApplications = (status = 'SUBMITTED', page = 1) => liveApiRequest<{ data: { items: LivePlatformApplication[]; nextPage: number | null } }>(`/api/v1/platform/applications?status=${encodeURIComponent(status)}&page=${page}`);
 export const livePlatformApplicationDetail = (id: string) => liveApiRequest<{ data: LivePlatformApplicationDetail }>(`/api/v1/platform/applications/${encodeURIComponent(id)}`);
 export const liveApprovalReadiness = (id: string) => liveApiRequest<{ data: LiveApprovalReadiness }>(`/api/v1/platform/applications/${encodeURIComponent(id)}/approval-readiness`);
