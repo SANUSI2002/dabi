@@ -9,6 +9,7 @@ import { useProductContext, type ProductContext } from './useProductContext';
 import { CommandPageHeader, MetricCard, Panel, PanelHeader, StatusPill } from './components/ui';
 import { cn } from '@/lib/cn';
 import LivePackagesPage from './LivePackagesPage';
+import LiveApplicationsPage from './LiveApplicationsPage';
 import { livePlatformApplications, type LivePlatformApplication } from '@/registration/livePlatform';
 
 const PRODUCTS: { value: ProductContext; label: string }[] = [
@@ -124,6 +125,7 @@ export default function LiveCommandCenter() {
         <MetricCard label="Staff invitations" value={hasInvites ? 'Available' : 'Restricted'} hint="role-based access" icon={<Users size={15} />} />
         <MetricCard label="Applications" value={hasRegistry ? applications.length : '—'} hint="submitted for review" icon={<Database size={15} />} />
       </div>
+      {applicationsError && <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">Application count unavailable: {applicationsError}</p>}
       <div className="mt-4 grid gap-4 xl:grid-cols-[1.6fr_1fr]"><Registry compact hasAccess={hasRegistry} organizations={organizations} nextPage={nextPage} busy={busy} loadMore={loadMore} /><Panel><PanelHeader title="Live service coverage" description="What this test release can actually use" /><div className="space-y-3 p-4 text-sm"><div className="flex items-center justify-between gap-2"><span>Identity and platform session</span><StatusPill status="Connected" /></div><div className="flex items-center justify-between gap-2"><span>Organization registry</span><StatusPill status={hasRegistry ? 'Connected' : 'Restricted'} /></div><div className="flex items-center justify-between gap-2"><span>Staff invitations</span><StatusPill status={hasInvites ? 'Connected' : 'Restricted'} /></div><div className="flex items-center justify-between gap-2"><span>Package catalog</span><StatusPill status={identity?.platform?.permissions.includes('platform.catalog.manage') ? 'Connected' : 'Restricted'} /></div><div className="flex items-center justify-between gap-2"><span>Tenant provisioning</span><StatusPill status="Not connected" /></div></div></Panel></div>
       <Panel className="mt-4"><PanelHeader title="Command Center access" description="Invite staff and control who can use this platform" action={<Link to="/command-center/internal-users" className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">Manage staff <ArrowRight size={13} /></Link>} /><p className="p-4 text-sm text-slate-600">Signed in as {identity?.user.email}. Platform roles: {identity?.platform?.roles.join(', ')}.</p></Panel>
     </>;
@@ -132,7 +134,7 @@ export default function LiveCommandCenter() {
   } else if (path === '/command-center/packages' || path === '/command-center/pricing' || path === '/command-center/catalog') {
     content = identity?.platform?.permissions.includes('platform.catalog.manage') ? <LivePackagesPage /> : <UnavailableSection title="Packages" />;
   } else if (path === '/command-center/onboarding') {
-    content = <><CommandPageHeader eyebrow="Sabi OS · Customers" title="Verification center" description="Email-verified hospital applications awaiting authorized review. Approval and document decisions are not connected yet." /><Panel><PanelHeader title="Submitted applications" description="Server-owned, not browser fixtures" />{applicationsError ? <p role="alert" className="p-5 text-sm text-red-700">{applicationsError}</p> : applications.length === 0 ? <p className="p-5 text-sm text-slate-500">No email-verified applications are waiting for review.</p> : <div className="divide-y divide-slate-100">{applications.map((item) => <div key={item.id} className="grid gap-2 px-5 py-4 text-sm sm:grid-cols-[1fr_2fr_1fr]"><span className="font-semibold text-slate-700">{item.reference}</span><span>{item.organizationName}</span><StatusPill status={item.status} /></div>)}</div>}</Panel></>;
+    content = hasRegistry ? <LiveApplicationsPage /> : <UnavailableSection title="Verification center" />;
   } else if (path === '/command-center/internal-users') {
     content = <><CommandPageHeader eyebrow="Administration" title="Internal users" description="Invite Command Center staff by email with a server-enforced role." />{hasInvites ? <InvitationManager title="Command Center staff invitations" /> : <Panel><p className="p-5 text-sm text-slate-600">Your platform role does not permit staff invitations.</p></Panel>}</>;
   } else {
