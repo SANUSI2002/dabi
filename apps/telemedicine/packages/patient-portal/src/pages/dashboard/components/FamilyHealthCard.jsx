@@ -16,8 +16,6 @@ const initials = (name) =>
     .slice(0, 2)
     .toUpperCase();
 
-// Avatars open the Family page rather than a member profile: the Family pages still use their own
-// local store, so they can't open a member by API id yet.
 export function FamilyHealthCard() {
   const navigate = useNavigate();
   const { data, error } = useApiData(listDependents, []);
@@ -36,13 +34,13 @@ export function FamilyHealthCard() {
               style={{ background: PALETTE[i % PALETTE.length] }}
               key={f.id}
               title={f.name}
-              aria-label={`${f.name} — open Family`}
-              onClick={() => navigate("/family")}
+              aria-label={`Open ${f.name}'s profile`}
+              onClick={() => navigate(`/family/member/${f.id}`)}
             >
               {initials(f.name)}
             </button>
           ))}
-          <button type="button" className="sabi-family-add" aria-label="Add family member" onClick={() => navigate("/family")}>
+          <button type="button" className="sabi-family-add" aria-label="Add a dependent" onClick={() => navigate("/family/add/dependent")}>
             <Plus size={18} />
           </button>
         </div>

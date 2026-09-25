@@ -82,6 +82,7 @@ async function loadCurrentUser() {
 }
 
 async function doRestore() {
+  if (!apiConfigured) return null;
   if (currentUser && accessToken) {
     try {
       return await loadCurrentUser();
@@ -96,7 +97,12 @@ async function doRestore() {
     const result = await exclusiveRefresh(() => request('/refresh', { method: 'POST', body: '{}' }));
     accessToken = result.accessToken;
     return await loadCurrentUser();
-  } catch {
+  } catch (error) {
+    // A rejected refresh token ends the session. A busy or unreachable server (429, 5xx,
+    // offline) does not: the cookie is still valid, so callers should retry, not sign out.
+    if (error.status === 429 || error.status >= 500 || error.status === undefined) {
+      throw Object.assign(new Error("Sabi Health is busy right now. Please try again in a moment."), { transient: true, status: error.status });
+    }
     accessToken = null;
     currentUser = null;
     return null;

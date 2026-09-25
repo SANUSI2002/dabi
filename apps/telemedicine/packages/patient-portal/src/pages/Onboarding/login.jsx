@@ -28,7 +28,7 @@ export default function SabiHealthLogin() {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaValue, setMfaValue] = useState("");
   const [useRecovery, setUseRecovery] = useState(false);
-  useEffect(() => { restoreSession().then((user) => { if (user) navigate('/dashboard', { replace: true }); }); }, [navigate]);
+  useEffect(() => { restoreSession().then((user) => { if (user) navigate('/dashboard', { replace: true }); }, () => { /* server busy: stay on the sign-in page */ }); }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

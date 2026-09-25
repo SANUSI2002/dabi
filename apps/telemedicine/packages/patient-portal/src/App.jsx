@@ -86,8 +86,28 @@ function HospitalOnboardingRedirect() {
 
 function RequirePatientSession() {
   const [state, setState] = useState('loading');
-  useEffect(() => { let live = true; restoreSession().then((user) => { if (live) setState(user ? 'ready' : 'denied'); }); return () => { live = false; }; }, []);
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    let live = true;
+    let timer;
+    restoreSession().then(
+      (user) => { if (live) setState(user ? 'ready' : 'denied'); },
+      // Server busy or unreachable: keep the session and try again rather than signing out.
+      () => { if (live) { setState('unavailable'); timer = setTimeout(() => setAttempt((n) => n + 1), 8000); } },
+    );
+    return () => { live = false; clearTimeout(timer); };
+  }, [attempt]);
   if (state === 'loading') return <div className="grid min-h-screen place-items-center text-sm text-slate-600">Checking Sabi Identity session…</div>;
+  if (state === 'unavailable') {
+    return (
+      <div className="grid min-h-screen place-items-center p-6 text-center text-sm text-slate-600" role="status">
+        <div>
+          <p className="mb-3">Sabi Health is busy right now. Retrying automatically…</p>
+          <button type="button" className="rounded-lg border border-emerald-600 px-4 py-2 font-semibold text-emerald-800" onClick={() => { setState('loading'); setAttempt((n) => n + 1); }}>Try now</button>
+        </div>
+      </div>
+    );
+  }
   return state === 'ready' ? <Outlet /> : <Navigate to="/login" replace />;
 }
 
@@ -163,9 +183,11 @@ export default function App() {
               <Route path="/pharmacy-market/emergency-meds" element={<EmergencyMedsPage />} />
               <Route path="/family" element={<FamilyDashboardPage />} />
               <Route path="/family/add" element={<AddMemberPage />} />
+              <Route path="/family/join" element={<AddMemberPage />} />
               <Route path="/family/add/dependent" element={<SetupDependentPage />} />
               <Route path="/family/add/success" element={<MemberAddedSuccessPage />} />
               <Route path="/family/member/:memberId" element={<MemberProfilePage />} />
+              <Route path="/family/member/:memberId/edit" element={<SetupDependentPage />} />
               <Route path="/family/care-calendar" element={<CareCalendarPage />} />
               <Route path="/hospitals" element={<HospitalsPage />} />
               <Route path="/hospitals/:id" element={<HospitalDetailPage />} />
