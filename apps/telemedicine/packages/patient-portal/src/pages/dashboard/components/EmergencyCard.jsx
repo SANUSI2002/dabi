@@ -2,9 +2,16 @@ import React, { useState } from "react";
 import { Card } from "design-system";
 import { ImagePlus, ArrowRight } from "lucide-react";
 import { EmergencyCardModal } from "./EmergencyCardModal";
+import { useApiData } from "../../../api/useApiData";
+import { getProfile } from "../../../api/profileApi";
 
-export function EmergencyCard({ blood = "O+", genotype = "AA" }) {
+// Blood group and genotype always come from the patient's saved profile, never from defaults.
+export function EmergencyCard() {
   const [showModal, setShowModal] = useState(false);
+  const { data, loading } = useApiData(getProfile, []);
+  const shown = (value) => (loading && !data ? "…" : value || "—");
+  const blood = shown(data?.form.bloodType);
+  const genotype = shown(data?.form.genotype);
 
   // Pattern matrix to mirror the active/inactive grid tiles in the design
   const gridPattern = [

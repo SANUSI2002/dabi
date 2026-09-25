@@ -2,37 +2,35 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "design-system";
 import Modal from "../shared/Modal";
+import { deleteAccount } from "../../../api/profileApi";
+import { signOut } from "../../../utils/sabiIdentity";
 
 export function DangerZoneCard() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [confirmationText, setConfirmationText] = useState("");
   const [busy, setBusy] = useState(false);
-  const [toast, setToast] = useState("");
+  const [error, setError] = useState("");
 
-  const closeToast = () => setToast("");
-
-  const showToast = (message) => {
-    setToast(message);
-    window.clearTimeout(showToast.timeout);
-    showToast.timeout = window.setTimeout(() => setToast(""), 2400);
+  const close = () => {
+    setOpen(false);
+    setConfirmationText("");
+    setError("");
   };
 
-  const confirmDelete = () => {
-    if (confirmationText !== "DELETE") {
-      return;
-    }
-
+  const confirmDelete = async () => {
+    if (confirmationText !== "DELETE") return;
     setBusy(true);
-    window.setTimeout(() => {
-      localStorage.clear();
-      sessionStorage.clear();
-      setBusy(false);
-      setOpen(false);
-      setConfirmationText("");
-      showToast("✅ Account deleted successfully.");
+    setError("");
+    try {
+      await deleteAccount();
+      // The server has already ended every session; this only clears the local copy.
+      await signOut();
       navigate("/login", { replace: true });
-    }, 800);
+    } catch (err) {
+      setError(err.message);
+      setBusy(false);
+    }
   };
 
   return (
@@ -43,8 +41,9 @@ export function DangerZoneCard() {
           <div>
             <div className="sabi-danger-zone-title">Delete Account</div>
             <p className="sabi-danger-zone-text">
-              Once you delete your account, your entire medical history will be archived according to legal
-              regulations and will no longer be accessible through this dashboard.
+              Permanently deletes your Sabi Health account and the health information stored in it. Accounts linked to
+              hospital enrollments, hospital appointments, wellness bookings or uploaded documents can&apos;t be deleted
+              here, because those records must be kept — contact Sabi support instead.
             </p>
           </div>
           <Button variant="danger" className="sabi-danger-zone-btn" onClick={() => setOpen(true)}>
@@ -56,18 +55,12 @@ export function DangerZoneCard() {
       <Modal
         open={open}
         title="Delete Your Account?"
-        description="This action is permanent and cannot be undone. Deleting your account will permanently remove your personal information, medical records, appointments, prescriptions, and all associated data."
-        onClose={() => {
-          setOpen(false);
-          setConfirmationText("");
-        }}
+        description="This is permanent and cannot be undone. Your personal details, medical records, vitals, appointments, prescriptions and settings will be deleted, and you will be signed out everywhere."
+        onClose={close}
         busy={busy}
         actions={
           <>
-            <Button type="button" variant="secondary" onClick={() => {
-              setOpen(false);
-              setConfirmationText("");
-            }} disabled={busy}>
+            <Button type="button" variant="secondary" onClick={close} disabled={busy}>
               Cancel
             </Button>
             <Button type="button" variant="danger" onClick={confirmDelete} disabled={busy || confirmationText !== "DELETE"}>
@@ -77,17 +70,18 @@ export function DangerZoneCard() {
         }
       >
         <div className="sabi-field">
-          <label className="sabi-field-label">Type DELETE to confirm</label>
+          <label className="sabi-field-label" htmlFor="sabi-delete-confirm">Type DELETE to confirm</label>
           <input
+            id="sabi-delete-confirm"
             className="sabi-field-input"
             value={confirmationText}
             onChange={(event) => setConfirmationText(event.target.value)}
             placeholder="DELETE"
+            autoComplete="off"
           />
         </div>
+        {error && <p className="sabi-field-error" role="alert">{error}</p>}
       </Modal>
-
-      {toast ? <div className="sabi-toast" onClick={closeToast}>{toast}</div> : null}
     </>
   );
 }

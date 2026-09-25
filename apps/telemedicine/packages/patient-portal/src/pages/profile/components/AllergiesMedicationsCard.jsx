@@ -1,18 +1,19 @@
 import React from "react";
 import { SectionCard, TextArea } from "../shared";
-import { ALLERGIES_MEDICATIONS } from "../data";
 
-export function AllergiesMedicationsCard() {
+export function AllergiesMedicationsCard({ form, set }) {
   return (
     <SectionCard icon="💊" title="Allergies & Medications">
       <TextArea
         label="Known Allergies"
-        defaultValue={ALLERGIES_MEDICATIONS.knownAllergies}
-        placeholder="E.g. Penicillin, Peanuts..."
+        value={form.knownAllergies}
+        onChange={(v) => set("knownAllergies", v)}
+        placeholder="E.g. Penicillin, Peanuts (separate with commas)"
       />
       <TextArea
         label="Current Medications"
-        defaultValue={ALLERGIES_MEDICATIONS.currentMedications}
+        value={form.currentMedications}
+        onChange={(v) => set("currentMedications", v)}
         placeholder="E.g. Lisinopril 10mg once daily..."
       />
     </SectionCard>

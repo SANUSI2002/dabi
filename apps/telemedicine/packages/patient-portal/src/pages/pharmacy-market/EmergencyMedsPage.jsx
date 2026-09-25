@@ -9,7 +9,8 @@ import { pageVars } from "../../pageVars";
 import { useZoom } from "../../hooks/useZoom";
 import { formatNaira } from "../../utils/currency";
 import { Sidebar, Topbar } from "../dashboard/components";
-import { EMERGENCY_PROFILE } from "../dashboard/data";
+import { useApiData } from "../../api/useApiData";
+import { getProfile } from "../../api/profileApi";
 import { CONDITION_EMERGENCY_DRUGS, DEFAULT_MARKET_PHARMACY_ID } from "./marketFlowsData";
 import { addPrescriptionItemToCart, getCartCount } from "./cartStore";
 
@@ -27,10 +28,13 @@ export function EmergencyMedsPage() {
   const [toast, setToast] = useState("");
   const [cartCount, setCartCount] = useState(getCartCount);
 
-  const matchedGroups = useMemo(
-    () => matchConditions(EMERGENCY_PROFILE.conditions || []),
-    []
+  // Conditions come from the chronic conditions the patient saved on their profile.
+  const { data: profile } = useApiData(getProfile, []);
+  const conditions = useMemo(
+    () => (profile?.form.chronicConditions || "").split(/[,;\n]/).map((c) => c.trim()).filter(Boolean),
+    [profile]
   );
+  const matchedGroups = useMemo(() => matchConditions(conditions), [conditions]);
 
   const notify = (message) => {
     setToast(message);
@@ -84,7 +88,7 @@ export function EmergencyMedsPage() {
         <div className="sabi-fam-info-box" style={{ marginBottom: 20, background: "#FEF2F2", color: "var(--sabi-danger)" }}>
           <ShieldAlert size={16} />
           <span>
-            Conditions on file: <strong>{(EMERGENCY_PROFILE.conditions || []).join(", ") || "None recorded"}</strong>.
+            Conditions on file: <strong>{profile ? conditions.join(", ") || "None recorded" : "Loading…"}</strong>.
             {" "}Update these from your Emergency ID card if this list looks out of date.
           </span>
         </div>

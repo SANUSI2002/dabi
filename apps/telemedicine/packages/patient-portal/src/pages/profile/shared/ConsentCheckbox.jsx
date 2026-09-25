@@ -1,10 +1,10 @@
 import React from "react";
 
-export function ConsentCheckbox({ title, description, defaultChecked }) {
+export function ConsentCheckbox({ title, description, checked, onChange }) {
   return (
     <label className="sabi-consent-row">
       <span className="sabi-consent-box">
-        <input type="checkbox" defaultChecked={defaultChecked} />
+        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
         <span className="sabi-consent-check">✓</span>
       </span>
       <span>

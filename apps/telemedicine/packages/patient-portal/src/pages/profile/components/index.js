@@ -7,5 +7,6 @@ export { LifestyleInformationCard } from "./LifestyleInformationCard";
 export { NotificationPreferencesCard } from "./NotificationPreferencesCard";
 export { ConsentPrivacyCard } from "./ConsentPrivacyCard";
 export { EmergencyAccessCard } from "./EmergencyAccessCard";
+export { EmergencyContactCard } from "./EmergencyContactCard";
 export { SecurityCard } from "./SecurityCard";
 export { DangerZoneCard } from "./DangerZoneCard";

@@ -88,26 +88,3 @@ export const FAMILY = [
   { initials: "AA", bg: colors.warning, online: true },
 ];
 
-export const EMERGENCY = { blood: "O+", genotype: "AA" };
-
-// Everything the Emergency Card modal (opened from the red topbar
-// button) shows — front-of-card critical info plus the back-of-card
-// detail a first responder would need.
-export const EMERGENCY_PROFILE = {
-  name: "John Doe",
-  initials: "JD",
-  dob: "14 Mar 1990",
-  age: 36,
-  bloodGroup: "O+",
-  genotype: "AA",
-  emergencyContact: { name: "Amara Doe (Spouse)", phone: "+234 801 234 5678" },
-  conditions: ["Asthma (Controlled)", "Stage 1 Hypertension"],
-  allergies: { drugs: ["Penicillin"], foods: ["Peanuts"], others: [] },
-  medications: ["Lisinopril 10mg — once daily", "Vitamin D3 — once daily"],
-  contacts: {
-    primary: { name: "Amara Doe (Spouse)", phone: "+234 801 234 5678" },
-    secondary: { name: "Tunde Doe (Brother)", phone: "+234 802 345 6789" },
-  },
-  provider: { name: "Dr. Elena Richards · General Hospital", phone: "+234 803 456 7890" },
-  insurance: { provider: "Hygeia HMO", policyNumber: "HG-2291-4471" },
-};

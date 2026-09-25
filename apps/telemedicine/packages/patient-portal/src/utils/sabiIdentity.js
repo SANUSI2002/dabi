@@ -111,6 +111,12 @@ export function restoreSession() {
 
 export const getCurrentUser = () => currentUser;
 
+/** Applies a saved profile change (e.g. a new name) to the cached signed-in user. */
+export const updateCurrentUser = (patch) => {
+  if (currentUser) currentUser = { ...currentUser, ...patch };
+  return currentUser;
+};
+
 /**
  * Authenticated JSON request to the Sabi API (any path under /api). Refreshes the session
  * once on a 401 and retries. Resolves to the parsed body; rejects with an Error carrying

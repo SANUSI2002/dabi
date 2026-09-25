@@ -1,18 +1,20 @@
 import React from "react";
 import { SectionCard, ConsentCheckbox } from "../shared";
-import { CONSENTS } from "../data";
 
-export function ConsentPrivacyCard() {
+const CONSENTS = [
+  { key: "dataSharing", title: "Data Sharing Consent", description: "Allow sharing anonymized data for research purposes." },
+  { key: "electronicRecords", title: "Electronic Health Records", description: "Agreement to use digital health records for all consultations." },
+];
+
+export function ConsentPrivacyCard({ form, set }) {
   return (
     <SectionCard icon="🔏" title="Consent & Privacy">
       <div className="sabi-consent-list">
         {CONSENTS.map((c) => (
-          <ConsentCheckbox key={c.key} title={c.title} description={c.description} defaultChecked={c.checked} />
+          <ConsentCheckbox key={c.key} title={c.title} description={c.description} checked={Boolean(form[c.key])} onChange={(v) => set(c.key, v)} />
         ))}
       </div>
-      <button className="sabi-text-link" type="button">
-        View Full Privacy Agreement
-      </button>
+      <p className="sabi-field-hint">Each change is recorded with the date you made it.</p>
     </SectionCard>
   );
 }

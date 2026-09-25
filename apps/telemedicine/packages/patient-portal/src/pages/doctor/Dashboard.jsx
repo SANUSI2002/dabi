@@ -16,7 +16,6 @@ import {
   FamilyHealthCard,
   InsightCard,
 } from "./components";
-import { EMERGENCY } from "./data";
 
 const cssVars = {
   "--sabi-primary-dark": colors.primaryDark,
@@ -61,7 +60,7 @@ export function Dashboard() {
 
           <div className="sabi-col">
             <HealthScoreCard score={91} trend="+2.4% Improving" />
-            <EmergencyCard blood={EMERGENCY.blood} genotype={EMERGENCY.genotype} />
+            <EmergencyCard />
             <TodaysSchedule />
             <MedicationsCard />
             <FamilyHealthCard />
