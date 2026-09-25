@@ -1,15 +1,17 @@
 const configuredBaseUrl = String(import.meta.env.VITE_SABI_IDENTITY_API_URL || '').trim().replace(/\/$/, '');
-const baseUrl = configuredBaseUrl === 'same-origin'
+export const apiBaseUrl = configuredBaseUrl === 'same-origin'
   ? (typeof window === 'undefined' ? '' : window.location.origin)
   : configuredBaseUrl;
+export const apiConfigured = apiBaseUrl.length > 0;
 let accessToken = null;
 let currentUser = null;
 let pendingChallenge = null;
+let restoring = null;
 const mayUsePatientPortal = (user) => user?.roles?.some((role) => ['PATIENT', 'CAREGIVER'].includes(role));
 
 async function request(path, options = {}) {
-  if (!baseUrl) throw new Error('Sabi Identity API is not configured.');
-  const response = await fetch(`${baseUrl}/api/v1/auth${path}`, {
+  if (!apiConfigured) throw new Error('Sabi Identity API is not configured.');
+  const response = await fetch(`${apiBaseUrl}/api/v1/auth${path}`, {
     ...options,
     credentials: 'include',
     headers: { 'Content-Type': 'application/json', 'X-Sabi-Client': 'browser', ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}), ...options.headers },
@@ -18,9 +20,19 @@ async function request(path, options = {}) {
   if (!response.ok) {
     const error = new Error(body.message || body.error?.message || 'Authentication failed.');
     error.code = body.error?.code || body.code;
+    error.status = response.status;
     throw error;
   }
   return body;
+}
+
+// Refresh tokens are single-use: the server treats a reused one as stolen and revokes the
+// whole session. So only one refresh may be in flight — per tab (the shared promise) and
+// across tabs (a Web Lock). A tab that waited on another tab's refresh reuses its cookie.
+function exclusiveRefresh(work) {
+  return typeof navigator !== 'undefined' && navigator.locks
+    ? navigator.locks.request('sabi-identity-refresh', work)
+    : work();
 }
 
 export async function signIn(email, password) {
@@ -62,27 +74,72 @@ export async function verifyMfaLogin(value, recovery = false) {
   return currentUser;
 }
 
-export async function restoreSession() {
+async function loadCurrentUser() {
+  const me = await request('/me');
+  if (!mayUsePatientPortal(me.user)) { accessToken = null; currentUser = null; return null; }
+  currentUser = me.user;
+  return currentUser;
+}
+
+async function doRestore() {
   if (currentUser && accessToken) {
     try {
-      const me = await request('/me');
-      if (!mayUsePatientPortal(me.user)) { accessToken = null; currentUser = null; return null; }
-      currentUser = me.user;
-      return currentUser;
-    } catch { accessToken = null; currentUser = null; }
+      return await loadCurrentUser();
+    } catch (error) {
+      // Only an auth failure invalidates the session; an outage (5xx, offline) keeps it.
+      if (error.status !== 401) return currentUser;
+      accessToken = null;
+      currentUser = null;
+    }
   }
   try {
-    const result = await request('/refresh', { method: 'POST', body: '{}' });
+    const result = await exclusiveRefresh(() => request('/refresh', { method: 'POST', body: '{}' }));
     accessToken = result.accessToken;
-    const me = await request('/me');
-    if (!mayUsePatientPortal(me.user)) { accessToken = null; return null; }
-    currentUser = me.user;
-    return currentUser;
+    return await loadCurrentUser();
   } catch {
     accessToken = null;
     currentUser = null;
     return null;
   }
+}
+
+/** Every caller (session guard, sidebar, topbar, API retries) shares one in-flight restore. */
+export function restoreSession() {
+  if (!restoring) restoring = doRestore().finally(() => { restoring = null; });
+  return restoring;
+}
+
+export const getCurrentUser = () => currentUser;
+
+/**
+ * Authenticated JSON request to the Sabi API (any path under /api). Refreshes the session
+ * once on a 401 and retries. Resolves to the parsed body; rejects with an Error carrying
+ * the server's message, `status` and `code`.
+ */
+export async function authorizedRequest(path, { method = 'GET', body, query, signal } = {}) {
+  if (!apiConfigured) throw Object.assign(new Error('The Sabi Health service is not configured.'), { code: 'API_NOT_CONFIGURED' });
+  if (!accessToken) await restoreSession();
+  const search = query ? `?${new URLSearchParams(Object.entries(query).filter(([, v]) => v !== undefined && v !== null && v !== '')).toString()}` : '';
+  const send = (token) => fetch(`${apiBaseUrl}${path}${search === '?' ? '' : search}`, {
+    method,
+    signal,
+    credentials: 'include',
+    headers: { 'X-Sabi-Client': 'browser', ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  });
+  let used = accessToken;
+  let response = await send(used);
+  if (response.status === 401) {
+    // Only discard the token this request actually used; a concurrent request may already hold a newer one.
+    if (accessToken === used) accessToken = null;
+    if (await restoreSession()) { used = accessToken; response = await send(used); }
+  }
+  const parsed = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = parsed.message || parsed.error?.message || (response.status === 401 ? 'Your session has expired. Please sign in again.' : 'The Sabi Health service could not complete that request.');
+    throw Object.assign(new Error(message), { status: response.status, code: parsed.error?.code || parsed.code, errors: parsed.errors });
+  }
+  return parsed;
 }
 
 export async function signOut() {
@@ -94,14 +151,29 @@ export async function signOut() {
 
 export const mfaStatus = () => request('/mfa/status');
 
-export async function changePassword(currentPassword, newPassword) {
-  if (!baseUrl || !accessToken) throw new Error('Sign in before changing your password.');
-  const response = await fetch(`${baseUrl}/api/v1/profile/security/change-password`, {
-    method: 'PUT', credentials: 'include',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+export const changePassword = (currentPassword, newPassword) =>
+  authorizedRequest('/api/v1/profile/security/change-password', {
+    method: 'PUT',
+    body: { current_password: currentPassword, new_password: newPassword },
   });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body.message || body.error?.message || 'Password change failed.');
-  return body;
+
+// Public (signed-out) password recovery. The server answers identically whether or not
+// the address has an account, so the UI can't be used to discover who is registered.
+async function publicAuthRequest(path, body) {
+  if (!apiConfigured) throw new Error('The Sabi Health service is not configured.');
+  const response = await fetch(`${apiBaseUrl}/api/v1/auth${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const parsed = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const fieldMessage = parsed.errors?.map((e) => e.message).join(' ');
+    throw new Error(fieldMessage || parsed.message || parsed.error?.message || 'That request could not be completed.');
+  }
+  return parsed;
 }
+
+export const requestPasswordReset = (email) => publicAuthRequest('/password-reset/request', { email: String(email).trim() });
+export const confirmPasswordReset = (uid, token, password, confirmPassword) =>
+  publicAuthRequest('/password-reset/confirm', { uid, token, password, confirmPassword });

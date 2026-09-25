@@ -1,69 +1,38 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import {
-  Search, MapPin, Star, CheckCircle2, ShieldAlert, Building2, Users,
-  CalendarClock, Stethoscope as StethoscopeIcon, ChevronRight,
-} from "lucide-react";
+import { Search, MapPin, CheckCircle2, Building2, Users, CalendarClock, Stethoscope as StethoscopeIcon, ChevronRight, Phone } from "lucide-react";
 
 import "../../styles/share.css";
 import "./Hospitals.css";
 
-import { pageVars } from "../../pageVars";
-import { useZoom } from "../../hooks/useZoom";
-import { Sidebar, Topbar } from "../dashboard/components";
-import { HealthMap } from "../../map/Map";
-import { HOSPITALS } from "./hospitalStore";
-import { getEnrollments } from "./hospitalStore";
-import { getMembers } from "../family/familyStore";
-import { getAppointments } from "../appointments/appointmentStore";
+import { useApiData } from "../../api/useApiData";
+import { listHospitals, listMyEnrollments, listMyHospitalAppointments } from "../../api/sabiApi";
+import { LoadState, PageShell, useCareSubjects } from "./hospitalShared";
 
-const TYPE_FILTERS = ["All Types", "Private Tertiary", "Multi-Specialty"];
-
-function HospitalCard({ hospital, onSelect }) {
+function HospitalCard({ hospital, enrollment, onSelect }) {
   return (
     <article className="sabi-hospital-card sabi-card">
       <div className="sabi-hospital-card-head">
-        <div className="sabi-hospital-card-icon">
-          <Building2 size={26} />
-        </div>
-        <div className="sabi-hospital-rating">
-          <Star size={14} fill="currentColor" /> {hospital.rating}
-        </div>
+        <div className="sabi-hospital-card-icon"><Building2 size={26} /></div>
+        {enrollment && (
+          <span className={`sabi-status-pill ${enrollment.status === "ACTIVE" ? "good" : enrollment.status === "PENDING" ? "pending" : "bad"}`}>
+            {enrollment.statusLabel}
+          </span>
+        )}
       </div>
 
       <div className="sabi-hospital-card-body">
         <h3>{hospital.name}</h3>
-        <p className="sabi-hospital-card-sub">
-          {hospital.area} · {hospital.yearsOperation} Years of Operation
-        </p>
-
+        {hospital.area && <p className="sabi-hospital-card-sub"><MapPin size={13} /> {hospital.area}</p>}
         <div className="sabi-hospital-tags">
-          <span>{hospital.type}</span>
-          <span>{hospital.specialistCount}+ Specialists</span>
+          <span>{hospital.typeLabel}</span>
+          <span><CheckCircle2 size={12} /> Verified by Sabi</span>
         </div>
-
-        <div className="sabi-hospital-badges">
-          {hospital.insuranceAccepted ? (
-            <span className="sabi-hospital-badge good">
-              <CheckCircle2 size={15} /> Insurance Accepted
-            </span>
-          ) : (
-            <span className="sabi-hospital-badge muted">Self-pay only</span>
-          )}
-          {hospital.hasER && (
-            <span className="sabi-hospital-badge danger">
-              <ShieldAlert size={15} /> 24/7 ER
-            </span>
-          )}
-        </div>
+        {hospital.phone && <p className="sabi-hospital-card-sub"><Phone size={13} /> {hospital.phone}</p>}
 
         <div className="sabi-hospital-card-actions">
-          <button type="button" className="sabi-btn-primary" onClick={() => onSelect(hospital, "appointment")}>
-            Book Appointment
-          </button>
-          <button type="button" className="sabi-hospital-enroll-btn" onClick={() => onSelect(hospital, "enroll")}>
-            Enroll as Patient
-          </button>
+          <button type="button" className="sabi-btn-primary" onClick={() => onSelect(hospital, "appointment")}>Book Appointment</button>
+          <button type="button" className="sabi-hospital-enroll-btn" onClick={() => onSelect(hospital, "enroll")}>Enroll as Patient</button>
           <button type="button" className="sabi-hospital-details-btn" onClick={() => onSelect(hospital, "details")}>
             View Hospital Details <ChevronRight size={15} />
           </button>
@@ -74,204 +43,144 @@ function HospitalCard({ hospital, onSelect }) {
 }
 
 export function HospitalsPage() {
-  const [zoom] = useZoom();
   const navigate = useNavigate();
   const { state } = useLocation();
-  const enrollMemberId = state?.enrollMemberId;
+  const enrollDependentId = state?.enrollDependentId;
   const enrollMemberName = state?.enrollMemberName;
 
   const [query, setQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState(TYPE_FILTERS[0]);
-  const [insuranceOnly, setInsuranceOnly] = useState(false);
+  const [search, setSearch] = useState("");
+  useEffect(() => {
+    const t = window.setTimeout(() => setSearch(query.trim()), 350);
+    return () => window.clearTimeout(t);
+  }, [query]);
 
-  const hospitals = useMemo(
-    () =>
-      HOSPITALS.filter((h) => {
-        const matchesQuery =
-          !query ||
-          `${h.name} ${h.area} ${h.type} ${h.departments.join(" ")}`.toLowerCase().includes(query.toLowerCase());
-        const matchesType = typeFilter === "All Types" || h.type === typeFilter;
-        const matchesInsurance = !insuranceOnly || h.insuranceAccepted;
-        return matchesQuery && matchesType && matchesInsurance;
-      }),
-    [query, typeFilter, insuranceOnly]
-  );
+  const directory = useApiData(() => listHospitals({ search: search || undefined }), [search]);
+  const enrollments = useApiData(() => listMyEnrollments(), []);
+  const appointments = useApiData(() => listMyHospitalAppointments(), []);
+  const { subjects } = useCareSubjects();
 
-  const enrollments = getEnrollments();
-  const members = getMembers();
-  const selfMember = members.find((m) => m.isSelf) || members[0];
-  const myEnrollments = enrollments.filter((e) => e.memberId === selfMember?.id);
-  const activeMemberships = myEnrollments.filter((e) => e.status === "Enrolled");
-  const hospitalAppointments = getAppointments().filter((a) => a.hospitalId);
+  const myEnrollments = enrollments.data || [];
+  const selfEnrollmentFor = (hospitalId) => myEnrollments.find((e) => e.hospitalId === hospitalId && !e.dependentId);
+  const activeMemberships = myEnrollments.filter((e) => e.status === "ACTIVE");
+  const hospitals = directory.data?.items || [];
 
   const handleSelect = (hospital, action) => {
     if (action === "appointment") navigate(`/hospitals/${hospital.id}/appointment`);
-    else if (action === "enroll") {
-      const query = enrollMemberId ? `?memberId=${enrollMemberId}` : "";
-      navigate(`/hospitals/${hospital.id}/enroll${query}`);
-    } else navigate(`/hospitals/${hospital.id}`);
+    else if (action === "enroll") navigate(`/hospitals/${hospital.id}/enroll${enrollDependentId ? `?dependentId=${enrollDependentId}` : ""}`);
+    else navigate(`/hospitals/${hospital.id}`);
   };
 
+  const count = (value) => String(value).padStart(2, "0");
+
   return (
-    <div className="sabi-dashboard" style={{ ...pageVars, zoom }}>
-      <Sidebar />
-      <div className="sabi-main sabi-hospitals-main">
-        <Topbar placeholder="Search hospitals, procedures..." />
+    <PageShell placeholder="Search hospitals...">
+      {enrollDependentId && (
+        <div className="sabi-hospitals-enroll-banner">
+          Choosing a hospital to enroll <strong>{enrollMemberName}</strong>. Pick "Enroll as Patient" on any hospital below.
+        </div>
+      )}
 
-        {enrollMemberId && (
-          <div className="sabi-hospitals-enroll-banner">
-            Choosing a hospital to enroll <strong>{enrollMemberName}</strong>. Pick "Enroll as Patient" on any hospital below.
-          </div>
-        )}
-
-        <header className="sabi-hospitals-hero">
-          <div>
-            <h1>Hospitals</h1>
-            <p>Enroll digitally, manage your hospital care, and access healthcare services from anywhere in Nigeria.</p>
-            <div className="sabi-hospitals-hero-actions">
-              <button
-                type="button"
-                className="sabi-btn-primary"
-                onClick={() => document.getElementById("hospital-results")?.scrollIntoView({ behavior: "smooth" })}
-              >
-                <Search size={16} /> Find a Hospital
-              </button>
-              <button
-                type="button"
-                className="sabi-hospitals-hero-outline"
-                onClick={() => {
-                  setQuery("");
-                  setTypeFilter("All Types");
-                  setInsuranceOnly(false);
-                  document.getElementById("hospital-results")?.scrollIntoView({ behavior: "smooth" });
-                }}
-              >
-                <ShieldAlert size={16} /> Emergency Hospitals
-              </button>
-            </div>
-          </div>
-          <Building2 size={140} className="sabi-hospitals-hero-icon" />
-        </header>
-
-        <section className="sabi-hospitals-stats">
-          <div className="sabi-card sabi-hospitals-stat">
-            <span className="icon"><Building2 size={18} /></span>
-            <p className="label">Hospitals Enrolled</p>
-            <p className="value">{String(myEnrollments.length).padStart(2, "0")}</p>
-          </div>
-          <div className="sabi-card sabi-hospitals-stat">
-            <span className="icon"><CheckCircle2 size={18} /></span>
-            <p className="label">Active Memberships</p>
-            <p className="value">{String(activeMemberships.length).padStart(2, "0")}</p>
-          </div>
-          <div className="sabi-card sabi-hospitals-stat">
-            <span className="icon"><CalendarClock size={18} /></span>
-            <p className="label">Hospital Appointments</p>
-            <p className="value">{String(hospitalAppointments.length).padStart(2, "0")}</p>
-          </div>
-          <div className="sabi-card sabi-hospitals-stat">
-            <span className="icon"><Users size={18} /></span>
-            <p className="label">Family Members</p>
-            <p className="value">{String(members.length).padStart(2, "0")}</p>
-          </div>
-        </section>
-
-        <section className="sabi-card sabi-hospitals-search">
-          <div className="sabi-hospitals-search-input">
-            <Search size={18} />
-            <input
-              type="text"
-              placeholder="Search by name, specialty, or location..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
-          <div className="sabi-hospitals-filters">
-            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-              {TYPE_FILTERS.map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className={`sabi-hospitals-insurance-toggle ${insuranceOnly ? "active" : ""}`}
-              onClick={() => setInsuranceOnly((v) => !v)}
-            >
-              <CheckCircle2 size={15} /> Insurance Accepted
+      <header className="sabi-hospitals-hero">
+        <div>
+          <h1>Hospitals</h1>
+          <p>Enroll digitally with verified hospitals, then book appointments and check in from anywhere.</p>
+          <div className="sabi-hospitals-hero-actions">
+            <button type="button" className="sabi-btn-primary" onClick={() => document.getElementById("hospital-results")?.scrollIntoView({ behavior: "smooth" })}>
+              <Search size={16} /> Find a Hospital
             </button>
           </div>
-        </section>
+        </div>
+        <Building2 size={140} className="sabi-hospitals-hero-icon" />
+      </header>
 
-        <div className="sabi-hospitals-layout" id="hospital-results">
-          <div className="sabi-hospitals-directory">
-            <div className="sabi-hospitals-directory-head">
-              <h2>Top Recommended Hospitals</h2>
-              <p>{hospitals.length} result{hospitals.length === 1 ? "" : "s"}</p>
-            </div>
+      <section className="sabi-hospitals-stats">
+        <div className="sabi-card sabi-hospitals-stat">
+          <span className="icon"><Building2 size={18} /></span>
+          <p className="label">Enrollment Requests</p>
+          <p className="value">{count(myEnrollments.length)}</p>
+        </div>
+        <div className="sabi-card sabi-hospitals-stat">
+          <span className="icon"><CheckCircle2 size={18} /></span>
+          <p className="label">Active Memberships</p>
+          <p className="value">{count(activeMemberships.length)}</p>
+        </div>
+        <div className="sabi-card sabi-hospitals-stat">
+          <span className="icon"><CalendarClock size={18} /></span>
+          <p className="label">Hospital Appointments</p>
+          <p className="value">{count(appointments.data?.length || 0)}</p>
+        </div>
+        <div className="sabi-card sabi-hospitals-stat">
+          <span className="icon"><Users size={18} /></span>
+          <p className="label">Dependents</p>
+          <p className="value">{count(subjects.length - 1)}</p>
+        </div>
+      </section>
 
+      <section className="sabi-card sabi-hospitals-search">
+        <div className="sabi-hospitals-search-input">
+          <Search size={18} />
+          <input type="search" aria-label="Search hospitals" placeholder="Search by hospital name, city or address..." value={query} onChange={(e) => setQuery(e.target.value)} />
+        </div>
+      </section>
+
+      <div className="sabi-hospitals-layout" id="hospital-results">
+        <div className="sabi-hospitals-directory">
+          <div className="sabi-hospitals-directory-head">
+            <h2>Verified Hospitals</h2>
+            {directory.data && <p>{directory.data.total} result{directory.data.total === 1 ? "" : "s"}</p>}
+          </div>
+
+          <LoadState loading={directory.loading && !directory.data} error={directory.error} onRetry={directory.reload} label="Loading hospitals…">
             {hospitals.length === 0 ? (
-              <div className="sabi-card sabi-empty-state">
+              <div className="sabi-card sabi-live-state">
                 <StethoscopeIcon size={36} />
-                <h3>No hospitals match those filters</h3>
-                <p>Try clearing a filter or searching a different term.</p>
+                <h3>{search ? "No hospitals match that search" : "No hospitals are available yet"}</h3>
+                <p>{search ? "Try a different name, city or address." : "Hospitals appear here once Sabi has verified them. Check back soon."}</p>
               </div>
             ) : (
               <div className="sabi-hospitals-grid">
                 {hospitals.map((hospital) => (
-                  <HospitalCard key={hospital.id} hospital={hospital} onSelect={handleSelect} />
+                  <HospitalCard key={hospital.id} hospital={hospital} enrollment={selfEnrollmentFor(hospital.id)} onSelect={handleSelect} />
                 ))}
               </div>
             )}
-          </div>
-
-          <aside className="sabi-hospitals-sidebar">
-            <div className="sabi-hospitals-sidebar-head">
-              <h3>Nearby Hospitals</h3>
-            </div>
-            <HealthMap
-              center={[hospitals[0]?.lat || 6.4478, hospitals[0]?.lng || 3.4726]}
-              zoom={12}
-              markers={hospitals.map((h) => ({ id: h.id, lat: h.lat, lng: h.lng, title: h.name }))}
-              className="sabi-hospitals-map"
-            />
-
-            <div className="sabi-card sabi-hospitals-memberships">
-              <div className="sabi-hospitals-memberships-head">
-                <h4>Active Hospital Memberships</h4>
-              </div>
-              <button
-                type="button"
-                className="sabi-hospitals-add-member-btn"
-                onClick={() => navigate("/family/hospital-enrollment")}
-              >
-                <Users size={16} /> Add Family Member
-              </button>
-
-              {activeMemberships.length === 0 ? (
-                <p className="sabi-hospitals-memberships-empty">No active memberships yet.</p>
-              ) : (
-                <div className="sabi-hospitals-membership-list">
-                  {activeMemberships.map((m) => (
-                    <div className="sabi-hospitals-membership-row" key={m.id}>
-                      <span className="icon"><MapPin size={16} /></span>
-                      <div>
-                        <p className="name">{m.hospitalName}</p>
-                        <p className="plan">{m.planName}</p>
-                      </div>
-                      <CheckCircle2 size={16} className="verified" />
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <button type="button" className="sabi-hospitals-manage-btn" onClick={() => navigate("/family/hospital-enrollment")}>
-                Manage All Memberships
-              </button>
-            </div>
-          </aside>
+          </LoadState>
         </div>
+
+        <aside className="sabi-hospitals-sidebar">
+          <div className="sabi-card sabi-hospitals-memberships">
+            <div className="sabi-hospitals-memberships-head"><h4>Active Hospital Memberships</h4></div>
+            <button type="button" className="sabi-hospitals-add-member-btn" onClick={() => navigate("/family/hospital-enrollment")}>
+              <Users size={16} /> Family Enrollments
+            </button>
+
+            {enrollments.error ? (
+              <p className="sabi-hospitals-memberships-empty" role="alert">Couldn&apos;t load your memberships.</p>
+            ) : activeMemberships.length === 0 ? (
+              <p className="sabi-hospitals-memberships-empty">No active memberships yet.</p>
+            ) : (
+              <div className="sabi-hospitals-membership-list">
+                {activeMemberships.map((m) => (
+                  <div className="sabi-hospitals-membership-row" key={m.id}>
+                    <span className="icon"><MapPin size={16} /></span>
+                    <div>
+                      <p className="name">{m.hospitalName}</p>
+                      <p className="plan">{m.planName}{m.memberName ? ` · ${m.memberName}` : ""}</p>
+                    </div>
+                    <CheckCircle2 size={16} className="verified" />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button type="button" className="sabi-hospitals-manage-btn" onClick={() => navigate("/family/hospital-enrollment")}>
+              Manage All Memberships
+            </button>
+          </div>
+        </aside>
       </div>
-    </div>
+    </PageShell>
   );
 }
 

@@ -1,93 +1,60 @@
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Star, Languages, CalendarPlus, ShieldCheck } from "lucide-react";
+import { ArrowLeft, BadgeCheck, CalendarPlus, Sparkles } from "lucide-react";
 
 import "../../styles/share.css";
 import "./Wellness.css";
 
-import { pageVars } from "../../pageVars";
-import { useZoom } from "../../hooks/useZoom";
-import { Sidebar, Topbar } from "../dashboard/components";
-import { getCategory, getPractitioner } from "./wellnessStore";
-import { formatNaira } from "../../utils/currency";
+import { useApiData } from "../../api/useApiData";
+import { getWellnessOffering } from "../../api/sabiApi";
+import { LoadState, PageShell, formatNaira } from "../hospitals/hospitalShared";
+import { categoryLabel, initials, toOffering } from "./wellnessStore";
 
 export function PractitionerDetailPage() {
-  const [zoom] = useZoom();
   const { categoryId, practitionerId } = useParams();
   const navigate = useNavigate();
-  const category = getCategory(categoryId);
-  const practitioner = getPractitioner(practitionerId);
-
-  if (!category || !practitioner) {
-    return (
-      <div className="sabi-dashboard" style={{ ...pageVars, zoom }}>
-        <Sidebar />
-        <div className="sabi-main">
-          <Topbar />
-          <div className="sabi-card">
-            <p>We couldn&apos;t find that practitioner.</p>
-            <button className="sabi-btn-primary" onClick={() => navigate("/wellness-hub")}>Back to Wellness Hub</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const offering = useApiData(async () => toOffering(await getWellnessOffering(practitionerId)), [practitionerId]);
+  const notFound = offering.error?.status === 404 || offering.error?.status === 400;
+  const o = offering.data;
 
   return (
-    <div className="sabi-dashboard" style={{ ...pageVars, zoom }}>
-      <Sidebar />
-      <div className="sabi-main sabi-wellness-main">
-        <Topbar />
+    <PageShell placeholder="Search wellness services..." mainClassName="sabi-main sabi-wellness-main">
+      <button className="sabi-rxd-back" onClick={() => navigate(`/wellness-hub/${categoryId}`)}>
+        <ArrowLeft size={18} /> Back to {categoryLabel(categoryId)}
+      </button>
 
-        <button className="sabi-rxd-back" onClick={() => navigate(`/wellness-hub/${categoryId}`)}>
-          <ArrowLeft size={18} /> Back to {category.label}
-        </button>
-
-        <div className="sabi-card sabi-wellness-profile-card">
-          <div className="sabi-wellness-profile-head">
-            <img className="sabi-wellness-avatar-photo" src={practitioner.photo} alt={practitioner.name} />
-            <div>
-              <h1>{practitioner.name}</h1>
-              <p>{practitioner.specialty} · {practitioner.yearsExperience}+ years experience</p>
-              <span className="sabi-wellness-rating"><Star size={14} fill="currentColor" /> {practitioner.rating} ({practitioner.reviews} reviews)</span>
-            </div>
-            <div className="sabi-wellness-profile-rate">
-              <small>Rate</small>
-              <strong>{formatNaira(practitioner.rate)}</strong>
-              <span>/ {practitioner.rateUnit}</span>
-            </div>
-          </div>
-
-          <p className="sabi-hospitals-wizard-note">{practitioner.bio}</p>
-
-          <h4 style={{ margin: "16px 0 8px", fontSize: ".9rem" }}>Specialties</h4>
-          <div className="sabi-hospital-tags" style={{ marginBottom: 16 }}>
-            {practitioner.specialties.map((s) => <span key={s}>{s}</span>)}
-          </div>
-
-          <p className="sabi-wellness-languages"><Languages size={14} /> Speaks {practitioner.languages.join(", ")}</p>
-
-          {practitioner.supportsPhysical ? (
-            <p className="sabi-wellness-visit-note">Available for physical (in-person) or virtual sessions.</p>
-          ) : (
-            <p className="sabi-wellness-visit-note">Available for virtual sessions only.</p>
-          )}
-
-          <div className="sabi-hospitals-enroll-note" style={{ marginTop: 16 }}>
-            <ShieldCheck size={15} /> Bookings are recurring engagements (30 or 60 days) — {practitioner.name.split(" ")[0]} will propose a schedule for you to review before anything is confirmed.
-          </div>
-
-          <button
-            type="button"
-            className="sabi-btn-primary sabi-btn-block"
-            style={{ marginTop: 16 }}
-            onClick={() => navigate(`/wellness-hub/${categoryId}/${practitionerId}/book`)}
-          >
-            <CalendarPlus size={16} /> Book {practitioner.name.split(" ")[0]}
-          </button>
+      {notFound ? (
+        <div className="sabi-card sabi-live-state">
+          <Sparkles size={32} />
+          <h3>This service isn&apos;t available</h3>
+          <p>It may have been withdrawn by the provider.</p>
+          <button className="sabi-btn-primary" onClick={() => navigate(`/wellness-hub/${categoryId}`)}>Browse services</button>
         </div>
-      </div>
-    </div>
+      ) : (
+        <LoadState loading={offering.loading} error={offering.error} onRetry={offering.reload} label="Loading service…">
+          {o && (
+            <div className="sabi-card sabi-wellness-profile-card">
+              <div className="sabi-wellness-profile-head">
+                <div className="sabi-wellness-avatar" aria-hidden="true">{initials(o.providerName)}</div>
+                <div>
+                  <h1 style={{ margin: 0 }}>{o.name}</h1>
+                  <p style={{ margin: "4px 0" }}><BadgeCheck size={15} /> {o.providerName} · Verified provider</p>
+                  {o.providerDetail && <p style={{ margin: 0 }}>{o.providerDetail}</p>}
+                </div>
+                <div className="sabi-wellness-profile-rate">
+                  <strong>{o.price > 0 ? formatNaira(o.price) : "Price on request"}</strong>
+                  <span>{categoryLabel(o.category)}</span>
+                </div>
+              </div>
+              {o.description && <p style={{ lineHeight: 1.6 }}>{o.description}</p>}
+              <button type="button" className="sabi-btn-primary" onClick={() => navigate(`/wellness-hub/${categoryId}/${o.id}/book`)}>
+                <CalendarPlus size={16} /> Book this service
+              </button>
+            </div>
+          )}
+        </LoadState>
+      )}
+    </PageShell>
   );
 }
 

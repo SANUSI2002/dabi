@@ -4,15 +4,19 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { EmergencyCardModal } from "./EmergencyCardModal";
 import { NotificationsBell } from "../../../notifications/NotificationsBell";
-import { signOut } from "../../../utils/sabiIdentity";
+import { getCurrentUser, signOut } from "../../../utils/sabiIdentity";
 
 export function Topbar({
   placeholder = "Search records, doctors, or help...",
-  userName = "John Doe",
-  userId = "Patient #S-2940",
+  userName,
+  userId,
   showHelp = false,
   onLogout,
 }) {
+  // Every page sits behind the session guard, so the signed-in user is already loaded.
+  const user = getCurrentUser();
+  userName = userName || user?.fullName || user?.email || "Patient";
+  userId = userId || (user?.patientId ? `Patient ${user.patientId}` : "");
   const [showEmergencyCard, setShowEmergencyCard] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileRef = useRef(null);

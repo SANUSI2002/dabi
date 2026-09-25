@@ -25,6 +25,7 @@ import {
 import { BookAppointmentModal } from "./components/BookAppointmentModal";
 import { AppointmentDetailModal } from "./components/AppointmentDetailModal";
 import { JoinConsultationModal } from "./components/JoinConsultationModal";
+import { HospitalAppointmentsCard } from "./components/HospitalAppointmentsCard";
 
 import {
   getAppointments,
@@ -33,8 +34,6 @@ import {
   cancelAppointment,
   respondToBookingRequest,
 } from "./appointmentStore";
-
-import { getSessionAppointments, subscribeToWellness } from "../wellness/wellnessStore";
 
 import "../dashboard/Dashboard.css";
 import "./Appointments.css";
@@ -64,24 +63,8 @@ export function Appointments() {
   // Toggle between filtered and full appointment list
   const [showAllAppointments, setShowAllAppointments] = useState(false);
 
-// Appointment data state — merges the appointmentStore (doctor/hospital
-  // bookings) with upcoming Wellness Hub engagement sessions (caregiver,
-  // fitness coach, therapist, etc.), so a session booked from Wellness
-  // Hub shows up here too instead of only living inside that section.
-  const [appointments, setAppointments] = useState(() => [...getAppointments(), ...getSessionAppointments()]);
-
-  useEffect(() => {
-    const refresh = () => setAppointments([...getAppointments(), ...getSessionAppointments()]);
-    const unsubAppointments = subscribeToAppointments(refresh);
-    const unsubWellness = subscribeToWellness(refresh);
-    return () => {
-      unsubAppointments();
-      unsubWellness();
-    };
-  }, []);
-
-
-
+  // Doctor bookings (hospital and wellness bookings are listed from the Sabi API in their own cards).
+  const [appointments, setAppointments] = useState(() => getAppointments());
   useEffect(() => subscribeToAppointments(() => setAppointments(getAppointments())), []);
 
   // Selected date for calendar
@@ -197,8 +180,6 @@ export function Appointments() {
         {/* Top Navigation Bar */}
         <Topbar
           placeholder="Search appointments, doctors..."
-          userName="Alex Johnson"
-          userId="Patient #S-2940"
           showHelp
         />
 
@@ -266,6 +247,7 @@ export function Appointments() {
               onCancel={handleCancel}
               onRespondToRequest={(id, accepted) => respondToBookingRequest(id, accepted)}
             />
+            <HospitalAppointmentsCard />
           </div>
         </div>
 

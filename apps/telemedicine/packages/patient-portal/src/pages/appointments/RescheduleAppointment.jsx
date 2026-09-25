@@ -126,7 +126,7 @@ export function RescheduleAppointment() {
     <div className="sabi-dashboard" style={{ ...pageVars, zoom }}>
       <Sidebar />
       <div className="sabi-main">
-        <Topbar placeholder="Search appointments, doctors..." userName="Alex Johnson" userId="Patient #S-2940" showHelp />
+        <Topbar placeholder="Search appointments, doctors..." showHelp />
 
         <div className="sabi-resched-header">
           <Link to="/appointments" className="sabi-resched-back" aria-label="Back to appointments">

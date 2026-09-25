@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card } from "design-system";
-import { Plus, X, Zap } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { Sidebar, Topbar } from "../dashboard/components";
 import { pageVars } from "../../pageVars";
 import { useZoom } from "../../hooks/useZoom";
@@ -51,19 +51,6 @@ export function SelectVitalType() {
             </Card>
           ))}
         </div>
-
-        <Card className="sabi-vitals-help">
-          <div className="sabi-vitals-help-icon">
-            <Zap size={22} />
-          </div>
-          <div>
-            <div className="sabi-vitals-help-title">Need help with a reading?</div>
-            <p className="sabi-vitals-help-text">
-              Our "Smart Connect" feature can automatically pull data from your compatible wearable devices.
-            </p>
-            <span className="sabi-vitals-help-link">Connect Devices →</span>
-          </div>
-        </Card>
       </div>
     </div>
   );

@@ -1180,3 +1180,39 @@
 @media (max-width: 560px) {
   .sabi-main { padding: 12px; }
 }
+
+/* ---- Live (backend-connected) page states ---- */
+.sabi-live-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  text-align: center; padding: 40px 24px; color: #475569;
+}
+.sabi-live-state h3 { margin: 0; color: #0f172a; font-size: 1.05rem; }
+.sabi-live-state p { margin: 0; max-width: 460px; font-size: .9rem; line-height: 1.5; }
+.sabi-live-state svg { color: #0f766e; }
+.sabi-live-state.error svg { color: #b91c1c; }
+.sabi-spin { animation: sabi-spin 0.9s linear infinite; }
+@keyframes sabi-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .sabi-spin { animation: none; } }
+
+.sabi-status-pill {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;
+  font-size: .75rem; font-weight: 700; white-space: nowrap;
+}
+.sabi-status-pill.pending { background: #fef3c7; color: #92400e; }
+.sabi-status-pill.good { background: #dcfce7; color: #166534; }
+.sabi-status-pill.bad { background: #fee2e2; color: #991b1b; }
+.sabi-status-pill.neutral { background: #e2e8f0; color: #334155; }
+
+.sabi-form-error {
+  margin: 12px 0 0; padding: 10px 12px; border-radius: 10px; background: #fef2f2; color: #991b1b;
+  font-size: .85rem; font-weight: 600;
+}
+.sabi-subject-picker { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; }
+.sabi-subject-picker button {
+  border: 1.5px solid #cbd5e1; background: #fff; border-radius: 999px; padding: 7px 14px;
+  font-weight: 600; font-size: .85rem; color: #334155; cursor: pointer;
+}
+.sabi-subject-picker button[aria-pressed="true"] { border-color: #0f766e; background: #f0fdfa; color: #0f766e; }
+.sabi-subject-picker button:disabled { opacity: .5; cursor: not-allowed; }
+.sabi-hospital-card-sub:has(svg) { display: flex; align-items: center; gap: 6px; }
+.sabi-hospital-card-sub svg { flex-shrink: 0; }

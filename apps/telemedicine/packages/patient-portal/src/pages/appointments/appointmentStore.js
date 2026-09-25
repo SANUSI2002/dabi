@@ -155,82 +155,6 @@ export function addAppointmentRequest(doctor, { date, time, type, reason, notes 
   return appointment;
 }
 
-// Books an appointment with a specialist at a hospital (from the Book
-// Hospital Appointment flow) — same store, same appointment shape, so
-// it shows up in My Appointments and check-in alongside doctor bookings.
-export function addHospitalAppointment({ hospital, specialist, department, date, time, type, reason }) {
-  const initials = (specialist?.name || hospital.name)
-    .replace("Dr. ", "")
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2);
-
-  const appointment = {
-    id: `apt-hospital-${Date.now()}-${nextId++}`,
-    doctor: specialist?.name || `${hospital.name} — ${department}`,
-    initials,
-    color: AVATAR_COLORS[getAppointments().length % AVATAR_COLORS.length],
-    specialty: specialist?.title || department,
-    location: hospital.name,
-    lat: hospital.lat,
-    lng: hospital.lng,
-    hospitalId: hospital.id,
-    date,
-    time,
-    status: "active",
-    virtual: type === "virtual",
-    reason,
-  };
-
-  const next = [appointment, ...getAppointments()];
-  persist(next);
-  notify();
-  return appointment;
-}
-
-// "Book in Advance" for a hospital appointment — same idea as the doctor
-// version: request a date beyond the standard availability window, sits
-// as "pending-review" until Phase 2 adds the hospital-side response flow.
-export function addHospitalAppointmentRequest({ hospital, department, memberName, date, time, type, reason }) {
-  const initials = `${hospital.name} — ${department}`
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2);
-
-  const dateLabel = date
-    ? new Date(`${date}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-    : date;
-  const timeLabel = time
-    ? new Date(`2000-01-01T${time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
-    : time;
-
-  const appointment = {
-    id: `apt-hospital-request-${Date.now()}-${nextId++}`,
-    doctor: `${hospital.name} — ${department}`,
-    initials,
-    color: AVATAR_COLORS[getAppointments().length % AVATAR_COLORS.length],
-    specialty: department,
-    location: hospital.name,
-    lat: hospital.lat,
-    lng: hospital.lng,
-    hospitalId: hospital.id,
-    date: dateLabel,
-    time: timeLabel,
-    status: "pending-review",
-    virtual: type === "virtual",
-    reason,
-    bookedFor: memberName,
-    requestedAt: new Date().toISOString(),
-  };
-
-  const next = [appointment, ...getAppointments()];
-  persist(next);
-  notify();
-  return appointment;
-}
-
 // Standard reschedule — the new date/time is available right away, so
 // the appointment is simply updated in place and stays "active".
 export function rescheduleAppointment(id, { date, time }) {
@@ -264,51 +188,6 @@ export function requestRescheduleInAdvance(id, { date, time, reason }) {
   });
 }
 
-// Wellness Hub bookings (caregivers, nutritionists, fitness coaches,
-// therapists, health educators) are recurring engagements made of many
-// individual sessions — far too many to dump into the shared
-// Appointments list one row per session. Instead, each engagement gets
-// exactly ONE representative row here (linked via wellnessEngagementId,
-// so re-syncing updates it in place instead of duplicating), showing
-// its next upcoming session. The full session-by-session schedule
-// still lives in Wellness Hub — this is just what makes the engagement
-// show up on the shared Appointments page at all, alongside doctor and
-// hospital bookings.
-export function syncWellnessEngagement(engagement) {
-  const nextSession = engagement.sessions.find((s) => s.status !== "completed") || engagement.sessions[0];
-  if (!nextSession) return null;
-
-  const initials = engagement.practitionerName
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2);
-
-  const shaped = {
-    id: `apt-wellness-${engagement.id}`,
-    doctor: engagement.practitionerName,
-    initials,
-    color: AVATAR_COLORS[getAppointments().length % AVATAR_COLORS.length],
-    specialty: `Wellness · ${engagement.categoryId.replace("_", " ")}`,
-    location: engagement.visitType === "physical" ? (engagement.address?.address || "In-person visit") : "Virtual session",
-    date: nextSession.dateLabel,
-    time: nextSession.startTime ? `${nextSession.startTime}${nextSession.endTime ? `-${nextSession.endTime}` : ""}` : "Virtual",
-    status: engagement.status === "cancelled" ? "cancelled" : engagement.status === "completed" ? "completed" : "active",
-    virtual: engagement.visitType === "virtual",
-    bookedFor: engagement.bookingForName,
-    wellnessEngagementId: engagement.id,
-  };
-
-  const existing = getAppointments();
-  const already = existing.find((a) => a.wellnessEngagementId === engagement.id);
-  const next = already
-    ? existing.map((a) => (a.wellnessEngagementId === engagement.id ? { ...a, ...shaped, id: a.id } : a))
-    : [shaped, ...existing];
-
-  persist(next);
-  notify();
-  return shaped;
-}
 
 export function cancelAppointment(id) {
   const next = getAppointments().filter((appointment) => appointment.id !== id);

@@ -1,348 +1,126 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  ArrowLeft, Users, User2, Video, MapPin, Plus, Check, Clock3, Target, ShieldAlert,
-} from "lucide-react";
+import { ArrowLeft, BadgeCheck, Check, Info } from "lucide-react";
 
 import "../../styles/share.css";
 import "./Wellness.css";
+import "../hospitals/Hospitals.css";
 
-import { pageVars } from "../../pageVars";
-import { useZoom } from "../../hooks/useZoom";
-import { Sidebar, Topbar } from "../dashboard/components";
-import { getCategory, getPractitioner, createEngagementRequest } from "./wellnessStore";
+import { useApiData } from "../../api/useApiData";
+import { bookWellness, getWellnessOffering } from "../../api/sabiApi";
+import { LoadState, PageShell, formatDateTime, formatNaira } from "../hospitals/hospitalShared";
 import { TimePicker } from "./TimePicker";
-import { getMembers } from "../family/familyStore";
-import { getAddresses, addAddress } from "../pharmacy-market/cartStore";
-import { formatNaira } from "../../utils/currency";
+import { categoryLabel, toOffering } from "./wellnessStore";
 
-const WEEKDAYS = [
-  { value: 1, label: "Mon" }, { value: 2, label: "Tue" }, { value: 3, label: "Wed" },
-  { value: 4, label: "Thu" }, { value: 5, label: "Fri" }, { value: 6, label: "Sat" }, { value: 0, label: "Sun" },
-];
-
-const FITNESS_GOALS = ["Lose Weight / Fat Loss", "Build Muscle", "Improve Mobility", "Post-Injury Rehab", "General Fitness"];
+function upcomingDays(count = 21) {
+  const today = new Date();
+  return Array.from({ length: count }, (_, i) => {
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i + 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return { key, weekday: d.toLocaleDateString("en-NG", { weekday: "short" }), day: d.getDate() };
+  });
+}
 
 export function BookPractitionerPage() {
-  const [zoom] = useZoom();
   const { categoryId, practitionerId } = useParams();
   const navigate = useNavigate();
+  const offering = useApiData(async () => toOffering(await getWellnessOffering(practitionerId)), [practitionerId]);
 
-  const category = getCategory(categoryId);
-  const practitioner = getPractitioner(practitionerId);
-  const isCaregiver = categoryId === "caregiver";
-  const members = getMembers();
-
-  const [bookingForId, setBookingForId] = useState(members.find((m) => m.isSelf)?.id || "self");
-  const bookingFor = members.find((m) => m.id === bookingForId) || members[0];
-
-  const [durationDays, setDurationDays] = useState(30);
-  const [visitType, setVisitType] = useState(practitioner?.supportsPhysical ? "physical" : "virtual");
-
-  const [dailyStart, setDailyStart] = useState("08:00");
-  const [dailyEnd, setDailyEnd] = useState("20:00");
-
-  const [sessionHours, setSessionHours] = useState(1);
-  const [daysOfWeek, setDaysOfWeek] = useState([1, 3, 5]);
-  const [goal, setGoal] = useState(FITNESS_GOALS[0]);
-
-  const [addresses, setAddresses] = useState(getAddresses);
-  const [selectedAddressId, setSelectedAddressId] = useState(() => addresses.find((a) => a.isDefault)?.id || addresses[0]?.id || null);
-  const [showAddressForm, setShowAddressForm] = useState(addresses.length === 0);
-  const [newAddress, setNewAddress] = useState({ label: "", recipient: "", phone: "", address: "" });
-
+  const days = useMemo(() => upcomingDays(21), []);
+  const [date, setDate] = useState(days[0].key);
+  const [time, setTime] = useState("09:00");
+  const [context, setContext] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(null);
+  const [submitError, setSubmitError] = useState("");
+  const [booked, setBooked] = useState(null);
 
-  if (!category || !practitioner) {
-    return (
-      <div className="sabi-dashboard" style={{ ...pageVars, zoom }}>
-        <Sidebar />
-        <div className="sabi-main">
-          <Topbar />
-          <div className="sabi-card">
-            <p>We couldn&apos;t find that practitioner.</p>
-            <button className="sabi-btn-primary" onClick={() => navigate("/wellness-hub")}>Back to Wellness Hub</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const trimmed = context.trim();
+  const contextOk = trimmed.length === 0 || trimmed.length >= 2;
+  const requestedAt = new Date(`${date}T${time}:00`).toISOString();
 
-  // Every category (including Caregiver) now follows the same rule for
-  // an independent (non-dependent) family member: booking is allowed,
-  // they just have to accept or reject it themselves first — no hard
-  // block. Only a dependent (or self) skips that step entirely.
-  const needsTheirAcceptance = !bookingFor?.isSelf && bookingFor?.isDependent === false;
-
-  const selectedAddress = addresses.find((a) => a.id === selectedAddressId) || null;
-  const needsAddress = visitType === "physical";
-
-  const estimatedSessions = isCaregiver
-    ? durationDays
-    : Math.max(1, Math.round((daysOfWeek.length * durationDays) / 7));
-
-  const totalCost = isCaregiver
-    ? practitioner.rate * durationDays
-    : practitioner.rate * sessionHours * estimatedSessions;
-
-  const canSubmit =
-    (!needsAddress || Boolean(selectedAddress)) &&
-    (isCaregiver || daysOfWeek.length > 0);
-
-  const toggleDay = (value) => {
-    setDaysOfWeek((prev) => (prev.includes(value) ? prev.filter((d) => d !== value) : [...prev, value]));
-  };
-
-  const handleSaveNewAddress = () => {
-    if (!newAddress.label.trim() || !newAddress.address.trim() || !newAddress.phone.trim()) return;
-    const saved = addAddress(newAddress);
-    const next = getAddresses();
-    setAddresses(next);
-    setSelectedAddressId(saved.id);
-    setShowAddressForm(false);
-    setNewAddress({ label: "", recipient: "", phone: "", address: "" });
-  };
-
-  const handleSubmit = () => {
-    if (!canSubmit) return;
+  const submit = async () => {
     setSubmitting(true);
-    window.setTimeout(() => {
-      const request = createEngagementRequest({
-        practitioner,
-        bookingFor,
-        durationDays,
-        visitType,
-        address: needsAddress ? selectedAddress : null,
-        dailyStart: isCaregiver ? dailyStart : null,
-        dailyEnd: isCaregiver ? dailyEnd : null,
-        sessionHours: isCaregiver ? null : sessionHours,
-        daysOfWeek: isCaregiver ? null : daysOfWeek,
-        goal: categoryId === "fitness_coach" ? goal : null,
-      });
+    setSubmitError("");
+    try {
+      setBooked(await bookWellness({ offeringId: practitionerId, requestedAt, context: trimmed || undefined }));
+    } catch (error) {
+      setSubmitError(error.status === 404 ? "This service is no longer available, or this account can't book wellness services." : error.message);
+    } finally {
       setSubmitting(false);
-      setSubmitted(request);
-    }, 600);
+    }
   };
 
-  if (submitted) {
-    const needsAcceptance = submitted.status === "awaiting_member_acceptance";
+  if (booked) {
     return (
-      <div className="sabi-dashboard" style={{ ...pageVars, zoom }}>
-        <Sidebar />
-        <div className="sabi-main">
-          <Topbar />
-          <div className="sabi-card sabi-hospitals-enroll-success">
-            <div className="icon"><Clock3 size={36} /></div>
-            <h2>{needsAcceptance ? `Booked ${practitioner.name} for ${bookingFor?.name}` : `Request sent to ${practitioner.name}`}</h2>
-            <p>
-              {needsAcceptance ? (
-                <>
-                  You&apos;ve booked {practitioner.name} ({category.label.replace(/s$/, "")}) for {bookingFor?.name}.
-                  {" "}{bookingFor?.name} will get this request and can accept or reject it. If they accept,{" "}
-                  {practitioner.name} will send {bookingFor?.name.split(" ")[0]} a schedule to review themself — you&apos;ll
-                  just get notified once they&apos;ve accepted or rejected.
-                </>
-              ) : (
-                <>
-                  {practitioner.name} will review your request and propose a schedule for the {durationDays}-day
-                  engagement — you&apos;ll be able to accept it or edit it once it arrives.
-                </>
-              )}
-            </p>
-            <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-              <button type="button" className="sabi-btn-outline" onClick={() => navigate("/wellness-hub")}>Back to Wellness Hub</button>
-              <button type="button" className="sabi-btn-primary" onClick={() => navigate("/wellness-hub/engagements")}>
-                View My Engagements
-              </button>
-            </div>
+      <PageShell mainClassName="sabi-main sabi-wellness-main">
+        <div className="sabi-card sabi-hospitals-enroll-success">
+          <div className="icon"><Check size={36} /></div>
+          <h2>Booking requested</h2>
+          <p>
+            {offering.data?.providerName} will confirm your {offering.data?.name} booking for <strong>{formatDateTime(requestedAt)}</strong>.
+            You&apos;ll see the status change in My Bookings.
+          </p>
+          <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+            <button type="button" className="sabi-btn-outline" onClick={() => navigate("/wellness-hub")}>Back to Wellness Hub</button>
+            <button type="button" className="sabi-btn-primary" onClick={() => navigate(`/wellness-hub/engagements/${booked.id}`)}>View Booking</button>
           </div>
         </div>
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="sabi-dashboard" style={{ ...pageVars, zoom }}>
-      <Sidebar />
-      <div className="sabi-main sabi-wellness-main">
-        <Topbar />
+    <PageShell mainClassName="sabi-main sabi-wellness-main">
+      <button className="sabi-rxd-back" onClick={() => navigate(`/wellness-hub/${categoryId}/${practitionerId}`)}>
+        <ArrowLeft size={18} /> Back to service
+      </button>
 
-        <button className="sabi-rxd-back" onClick={() => navigate(`/wellness-hub/${categoryId}/${practitionerId}`)}>
-          <ArrowLeft size={18} /> Back to {practitioner.name}
-        </button>
+      <LoadState loading={offering.loading} error={offering.error} onRetry={offering.reload} label="Loading service…">
+        {offering.data && (
+          <div className="sabi-hospitals-wizard-layout">
+            <div className="sabi-card sabi-hospitals-wizard-card">
+              <h1 style={{ marginTop: 0 }}>Book {offering.data.name}</h1>
+              <p className="sabi-hospitals-wizard-note"><BadgeCheck size={14} /> {offering.data.providerName} · {categoryLabel(offering.data.category)}</p>
 
-        <header className="sabi-hospitals-wizard-header">
-          <div>
-            <h1>Book {practitioner.name}</h1>
-            <p>{category.label} · {formatNaira(practitioner.rate)} / {practitioner.rateUnit}</p>
-          </div>
-        </header>
-
-        <div className="sabi-card sabi-hospitals-booking-for">
-          <span className="sabi-booking-label"><Users size={14} style={{ verticalAlign: "-2px", marginRight: 4 }} /> Booking For</span>
-          <div className="sabi-hospitals-booking-for-row">
-            {members.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                className={`sabi-hospitals-booking-for-chip ${bookingForId === m.id ? "active" : ""}`}
-                onClick={() => setBookingForId(m.id)}
-              >
-                {m.isSelf ? "Myself" : m.name}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {needsTheirAcceptance && (
-          <div className="sabi-hospitals-enroll-note">
-            <ShieldAlert size={15} /> {bookingFor?.name} manages their own account — they&apos;ll need to accept or reject
-            this booking first. Once they accept, {practitioner.name} will send {bookingFor?.name.split(" ")[0]} a
-            schedule to review themself — you&apos;ll just get notified of their decision.
-          </div>
-        )}
-
-        <div className="sabi-hospitals-wizard-layout">
-            <div className="sabi-hospitals-booking-steps">
-              <div className="sabi-card sabi-hospitals-wizard-card">
-                <h3><span className="sabi-hospitals-step-num">1</span> Engagement Length</h3>
-                <div className="sabi-wellness-duration-row">
-                  {[30, 60].map((d) => (
-                    <button key={d} type="button" className={durationDays === d ? "active" : ""} onClick={() => setDurationDays(d)}>
-                      {d} Days
-                    </button>
-                  ))}
-                </div>
+              <span className="sabi-booking-label">Preferred date</span>
+              <div className="sabi-booking-days" style={{ margin: "8px 0 14px" }}>
+                {days.map((d) => (
+                  <button key={d.key} type="button" aria-pressed={date === d.key} aria-label={`${d.weekday} ${d.day}`} className={date === d.key ? "active" : ""} onClick={() => setDate(d.key)}>
+                    <small>{d.weekday}</small>
+                    <strong>{d.day}</strong>
+                  </button>
+                ))}
               </div>
 
-              {practitioner.supportsPhysical && (
-                <div className="sabi-card sabi-hospitals-wizard-card">
-                  <h3><span className="sabi-hospitals-step-num">2</span> Visit Type</h3>
-                  <div className="sabi-hospitals-type-grid">
-                    <button type="button" className={`sabi-hospitals-type-card ${visitType === "physical" ? "active" : ""}`} onClick={() => setVisitType("physical")}>
-                      <MapPin size={22} />
-                      <strong>Physical</strong>
-                      <span>{practitioner.name.split(" ")[0]} comes to you.</span>
-                    </button>
-                    <button type="button" className={`sabi-hospitals-type-card ${visitType === "virtual" ? "active" : ""}`} onClick={() => setVisitType("virtual")}>
-                      <Video size={22} />
-                      <strong>Virtual</strong>
-                      <span>Connect remotely.</span>
-                    </button>
-                  </div>
-                </div>
-              )}
+              <TimePicker label="Preferred time" value={time} onChange={setTime} />
 
-              {needsAddress && (
-                <div className="sabi-card sabi-hospitals-wizard-card">
-                  <h3><MapPin size={18} /> Visit Address</h3>
-                  {addresses.length > 0 && (
-                    <div className="sabi-booking-address-grid">
-                      {addresses.map((addr) => (
-                        <button
-                          type="button"
-                          key={addr.id}
-                          className={`sabi-booking-address-card ${selectedAddressId === addr.id ? "selected" : ""}`}
-                          onClick={() => { setSelectedAddressId(addr.id); setShowAddressForm(false); }}
-                        >
-                          {selectedAddressId === addr.id && <span className="check"><Check size={14} /></span>}
-                          <strong>{addr.label}</strong>
-                          <span>{addr.address}</span>
-                        </button>
-                      ))}
-                      <button type="button" className="sabi-booking-address-add" onClick={() => setShowAddressForm((s) => !s)}>
-                        <Plus size={14} /> Use a different address
-                      </button>
-                    </div>
-                  )}
-                  {showAddressForm && (
-                    <div className="sabi-booking-address-form">
-                      <input type="text" placeholder="Label (e.g. Home)" value={newAddress.label} onChange={(e) => setNewAddress((p) => ({ ...p, label: e.target.value }))} />
-                      <input type="text" placeholder="Recipient Name" value={newAddress.recipient} onChange={(e) => setNewAddress((p) => ({ ...p, recipient: e.target.value }))} />
-                      <input type="text" placeholder="Phone Number" value={newAddress.phone} onChange={(e) => setNewAddress((p) => ({ ...p, phone: e.target.value }))} />
-                      <input type="text" placeholder="Street, area, city" value={newAddress.address} onChange={(e) => setNewAddress((p) => ({ ...p, address: e.target.value }))} />
-                      <button type="button" className="sabi-doctor-outline" onClick={handleSaveNewAddress}>Save Address</button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {isCaregiver ? (
-                <div className="sabi-card sabi-hospitals-wizard-card">
-                  <h3><Clock3 size={18} /> Daily Hours</h3>
-                  <p className="sabi-hospitals-wizard-note">What time should {practitioner.name.split(" ")[0]} resume and leave each day?</p>
-                  <div className="sabi-hospitals-form-grid">
-                    <TimePicker label="Resume By" value={dailyStart} onChange={setDailyStart} />
-                    <TimePicker label="Leave By" value={dailyEnd} onChange={setDailyEnd} />
-                  </div>
-                </div>
-              ) : (
-                <div className="sabi-card sabi-hospitals-wizard-card">
-                  <h3><Clock3 size={18} /> Session Schedule</h3>
-                  <label className="sabi-booking-field" style={{ marginBottom: 12 }}>
-                    <span className="sabi-booking-label">Hours per Session</span>
-                    <select value={sessionHours} onChange={(e) => setSessionHours(Number(e.target.value))}>
-                      {[1, 1.5, 2].map((h) => <option key={h} value={h}>{h} hour{h === 1 ? "" : "s"}</option>)}
-                    </select>
-                  </label>
-                  <span className="sabi-booking-label">Which Days</span>
-                  <div className="sabi-wellness-days-row">
-                    {WEEKDAYS.map((d) => (
-                      <button
-                        key={d.value}
-                        type="button"
-                        className={daysOfWeek.includes(d.value) ? "active" : ""}
-                        onClick={() => toggleDay(d.value)}
-                      >
-                        {d.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {categoryId === "fitness_coach" && (
-                <div className="sabi-card sabi-hospitals-wizard-card">
-                  <h3><Target size={18} /> Your Goal</h3>
-                  <label className="sabi-booking-field">
-                    <select value={goal} onChange={(e) => setGoal(e.target.value)}>
-                      {FITNESS_GOALS.map((g) => <option key={g} value={g}>{g}</option>)}
-                    </select>
-                  </label>
-                </div>
-              )}
+              <label className="sabi-booking-field" style={{ marginTop: 14 }}>
+                <span className="sabi-booking-label">Anything the provider should know? (optional)</span>
+                <textarea rows={3} maxLength={300} value={context} onChange={(e) => setContext(e.target.value)} placeholder="e.g. Post-surgery recovery, mobility support needed" />
+              </label>
+              {!contextOk && <p className="sabi-form-error">Add a little more detail, or leave this blank.</p>}
+              <p className="sabi-hospitals-wizard-note"><Info size={14} /> This is a request — the provider confirms or declines it.</p>
             </div>
 
             <aside className="sabi-hospitals-sidebar">
               <div className="sabi-card sabi-hospitals-booking-summary">
-                <h4>Booking Summary</h4>
-                <div className="row"><Users size={15} /><div><span>Booking For</span><strong>{bookingFor?.isSelf ? "Myself" : bookingFor?.name}</strong></div></div>
-                <div className="row"><User2 size={15} /><div><span>Practitioner</span><strong>{practitioner.name}</strong></div></div>
-                <div className="row"><Clock3 size={15} /><div><span>Duration</span><strong>{durationDays} days · ~{estimatedSessions} {isCaregiver ? "visits" : "sessions"}</strong></div></div>
-                <div className="sabi-wellness-cost-line">
-                  <span>Estimated Total</span>
-                  <strong>{formatNaira(totalCost)}</strong>
+                <h4>Booking summary</h4>
+                <div className="sabi-hospitals-review-grid">
+                  <div><span>Service</span><strong>{offering.data.name}</strong></div>
+                  <div><span>Provider</span><strong>{offering.data.providerName}</strong></div>
+                  <div><span>Preferred</span><strong>{formatDateTime(requestedAt)}</strong></div>
+                  <div><span>Price</span><strong>{offering.data.price > 0 ? formatNaira(offering.data.price) : "On request"}</strong></div>
                 </div>
-                <p className="sabi-wellness-cost-note">
-                  {isCaregiver
-                    ? `${formatNaira(practitioner.rate)}/day x ${durationDays} days`
-                    : `${formatNaira(practitioner.rate)}/hr x ${sessionHours}hr x ${estimatedSessions} sessions`}
-                </p>
-                <button
-                  type="button"
-                  className="sabi-btn-primary sabi-btn-block"
-                  style={{ marginTop: 14 }}
-                  disabled={!canSubmit || submitting}
-                  onClick={handleSubmit}
-                >
-                  {submitting ? "Sending…" : "Send Booking Request"}
+                {submitError && <p className="sabi-form-error" role="alert">{submitError}</p>}
+                <button type="button" className="sabi-btn-primary sabi-btn-block" disabled={!contextOk || submitting} onClick={submit}>
+                  {submitting ? "Sending request…" : "Request Booking"}
                 </button>
               </div>
             </aside>
           </div>
-      </div>
-    </div>
+        )}
+      </LoadState>
+    </PageShell>
   );
 }
 

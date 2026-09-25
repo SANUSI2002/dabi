@@ -15,7 +15,6 @@ import { getMember, updateMember } from "./familyStore";
 import { PERMISSION_LEVELS, EMERGENCY_ONLY_LEVEL, DEFAULT_ACCESS_BY_LEVEL } from "./data";
 import { PermissionAccessPicker } from "./PermissionAccessPicker";
 import { getAppointments } from "../appointments/appointmentStore";
-import { getEnrollmentsForMember } from "../hospitals/hospitalStore";
 
 const ALL_LEVELS = [...PERMISSION_LEVELS, EMERGENCY_ONLY_LEVEL];
 
@@ -84,14 +83,10 @@ export function MemberProfilePage() {
     { id: "emergency", label: "Emergency ID", visible: true },
   ].filter((t) => t.visible);
 
+  // Hospital enrollments live on the server; that page books for whoever is enrolled.
   const handleBookHospital = () => {
-    const enrolled = getEnrollmentsForMember(member.id).find((e) => e.status === "Enrolled");
     setShowBookChoice(false);
-    if (enrolled) {
-      navigate(`/hospitals/${enrolled.hospitalId}/appointment?memberId=${member.id}`);
-    } else {
-      navigate("/hospitals", { state: { enrollMemberId: member.id, enrollMemberName: member.name } });
-    }
+    navigate("/family/hospital-enrollment");
   };
 
   const handleBookDoctor = () => {
