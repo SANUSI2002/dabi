@@ -1,14 +1,14 @@
 import React from "react";
 import { Card } from "design-system";
-import { Folder, MessageSquare, FileEdit } from "lucide-react";
+import { Folder, MessageSquare, FileText } from "lucide-react";
+import { isVisit } from "../../../api/recordsApi";
 
-// Every count here is derived from the real records list in state — never a
-// fixed placeholder — so it stays accurate as records are added or removed.
-export function StatsRow({ records }) {
+// Every count is derived from the patient's live records and documents.
+export function StatsRow({ records, documents }) {
   const stats = [
     { icon: Folder, value: records.length, label: "Total Records" },
-    { icon: MessageSquare, value: records.filter((r) => r.categoryId === "consultations").length, label: "Consultations" },
-    { icon: FileEdit, value: records.filter((r) => r.categoryId == null).length, label: "Unfiled Documents" },
+    { icon: MessageSquare, value: records.filter(isVisit).length, label: "Consultations" },
+    { icon: FileText, value: documents.length, label: "Documents" },
   ];
 
   return (

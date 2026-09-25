@@ -1,36 +1,40 @@
 import React from "react";
 import { Card } from "design-system";
-import { MoreVertical } from "lucide-react";
-import { RECENT_ACTIVITY } from "../data";
+import { CloudUpload, FilePlus2 } from "lucide-react";
 
-export function RecentActivityCard() {
+const when = (iso) => new Date(iso).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" });
+
+/** The latest few things in the patient's history: uploaded documents and dated records. */
+export function RecentActivityCard({ records, documents }) {
+  const items = [
+    ...documents.map((d) => ({ key: `d-${d.id}`, icon: CloudUpload, title: "Document uploaded", sub: `${d.filename} · ${d.statusLabel}`, at: d.createdAt })),
+    ...records.map((r) => ({ key: `r-${r.id}`, icon: FilePlus2, title: r.title, sub: r.meta, at: r.dateIso })),
+  ]
+    .sort((a, b) => new Date(b.at) - new Date(a.at))
+    .slice(0, 4);
+
   return (
     <Card>
-      <div className="sabi-section-title">
-        Recent Activity
-        <button type="button" className="sabi-activity-more" aria-label="More options">
-          <MoreVertical size={16} />
-        </button>
-      </div>
+      <div className="sabi-section-title">Recent Activity</div>
 
-      <div className="sabi-activity-list">
-        {RECENT_ACTIVITY.map((item, i) => (
-          <div className="sabi-activity-item" key={i}>
-            <div className="sabi-activity-icon">
-              <item.icon size={16} />
+      {items.length === 0 ? (
+        <p className="sabi-modal-empty">Nothing here yet — your newest records and uploads will show up here.</p>
+      ) : (
+        <div className="sabi-activity-list">
+          {items.map((item) => (
+            <div className="sabi-activity-item" key={item.key}>
+              <div className="sabi-activity-icon">
+                <item.icon size={16} />
+              </div>
+              <div className="sabi-activity-body">
+                <div className="sabi-activity-title">{item.title}</div>
+                <div className="sabi-activity-sub">{item.sub}</div>
+                <div className="sabi-activity-time">{when(item.at).toUpperCase()}</div>
+              </div>
             </div>
-            <div className="sabi-activity-body">
-              <div className="sabi-activity-title">{item.title}</div>
-              <div className="sabi-activity-sub">{item.sub}</div>
-              <div className="sabi-activity-time">{item.time.toUpperCase()}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <button type="button" className="sabi-activity-viewall">
-        View All Activity
-      </button>
+          ))}
+        </div>
+      )}
     </Card>
   );
 }

@@ -116,7 +116,8 @@ export const getCurrentUser = () => currentUser;
  * once on a 401 and retries. Resolves to the parsed body; rejects with an Error carrying
  * the server's message, `status` and `code`.
  */
-export async function authorizedRequest(path, { method = 'GET', body, query, signal } = {}) {
+// `raw: true` returns the response body as a Blob (for PDFs and other files) instead of parsing JSON.
+export async function authorizedRequest(path, { method = 'GET', body, query, signal, raw = false } = {}) {
   if (!apiConfigured) throw Object.assign(new Error('The Sabi Health service is not configured.'), { code: 'API_NOT_CONFIGURED' });
   if (!accessToken) await restoreSession();
   const search = query ? `?${new URLSearchParams(Object.entries(query).filter(([, v]) => v !== undefined && v !== null && v !== '')).toString()}` : '';
@@ -134,6 +135,7 @@ export async function authorizedRequest(path, { method = 'GET', body, query, sig
     if (accessToken === used) accessToken = null;
     if (await restoreSession()) { used = accessToken; response = await send(used); }
   }
+  if (raw && response.ok) return response.blob();
   const parsed = await response.json().catch(() => ({}));
   if (!response.ok) {
     const message = parsed.message || parsed.error?.message || (response.status === 401 ? 'Your session has expired. Please sign in again.' : 'The Sabi Health service could not complete that request.');

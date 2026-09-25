@@ -1,62 +1,36 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card } from "design-system";
-import { Siren, ArrowUpRight } from "lucide-react";
-import { jsPDF } from "jspdf";
-import { VITAL_INFO } from "../data";
+import { Siren, ArrowUpRight, Loader2 } from "lucide-react";
+import { useApiData } from "../../../api/useApiData";
+import { downloadEmergencyPdf, getEmergencySummary } from "../../../api/recordsApi";
+
+const NOT_RECORDED = "Not recorded";
 
 export function VitalInfoCard() {
-  const generateEmergencyPDF = () => {
-    const doc = new jsPDF();
+  const { data: info, loading, error } = useApiData(getEmergencySummary, []);
+  const [generating, setGenerating] = useState(false);
+  const [pdfError, setPdfError] = useState(null);
 
-    // Header
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(22);
-    doc.text("Emergency Medical Information", 20, 20);
-
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
-    doc.text("This document contains important emergency medical information.", 20, 30);
-
-    // Divider
-    doc.line(20, 35, 190, 35);
-
-    // Blood Group
-    doc.setFont("helvetica", "bold");
-    doc.text("Blood Group:", 20, 50);
-    doc.setFont("helvetica", "normal");
-    doc.text(VITAL_INFO.bloodGroup, 70, 50);
-
-    // Genotype
-    doc.setFont("helvetica", "bold");
-    doc.text("Genotype:", 20, 60);
-    doc.setFont("helvetica", "normal");
-    doc.text(VITAL_INFO.genotype, 70, 60);
-
-    // Allergies
-    doc.setFont("helvetica", "bold");
-    doc.text("Allergies:", 20, 75);
-    doc.setFont("helvetica", "normal");
-    doc.text(VITAL_INFO.allergies.join(", "), 20, 85);
-
-    // Chronic Condition
-    doc.setFont("helvetica", "bold");
-    doc.text("Chronic Condition:", 20, 105);
-    doc.setFont("helvetica", "normal");
-    doc.text(VITAL_INFO.chronicCondition || "None", 20, 115);
-
-    // Footer
-    doc.setDrawColor(200);
-    doc.line(20, 270, 190, 270);
-
-    doc.setFontSize(10);
-    doc.text(
-      `Generated on ${new Date().toLocaleString()}`,
-      20,
-      280
-    );
-
-    doc.save("Emergency-Medical-Info.pdf");
+  // The PDF is built by the API from the same profile data, so it can never disagree with this card.
+  const generateEmergencyPDF = async () => {
+    setGenerating(true);
+    setPdfError(null);
+    try {
+      const blob = await downloadEmergencyPdf();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Emergency-Medical-Info.pdf";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      setPdfError(err.message);
+    } finally {
+      setGenerating(false);
+    }
   };
+
+  const value = (v) => (loading ? "…" : v || NOT_RECORDED);
 
   return (
     <Card className="sabi-vitalinfo">
@@ -73,49 +47,53 @@ export function VitalInfoCard() {
         </div>
       </div>
 
-      <div className="sabi-vitalinfo-grid">
-        <div className="sabi-vitalinfo-box">
-          <div className="sabi-vitalinfo-label">Blood Group</div>
-          <div className="sabi-vitalinfo-value">
-            {VITAL_INFO.bloodGroup}
+      {error ? (
+        <p className="sabi-form-error" role="alert">{error.message}</p>
+      ) : (
+        <>
+          <div className="sabi-vitalinfo-grid">
+            <div className="sabi-vitalinfo-box">
+              <div className="sabi-vitalinfo-label">Blood Group</div>
+              <div className="sabi-vitalinfo-value">{value(info?.bloodGroup)}</div>
+            </div>
+
+            <div className="sabi-vitalinfo-box">
+              <div className="sabi-vitalinfo-label">Genotype</div>
+              <div className="sabi-vitalinfo-value">{value(info?.genotype)}</div>
+            </div>
           </div>
-        </div>
 
-        <div className="sabi-vitalinfo-box">
-          <div className="sabi-vitalinfo-label">Genotype</div>
-          <div className="sabi-vitalinfo-value">
-            {VITAL_INFO.genotype}
+          <div className="sabi-vitalinfo-box sabi-vitalinfo-box-wide">
+            <div className="sabi-vitalinfo-label">Allergies</div>
+            {info?.allergies?.length ? (
+              <div className="sabi-vitalinfo-pills">
+                {info.allergies.map((a) => (
+                  <span key={a} className="sabi-vitalinfo-pill">{a}</span>
+                ))}
+              </div>
+            ) : (
+              <div className="sabi-vitalinfo-condition">{loading ? "…" : "None recorded"}</div>
+            )}
           </div>
-        </div>
-      </div>
 
-      <div className="sabi-vitalinfo-box sabi-vitalinfo-box-wide">
-        <div className="sabi-vitalinfo-label">Allergies</div>
+          <div className="sabi-vitalinfo-box sabi-vitalinfo-box-wide">
+            <div className="sabi-vitalinfo-label">Chronic Conditions</div>
+            <div className="sabi-vitalinfo-condition">{loading ? "…" : info?.chronicConditions || "None recorded"}</div>
+          </div>
 
-        <div className="sabi-vitalinfo-pills">
-          {VITAL_INFO.allergies.map((a) => (
-            <span key={a} className="sabi-vitalinfo-pill">
-              {a}
-            </span>
-          ))}
-        </div>
-      </div>
+          {info?.emergencyContact && (
+            <div className="sabi-vitalinfo-box sabi-vitalinfo-box-wide">
+              <div className="sabi-vitalinfo-label">Emergency Contact</div>
+              <div className="sabi-vitalinfo-condition">{info.emergencyContact}</div>
+            </div>
+          )}
+        </>
+      )}
 
-      <div className="sabi-vitalinfo-box sabi-vitalinfo-box-wide">
-        <div className="sabi-vitalinfo-label">Chronic Conditions</div>
-
-        <div className="sabi-vitalinfo-condition">
-          {VITAL_INFO.chronicCondition}
-        </div>
-      </div>
-
-      <button
-        type="button"
-        className="sabi-vitalinfo-cta"
-        onClick={generateEmergencyPDF}
-      >
-        <ArrowUpRight size={16} />
-        Generate Emergency PDF
+      {pdfError && <p className="sabi-form-error" role="alert">{pdfError}</p>}
+      <button type="button" className="sabi-vitalinfo-cta" onClick={generateEmergencyPDF} disabled={generating}>
+        {generating ? <Loader2 size={16} className="sabi-spin" /> : <ArrowUpRight size={16} />}
+        {generating ? "Preparing PDF…" : "Generate Emergency PDF"}
       </button>
     </Card>
   );

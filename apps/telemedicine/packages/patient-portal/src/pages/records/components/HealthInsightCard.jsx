@@ -10,11 +10,15 @@ export function HealthInsightCard() {
       </div>
       <div className="sabi-healthinsight-title">Keep Your History Complete</div>
       <p className="sabi-healthinsight-text">
-        Uploading your previous medical history helps your care team see the full picture. Securely import your
-        external records today.
+        Uploading your previous medical history helps your care team see the full picture. Add past lab reports, scans
+        and letters to your secure documents.
       </p>
-      <button type="button" className="sabi-healthinsight-cta">
-        Connect External Health App
+      <button
+        type="button"
+        className="sabi-healthinsight-cta"
+        onClick={() => document.getElementById("records-documents")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+      >
+        Upload a Document
       </button>
     </Card>
   );
