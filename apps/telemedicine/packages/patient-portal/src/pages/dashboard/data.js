@@ -1,4 +1,3 @@
-import { colors } from "design-system";
 import {
   LayoutDashboard,
   FileText,
@@ -19,15 +18,12 @@ import {
   Truck,
   UploadCloud,
   Zap,
-  Droplet,
-  Activity as ActivityIcon,
   HeartHandshake,
   Settings,
   LogOut,
 } from "lucide-react";
 
-// Placeholder content for the patient dashboard.
-// Swap these for real API data when wiring the page up.
+// Navigation and quick-action definitions for the patient dashboard (live data comes from the API).
 // `icon` holds the lucide-react component itself (not a rendered
 // element) — consumers render it as <item.icon size={18} />.
 export const NAV_ITEMS = [
@@ -59,32 +55,6 @@ export const FOOTER_ITEMS = [
 export const QUICK_ACTIONS = [
   { title: "Book Appointment", subtitle: "Schedule with your doctor", icon: CalendarPlus, to: "/appointments" },
   { title: "Upload Record", subtitle: "Add new lab results", icon: UploadCloud, to: "/records" },
-  { title: "Emergency access", subtitle: "Access rapid doctors", icon: Zap, action: "emergency" },
-];
-
-// `activeSub` only renders for the item currently marked active in
-// TodaysSchedule (the first one) — mirrors the "Connect in 15m" line.
-export const SCHEDULE = [
-  { time: "09:00 AM", title: "Video Call: Dr. Jenkins", activeSub: "Connect in 15m" },
-  { time: "02:30 PM", title: "Physical Therapy Session" },
-];
-
-export const CONSULTATIONS = [
-  { id: "blood-panel-oct24", title: "Annual Comprehensive Blood Panel", sub: "Dr. Sarah Jenkins · Oct 24, 2023", icon: Droplet },
-  { id: "ecg-sep12-1", title: "Resting ECG Report", sub: "Metropolitan Heart Center · Sep 12, 2023", icon: ActivityIcon },
-  { id: "ecg-sep12-2", title: "Resting ECG Report", sub: "Metropolitan Heart Center · Sep 12, 2023", icon: ActivityIcon },
-  { id: "ecg-sep12-3", title: "Resting ECG Report", sub: "Metropolitan Heart Center · Sep 12, 2023", icon: ActivityIcon },
-  { id: "ecg-sep12-4", title: "Resting ECG Report", sub: "Metropolitan Heart Center · Sep 12, 2023", icon: ActivityIcon },
-  { id: "ecg-sep12-5", title: "Resting ECG Report", sub: "Metropolitan Heart Center · Sep 12, 2023", icon: ActivityIcon },
-];
-
-export const MEDICATIONS = [
-  { name: "Lisinopril 10mg", sub: "After Breakfast", state: "take" },
-  { name: "Vitamin D3", sub: "08:00 AM · Taken", state: "taken" },
-];
-
-export const FAMILY = [
-  { initials: "JD", bg: colors.primary, online: true },
-  { initials: "AA", bg: colors.warning, online: true },
+  { title: "Emergency access", subtitle: "Show your emergency card", icon: Zap, action: "emergency" },
 ];
 
