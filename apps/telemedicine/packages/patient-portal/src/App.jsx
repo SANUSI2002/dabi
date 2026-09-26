@@ -187,7 +187,6 @@ export default function App() {
               <Route path="/family/add/dependent" element={<SetupDependentPage />} />
               <Route path="/family/add/success" element={<MemberAddedSuccessPage />} />
               <Route path="/family/member/:memberId" element={<MemberProfilePage />} />
-              <Route path="/family/member/:memberId/edit" element={<SetupDependentPage />} />
               <Route path="/family/care-calendar" element={<CareCalendarPage />} />
               <Route path="/hospitals" element={<HospitalsPage />} />
               <Route path="/hospitals/:id" element={<HospitalDetailPage />} />

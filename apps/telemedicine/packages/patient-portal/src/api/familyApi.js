@@ -99,7 +99,8 @@ export const inviteMember = ({ email, patientReference, relationship, permission
 export const createInviteLink = (permissionLevel) => send("POST", "/join-links", { permissionLevel });
 
 export const approveMember = (id, permissions) => send("POST", `/members/${id}/approve`, { permissions });
-export const updateMemberPermissions = (id, permissions) => send("PATCH", `/${id}/permissions`, { permissions });
+export const updateMemberPermissions = (id, permissions, permissionLevel) =>
+  send("PATCH", `/${id}/permissions`, { permissions, ...(permissionLevel ? { permissionLevel } : {}) });
 export const removeMember = (id) => send("DELETE", `/members/${id}`);
 
 // ---------------- Joining someone else's circle ----------------

@@ -9,71 +9,88 @@ import "../appointments/Appointments.css";
 import { pageVars } from "../../pageVars";
 import { useZoom } from "../../hooks/useZoom";
 import { Sidebar, Topbar } from "../dashboard/components";
+import { getMembers } from "./familyStore";
 import { useApiData } from "../../api/useApiData";
-import { getCalendar, getUpcomingCare, initialsOf } from "../../api/familyApi";
+import { getCalendar, getUpcomingCare } from "../../api/familyApi";
 import { toCalendarDate, formatCalendarDate, isSameDay, isToday } from "../appointments/components/AppointmentCalendar";
-import { colorFor } from "./data";
 
 const WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-const STATUS_LABELS = {
-  PENDING: "Awaiting confirmation", REQUESTED: "Awaiting confirmation", SCHEDULED: "Confirmed", CONFIRMED: "Confirmed",
-  CHECKED_IN: "Checked in", CANCELLED: "Cancelled", REJECTED: "Declined", DECLINED: "Declined", COMPLETED: "Completed",
-};
-// Cancelled and declined appointments aren't on anyone's schedule, so the calendar leaves them out.
-const ENDED = new Set(["CANCELLED", "REJECTED", "DECLINED"]);
-const onSchedule = (e) => !ENDED.has(e.status);
 
-const clock = (iso) => new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-const memberColor = (id) => (id === "self" ? "#2E6B5A" : colorFor(id));
+function getMonthStart(date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
 
 function createMonthGrid(currentMonth) {
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
   const firstDay = new Date(year, month, 1);
   const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const previousMonthDays = new Date(year, month, 0).getDate();
   const leadingDays = (firstDay.getDay() + 6) % 7;
   const days = [];
-  for (let offset = leadingDays; offset > 0; offset -= 1) days.push({ date: new Date(year, month, 1 - offset), muted: true });
-  for (let day = 1; day <= daysInMonth; day += 1) days.push({ date: new Date(year, month, day), muted: false });
-  while (days.length % 7 !== 0) days.push({ date: new Date(year, month + 1, days.length - leadingDays - daysInMonth + 1), muted: true });
+
+  for (let offset = leadingDays; offset > 0; offset -= 1) {
+    days.push({ date: new Date(year, month - 1, previousMonthDays - offset + 1), muted: true });
+  }
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    days.push({ date: new Date(year, month, day), muted: false });
+  }
+  while (days.length % 7 !== 0) {
+    const nextMonthDay = days.length - leadingDays - daysInMonth + 1;
+    days.push({ date: new Date(year, month + 1, nextMonthDay), muted: true });
+  }
   return days;
+}
+
+// Every event from the circle calendar belongs to the member it was booked for
+// (doctor bookings, hospital appointments, and dependents' appointments).
+function buildFamilyEvents(members, calendarEvents) {
+  return calendarEvents
+    .map((e) => {
+      const member = members.find((m) => m.id === e.memberId) || { id: e.memberId, name: e.memberName, color: "#2E6B5A", isSelf: e.memberId === "self" };
+      const date = toCalendarDate(new Date(e.time));
+      if (!date) return null;
+      const time = new Date(e.time).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+      return { id: e.id, date, member, title: e.title, time, status: e.status };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.date - b.date);
 }
 
 export function CareCalendarPage() {
   const [zoom] = useZoom();
   const navigate = useNavigate();
   const today = useMemo(() => toCalendarDate(new Date()), []);
-  const [currentMonth, setCurrentMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
+  const [currentMonth, setCurrentMonth] = useState(() => getMonthStart(today));
   const [selectedDate, setSelectedDate] = useState(today);
+
+  const { data: membersData } = useApiData(getMembers, []);
+  const members = useMemo(() => membersData || [], [membersData]);
+  // The visible month (with the leading/trailing days of the grid) and what's coming up.
+  const { data: monthData } = useApiData(() => {
+    const from = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), -7);
+    const to = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 8);
+    return getCalendar(from, to);
+  }, [currentMonth]);
+  const { data: upcomingData } = useApiData(() => getUpcomingCare(20), []);
+  const events = useMemo(() => buildFamilyEvents(members, monthData?.events || []), [members, monthData]);
+
+  const eventsByDate = useMemo(() => {
+    const map = new Map();
+    events.forEach((e) => {
+      const key = formatCalendarDate(e.date);
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(e);
+    });
+    return map;
+  }, [events]);
 
   const days = useMemo(() => createMonthGrid(currentMonth), [currentMonth]);
   const weeks = useMemo(() => Array.from({ length: days.length / 7 }, (_, i) => days.slice(i * 7, i * 7 + 7)), [days]);
 
-  // One request per visible grid (at most 6 weeks, within the API's 43-day window).
-  const rangeKey = formatCalendarDate(days[0].date);
-  const month = useApiData(() => {
-    const from = new Date(days[0].date);
-    const to = new Date(days[days.length - 1].date);
-    to.setDate(to.getDate() + 1);
-    return getCalendar(from, to);
-  }, [rangeKey]);
-  const upcoming = useApiData(() => getUpcomingCare(20), []);
-
-  const members = month.data?.members || upcoming.data?.members || [];
-  const eventsByDate = useMemo(() => {
-    const map = new Map();
-    for (const e of (month.data?.events || []).filter(onSchedule)) {
-      const key = formatCalendarDate(new Date(e.time));
-      if (!map.has(key)) map.set(key, []);
-      map.get(key).push(e);
-    }
-    return map;
-  }, [month.data]);
-
   const selectedDayEvents = eventsByDate.get(formatCalendarDate(selectedDate)) || [];
-  const upcomingEvents = (upcoming.data?.events || []).filter(onSchedule);
-  const openMember = (id) => navigate(id === "self" ? "/profile" : `/family/member/${id}`);
+  const upcomingEvents = useMemo(() => buildFamilyEvents(members, upcomingData?.events || []), [members, upcomingData]);
 
   return (
     <div className="sabi-dashboard" style={{ ...pageVars, zoom }}>
@@ -88,27 +105,24 @@ export function CareCalendarPage() {
         <div className="sabi-fam-header" style={{ marginBottom: 16 }}>
           <div>
             <h1>Care Calendar</h1>
-            <p>Appointments for you, your dependents, and members who share their appointments with you.</p>
+            <p>Everyone in your circle&apos;s appointments, at a glance.</p>
           </div>
         </div>
-
-        {month.error && <p className="sabi-form-error" role="alert">{month.error.message}</p>}
 
         <div className="sabi-care-cal-layout">
           <aside className="sabi-card sabi-care-cal-members">
             <h3>Care Circle</h3>
             <div className="sabi-care-cal-member-list">
               {members.map((m) => (
-                <button type="button" className="sabi-care-cal-member-row" key={m.id} onClick={() => openMember(m.id)}>
-                  <span className="sabi-fam-avatar" style={{ background: memberColor(m.id), width: 30, height: 30, fontSize: ".72rem" }}>{initialsOf(m.name)}</span>
+                <button type="button" className="sabi-care-cal-member-row" key={m.id} onClick={() => navigate(`/family/member/${m.id}`)}>
+                  <span className="sabi-fam-avatar" style={{ background: m.color, width: 30, height: 30, fontSize: ".72rem" }}>{m.initials}</span>
                   <span className="sabi-care-cal-member-name">
-                    <strong>{m.name}</strong>
+                    <strong>{m.isSelf ? "Myself" : m.name}</strong>
                     <small>{m.relationship}</small>
                   </span>
                   <ArrowRight size={14} className="chevron" />
                 </button>
               ))}
-              {!members.length && <p className="sabi-modal-empty">{month.loading ? "Loading…" : "No one in your circle yet."}</p>}
             </div>
           </aside>
 
@@ -131,19 +145,19 @@ export function CareCalendarPage() {
                   {week.map(({ date, muted }) => {
                     const key = formatCalendarDate(date);
                     const dayEvents = eventsByDate.get(key) || [];
+                    const selected = isSameDay(date, selectedDate);
                     return (
                       <button
                         type="button"
                         key={key}
-                        aria-label={`${date.toDateString()}${dayEvents.length ? `, ${dayEvents.length} appointment${dayEvents.length > 1 ? "s" : ""}` : ""}`}
-                        className={["sabi-apt-day", "sabi-apt-day-btn", muted && "muted", isSameDay(date, selectedDate) && "selected", isToday(date, today) && "today"].filter(Boolean).join(" ")}
+                        className={["sabi-apt-day", "sabi-apt-day-btn", muted && "muted", selected && "selected", isToday(date, today) && "today"].filter(Boolean).join(" ")}
                         onClick={() => setSelectedDate(date)}
                       >
                         {date.getDate()}
                         {dayEvents.length > 0 && (
                           <span className="sabi-care-cal-dots">
                             {dayEvents.slice(0, 3).map((e) => (
-                              <span key={`${e.memberId}-${e.id}`} className="sabi-care-cal-dot" style={{ background: memberColor(e.memberId) }} />
+                              <span key={e.id} className="sabi-care-cal-dot" style={{ background: e.member.color }} />
                             ))}
                           </span>
                         )}
@@ -157,23 +171,23 @@ export function CareCalendarPage() {
             <div className="sabi-card">
               <div className="sabi-fam-section-head">
                 <h2 style={{ fontSize: "1rem" }}>
-                  {isSameDay(selectedDate, today) ? "Today's Events" : selectedDate.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+                  {isSameDay(selectedDate, today) ? "Today's Events" : selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                 </h2>
               </div>
               {selectedDayEvents.length > 0 ? (
                 <div className="sabi-fam-member-appt-list">
                   {selectedDayEvents.map((e) => (
-                    <div className="sabi-fam-member-appt-row" key={`${e.memberId}-${e.id}`}>
-                      <span className="dot" style={{ background: memberColor(e.memberId) }} />
+                    <div className="sabi-fam-member-appt-row" key={e.id}>
+                      <span className="dot" style={{ background: e.member.color }} />
                       <div>
                         <strong>{e.title}</strong>
-                        <span>{e.memberName} · {clock(e.time)} · {STATUS_LABELS[e.status] || e.status}</span>
+                        <span>{e.member.isSelf ? "Myself" : e.member.name} · {e.time}</span>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="sabi-modal-empty">{month.loading ? "Loading…" : "No appointments this day."}</p>
+                <p className="sabi-modal-empty">No events for this day.</p>
               )}
             </div>
 
@@ -184,17 +198,17 @@ export function CareCalendarPage() {
               {upcomingEvents.length > 0 ? (
                 <div className="sabi-fam-member-appt-list">
                   {upcomingEvents.map((e) => (
-                    <div className="sabi-fam-member-appt-row" key={`${e.memberId}-${e.id}`}>
-                      <span className="dot" style={{ background: memberColor(e.memberId) }} />
+                    <div className="sabi-fam-member-appt-row" key={e.id}>
+                      <span className="dot" style={{ background: e.member.color }} />
                       <div>
-                        <strong>{new Date(e.time).toLocaleDateString(undefined, { month: "short", day: "numeric" })} — {e.memberName}</strong>
-                        <span>{e.title} · {clock(e.time)} · {STATUS_LABELS[e.status] || e.status}</span>
+                        <strong>{e.date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} — {e.member.isSelf ? "Myself" : e.member.name}</strong>
+                        <span>{e.title} · {e.time}</span>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="sabi-modal-empty">{upcoming.loading ? "Loading…" : "No upcoming appointments across your circle."}</p>
+                <p className="sabi-modal-empty">No upcoming events across your care circle.</p>
               )}
             </div>
           </div>
