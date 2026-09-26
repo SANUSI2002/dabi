@@ -1,239 +1,420 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { CalendarDays, CheckCircle2, MapPin, Search, Stethoscope, Video, User2, Wallet } from "lucide-react";
+import {
+    CalendarDays,
+    CheckCircle2,
+    MapPin,
+    MessageSquare,
+    Search,
+    Sparkles,
+    Star,
+    Stethoscope
+} from "lucide-react";
 
 import "../../styles/share.css";
 import "./Doctor.css";
 
 import { pageVars } from "../../pageVars";
 import { useZoom } from "../../hooks/useZoom";
+
 import { Sidebar, Topbar } from "../dashboard/components";
-import { LoadState } from "../hospitals/hospitalShared";
+import { SPECIALTIES, inSpecialty } from "./data";
 import { useApiData } from "../../api/useApiData";
-import { CONSULTATION_LABELS, formatNaira, listDoctors } from "../../api/doctorsApi";
+import { listUiDoctors } from "../../api/doctorsApi";
 import { BookingModal } from "./components/BookingModal";
 import { DoctorProfileModal } from "./components/DoctorProfileModal";
 
-const when = (iso) => new Date(iso).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
-const WEEK = 7 * 86400000;
+function SpecialtyGrid({ activeSpecialty, onSelect, doctors }) {
+    return (
+        <section className="sabi-doctor-specialties">
+            <div className="sabi-doctor-section-heading">
+                <div>
+                    <h2>Featured Specialties</h2>
+                    <p>Find experts in the most requested medical fields</p>
+                </div>
+            </div>
 
-function useDebounced(value, delay = 350) {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return debounced;
+            <div className="sabi-doctor-specialty-grid">
+                {SPECIALTIES.map(({ label, icon: Icon }) => (
+                    <button
+                        key={label}
+                        type="button"
+                        onClick={() =>
+                            onSelect(activeSpecialty === label ? "" : label)
+                        }
+                        className={`sabi-doctor-specialty ${
+                            activeSpecialty === label ? "active" : ""
+                        }`}
+                    >
+                        <span>
+                            <Icon />
+                        </span>
+                        <strong>{label}</strong>
+                        <small>{doctors.filter((d) => inSpecialty(d, label)).length} Doctors</small>
+                    </button>
+                ))}
+            </div>
+        </section>
+    );
 }
 
 function DoctorCard({ doctor, onBook, onViewProfile }) {
-  return (
-    <article className="sabi-doctor-card sabi-card">
-      <div className="sabi-doctor-card-head">
-        <span className="sabi-doctor-avatar" aria-hidden="true">{doctor.initials}</span>
-        <span className="sabi-doctor-verified"><CheckCircle2 size={13} /> Verified</span>
-      </div>
+    return (
+        <article className="sabi-doctor-card sabi-card">
+            <div className="sabi-doctor-photo">
+                {doctor.photo ? <img src={doctor.photo} alt={doctor.name} /> : <div className="sabi-doctor-photo-initials" aria-hidden="true">{doctor.initials}</div>}
 
-      <div className="sabi-doctor-card-body">
-        <div className="sabi-doctor-card-title">
-          <div>
-            <h3>{doctor.name}</h3>
-            <p>{doctor.specialty}</p>
-          </div>
-        </div>
+                <span>
+                    <CheckCircle2 size={13} /> Verified
+                </span>
 
-        <ul>
-          {doctor.yearsOfExperience != null && (
-            <li><Stethoscope size={15} /> {doctor.yearsOfExperience} years experience</li>
-          )}
-          {(doctor.practiceName || doctor.practiceAddress) && (
-            <li><MapPin size={15} /> {doctor.practiceName || doctor.practiceAddress}</li>
-          )}
-          {doctor.consultationTypes.length > 0 && (
-            <li>{doctor.consultationTypes.includes("VIRTUAL") ? <Video size={15} /> : <User2 size={15} />} {doctor.consultationTypes.map((t) => CONSULTATION_LABELS[t]).join(" · ")}</li>
-          )}
-          <li className={doctor.nextAvailableAt ? "available" : "unavailable"}>
-            <CalendarDays size={15} /> {doctor.nextAvailableAt ? `Next available: ${when(doctor.nextAvailableAt)}` : "No open times yet"}
-          </li>
-        </ul>
+                <em>
+                    <Star size={13} fill="currentColor" /> {doctor.rating}
+                </em>
+            </div>
 
-        <footer>
-          <div>
-            <small>CONSULTATION FEE</small>
-            <strong>{doctor.fee != null ? formatNaira(doctor.fee) : "—"}</strong>
-          </div>
-          <button type="button" className="sabi-doctor-outline" onClick={() => onViewProfile(doctor)}>View Profile</button>
-          <button type="button" className="sabi-doctor-primary" onClick={() => onBook(doctor)} disabled={!doctor.nextAvailableAt} title={doctor.nextAvailableAt ? undefined : "This doctor hasn't published any open times yet"}>
-            Book
-          </button>
-        </footer>
-      </div>
-    </article>
-  );
+            <div className="sabi-doctor-card-body">
+                <div className="sabi-doctor-card-title">
+                    <div>
+                        <h3>{doctor.name}</h3>
+                        <p>{doctor.specialty}</p>
+                    </div>
+
+                    <button
+                        type="button"
+                        aria-label={`Message ${doctor.name}`}
+                    >
+                        <MessageSquare size={18} />
+                    </button>
+                </div>
+
+                <ul>
+                    <li>
+                        <Stethoscope size={15} /> {doctor.experience ?? "—"} years
+                        experience
+                    </li>
+
+                    <li>
+                        <MapPin size={15} /> {doctor.clinic || "Practice not listed"}
+                        {doctor.distance != null && <> · {doctor.distance}km away</>}
+                    </li>
+
+                    <li className="available">
+                        <CalendarDays size={15} /> Next available:{" "}
+                        {doctor.nextAvailable}
+                    </li>
+                </ul>
+
+                <footer>
+                    <div>
+                        <small>CONSULTATION FEE</small>
+                        <strong>{doctor.fee != null ? `₦${doctor.fee.toLocaleString()}` : "—"}</strong>
+                    </div>
+
+                    <button
+                        type="button"
+                        className="sabi-doctor-outline"
+                        onClick={() => onViewProfile(doctor)}
+                    >
+                        View Profile
+                    </button>
+
+
+                    <button
+                        type="button"
+                        className="sabi-doctor-primary"
+                        onClick={() => onBook(doctor)}
+                    >
+                        Book
+                    </button>
+                </footer>
+            </div>
+        </article>
+    );
 }
 
+// "1-5" | "5-10" | "10+" -> whether the doctor's published years of experience fall in range.
+function inExperienceRange(years, range) {
+    if (years == null) return false;
+    if (range === "10+") return years >= 10;
+    const [min, max] = range.split("-").map(Number);
+    return years >= min && years <= max;
+}
+
+// Filter pill label -> consultation type the doctor offers. Home visits aren't offered yet.
+const CONSULT_PILLS = [["Physical", "IN_PERSON"], ["Video", "VIRTUAL"], ["Home visit", "HOME_VISIT"]];
+
 export default function FindYourDoctor() {
-  const [zoom] = useZoom();
-  const location = useLocation();
-  // Arriving from a family member's profile: book for that dependent.
-  const bookingFor = location.state?.bookingForId ? { id: location.state.bookingForId, name: location.state.bookingForName } : null;
+    const location = useLocation();
+    const bookingFor = location.state?.bookingForId
+        ? { id: location.state.bookingForId, name: location.state.bookingForName, isSelf: false, isDependent: location.state.isDependent }
+        : null;
 
-  const [query, setQuery] = useState("");
-  const search = useDebounced(query);
-  const [specialty, setSpecialty] = useState("");
-  const [type, setType] = useState("");
-  const [thisWeek, setThisWeek] = useState(false);
-  const [profileDoctor, setProfileDoctor] = useState(null);
-  const [bookingDoctor, setBookingDoctor] = useState(null);
+    const [query, setQuery] = useState("");
+    const [specialty, setSpecialty] = useState("");
+    const [experience, setExperience] = useState("");
+    const [consultType, setConsultType] = useState("");
+    const { data: allDoctors = [], loading, error } = useApiData(listUiDoctors, []);
+    const [notice, setNotice] = useState("");
+    const [profileDoctor, setProfileDoctor] = useState(null);
+    const [bookingDoctor, setBookingDoctor] = useState(null);
+    const [matching, setMatching] = useState(false);
 
-  // Specialty chips come from the whole directory; results honour search + specialty on the server.
-  const all = useApiData(() => listDoctors(), []);
-  const results = useApiData(() => listDoctors({ search, specialty }), [search, specialty]);
+    const [zoom] = useZoom();
 
-  const specialties = useMemo(() => {
-    const counts = new Map();
-    for (const d of all.data || []) counts.set(d.specialty, (counts.get(d.specialty) || 0) + 1);
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
-  }, [all.data]);
+    const doctors = useMemo(
+        () =>
+            (allDoctors || []).filter((doctor) =>
+                (!specialty || inSpecialty(doctor, specialty)) &&
+                (!query ||
+                    `${doctor.name} ${doctor.specialty}`
+                        .toLowerCase()
+                        .includes(query.toLowerCase())) &&
+                (!experience || inExperienceRange(doctor.experience, experience)) &&
+                (!consultType || doctor.consultationTypes.includes(consultType))
+            ),
+        [allDoctors, consultType, experience, query, specialty]
+    );
 
-  const doctors = useMemo(
-    () =>
-      (results.data || []).filter(
-        (d) =>
-          (!type || d.consultationTypes.includes(type)) &&
-          (!thisWeek || (d.nextAvailableAt && new Date(d.nextAvailableAt).getTime() < Date.now() + WEEK)),
-      ),
-    [results.data, type, thisWeek],
-  );
+    const notify = (message) => {
+        setNotice(message);
+        window.setTimeout(() => setNotice(""), 2400);
+    };
 
-  const clearFilters = () => {
-    setQuery("");
-    setSpecialty("");
-    setType("");
-    setThisWeek(false);
-  };
+    return (
+        <div
+            className="sabi-dashboard"
+            style={{ ...pageVars, zoom }}
+        >
+            <Sidebar />
 
-  return (
-    <div className="sabi-dashboard" style={{ ...pageVars, zoom }}>
-      <Sidebar />
+            <main className="sabi-main sabi-doctor-main">
+                <Topbar placeholder="Search doctors, specialties, or clinics..." />
 
-      <main className="sabi-main sabi-doctor-main">
-        <Topbar placeholder="Search doctors, specialties, or clinics..." />
-
-        {bookingFor && (
-          <div className="sabi-doctor-booking-for-banner">
-            Finding a doctor for <strong>{bookingFor.name}</strong>. Choose a doctor and a time — {bookingFor.name.split(" ")[0]} is preselected.
-          </div>
-        )}
-
-        <header className="sabi-doctor-hero">
-          <p className="sabi-doctor-eyebrow">Verified doctors, real availability</p>
-          <h1>Find Your Doctor</h1>
-          <p>Every doctor here has been verified by Sabi Health. Pick an open time — the doctor confirms your appointment.</p>
-
-          <label className="sabi-doctor-search">
-            <Search size={20} />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or specialty..." aria-label="Search doctors" />
-            {query && <button type="button" onClick={() => setQuery("")}>Clear</button>}
-          </label>
-        </header>
-
-        {specialties.length > 0 && (
-          <section className="sabi-doctor-specialties">
-            <div className="sabi-doctor-section-heading">
-              <div>
-                <h2>Specialties</h2>
-                <p>Filter by the care you need</p>
-              </div>
-            </div>
-            <div className="sabi-doctor-specialty-grid">
-              {specialties.map(([label, count]) => (
-                <button key={label} type="button" onClick={() => setSpecialty(specialty === label ? "" : label)} className={`sabi-doctor-specialty ${specialty === label ? "active" : ""}`} aria-pressed={specialty === label}>
-                  <span><Stethoscope /></span>
-                  <strong>{label}</strong>
-                  <small>{count} {count === 1 ? "Doctor" : "Doctors"}</small>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
-
-        <section id="doctor-results" className="sabi-doctor-results">
-          <aside className="sabi-doctor-filters sabi-card">
-            <div className="sabi-doctor-filter-head">
-              <h2>Filters</h2>
-              <button type="button" onClick={clearFilters}>Clear all</button>
-            </div>
-
-            <fieldset>
-              <legend>Consultation type</legend>
-              <div className="sabi-doctor-filter-pills">
-                {[["", "Any"], ["IN_PERSON", "In person"], ["VIRTUAL", "Video"]].map(([value, label]) => (
-                  <button key={label} type="button" className={type === value ? "active" : ""} aria-pressed={type === value} onClick={() => setType(value)}>{label}</button>
-                ))}
-              </div>
-            </fieldset>
-
-            <fieldset>
-              <legend>Availability</legend>
-              <label>
-                <input type="checkbox" checked={thisWeek} onChange={(e) => setThisWeek(e.target.checked)} />
-                Open times in the next 7 days
-              </label>
-            </fieldset>
-
-            <div className="sabi-doctor-fee-note">
-              <Wallet size={18} />
-              <p>Fees are set by each doctor and paid to their practice.</p>
-            </div>
-          </aside>
-
-          <div>
-            <div className="sabi-doctor-results-head">
-              <h2>
-                {specialty || "Available Doctors"} <span>({doctors.length} {doctors.length === 1 ? "result" : "results"})</span>
-              </h2>
-            </div>
-
-            <LoadState loading={results.loading && !results.data} error={results.error} onRetry={results.reload} label="Finding doctors…">
-              <div className="sabi-doctor-card-grid">
-                {doctors.map((doctor) => (
-                  <DoctorCard key={doctor.id} doctor={doctor} onBook={setBookingDoctor} onViewProfile={setProfileDoctor} />
-                ))}
-                {!doctors.length && (
-                  <div className="sabi-doctor-empty">
-                    {(all.data || []).length === 0
-                      ? "No verified doctors are taking bookings yet. Check back soon."
-                      : "No doctors match those filters. Clear a filter to see more."}
-                  </div>
+                {bookingFor && (
+                    <div className="sabi-doctor-booking-for-banner">
+                        Finding a doctor for <strong>{bookingFor.name}</strong>. Pick a doctor and book — {bookingFor.isDependent === false ? `${bookingFor.name} will need to accept it` : "it'll appear on their calendar automatically"}.
+                    </div>
                 )}
-              </div>
-            </LoadState>
-          </div>
-        </section>
 
-        {profileDoctor && (
-          <DoctorProfileModal
-            doctor={profileDoctor}
-            onClose={() => setProfileDoctor(null)}
-            onBook={(doctor) => {
-              setProfileDoctor(null);
-              setBookingDoctor(doctor);
-            }}
-          />
-        )}
+                <header className="sabi-doctor-hero">
+                    <p className="sabi-doctor-eyebrow">
+                        Verified care, matched to you
+                    </p>
 
-        {bookingDoctor && (
-          <BookingModal
-            doctor={bookingDoctor}
-            preselectDependentId={bookingFor?.id}
-            onClose={() => {
-              setBookingDoctor(null);
-              results.reload();
-            }}
-          />
-        )}
-      </main>
-    </div>
-  );
+                    <h1>Find Your Doctor</h1>
+
+                    <p>
+                        Discover verified healthcare professionals, compare
+                        expertise, and book appointments with confidence.
+                    </p>
+
+                    <div className="sabi-doctor-hero-actions">
+                        <button
+                            type="button"
+                            className="sabi-doctor-primary"
+                            onClick={() =>
+                                document
+                                    .getElementById("doctor-results")
+                                    ?.scrollIntoView({ behavior: "smooth" })
+                            }
+                        >
+                            Find a Doctor
+                        </button>
+
+                        <button
+                            type="button"
+                            className="sabi-doctor-outline"
+                            onClick={() => {
+                                const next = doctors.find((d) => d.nextAvailableAt) || (allDoctors || []).find((d) => d.nextAvailableAt);
+                                if (next) setBookingDoctor(next);
+                                else notify("No doctor has open times yet");
+                            }}
+                        >
+                            Book Appointment
+                        </button>
+                    </div>
+
+                    <label className="sabi-doctor-search">
+                        <Search size={20} />
+
+                        <input
+                            value={query}
+                            onChange={(event) =>
+                                setQuery(event.target.value)
+                            }
+                            placeholder="Search by name or specialty..."
+                        />
+
+                        <button
+                            type="button"
+                            onClick={() =>
+                                notify(
+                                    query
+                                        ? `Searching for ${query}`
+                                        : "Showing all doctors"
+                                )
+                            }
+                        >
+                            Search
+                        </button>
+                    </label>
+                </header>
+
+                <SpecialtyGrid
+                    activeSpecialty={specialty}
+                    onSelect={setSpecialty}
+                    doctors={allDoctors || []}
+                />
+
+                <section
+                    id="doctor-results"
+                    className="sabi-doctor-results"
+                >
+                    <aside className="sabi-doctor-filters sabi-card">
+                        <div className="sabi-doctor-filter-head">
+                            <h2>Filters</h2>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setQuery("");
+                                    setSpecialty("");
+                                    setExperience("");
+                                    setConsultType("");
+                                }}
+                            >
+                                Clear all
+                            </button>
+                        </div>
+
+                        <fieldset>
+                            <legend>Experience</legend>
+
+                            {["1-5", "5-10", "10+"].map((value) => (
+                                <label key={value}>
+                                    <input
+                                        type="radio"
+                                        name="experience"
+                                        checked={experience === value}
+                                        onChange={() =>
+                                            setExperience(value)
+                                        }
+                                    />
+                                    {value} years
+                                </label>
+                            ))}
+                        </fieldset>
+
+                        <fieldset>
+                            <legend>Consultation type</legend>
+
+                            <div className="sabi-doctor-filter-pills">
+                                {CONSULT_PILLS.map(([label, value]) => (
+                                    <button
+                                        key={value}
+                                        type="button"
+                                        className={consultType === value ? "active" : ""}
+                                        onClick={() => setConsultType(consultType === value ? "" : value)}
+                                    >
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
+                        </fieldset>
+
+                        <div className="sabi-doctor-match">
+                            <Sparkles size={22} />
+
+                            <h3>AI Smart Match</h3>
+
+                            <p>
+                                Let us analyze your needs and find the best
+                                specialist for you.
+                            </p>
+
+                            <button
+                                type="button"
+                                disabled={matching}
+                                onClick={() => {
+                                    setMatching(true);
+                                    window.setTimeout(() => {
+                                        setMatching(false);
+                                        const best = [...(allDoctors || [])].sort(
+                                            (a, b) => (b.experience ?? -1) - (a.experience ?? -1)
+                                        )[0];
+                                        if (!best) return notify("No verified doctors yet");
+                                        setProfileDoctor(best);
+                                        notify(`Best match: ${best.name}`);
+                                    }, 900);
+                                }}
+                            >
+                                {matching ? "Matching…" : "Start AI Match"}
+                            </button>
+                        </div>
+                    </aside>
+
+                    <div>
+                        <div className="sabi-doctor-results-head">
+                            <h2>
+                                Available Specialists{" "}
+                                <span>({doctors.length} results)</span>
+                            </h2>
+
+                            <button type="button">Recommended</button>
+                        </div>
+
+                        <div className="sabi-doctor-card-grid">
+                            {doctors.map((doctor) => (
+                                <DoctorCard
+                                    key={doctor.id}
+                                    doctor={doctor}
+                                    onBook={setBookingDoctor}
+                                    onViewProfile={setProfileDoctor}
+                                />
+                            ))}
+
+                            {!doctors.length && (
+                                <div className="sabi-doctor-empty">
+                                    {error
+                                        ? error.message
+                                        : loading
+                                        ? "Loading doctors…"
+                                        : consultType === "HOME_VISIT"
+                                        ? "Home visits aren't available yet. Choose Physical or Video."
+                                        : (allDoctors || []).length === 0
+                                        ? "No verified doctors are taking bookings yet."
+                                        : "No doctors match those filters. Clear a filter to see more specialists."}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </section>
+
+                {notice && (
+                    <div className="sabi-doctor-toast">{notice}</div>
+                )}
+
+                {profileDoctor && (
+                    <DoctorProfileModal
+                        doctor={profileDoctor}
+                        onClose={() => setProfileDoctor(null)}
+                        onBook={(doctor) => {
+                            setProfileDoctor(null);
+                            setBookingDoctor(doctor);
+                        }}
+                    />
+                )}
+
+                {bookingDoctor && (
+                    <BookingModal
+                        doctor={bookingDoctor}
+                        bookingFor={bookingFor}
+                        onClose={() => setBookingDoctor(null)}
+                        onBooked={(doctor) => notify(`Request sent to ${doctor.name} — pending their review`)}
+                    />
+                )}
+            </main>
+        </div>
+    );
 }

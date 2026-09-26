@@ -141,3 +141,81 @@ export function groupSlotsByDay(slots) {
   }
   return [...days.values()];
 }
+
+// ---------------- Adapter for the Find Your Doctor UI ----------------
+// The page's components read these field names; values come only from what the doctor published.
+const whenLabel = (iso) => {
+  const d = new Date(iso);
+  const today = new Date();
+  const tomorrow = new Date(today.getTime() + 86400000);
+  const time = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  if (d.toDateString() === today.toDateString()) return `Today, ${time}`;
+  if (d.toDateString() === tomorrow.toDateString()) return `Tomorrow, ${time}`;
+  return `${d.toLocaleDateString("en-US", { weekday: "long" })}, ${time}`;
+};
+
+/** Takes a doctor already mapped by toDoctor. */
+export const toUiDoctor = (d) => {
+  return {
+    ...d,
+    experience: d.yearsOfExperience,
+    clinic: d.practiceName || d.practiceAddress || "",
+    distance: null,
+    nextAvailable: d.nextAvailableAt ? whenLabel(d.nextAvailableAt) : "No open times yet",
+    rating: "New",
+    photo: null,
+    title: d.specialty,
+    patients: null,
+    about: d.bio || `${d.name} hasn't added a profile summary yet.`,
+    education: "Not provided yet",
+    certifications: "Verified by Sabi Health",
+    expertise: [d.specialty],
+    affiliations: d.practiceName ? [{ name: d.practiceName, role: d.practiceAddress || "Practice" }] : [],
+  };
+};
+
+export async function listUiDoctors() {
+  return (await listDoctors()).map(toUiDoctor);
+}
+
+// ---------------- Adapter for the Appointments UI ----------------
+// Maps a booking onto the fields/statuses the Appointments components read.
+const AVATAR_COLORS = ["#0B5E48", "#F5A623", "#E53935", "#073D30"];
+const byDoctor = (a) => {
+  const ended = new Date(a.endsAt).getTime() <= Date.now();
+  if (a.status === "REQUESTED") return ended ? "missed" : "pending-review";
+  if (a.status === "CONFIRMED") return ended ? "missed" : "active";
+  if (a.status === "COMPLETED") return "completed";
+  return "cancelled"; // CANCELLED or DECLINED
+};
+
+export function toUiAppointment(api) {
+  const a = toDoctorAppointment(api);
+  const start = new Date(a.startsAt);
+  const byWho = a.status === "DECLINED" ? "Declined by the doctor" : a.status === "CANCELLED" && a.cancelledBy === "DOCTOR" ? "Cancelled by the doctor" : null;
+  return {
+    ...a,
+    apiStatus: a.status,
+    status: byDoctor(a),
+    doctor: a.doctor.name,
+    doctorInfo: a.doctor,
+    color: AVATAR_COLORS[[...(a.doctorProfileId || a.id)].reduce((n, ch) => n + ch.charCodeAt(0), 0) % AVATAR_COLORS.length],
+    specialty: a.doctor.specialty,
+    location: a.consultationType === "VIRTUAL" ? "Video consultation" : [a.doctor.practiceName, a.doctor.practiceAddress].filter(Boolean).join(", ") || "In-person visit",
+    address: a.doctor.practiceAddress || null,
+    date: start.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
+    time: start.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+    virtual: a.consultationType === "VIRTUAL",
+    bookedFor: a.forName || undefined,
+    rescheduleNote: a.status === "REQUESTED" ? "Pending Review — waiting for the doctor to confirm" : undefined,
+    visitNote: a.consultationType === "IN_PERSON" ? `Visit at ${a.doctor.practiceName || "the practice"}` : undefined,
+    declineNote: byWho ? `${byWho}${a.decisionReason ? `: ${a.decisionReason}` : ""}` : undefined,
+  };
+}
+
+export const getUiAppointment = async (id) => toUiAppointment(await get(`/api/v1/doctor-appointments/${id}`));
+
+export async function listUiAppointments() {
+  const result = await get("/api/v1/doctor-appointments/mine", { limit: 100 });
+  return result.items.map(toUiAppointment);
+}
