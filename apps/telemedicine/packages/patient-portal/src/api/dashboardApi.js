@@ -3,6 +3,7 @@
 import { authorizedRequest } from "../utils/sabiIdentity";
 import { listMyHospitalAppointments, listMyWellnessBookings } from "./sabiApi";
 import { toRecord } from "./recordsApi";
+import { listUpcomingDoctorAppointments } from "./doctorsApi";
 
 const data = async (promise) => (await promise).data;
 
@@ -15,11 +16,18 @@ const startOfToday = () => {
   return d;
 };
 
-/** Upcoming hospital appointments and wellness sessions (today onwards), soonest first. */
+/** Upcoming doctor bookings, hospital appointments and wellness sessions (today onwards), soonest first. */
 export async function getUpcomingSchedule() {
-  const [hospital, wellness] = await Promise.all([listMyHospitalAppointments(), listMyWellnessBookings()]);
+  const [hospital, wellness, doctor] = await Promise.all([listMyHospitalAppointments(), listMyWellnessBookings(), listUpcomingDoctorAppointments()]);
   const from = startOfToday();
   const items = [
+    ...doctor.map((a) => ({
+      id: `d-${a.id}`,
+      at: a.startsAt,
+      title: `${a.typeLabel} · ${a.doctor.name}`,
+      sub: [a.forName && `For ${a.forName}`, a.statusLabel].filter(Boolean).join(" · "),
+      to: "/appointments",
+    })),
     ...hospital
       .filter((a) => ACTIVE_HOSPITAL.has(a.status))
       .map((a) => ({

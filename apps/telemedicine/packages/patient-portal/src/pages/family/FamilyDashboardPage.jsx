@@ -176,7 +176,8 @@ export function FamilyDashboardPage() {
   const members = circle.data?.members || [];
   const dependents = circle.data?.dependents || [];
   const joinedCircles = circle.data?.joinedCircles || [];
-  const events = upcoming.data?.events || [];
+  // Cancelled/declined appointments are no longer on anyone's schedule.
+  const events = (upcoming.data?.events || []).filter((e) => !["CANCELLED", "REJECTED", "DECLINED"].includes(e.status));
 
   const stats = useMemo(() => ({
     active: members.filter((m) => m.state === "active").length,

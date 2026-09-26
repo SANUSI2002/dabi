@@ -16,7 +16,13 @@ import { colorFor } from "./data";
 
 const WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-const STATUS_LABELS = { PENDING: "Awaiting confirmation", SCHEDULED: "Confirmed", CHECKED_IN: "Checked in", CANCELLED: "Cancelled", REJECTED: "Declined", COMPLETED: "Completed" };
+const STATUS_LABELS = {
+  PENDING: "Awaiting confirmation", REQUESTED: "Awaiting confirmation", SCHEDULED: "Confirmed", CONFIRMED: "Confirmed",
+  CHECKED_IN: "Checked in", CANCELLED: "Cancelled", REJECTED: "Declined", DECLINED: "Declined", COMPLETED: "Completed",
+};
+// Cancelled and declined appointments aren't on anyone's schedule, so the calendar leaves them out.
+const ENDED = new Set(["CANCELLED", "REJECTED", "DECLINED"]);
+const onSchedule = (e) => !ENDED.has(e.status);
 
 const clock = (iso) => new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 const memberColor = (id) => (id === "self" ? "#2E6B5A" : colorFor(id));
@@ -57,7 +63,7 @@ export function CareCalendarPage() {
   const members = month.data?.members || upcoming.data?.members || [];
   const eventsByDate = useMemo(() => {
     const map = new Map();
-    for (const e of month.data?.events || []) {
+    for (const e of (month.data?.events || []).filter(onSchedule)) {
       const key = formatCalendarDate(new Date(e.time));
       if (!map.has(key)) map.set(key, []);
       map.get(key).push(e);
@@ -66,7 +72,7 @@ export function CareCalendarPage() {
   }, [month.data]);
 
   const selectedDayEvents = eventsByDate.get(formatCalendarDate(selectedDate)) || [];
-  const upcomingEvents = upcoming.data?.events || [];
+  const upcomingEvents = (upcoming.data?.events || []).filter(onSchedule);
   const openMember = (id) => navigate(id === "self" ? "/profile" : `/family/member/${id}`);
 
   return (

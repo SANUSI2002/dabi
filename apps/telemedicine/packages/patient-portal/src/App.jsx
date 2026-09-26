@@ -197,7 +197,7 @@ export default function App() {
               <Route path="/family/hospital-enrollment" element={<FamilyHospitalEnrollmentPage />} />
               <Route path="/insurance" element={<InsurancePage />} />
               <Route path="/doctor" element={<FindYourDoctor />} />
-              <Route path="/doctors" element={<Navigate to="/dashboard/doctor" replace />} />
+              <Route path="/doctors" element={<Navigate to="/doctor" replace />} />
               <Route path="/appointments" element={<Appointments />} />
               <Route path="/appointments/reschedule/:id" element={<RescheduleAppointment />} />
               <Route path="/reports/:id" element={<ConsultationReport />} />

@@ -1,283 +1,139 @@
-// Appointments Page Component
-// -------------------------------------------------------------
-// This component manages appointment scheduling, filtering,
-// calendar interactions, and modal workflows for booking,
-// viewing, and joining consultations.
+// Appointments: doctor bookings (booked from Find a Doctor, confirmed by the doctor) and hospital
+// appointments, all from the Sabi API.
 
-import React, { useEffect, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, colors } from "design-system";
+import { Button } from "design-system";
 import { Plus } from "lucide-react";
 
 import { pageVars } from "../../pageVars";
 import { useZoom } from "../../hooks/useZoom";
-
 import { Sidebar, Topbar } from "../dashboard/components";
-
-import {
-  StatsRow,
-  FilterTabs,
-  AppointmentCalendar,
-  UpcomingAppointments,
-  NearbyHealthcare,
-} from "./components";
-
-import { BookAppointmentModal } from "./components/BookAppointmentModal";
-import { AppointmentDetailModal } from "./components/AppointmentDetailModal";
-import { JoinConsultationModal } from "./components/JoinConsultationModal";
+import { StatsRow, FilterTabs, AppointmentCalendar, UpcomingAppointments, NearbyHealthcare } from "./components";
 import { HospitalAppointmentsCard } from "./components/HospitalAppointmentsCard";
-
-import {
-  getAppointments,
-  subscribeToAppointments,
-  addAppointment,
-  cancelAppointment,
-  respondToBookingRequest,
-} from "./appointmentStore";
+import { useApiData } from "../../api/useApiData";
+import { listMyDoctorAppointments } from "../../api/doctorsApi";
+import { listMyHospitalAppointments } from "../../api/sabiApi";
+import { isSameDay } from "./components/AppointmentCalendar";
 
 import "../dashboard/Dashboard.css";
 import "./Appointments.css";
 
-// Avatar color rotation for newly created appointments
-const AVATAR_COLORS = [
-  colors.primary,
-  colors.warning,
-  colors.danger,
-  colors.primaryDark,
-];
+const FILTERS = {
+  Upcoming: (a) => a.upcoming,
+  Awaiting: (a) => a.status === "REQUESTED" && a.upcoming,
+  Past: (a) => a.status === "COMPLETED" || (a.active && !a.upcoming),
+  Cancelled: (a) => a.status === "CANCELLED" || a.status === "DECLINED",
+  All: () => true,
+};
 
-
-// Incremental ID generator for manually booked appointments
-let nextAptId = 1;
+async function loadAll() {
+  const [doctor, hospital] = await Promise.all([listMyDoctorAppointments(), listMyHospitalAppointments()]);
+  return { doctor, hospital };
+}
 
 export function Appointments() {
-  // Zoom level from custom hook
   const [zoom] = useZoom();
-
-  // Router navigation
   const navigate = useNavigate();
-
-  // Active filter tab
+  const { data, error, loading, reload } = useApiData(loadAll, []);
   const [activeTab, setActiveTab] = useState("Upcoming");
+  const [selectedDate, setSelectedDate] = useState(null);
+  // Stable reference: the calendar re-centres whenever this object changes.
+  const today = useMemo(() => new Date(), []);
 
-  // Toggle between filtered and full appointment list
-  const [showAllAppointments, setShowAllAppointments] = useState(false);
+  const doctor = data?.doctor || [];
+  const hospital = data?.hospital || [];
+  const now = Date.now();
 
-  // Doctor bookings (hospital and wellness bookings are listed from the Sabi API in their own cards).
-  const [appointments, setAppointments] = useState(() => getAppointments());
-  useEffect(() => subscribeToAppointments(() => setAppointments(getAppointments())), []);
-
-  // Selected date for calendar
-  const [selectedDate, setSelectedDate] = useState(new Date());
-
-  // Modal visibility states
-  const [showBookModal, setShowBookModal] = useState(false);
-  const [detailApt, setDetailApt] = useState(null);
-  const [joinApt, setJoinApt] = useState(null);
-
-  /*
-    FILTER APPOINTMENTS
-    ---------------------------------------------------------
-    Applies filtering logic based on active tab selection.
-  */
-  const filteredAppointments = showAllAppointments
-    ? appointments
-    : appointments.filter((appointment) => {
-        const appointmentDate = new Date(appointment.date);
-        const today = new Date();
-
-        switch (activeTab) {
-          case "Today":
-            return appointmentDate.toDateString() === today.toDateString();
-
-          case "Upcoming":
-            return (
-              appointment.status === "active" ||
-              appointment.status === "pending" ||
-              appointment.status === "pending-review" ||
-              appointment.status === "awaiting-acceptance" ||
-              appointment.status === "declined-by-member"
-            );
-
-          case "Request":
-            return appointment.status === "pending-review";
-
-          case "Completed":
-            return appointment.status === "completed";
-
-          case "Cancelled":
-            return appointment.status === "cancelled";
-
-          case "Follow-ups":
-            return appointment.status === "follow-up";
-
-          default:
-            return true;
-        }
-      });
-
-  // Handle filter tab change
-  const handleFilterChange = (tab) => {
-    setShowAllAppointments(false);
-    setActiveTab(tab);
-  };
-
-  /*
-    BOOK APPOINTMENT HANDLER
-    ---------------------------------------------------------
-    Creates a new appointment entry and appends it to the list.
-  */
-  const handleBook = ({ doctor, date, time }) => {
-    const initials = doctor.name
-      .replace("Dr. ", "")
-      .split(" ")
-      .map((p) => p[0])
-      .join("")
-      .slice(0, 2);
-
-    const appointment = {
-      id: `apt-manual-${nextAptId++}`,
-      doctor: doctor.name,
-      initials,
-      color: AVATAR_COLORS[appointments.length % AVATAR_COLORS.length],
-      specialty: doctor.specialty,
-      location: doctor.location,
-      lat: doctor.lat,
-      lng: doctor.lng,
-      date:
-        date instanceof Date
-          ? date.toISOString().split("T")[0]
-          : date,
-      time,
-      status: "pending",
+  const stats = useMemo(() => {
+    if (!data) return {};
+    const hospitalFuture = (h) => new Date(h.requestedAt).getTime() > now;
+    return {
+      upcoming: doctor.filter((a) => a.upcoming).length + hospital.filter((h) => ["PENDING", "SCHEDULED"].includes(h.status) && hospitalFuture(h)).length,
+      awaiting: doctor.filter((a) => a.status === "REQUESTED" && a.upcoming).length + hospital.filter((h) => h.status === "PENDING" && hospitalFuture(h)).length,
+      completed: doctor.filter((a) => a.status === "COMPLETED").length + hospital.filter((h) => h.status === "CHECKED_IN").length,
+      cancelled: doctor.filter((a) => ["CANCELLED", "DECLINED"].includes(a.status)).length + hospital.filter((h) => ["CANCELLED", "REJECTED"].includes(h.status)).length,
     };
+  }, [data, doctor, hospital, now]);
 
-    addAppointment(appointment);
-    setShowBookModal(false);
-  };
+  // Calendar dots: every active doctor booking and hospital appointment.
+  const calendarItems = useMemo(
+    () => [
+      ...doctor.filter((a) => a.active).map((a) => ({ date: a.startsAt })),
+      ...hospital.filter((h) => ["PENDING", "SCHEDULED", "CHECKED_IN"].includes(h.status)).map((h) => ({ date: h.requestedAt })),
+    ],
+    [doctor, hospital],
+  );
 
-  /*
-    CANCEL APPOINTMENT HANDLER
-    ---------------------------------------------------------
-    Removes an appointment from the list by ID.
-  */
-  const handleCancel = (id) => {
-    cancelAppointment(id);
-  };
+  const listed = useMemo(() => {
+    const items = selectedDate ? doctor.filter((a) => isSameDay(a.startsAt, selectedDate)) : doctor.filter(FILTERS[activeTab]);
+    const soonestFirst = selectedDate || activeTab === "Upcoming" || activeTab === "Awaiting";
+    return [...items].sort((a, b) => (soonestFirst ? 1 : -1) * (new Date(a.startsAt) - new Date(b.startsAt)));
+  }, [doctor, activeTab, selectedDate]);
+
+  const title = selectedDate
+    ? `Doctor Appointments · ${selectedDate.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}`
+    : `${activeTab === "All" ? "All" : activeTab} Doctor Appointments`;
 
   return (
-    <div
-      className="sabi-dashboard"
-      style={{
-        ...pageVars,
-        zoom,
-      }}
-    >
-      {/* Sidebar Navigation */}
+    <div className="sabi-dashboard" style={{ ...pageVars, zoom }}>
       <Sidebar />
 
       <div className="sabi-main">
-        {/* Top Navigation Bar */}
-        <Topbar
-          placeholder="Search appointments, doctors..."
-          showHelp
-        />
+        <Topbar placeholder="Search appointments, doctors..." showHelp />
 
-        {/* Page Header */}
         <div className="sabi-apt-header">
           <div>
             <h1>Appointments</h1>
-            <p>
-              Schedule, manage, and attend your healthcare appointments in one
-              place with empathetic precision.
-            </p>
+            <p>Book verified doctors, follow each request until it&apos;s confirmed, and keep hospital visits in one place.</p>
           </div>
-
-          {/* Book Appointment Button */}
-          <Button
-            variant="primary"
-            className="sabi-apt-book-btn"
-            onClick={() => setShowBookModal(true)}
-          >
-            <Plus
-              size={16}
-              style={{
-                verticalAlign: "-3px",
-                marginRight: 6,
-              }}
-            />
-            Book Appointment
+          <Button variant="primary" className="sabi-apt-book-btn" onClick={() => navigate("/doctor")}>
+            <Plus size={16} style={{ verticalAlign: "-3px", marginRight: 6 }} />
+            Book a Doctor
           </Button>
         </div>
 
-        {/* Stats Overview */}
-        <StatsRow />
+        <StatsRow stats={stats} />
 
-        {/* Filter Tabs */}
-        <FilterTabs active={activeTab} onChange={handleFilterChange} />
+        <FilterTabs
+          active={selectedDate ? null : activeTab}
+          onChange={(tab) => {
+            setSelectedDate(null);
+            setActiveTab(tab);
+          }}
+        />
 
-        {/* Main Grid Layout */}
         <div className="sabi-grid sabi-apt-grid">
-          {/* Calendar Column */}
           <div className="sabi-col">
             <AppointmentCalendar
-              selectedDate={selectedDate}
-              onDateSelect={setSelectedDate}
-              appointments={appointments}
+              selectedDate={selectedDate || today}
+              onDateSelect={(date) => setSelectedDate((current) => (current && isSameDay(current, date) ? null : date))}
+              appointments={calendarItems}
             />
+            {selectedDate && (
+              <button type="button" className="sabi-apt-secondary-btn sabi-apt-clear-day" onClick={() => setSelectedDate(null)}>
+                Show {activeTab.toLowerCase()} appointments instead
+              </button>
+            )}
           </div>
 
-          {/* Upcoming Appointments Column */}
           <div className="sabi-col">
             <UpcomingAppointments
-              title={showAllAppointments ? "All" : activeTab}
-              appointments={filteredAppointments}
-              onViewAll={() => {
-                setShowAllAppointments(true);
-                setActiveTab("All");
-              }}
-              onReschedule={(appointment) =>
-                navigate(`/appointments/reschedule/${appointment.id}`)
-              }
-              onJoin={(appointment) => setJoinApt(appointment)}
-              onCheckIn={(appointment) => navigate(`/hospitals/check-in/${appointment.id}`)}
-              onViewWellness={(appointment) => navigate(`/wellness-hub/engagements/${appointment.wellnessEngagementId}`)}
-
-              onViewDetails={(appointment) => setDetailApt(appointment)}
-              onCancel={handleCancel}
-              onRespondToRequest={(id, accepted) => respondToBookingRequest(id, accepted)}
+              title={title}
+              appointments={listed}
+              loading={loading && !data}
+              error={error}
+              onRetry={reload}
+              onViewAll={activeTab !== "All" || selectedDate ? () => { setSelectedDate(null); setActiveTab("All"); } : undefined}
+              onReschedule={(appointment) => navigate(`/appointments/reschedule/${appointment.id}`)}
+              onChanged={reload}
             />
             <HospitalAppointmentsCard />
           </div>
         </div>
 
-        {/* Nearby Healthcare Section */}
         <NearbyHealthcare />
       </div>
-
-      {/* Book Appointment Modal */}
-      {showBookModal && (
-        <BookAppointmentModal
-          onClose={() => setShowBookModal(false)}
-          onBook={handleBook}
-        />
-      )}
-
-      {/* Appointment Detail Modal */}
-      {detailApt && (
-        <AppointmentDetailModal
-          appointment={detailApt}
-          onClose={() => setDetailApt(null)}
-        />
-      )}
-
-      {/* Join Consultation Modal */}
-      {joinApt && (
-        <JoinConsultationModal
-          appointment={joinApt}
-          onClose={() => setJoinApt(null)}
-        />
-      )}
     </div>
   );
 }

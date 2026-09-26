@@ -1,16 +1,12 @@
 import React from "react";
-import { FILTER_TABS } from "../data";
+
+export const FILTER_TABS = ["Upcoming", "Awaiting", "Past", "Cancelled", "All"];
 
 export function FilterTabs({ active, onChange }) {
   return (
-    <div className="sabi-apt-tabs">
+    <div className="sabi-apt-tabs" role="tablist" aria-label="Filter appointments">
       {FILTER_TABS.map((tab) => (
-        <button
-          key={tab}
-          type="button"
-          className={"sabi-apt-tab" + (tab === active ? " active" : "")}
-          onClick={() => onChange(tab)}
-        >
+        <button key={tab} type="button" role="tab" aria-selected={tab === active} className={"sabi-apt-tab" + (tab === active ? " active" : "")} onClick={() => onChange(tab)}>
           {tab}
         </button>
       ))}
