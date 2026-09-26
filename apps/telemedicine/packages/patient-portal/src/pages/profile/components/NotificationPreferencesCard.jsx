@@ -1,11 +1,6 @@
 import React from "react";
 import { SectionCard, ToggleSwitch } from "../shared";
-
-const NOTIFICATIONS = [
-  { key: "appointmentReminders", label: "Appointment Reminders" },
-  { key: "prescriptionAlerts", label: "Prescription Refill Alerts" },
-  { key: "healthTips", label: "Health Tips & Newsletter" },
-];
+import { NOTIFICATIONS } from "../data";
 
 export function NotificationPreferencesCard({ form, set }) {
   return (
@@ -14,7 +9,7 @@ export function NotificationPreferencesCard({ form, set }) {
         {NOTIFICATIONS.map((n) => (
           <div className="sabi-toggle-row" key={n.key}>
             <span>{n.label}</span>
-            <ToggleSwitch checked={Boolean(form[n.key])} onChange={(e) => set(n.key, e.target.checked)} label={n.label} />
+            <ToggleSwitch checked={Boolean(form[n.field])} onChange={(e) => set(n.field, e.target.checked)} label={n.label} />
           </div>
         ))}
       </div>

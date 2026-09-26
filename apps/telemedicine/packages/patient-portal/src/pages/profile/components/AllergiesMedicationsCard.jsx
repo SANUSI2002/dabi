@@ -1,6 +1,5 @@
 import React from "react";
 import { SectionCard, TextArea } from "../shared";
-
 export function AllergiesMedicationsCard({ form, set }) {
   return (
     <SectionCard icon="💊" title="Allergies & Medications">
@@ -8,7 +7,7 @@ export function AllergiesMedicationsCard({ form, set }) {
         label="Known Allergies"
         value={form.knownAllergies}
         onChange={(v) => set("knownAllergies", v)}
-        placeholder="E.g. Penicillin, Peanuts (separate with commas)"
+        placeholder="E.g. Penicillin, Peanuts..."
       />
       <TextArea
         label="Current Medications"

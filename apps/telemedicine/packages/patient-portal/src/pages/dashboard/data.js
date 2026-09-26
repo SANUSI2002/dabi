@@ -58,3 +58,33 @@ export const QUICK_ACTIONS = [
   { title: "Emergency access", subtitle: "Show your emergency card", icon: Zap, action: "emergency" },
 ];
 
+
+// The Emergency Card (opened from the red topbar button), built from the patient's saved profile.
+// Details the profile doesn't hold yet show as "Not recorded" rather than sample values.
+const NOT_RECORDED = "Not recorded";
+const splitList = (value) => (value ? value.split(/[,;\n]/).map((s) => s.trim()).filter(Boolean) : []);
+
+export function toEmergencyProfile(profile) {
+  const form = profile?.form || {};
+  const name = form.fullName || "Patient";
+  const birth = form.dob ? new Date(`${form.dob}T00:00:00Z`) : null;
+  const age = birth ? Math.floor((Date.now() - birth.getTime()) / 31557600000) : "—";
+  const contact = form.contactName
+    ? { name: `${form.contactName}${form.contactRelation ? ` (${form.contactRelation})` : ""}`, phone: form.contactPhone || "—" }
+    : { name: NOT_RECORDED, phone: "—" };
+  return {
+    name,
+    initials: name.split(/\s+/).filter(Boolean).map((p) => p[0]).join("").slice(0, 2).toUpperCase(),
+    dob: birth ? birth.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }) : NOT_RECORDED,
+    age,
+    bloodGroup: form.bloodType || NOT_RECORDED,
+    genotype: form.genotype || NOT_RECORDED,
+    emergencyContact: contact,
+    conditions: splitList(form.chronicConditions),
+    allergies: { drugs: splitList(form.knownAllergies), foods: [], others: [] },
+    medications: splitList(form.currentMedications),
+    contacts: { primary: contact, secondary: { name: NOT_RECORDED, phone: "—" } },
+    provider: { name: NOT_RECORDED, phone: "—" },
+    insurance: { provider: NOT_RECORDED, policyNumber: "—" },
+  };
+}

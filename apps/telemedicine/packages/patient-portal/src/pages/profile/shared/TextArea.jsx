@@ -1,20 +1,11 @@
-import React, { useId } from "react";
+import React from "react";
 
-export function TextArea({ label, value, onChange, placeholder, maxLength = 1000, error }) {
-  const id = useId();
+export function TextArea({ label, defaultValue, value, onChange, placeholder }) {
+  const bound = value !== undefined ? { value, onChange: (e) => onChange?.(e.target.value) } : { defaultValue };
   return (
     <div className="sabi-field">
-      <label htmlFor={id} className="sabi-field-label">{label}</label>
-      <textarea
-        id={id}
-        className={`sabi-field-textarea${error ? " invalid" : ""}`}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        maxLength={maxLength}
-        rows={3}
-      />
-      {error && <span className="sabi-field-error">{error}</span>}
+      <label className="sabi-field-label">{label}</label>
+      <textarea className="sabi-field-textarea" {...bound} placeholder={placeholder} rows={3} />
     </div>
   );
 }

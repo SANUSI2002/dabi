@@ -50,7 +50,7 @@ export function toForm(data) {
     form[key] = raw ?? fallback;
   }
   if (form.dob) form.dob = String(form.dob).slice(0, 10);
-  return { form, account: { email: user.email || "", patientId: user.patientId || "" } };
+  return { form, account: { email: user.email || "", patientId: user.patientId || "", since: profile.createdAt || profile.created_at || null } };
 }
 
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);

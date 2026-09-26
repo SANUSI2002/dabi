@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Button, colors, spacing, radius, font } from "design-system";
+import { colors, spacing, radius, font } from "design-system";
 import "../../styles/share.css";
 import "./Profile.css";
 import { useZoom } from "../../hooks/useZoom";
 
 import { Sidebar, Topbar } from "../dashboard/components";
-import { LoadState } from "../hospitals/hospitalShared";
 import { useApiData } from "../../api/useApiData";
 import { changedKeys, getProfile, saveProfile, validate } from "../../api/profileApi";
 import { updateCurrentUser } from "../../utils/sabiIdentity";
@@ -20,7 +19,6 @@ import {
   NotificationPreferencesCard,
   ConsentPrivacyCard,
   EmergencyAccessCard,
-  EmergencyContactCard,
   SecurityCard,
   DangerZoneCard,
 } from "./components";
@@ -57,10 +55,9 @@ export function Profile() {
   // `saved` is the server's copy; `form` is what the patient is editing.
   const [saved, setSaved] = useState(null);
   const [form, setForm] = useState(null);
-  const [account, setAccount] = useState({ email: "", patientId: "" });
-  const [errors, setErrors] = useState({});
+  const [account, setAccount] = useState({ email: "", patientId: "", since: null });
   const [saving, setSaving] = useState(false);
-  const [status, setStatus] = useState(null); // { tone: "good" | "bad", text }
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     if (!loaded.data) return;
@@ -70,6 +67,12 @@ export function Profile() {
   }, [loaded.data]);
 
   const dirty = form && saved ? changedKeys(form, saved).length > 0 : false;
+
+  useEffect(() => {
+    if (!message) return undefined;
+    const timer = window.setTimeout(() => setMessage(""), 2400);
+    return () => window.clearTimeout(timer);
+  }, [message]);
 
   // Warn before a reload or tab close would throw away unsaved edits.
   useEffect(() => {
@@ -82,42 +85,41 @@ export function Profile() {
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
 
-  const set = (key, value) => {
-    setForm((f) => ({ ...f, [key]: value }));
-    setErrors((e) => (e[key] ? { ...e, [key]: undefined } : e));
-    setStatus(null);
-  };
+  const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
 
   const save = async () => {
-    const found = validate(form, saved);
-    setErrors(found);
-    if (Object.values(found).some(Boolean)) {
-      setStatus({ tone: "bad", text: "Please fix the highlighted fields." });
+    if (!form || saving) return;
+    if (!dirty) {
+      setMessage("Your profile is already up to date.");
+      return;
+    }
+    const errors = Object.values(validate(form, saved)).filter(Boolean);
+    if (errors.length) {
+      setMessage(errors.join(" "));
       return;
     }
     setSaving(true);
-    setStatus(null);
     try {
       const result = await saveProfile(form, saved);
       setSaved(result.form);
       setForm(result.form);
       updateCurrentUser({ fullName: result.form.fullName });
-      setStatus({ tone: "good", text: "Your profile has been saved." });
+      setMessage("✅ Your profile has been saved.");
     } catch (err) {
-      const fieldMessages = err.errors?.map((e) => e.message).join(" ");
-      setStatus({ tone: "bad", text: fieldMessages || err.message });
+      setMessage(err.errors?.map((e) => e.message).join(" ") || err.message);
     } finally {
       setSaving(false);
     }
   };
 
-  const discard = () => {
-    setForm(saved);
-    setErrors({});
-    setStatus(null);
+  // Emergency Access has its own Save button; it saves just that setting.
+  const saveEmergencyAccess = async (values) => {
+    const result = await saveProfile({ ...saved, emergencyAccess: values }, saved);
+    setSaved(result.form);
+    setForm((f) => ({ ...f, emergencyAccess: result.form.emergencyAccess }));
   };
 
-  const cardProps = form ? { form, set, errors } : null;
+  const cardProps = { form, set };
 
   return (
     <div className="sabi-dashboard" style={{ ...cssVars, zoom }}>
@@ -126,51 +128,27 @@ export function Profile() {
         <Topbar />
 
         <div className="sabi-profile-page">
-          <ProfileHeader dirty={dirty} saving={saving} onSave={save} />
+          <ProfileHeader onSave={save} saving={saving} message={message} onDismiss={() => setMessage("")} />
+          {!form && <p>{loaded.error ? "We couldn't load your profile. Please refresh to try again." : "Loading your profile…"}</p>}
+          {form && <ProfileSummaryCard name={saved.fullName} account={account} />}
 
-          <LoadState loading={!form && !loaded.error} error={loaded.error} onRetry={loaded.reload} label="Loading your profile…">
-            {cardProps && (
-              <>
-                <ProfileSummaryCard name={saved.fullName} account={account} />
-                {status && !dirty && (
-                  <p className={`sabi-profile-status ${status.tone}`} role="status">{status.text}</p>
-                )}
-
-                <div className="sabi-grid sabi-profile-grid">
-                  <div className="sabi-col">
-                    <PersonalInformationCard {...cardProps} account={account} />
-                    <AllergiesMedicationsCard {...cardProps} />
-                    <EmergencyContactCard {...cardProps} />
-                    <NotificationPreferencesCard {...cardProps} />
-                  </div>
-                  <div className="sabi-col">
-                    <MedicalHistoryCard {...cardProps} />
-                    <LifestyleInformationCard {...cardProps} />
-                    <ConsentPrivacyCard {...cardProps} />
-                    <EmergencyAccessCard {...cardProps} />
-                  </div>
-                </div>
-              </>
-            )}
-          </LoadState>
+          {form && <div className="sabi-grid sabi-profile-grid">
+            <div className="sabi-col">
+              <PersonalInformationCard {...cardProps} account={account} />
+              <AllergiesMedicationsCard {...cardProps} />
+              <NotificationPreferencesCard {...cardProps} />
+            </div>
+            <div className="sabi-col">
+              <MedicalHistoryCard {...cardProps} />
+              <LifestyleInformationCard {...cardProps} />
+              <ConsentPrivacyCard {...cardProps} />
+              <EmergencyAccessCard savedValues={saved.emergencyAccess} onSave={saveEmergencyAccess} />
+            </div>
+          </div>}
 
           <SecurityCard />
           <DangerZoneCard />
         </div>
-
-        {dirty && (
-          <div className="sabi-profile-savebar" role="region" aria-label="Unsaved changes">
-            <span className={status?.tone === "bad" ? "error" : undefined}>{status?.tone === "bad" ? status.text : "You have unsaved changes."}</span>
-            <div>
-              <Button type="button" variant="secondary" onClick={discard} disabled={saving}>
-                Discard
-              </Button>
-              <Button type="button" variant="primary" onClick={save} disabled={saving}>
-                {saving ? "Saving…" : "Save changes"}
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
