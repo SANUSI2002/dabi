@@ -14,6 +14,7 @@ import { useZoom } from "../../hooks/useZoom";
 import { Sidebar, Topbar } from "../dashboard/components";
 import { addMember, addJoinedCircle, createCircleInvite, findCircleByCode } from "./familyStore";
 import { RELATIONSHIPS, PERMISSION_LEVELS, EMERGENCY_ONLY_LEVEL, DEFAULT_ACCESS_BY_LEVEL, colorFor } from "./data";
+import QRCode from "qrcode";
 import { initialsOf, inviteUrl } from "../../api/familyApi";
 import { PermissionAccessPicker } from "./PermissionAccessPicker";
 
@@ -38,7 +39,7 @@ export function AddMemberPage() {
   // "add" mode state
   const [contact, setContact] = useState("");
   const [qrGenerated, setQrGenerated] = useState(false);
-  const [qrToken, setQrToken] = useState("");
+  const [qrImage, setQrImage] = useState("");
   const [busy, setBusy] = useState(false);
   const [requestForm, setRequestForm] = useState(REQUEST_FORM_EMPTY);
 
@@ -120,14 +121,19 @@ export function AddMemberPage() {
 
   const handleGenerateQr = () =>
     attempt(async () => {
-      setQrToken(await createCircleInvite(levelId));
+      // Scanning opens the join link with the code filled in. Generated in the browser.
+      const url = inviteUrl(await createCircleInvite(levelId));
+      setQrImage(await QRCode.toDataURL(url, { width: 240, margin: 1, color: { dark: "#073D30", light: "#FFFFFF" } }));
       setQrGenerated(true);
       notify(`Invite ready — anyone who uses it will request ${levelLabel} access`);
     });
 
-  const copyQrLink = () => {
-    navigator.clipboard?.writeText(inviteUrl(qrToken)).catch(() => {});
-    notify("Invite link copied to clipboard");
+  const saveQrImage = () => {
+    const link = document.createElement("a");
+    link.href = qrImage;
+    link.download = "sabi-family-circle-invite.png";
+    link.click();
+    notify("QR code saved to downloads");
   };
 
   // ---------------- "Join a Family Circle" actions ----------------
@@ -262,9 +268,9 @@ export function AddMemberPage() {
                 <p>Generate a QR code — they scan it to join your circle in person.</p>
                 {qrGenerated ? (
                   <>
-                    <div className="sabi-fam-qr-box" />
-                    <button type="button" className="sabi-btn-ghost" onClick={copyQrLink}>
-                      <Download size={14} /> Copy Invite Link
+                    <img className="sabi-fam-qr-box" src={qrImage} alt="QR code to join your family circle" style={{ background: "#fff" }} />
+                    <button type="button" className="sabi-btn-ghost" onClick={saveQrImage}>
+                      <Download size={14} /> Save Image
                     </button>
                   </>
                 ) : (
