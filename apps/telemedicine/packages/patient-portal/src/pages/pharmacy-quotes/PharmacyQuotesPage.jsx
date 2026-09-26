@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, MapPin, PackageSearch, Sparkles } from "lucide-react";
+import { ArrowLeft, Clock3, MapPin, PackageSearch, Sparkles } from "lucide-react";
 import "../../styles/share.css";
 import "./PharmacyQuotes.css";
 
@@ -10,10 +10,10 @@ import { useZoom } from "../../hooks/useZoom";
 import { Sidebar, Topbar } from "../dashboard/components";
 import { PharmacyInvoice, QuoteList, ChatModal } from "./components";
 
-import { QUOTES } from "./data";
+import { loadQuotes } from "./data";
 import { getExpiryInfo } from "./expiry";
 import { computeSavings } from "./pricing";
-import { getPrescriptionDetail, getSentAt } from "../prescriptions/prescriptionStore";
+import { useApiData } from "../../api/useApiData";
 import { addQuoteItemsToCart } from "../pharmacy-market/cartStore";
 import { formatNaira } from "../../utils/currency";
 
@@ -23,21 +23,26 @@ export function PharmacyQuotesPage() {
     const { state } = useLocation();
     const navigate = useNavigate();
 
-    const detail = getPrescriptionDetail(id);
+    const loaded = useApiData(() => loadQuotes(id), [id]);
+    const detail = loaded.data?.detail;
 
     // Only show quotes from pharmacies the prescription was actually sent
     // to (passed via SelectPharmacyPage's navigate state). Fall back to
-    // the full list when opened without that context (e.g. from the
-    // Pharmacy Quotes inbox / a bookmarked link).
+    // every quote for this prescription when opened without that context
+    // (e.g. from the Pharmacy Quotes inbox / a bookmarked link).
     const quotes = useMemo(() => {
-        if (!state?.pharmacyIds?.length) return QUOTES;
-        const filtered = QUOTES.filter((q) => state.pharmacyIds.includes(q.id));
-        return filtered.length ? filtered : QUOTES;
-    }, [state]);
+        const all = loaded.data?.quotes || [];
+        if (!state?.pharmacyIds?.length) return all;
+        const filtered = all.filter((q) => state.pharmacyIds.includes(q.id));
+        return filtered.length ? filtered : all;
+    }, [loaded.data, state]);
 
-    const [selectedQuote, setSelectedQuote] = useState(
-        quotes.find((q) => q.best) || quotes.find((q) => q.availability !== "Out of Stock") || quotes[0]
-    );
+    const [selectedQuote, setSelectedQuote] = useState(null);
+    useEffect(() => {
+        if (!selectedQuote && quotes.length) {
+            setSelectedQuote(quotes.find((q) => q.best) || quotes.find((q) => q.availability !== "Out of Stock") || quotes[0]);
+        }
+    }, [quotes, selectedQuote]);
     const [toast, setToast] = useState("");
     const [chatWith, setChatWith] = useState(null);
     const [addedCount, setAddedCount] = useState(0);
@@ -47,7 +52,8 @@ export function PharmacyQuotesPage() {
         window.setTimeout(() => setToast(""), 2600);
     };
 
-    const expiry = useMemo(() => getExpiryInfo(getSentAt(id)), [id]);
+    const expiry = useMemo(() => getExpiryInfo(loaded.data?.expiresAt), [loaded.data]);
+    const savings = useMemo(() => (detail ? computeSavings(detail.items, quotes) : null), [detail, quotes]);
 
     if (!detail) {
         return (
@@ -56,7 +62,7 @@ export function PharmacyQuotesPage() {
                 <div className="sabi-main">
                     <Topbar />
                     <div className="sabi-card">
-                        <p>We couldn&apos;t find quotes for that prescription.</p>
+                        <p>{loaded.loading ? "Loading quotes…" : "We couldn't find quotes for that prescription."}</p>
                         <button className="sabi-btn-primary" onClick={() => navigate("/prescriptions")}>
                             Back to Prescriptions
                         </button>
@@ -68,10 +74,11 @@ export function PharmacyQuotesPage() {
 
     const respondedCount = quotes.filter((q) => q.availability !== "Out of Stock").length;
     const allOutOfStock = quotes.length > 0 && respondedCount === 0;
-    const savings = useMemo(() => computeSavings(detail.items, quotes), [detail.items, quotes]);
+    // Sent, but no pharmacy has replied yet.
+    const waiting = quotes.length === 0;
 
-    const handleAddToCart = ({ pharmacyId, pharmacyName, items, deliveryMode, deliveryFee, serviceCharge, vat }) => {
-        addQuoteItemsToCart({ id: pharmacyId, name: pharmacyName }, items, { deliveryMode, deliveryFee, serviceCharge, vat });
+    const handleAddToCart = ({ pharmacyId, pharmacyName, items, deliveryMode }) => {
+        addQuoteItemsToCart({ id: pharmacyId, name: pharmacyName }, items, { deliveryMode, prescriptionId: id });
         setAddedCount((c) => c + items.length);
         notify(`${items.length} item${items.length === 1 ? "" : "s"} from ${pharmacyName} added to your order`);
     };
@@ -105,7 +112,25 @@ export function PharmacyQuotesPage() {
                     )}
                 </header>
 
-                {allOutOfStock ? (
+                {waiting ? (
+                    <div className="sabi-card sabi-empty-state">
+                        <Clock3 size={40} />
+                        <h3>Waiting for pharmacies to respond</h3>
+                        <p>
+                            {loaded.data.requestedCount
+                                ? `Sent to ${loaded.data.requestedCount} pharmac${loaded.data.requestedCount === 1 ? "y" : "ies"}. Quotes appear here as each pharmacy replies.`
+                                : "This prescription hasn't been sent to any pharmacies yet."}
+                        </p>
+                        <button
+                            type="button"
+                            className="sabi-btn-primary"
+                            style={{ marginTop: 8 }}
+                            onClick={() => (loaded.data.requestedCount ? loaded.reload() : navigate(`/prescriptions/${id}/select-pharmacy`))}
+                        >
+                            {loaded.data.requestedCount ? "Check for Quotes" : <><MapPin size={15} /> Select Pharmacies</>}
+                        </button>
+                    </div>
+                ) : allOutOfStock ? (
                     <div className="sabi-card sabi-empty-state">
                         <PackageSearch size={40} />
                         <h3>No selected pharmacy currently has your prescription available.</h3>

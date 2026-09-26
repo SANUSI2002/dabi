@@ -73,6 +73,11 @@ export function PharmacyMarketPage() {
                         Shop from trusted pharmacies near you with fast delivery or convenient pickup.
                         Sabi Health ensures every dose is verified and delivered with care.
                     </p>
+                    {/* Over-the-counter checkout isn't open yet; prescriptions are already live. */}
+                    <p>
+                        <strong>Coming soon:</strong> buying over-the-counter items here. Your doctor&apos;s prescriptions can
+                        already be ordered from Prescriptions.
+                    </p>
                     <div className="sabi-storefront-hero-actions">
                         <button
                             type="button"

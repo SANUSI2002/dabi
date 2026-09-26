@@ -1,13 +1,67 @@
-// unavailableItemIds lists which prescription item IDs (see
-// prescriptions/data.js PRESCRIPTION_DETAILS items) this pharmacy does
-// NOT have in stock — everything else is treated as available. Powers
-// "2 of 3 available" comparisons and the Available / Unavailable
-// Medicines split on each pharmacy's invoice.
-export const QUOTES = [
-  { id: "medplus", name: "MedPlus Pharmacy", rating: "4.8", distance: "1.2 km away", total: "₦12,500", availability: "Available", eta: "Ready for Pickup or Delivery (30-45 mins)", best: true, lat: 6.6238, lng: 3.3110, fulfillmentRate: 96, deliveryFee: 1000, unavailableItemIds: [] },
-  { id: "healthplus", name: "HealthPlus Lagos", rating: "4.5", distance: "2.8 km away", total: "₦14,200", availability: "Available", eta: "Ready for Pickup in 1 hour", lat: 6.6156, lng: 3.3262, fulfillmentRate: 88, deliveryFee: 1200, unavailableItemIds: ["d3"] },
-  { id: "safari", name: "Safari Pharmacy", rating: "4.9", distance: "3.5 km away", total: "₦13,100", availability: "Available", eta: "Ready for Delivery (45-60 mins)", lat: 6.6073, lng: 3.3385, fulfillmentRate: 99, deliveryFee: 1500, unavailableItemIds: ["d2", "d3"] },
-  { id: "tmed", name: "T-Med Care", rating: "4.2", distance: "5.1 km away", availability: "Out of Stock", lat: 6.6002, lng: 3.3034, fulfillmentRate: 61, deliveryFee: 1200, unavailableItemIds: null },
-];
+import { listQuotes, listRequests, naira } from "../../api/commerceApi";
+import { getPrescriptionDetail } from "../prescriptions/prescriptionStore";
+import { formatNaira } from "../../utils/currency";
 
-export const PRESCRIPTION_DETAILS = { medication: "Lisinopril 10mg", supply: "30 Tablets (Monthly Supply)", requested: "Oct 24, 09:12 AM", expires: "22h 15m" };
+// Pharmacy quotes for one prescription, from the Sabi API, in the shape the quote cards and
+// invoice read. `lines` is keyed by prescription item id; each line keeps the quote line id
+// that a reservation needs. unavailableItemIds lists prescription items this pharmacy can't
+// supply in full — everything else is available.
+
+function toUiQuote(q, items) {
+  const lines = {};
+  for (const line of q.items || []) {
+    lines[line.prescriptionItemId] = {
+      quoteItemId: line.id,
+      unitPrice: naira(line.unitPriceMinor),
+      quantity: line.requiredQuantity,
+      lineTotal: naira(line.lineTotalMinor),
+      available: line.reservable && line.availabilityStatus === "AVAILABLE" && line.availableQuantity >= line.requiredQuantity,
+      pickupAvailable: line.pickupAvailable,
+      deliveryAvailable: line.deliveryAvailable,
+      estimatedFulfilment: line.estimatedFulfilment,
+    };
+  }
+  const unavailableItemIds = items.filter((item) => !lines[item.id]?.available).map((item) => item.id);
+  const available = items.filter((item) => lines[item.id]?.available);
+  const totalValue = available.reduce((sum, item) => sum + lines[item.id].lineTotal, 0);
+  const pickup = available.some((item) => lines[item.id].pickupAvailable);
+  const delivery = available.some((item) => lines[item.id].deliveryAvailable);
+  const when = available[0] ? lines[available[0].id].estimatedFulfilment : "";
+  const pharmacy = q.pharmacy || {};
+  return {
+    id: pharmacy.id,
+    quoteId: q.id,
+    name: pharmacy.name || "Pharmacy",
+    rating: "New",
+    distance: [pharmacy.city, pharmacy.state].filter(Boolean).join(", "),
+    address: pharmacy.address,
+    lat: pharmacy.latitude,
+    lng: pharmacy.longitude,
+    total: formatNaira(totalValue),
+    totalValue,
+    availability: available.length ? "Available" : "Out of Stock",
+    eta: `Ready for ${[pickup && "Pickup", delivery && "Delivery"].filter(Boolean).join(" or ") || "Pickup"}${when ? ` (${when})` : ""}`,
+    pickupAvailable: pickup,
+    deliveryAvailable: delivery,
+    deliveryFee: null,
+    unavailableItemIds,
+    lines,
+    quoteExpiresAt: q.quoteExpiresAt,
+  };
+}
+
+/** The prescription, its current quotes, and how many pharmacies it was sent to. */
+export async function loadQuotes(prescriptionId) {
+  const [detail, quotes, requests] = await Promise.all([getPrescriptionDetail(prescriptionId), listQuotes(), listRequests()]);
+  if (!detail) return { detail: null, quotes: [], requestedCount: 0, expiresAt: null };
+  const uiQuotes = quotes.filter((q) => q.prescriptionId === prescriptionId).map((q) => toUiQuote(q, detail.items));
+  const cheapest = uiQuotes.filter((q) => q.availability !== "Out of Stock").sort((a, b) => a.totalValue - b.totalValue)[0];
+  if (cheapest) cheapest.best = true;
+  const expiresAt = uiQuotes.reduce((soonest, q) => (!soonest || q.quoteExpiresAt < soonest ? q.quoteExpiresAt : soonest), null);
+  return {
+    detail,
+    quotes: uiQuotes,
+    requestedCount: requests.filter((r) => r.prescriptionId === prescriptionId).length,
+    expiresAt,
+  };
+}

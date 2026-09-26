@@ -11,7 +11,6 @@ import { formatNaira } from "../../utils/currency";
 import { Sidebar, Topbar } from "../dashboard/components";
 import { clearCart, getCart, setCartQty, removeFromCart, findProduct, findPharmacy } from "./cartStore";
 
-const DELIVERY_FEE_PER_PHARMACY = 1500;
 
 function buildGroups(cart) {
   return Object.entries(cart)
@@ -40,8 +39,8 @@ export function CartPage() {
 
   const groups = useMemo(() => buildGroups(cart), [cart]);
   const itemsTotal = groups.reduce((sum, g) => sum + g.subtotal, 0);
-  const deliveryFee = groups.length * DELIVERY_FEE_PER_PHARMACY;
-  const grandTotal = itemsTotal + deliveryFee;
+  // Delivery (by distance) and the platform fee are priced at checkout.
+  const grandTotal = itemsTotal;
   const totalItemCount = groups.reduce((sum, g) => sum + g.lines.reduce((s, l) => s + l.qty, 0), 0);
 
   const notify = (message) => {
@@ -104,7 +103,7 @@ export function CartPage() {
                 <div className="sabi-card sabi-cart-group" key={pharmacy.id}>
                   <div className="sabi-cart-group-head">
                     <h3><Store size={16} /> {pharmacy.name}</h3>
-                    <button type="button" className="sabi-btn-ghost" onClick={() => navigate(`/pharmacy-market/${pharmacy.id}`)}>
+                    <button type="button" className="sabi-btn-ghost" onClick={() => navigate(lines[0]?.product.prescriptionId ? `/prescriptions/${lines[0].product.prescriptionId}/quotes` : `/pharmacy-market/${pharmacy.id}`)}>
                       Add more items
                     </button>
                   </div>
@@ -117,11 +116,11 @@ export function CartPage() {
                         <div className="sabi-cart-item-category">{product.category}</div>
                       </div>
                       <div className="sabi-stepper">
-                        <button type="button" onClick={() => changeQty(pharmacy.id, product.id, -1, qty)} aria-label="Decrease quantity">
+                        <button type="button" onClick={() => changeQty(pharmacy.id, product.id, -1, qty)} aria-label="Decrease quantity" disabled={product.fixedQuantity}>
                           <Minus size={13} />
                         </button>
                         <span>{qty}</span>
-                        <button type="button" onClick={() => changeQty(pharmacy.id, product.id, 1, qty)} aria-label="Increase quantity">
+                        <button type="button" onClick={() => changeQty(pharmacy.id, product.id, 1, qty)} aria-label="Increase quantity" disabled={product.fixedQuantity}>
                           <Plus size={13} />
                         </button>
                       </div>
@@ -151,7 +150,7 @@ export function CartPage() {
               </div>
               <div className="sabi-cart-summary-row">
                 <span>Delivery fee ({groups.length} store{groups.length === 1 ? "" : "s"})</span>
-                <span>{formatNaira(deliveryFee)}</span>
+                <span>Calculated at checkout</span>
               </div>
               <div className="sabi-cart-summary-row total">
                 <span>Total</span>

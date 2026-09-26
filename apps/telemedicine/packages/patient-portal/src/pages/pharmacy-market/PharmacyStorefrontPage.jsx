@@ -12,7 +12,7 @@ import { formatNaira } from "../../utils/currency";
 
 import { Sidebar, Topbar } from "../dashboard/components";
 import { getMarketplacePharmacies } from "./marketplaceData";
-import { getCartForPharmacy, addToCart, setCartQty, getCartCount } from "./cartStore";
+import { getCartForPharmacy, setCartQty, getCartCount } from "./cartStore";
 import { openExternalDirections } from "../../utils/mapUtils";
 
 export function PharmacyStorefrontPage() {
@@ -53,12 +53,8 @@ export function PharmacyStorefrontPage() {
         window.setTimeout(() => setToast(""), 2000);
     };
 
-    const addOne = (product) => {
-        const next = addToCart(pharmacy.id, product.id, 1);
-        setCart(next[pharmacy.id] || {});
-        setTotalCartCount(getCartCount());
-        notify(`${product.name} added to cart`);
-    };
+    // Marketplace checkout isn't open yet; prescriptions are ordered from Prescriptions.
+    const addOne = () => notify("Buying over-the-counter items is coming soon. Your doctor's prescriptions can already be ordered from Prescriptions.");
 
     const changeQty = (product, delta) => {
         const currentQty = cart[product.id] || 0;

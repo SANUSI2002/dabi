@@ -1,12 +1,12 @@
 import React from "react";
 import { CheckCircle2, Clock3, Gauge, ReceiptText, Star, Truck } from "lucide-react";
 import { formatNaira } from "../../../utils/currency";
-import { quantityFromLabel, unitPriceFor } from "../pricing";
+import { lineFor } from "../pricing";
 
 function invoiceTotalFor(quote, items) {
   const unavailableIds = new Set(quote.unavailableItemIds || []);
   const available = items.filter((item) => !unavailableIds.has(item.id));
-  return available.reduce((sum, item) => sum + unitPriceFor(quote.id, item.name) * quantityFromLabel(item.qty), 0);
+  return available.reduce((sum, item) => sum + (lineFor(quote, item)?.lineTotal || 0), 0);
 }
 
 export function QuoteCard({ quote, items, selected, onSelect }) {

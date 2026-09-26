@@ -31,11 +31,11 @@ export function DeliveryMap({ order, initialDestination }) {
       />
       <div className="sabi-delivery-order">Order {order.id}</div>
       <div className="sabi-delivery-eta"><span><Truck /></span><div><small>ESTIMATED ARRIVAL</small><strong>{order.eta}</strong> <em>({order.minutes})</em></div></div>
-      <div className="sabi-delivery-status"><span><Bike /></span><div><h1>Heading to your location</h1><p>{order.rider} is {order.distance} away from you</p></div>
+      <div className="sabi-delivery-status"><span><Bike /></span><div><h1>{order.headline || "Heading to your location"}</h1><p>{order.subline || `${order.rider} is ${order.distance} away from you`}</p></div>
         {/* DEBUG NOTE: Connected location click handler to update the active map marker. */}
         <button type="button" onClick={() => setActiveLocation("destination")}>Track Details</button>
       </div>
     </section>
-    <section className="sabi-delivery-rider sabi-card"><div className="sabi-delivery-avatar">AS</div><div><h2>{order.rider} <em>★ 4.9</em></h2><p>{order.vehicle}</p><small>Sabi Certified Logistics Partner</small></div><div className="sabi-delivery-contact"><button><MessageSquare /> Chat</button><button><Phone /> Call</button></div></section>
+    <section className="sabi-delivery-rider sabi-card"><div className="sabi-delivery-avatar">{order.riderInitials ?? "AS"}</div><div><h2>{order.rider} {order.riderRating !== null && <em>★ {order.riderRating ?? "4.9"}</em>}</h2><p>{order.vehicle}</p><small>Sabi Certified Logistics Partner</small></div><div className="sabi-delivery-contact"><button><MessageSquare /> Chat</button><button><Phone /> Call</button></div></section>
   </>;
 }

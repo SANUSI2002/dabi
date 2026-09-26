@@ -14,8 +14,11 @@ import { pageVars } from "../../pageVars";
 import { useZoom } from "../../hooks/useZoom";
 import { formatNaira } from "../../utils/currency";
 import { Sidebar, Topbar } from "../dashboard/components";
-import { SAMPLE_EXTRACTIONS, PRESCRIPTIONS_ON_FILE } from "./marketFlowsData";
-import { addPrescriptionFromExtraction, removeUploadedPrescription } from "../prescriptions/prescriptionStore";
+import { SAMPLE_EXTRACTIONS } from "./marketFlowsData";
+import { removeUploadedPrescription, toDetail } from "../prescriptions/prescriptionStore";
+import { useApiData } from "../../api/useApiData";
+import { listPrescriptions } from "../../api/commerceApi";
+import { uploadDocument } from "../../api/recordsApi";
 
 const SCAN_STAGES = [
   "Reading document…",
@@ -24,7 +27,27 @@ const SCAN_STAGES = [
   "Verifying prescriber & dosage…",
 ];
 
-const ACTIVE_ON_FILE = PRESCRIPTIONS_ON_FILE.filter((r) => r.status === "Active");
+// Prescriptions your doctor issued on Sabi Health, in the shape this page lists and previews.
+async function loadOnFile() {
+  return (await listPrescriptions()).map((p) => {
+    const detail = toDetail(p);
+    return {
+      id: p.id,
+      label: `${detail.physician} · ${detail.name}`,
+      dated: detail.issueDate,
+      refId: detail.refId,
+      result: {
+        prescriptionId: p.id,
+        drug: detail.name,
+        form: detail.items.map((i) => i.qty).join(", "),
+        prescribedBy: detail.physician,
+        issueDate: detail.issueDate,
+        expiration: "—",
+        price: null,
+      },
+    };
+  });
+}
 
 export function PrescriptionPage() {
   const [zoom] = useZoom();
@@ -37,6 +60,8 @@ export function PrescriptionPage() {
   const [onFileChoice, setOnFileChoice] = useState("");
   const [createdDetail, setCreatedDetail] = useState(null);
   const [toast, setToast] = useState("");
+  const { data: onFile } = useApiData(loadOnFile, []);
+  const ACTIVE_ON_FILE = onFile || [];
 
   const notify = (message) => {
     setToast(message);
@@ -62,17 +87,24 @@ export function PrescriptionPage() {
   // result from it, this just tells the patient what their real options
   // are: choose a prescription already on file, or request one from
   // their doctor — both further down this same page.
-  const handleRealUpload = () => {
-    notify("We've received your file. Automatic reading isn't available yet — choose a prescription on file below, or request one from your doctor.");
+  // The file goes to private, scanned document storage. Pharmacies can't see an uploaded
+  // prescription until a clinician reviews it, and that review isn't available yet.
+  const handleRealUpload = async (file) => {
+    try {
+      await uploadDocument(file, { kind: "EXTERNAL_PRESCRIPTION" });
+      notify("Uploaded securely to your records. A clinician must review uploaded prescriptions before pharmacies can quote them — that review is coming soon.");
+    } catch (err) {
+      notify(err.message);
+    }
   };
 
   const handleFileInput = (e) => {
-    if (e.target.files?.[0]) handleRealUpload();
+    if (e.target.files?.[0]) handleRealUpload(e.target.files[0]);
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
-    if (e.dataTransfer.files?.[0]) handleRealUpload();
+    if (e.dataTransfer.files?.[0]) handleRealUpload(e.dataTransfer.files[0]);
   };
 
   const handleOnFileChange = (e) => {
@@ -83,18 +115,21 @@ export function PrescriptionPage() {
       return;
     }
     const record = ACTIVE_ON_FILE.find((r) => r.id === recordId);
-    if (record) setResult(SAMPLE_EXTRACTIONS[record.extraction]);
+    if (record) setResult(record.result);
   };
 
   const requestFromDoctor = () => {
-    notify("Digital request sent to your primary care physician — we'll notify you once approved.");
+    notify("Ask your doctor to issue the prescription on Sabi Health — it will appear under Prescriptions.");
   };
 
   const confirmAndContinue = () => {
     if (!result) return;
-    const detail = addPrescriptionFromExtraction(result);
-    setCreatedDetail(detail);
-    notify(`${result.drug} added to your prescriptions`);
+    if (!result.prescriptionId) {
+      notify("That was a sample. Reading uploaded prescriptions is coming soon.");
+      return;
+    }
+    // A prescription on file is ready to send to pharmacies for quotes.
+    navigate(`/prescriptions/${result.prescriptionId}/select-pharmacy`);
   };
 
   const removeCreatedPrescription = () => {
@@ -240,7 +275,7 @@ export function PrescriptionPage() {
                   <div className="sabi-cart-summary-row"><span><Stethoscope size={13} style={{ verticalAlign: "-2px" }} /> Prescribed by</span><span>{result.prescribedBy}</span></div>
                   <div className="sabi-cart-summary-row"><span><CalendarDays size={13} style={{ verticalAlign: "-2px" }} /> Issue date</span><span>{result.issueDate}</span></div>
                   <div className="sabi-cart-summary-row"><span><Hourglass size={13} style={{ verticalAlign: "-2px" }} /> Expires</span><span>{result.expiration}</span></div>
-                  <div className="sabi-cart-summary-row total"><span>Est. Price</span><span>{formatNaira(result.price)}</span></div>
+                  <div className="sabi-cart-summary-row total"><span>Est. Price</span><span>{result.price != null ? formatNaira(result.price) : "Quoted by pharmacies"}</span></div>
 
                   <button type="button" className="sabi-btn-primary sabi-btn-block" style={{ marginTop: 12 }} onClick={confirmAndContinue}>
                     <CheckCircle2 size={15} /> Confirm &amp; Continue
@@ -263,7 +298,7 @@ export function PrescriptionPage() {
               <div
                 className="sabi-fam-coordination-row"
                 style={{ marginTop: 12, cursor: "pointer" }}
-                onClick={() => notify("Connecting you to a licensed pharmacist…")}
+                onClick={() => notify("Chat with a pharmacist is coming soon.")}
               >
                 <div className="who">
                   <MessageCircleQuestion size={18} style={{ color: "var(--sabi-primary-dark)" }} />

@@ -1,69 +1,44 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useApiData } from "../../../api/useApiData";
+import { formatClock, listMedications, setMedicationTaken } from "../../../api/dashboardApi";
 
-const initialMedicationSchedule = [
-  {
-    key: "morning",
-    label: "Morning",
-    medications: [
-      {
-        id: 1,
-        name: "Metformin",
-        dosage: "500mg",
-        instructions: "After Food",
-        scheduledTime: "08:00 AM",
-        status: "Due Now",
-        nextDose: { date: "Today", time: "08:00 AM" },
-      },
-    ],
-  },
-  {
-    key: "afternoon",
-    label: "Afternoon",
-    medications: [
-      {
-        id: 2,
-        name: "Omega-3",
-        dosage: "1 capsule",
-        instructions: "With Water",
-        scheduledTime: "01:30 PM",
-        status: "Upcoming",
-        nextDose: { date: "Today", time: "01:30 PM" },
-      },
-    ],
-  },
-  {
-    key: "evening",
-    label: "Evening",
-    medications: [
-      {
-        id: 3,
-        name: "Vitamin D",
-        dosage: "1000 IU",
-        instructions: "After Food",
-        scheduledTime: "06:30 PM",
-        status: "Missed",
-        nextDose: { date: "Tomorrow", time: "06:30 PM" },
-      },
-    ],
-  },
-  {
-    key: "night",
-    label: "Night",
-    medications: [
-      {
-        id: 4,
-        name: "Lisinopril",
-        dosage: "10mg",
-        instructions: "Before Bed",
-        scheduledTime: "09:00 PM",
-        status: "Taken",
-        takenAt: "09:00 AM",
-        nextDose: { date: "Tomorrow", time: "09:00 PM" },
-        courseCompleted: false,
-      },
-    ],
-  },
+// Today's doses from the patient's medication list, grouped by time of day.
+const GROUPS = [
+  { key: "morning", label: "Morning", until: 12 * 60 },
+  { key: "afternoon", label: "Afternoon", until: 17 * 60 },
+  { key: "evening", label: "Evening", until: 21 * 60 },
+  { key: "night", label: "Night", until: 24 * 60 },
 ];
+const minutesOf = (hhmm) => {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+};
+
+function toScheduleMed(m) {
+  const due = minutesOf(m.time) <= new Date().getHours() * 60 + new Date().getMinutes();
+  return {
+    id: m.id,
+    name: m.name,
+    dosage: "",
+    instructions: m.instructions || "As directed",
+    scheduledTime: formatClock(m.time),
+    status: m.isTaken ? "Taken" : due ? "Due Now" : "Upcoming",
+    takenAt: m.isTaken ? formatClock(m.time) : null,
+    nextDose: { date: "Tomorrow", time: formatClock(m.time) },
+    courseCompleted: false,
+    minutes: minutesOf(m.time),
+  };
+}
+
+function buildSchedule(meds) {
+  const items = meds.map(toScheduleMed);
+  let from = 0;
+  return GROUPS.map((group) => {
+    const medications = items.filter((m) => m.minutes >= from && m.minutes < group.until);
+    from = group.until;
+    return { key: group.key, label: group.label, medications };
+  }).filter((group) => group.medications.length);
+}
 
 const statusClassMap = {
   "Due Now": "sabi-rx-med-status due",
@@ -74,9 +49,20 @@ const statusClassMap = {
 
 /* DEBUG NOTE: Prescriptions refactor - Replaced the static schedule with active filtered prescription results. */
 export function RecentPrescriptions({ prescriptions, onViewDetails }) {
-  const [medicationSchedule, setMedicationSchedule] = useState(initialMedicationSchedule);
+  const { data: meds } = useApiData(listMedications, []);
+  const [medicationSchedule, setMedicationSchedule] = useState([]);
+  useEffect(() => {
+    if (meds) setMedicationSchedule(buildSchedule(meds));
+  }, [meds]);
+  const plannedDoses = medicationSchedule.reduce((sum, group) => sum + group.medications.length, 0);
 
-  const handleMarkTaken = (medicationId) => {
+  const handleMarkTaken = async (medicationId) => {
+    try {
+      await setMedicationTaken(medicationId, true);
+    } catch (err) {
+      alert(err.message);
+      return;
+    }
     setMedicationSchedule((schedule) =>
       schedule.map((group) => ({
         ...group,
@@ -118,10 +104,11 @@ export function RecentPrescriptions({ prescriptions, onViewDetails }) {
       <div className="sabi-rx-med-schedule" aria-labelledby="todays-medication-schedule">
         <div className="sabi-rx-schedule-head">
           <span className="sabi-rx-schedule-title" id="todays-medication-schedule">Today's Medication Schedule</span>
-          <span className="sabi-rx-schedule-date">Today • 4 planned doses</span>
+          <span className="sabi-rx-schedule-date">Today • {plannedDoses} planned dose{plannedDoses === 1 ? "" : "s"}</span>
         </div>
 
         <div className="sabi-rx-med-groups">
+          {meds && !plannedDoses && <p className="sabi-rx-empty">No medications scheduled for today.</p>}
           {medicationSchedule.map((group) => (
             <div className="sabi-rx-med-group" key={group.key}>
               <div className="sabi-rx-med-group-title">{group.label}</div>
@@ -136,7 +123,7 @@ export function RecentPrescriptions({ prescriptions, onViewDetails }) {
                     <div className="sabi-rx-med-card-top">
                       <div>
                         <div className="sabi-rx-med-name">{medication.name}</div>
-                        <div className="sabi-rx-med-meta">{medication.dosage} • {medication.instructions}</div>
+                        <div className="sabi-rx-med-meta">{[medication.dosage, medication.instructions].filter(Boolean).join(" • ")}</div>
                       </div>
                       <span className={statusClassMap[medication.status] || "sabi-rx-med-status"}>{medication.status}</span>
                     </div>

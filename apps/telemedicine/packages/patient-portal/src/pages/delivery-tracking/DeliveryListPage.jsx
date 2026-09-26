@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Bike, ChevronRight, MapPin, Package, Store } from "lucide-react";
 
@@ -7,42 +7,16 @@ import "./DeliveryTracking.css";
 
 import { pageVars } from "../../pageVars";
 import { useZoom } from "../../hooks/useZoom";
-import { formatNaira } from "../../utils/currency";
 import { Sidebar, Topbar } from "../dashboard/components";
-import { ACTIVE_DELIVERIES } from "./data";
-import { getOrders } from "../pharmacy-market/cartStore";
-
-function fromCheckoutOrder(order) {
-  const firstGroup = order.groups?.[0];
-  const extraStores = (order.groups?.length || 1) - 1;
-  const firstItem = firstGroup?.items?.[0];
-  const extraItems = (firstGroup?.items?.length || 1) - 1 + (order.groups?.slice(1).reduce((s, g) => s + g.items.length, 0) || 0);
-
-  return {
-    id: order.id.replace(/^SH-/, ""),
-    status: order.status === "Delivered" ? "Delivered" : "Awaiting Confirmation",
-    statusTone: order.status === "Delivered" ? "done" : "current",
-    pharmacy: firstGroup ? `${firstGroup.pharmacyName}${extraStores > 0 ? ` + ${extraStores} more` : ""}` : "Sabi Health Order",
-    location: order.address?.label ? `Delivering to ${order.address.label}` : "Delivery address on file",
-    itemsSummary: firstItem ? `${firstItem.name}${extraItems > 0 ? ` + ${extraItems} more item${extraItems === 1 ? "" : "s"}` : ""}` : "Order items",
-    total: formatNaira(order.grandTotal),
-    eta: order.status === "Delivered" ? "Delivered" : "Pending dispatch",
-    minutes: "—",
-    distance: "—",
-    rider: "Not assigned yet",
-    vehicle: "—",
-    fromCheckout: true,
-  };
-}
+import { listDeliveries } from "./data";
+import { useApiData } from "../../api/useApiData";
 
 export function DeliveryListPage() {
   const [zoom] = useZoom();
   const navigate = useNavigate();
 
-  const deliveries = useMemo(() => {
-    const realOrders = getOrders().map(fromCheckoutOrder);
-    return [...realOrders, ...ACTIVE_DELIVERIES];
-  }, []);
+  const { data, error } = useApiData(listDeliveries, []);
+  const deliveries = data || [];
 
   return (
     <div className="sabi-dashboard" style={{ ...pageVars, zoom }}>
@@ -55,13 +29,15 @@ export function DeliveryListPage() {
           Delivery Tracking
         </header>
 
-        {deliveries.length === 0 ? (
+        {!data ? (
+          <p className="sabi-rx-empty">{error ? "We couldn't load your orders. Please refresh to try again." : "Loading your orders…"}</p>
+        ) : deliveries.length === 0 ? (
           <div className="sabi-card sabi-empty-state">
             <Package size={40} />
             <h3>No deliveries yet</h3>
-            <p>Orders you place from the marketplace will show up here so you can track them in real time.</p>
-            <button type="button" className="sabi-btn-primary" style={{ marginTop: 8 }} onClick={() => navigate("/pharmacy-market")}>
-              Browse Marketplace
+            <p>Orders you place for your prescriptions will show up here so you can track them in real time.</p>
+            <button type="button" className="sabi-btn-primary" style={{ marginTop: 8 }} onClick={() => navigate("/prescriptions")}>
+              Go to Prescriptions
             </button>
           </div>
         ) : (
@@ -79,7 +55,7 @@ export function DeliveryListPage() {
 
                 <div className="sabi-delivery-list-body">
                   <div className="sabi-delivery-list-top">
-                    <strong>Order #{d.id}</strong>
+                    <strong>Order #{d.reference}</strong>
                     <span className={`sabi-delivery-status-pill ${d.statusTone}`}>{d.status}</span>
                   </div>
                   <div className="sabi-delivery-list-meta">

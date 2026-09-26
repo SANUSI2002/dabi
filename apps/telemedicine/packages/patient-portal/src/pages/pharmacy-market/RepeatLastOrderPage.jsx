@@ -9,7 +9,35 @@ import { pageVars } from "../../pageVars";
 import { useZoom } from "../../hooks/useZoom";
 import { formatNaira } from "../../utils/currency";
 import { Sidebar, Topbar } from "../dashboard/components";
-import { getLastOrder, addPrescriptionItemToCart, findProduct } from "./cartStore";
+import { useApiData } from "../../api/useApiData";
+import { listOrders, listPrescriptions, naira, ORDER_LABELS } from "../../api/commerceApi";
+
+// The most recent paid order, with the prescription each line came from.
+async function loadLastOrder() {
+  const [orders, prescriptions] = await Promise.all([listOrders(), listPrescriptions()]);
+  const last = orders.filter((o) => o.status === "PAID").sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+  if (!last) return null;
+  const prescriptionOf = new Map(prescriptions.flatMap((p) => p.items.map((item) => [item.id, p.id])));
+  const groups = last.fulfilments.map((f) => {
+    const items = (f.allocations || []).map((a) => ({
+      productId: a.prescriptionItemId,
+      prescriptionId: prescriptionOf.get(a.prescriptionItemId) || null,
+      name: a.medicationName,
+      qty: a.selectedQuantity,
+      price: naira(a.unitPriceMinor),
+    }));
+    return { pharmacyId: f.pharmacy?.id, pharmacyName: f.pharmacy?.name || "Pharmacy", items, subtotal: naira(f.subtotalMinor) };
+  });
+  return {
+    id: last.reference,
+    placedAt: last.createdAt,
+    status: ORDER_LABELS[last.status] || last.status,
+    groups,
+    itemsTotal: naira(last.subtotalMinor),
+    deliveryFee: naira(last.deliveryFeeMinor),
+    grandTotal: naira(last.totalPayableMinor),
+  };
+}
 
 function formatDate(iso) {
   try {
@@ -22,8 +50,8 @@ function formatDate(iso) {
 export function RepeatLastOrderPage() {
   const [zoom] = useZoom();
   const navigate = useNavigate();
-  const [order] = useState(getLastOrder);
-  const [added, setAdded] = useState(() => new Set());
+  const { data: order, loading } = useApiData(loadLastOrder, []);
+  const [added] = useState(() => new Set());
   const [toast, setToast] = useState("");
 
   const notify = (message) => {
@@ -31,18 +59,38 @@ export function RepeatLastOrderPage() {
     window.setTimeout(() => setToast(""), 2400);
   };
 
+  // Prices change, so a reorder sends the prescription back to pharmacies for fresh quotes.
   const addLine = (pharmacyId, item) => {
-    const existing = findProduct(pharmacyId, item.productId);
-    const product = existing || { id: item.productId, name: item.name, price: item.price, category: "Reorder" };
-    addPrescriptionItemToCart(pharmacyId, product, item.qty);
-    setAdded((prev) => new Set(prev).add(`${pharmacyId}:${item.productId}`));
+    if (!item.prescriptionId) {
+      notify("This prescription is no longer active. Ask your doctor for a new one.");
+      return;
+    }
+    navigate(`/prescriptions/${item.prescriptionId}/select-pharmacy`);
   };
 
   const addAll = () => {
-    order.groups.forEach((g) => g.items.forEach((item) => addLine(g.pharmacyId, item)));
-    notify("Order added to your cart");
-    window.setTimeout(() => navigate("/cart"), 500);
+    const first = order.groups.flatMap((g) => g.items).find((item) => item.prescriptionId);
+    addLine(null, first || {});
   };
+
+  if (!order) {
+    return (
+      <div className="sabi-dashboard" style={{ ...pageVars, zoom }}>
+        <Sidebar />
+        <div className="sabi-main">
+          <Topbar />
+          <div className="sabi-card sabi-empty-state">
+            <History size={40} />
+            <h3>{loading ? "Loading your last order…" : "No past orders yet"}</h3>
+            {!loading && <p>Orders you pay for will show up here so you can reorder them quickly.</p>}
+            <button type="button" className="sabi-btn-primary" style={{ marginTop: 8 }} onClick={() => navigate("/prescriptions")}>
+              Go to Prescriptions
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="sabi-dashboard" style={{ ...pageVars, zoom }}>
@@ -90,7 +138,7 @@ export function RepeatLastOrderPage() {
                   <button
                     type="button"
                     className={isAdded ? "sabi-btn-outline" : "sabi-btn-primary"}
-                    onClick={() => { addLine(g.pharmacyId, item); notify(`${item.name} added to cart`); }}
+                    onClick={() => addLine(g.pharmacyId, item)}
                   >
                     {isAdded ? <><CheckCircle2 size={14} /> Added</> : "Add to Cart"}
                   </button>

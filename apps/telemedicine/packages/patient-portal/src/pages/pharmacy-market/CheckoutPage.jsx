@@ -11,15 +11,37 @@ import { pageVars } from "../../pageVars";
 import { useZoom } from "../../hooks/useZoom";
 import { formatNaira } from "../../utils/currency";
 import { Sidebar, Topbar } from "../dashboard/components";
-import { getCart, clearCart, getAddresses, addAddress, placeOrder, findProduct, findPharmacy } from "./cartStore";
+import { getCart, clearCart, getAddresses, addAddress, findProduct, findPharmacy } from "./cartStore";
+import {
+  createOrder, createReservation, initializePayment, naira, newIdempotencyKey, previewCheckout, rememberPendingOrder,
+} from "../../api/commerceApi";
+import { getCurrentUser } from "../../utils/sabiIdentity";
 
-const DELIVERY_FEE_PER_PHARMACY = 1500;
-
+// Card and bank transfer are both paid on Paystack's secure page.
 const PAYMENT_METHODS = [
   { id: "card", label: "Debit / Credit Card", icon: CreditCard },
   { id: "transfer", label: "Bank Transfer", icon: Landmark },
-  { id: "delivery", label: "Pay on Delivery", icon: Wallet },
+  { id: "delivery", label: "Pay on Delivery (coming soon)", icon: Wallet, disabled: true },
 ];
+
+// The delivery pin for a new address: the device's current location.
+const currentPosition = () =>
+  new Promise((resolve) => {
+    if (!navigator.geolocation) return resolve(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => resolve(null),
+      { timeout: 8000, maximumAge: 300000 },
+    );
+  });
+
+const RESERVATION_ERRORS = {
+  COVERAGE: "Add every medication on the prescription to your order before checking out",
+  STOCK: "A pharmacy no longer has enough stock for your order. Check the latest quotes and try again",
+  INVALID: "One of these quotes has expired or changed. Check the latest quotes and try again",
+};
+
+const fulfilmentMethod = (group) => (group.lines[0]?.product.deliveryMode === "pickup" ? "PICKUP" : "DELIVERY");
 
 function buildGroups(cart) {
   return Object.entries(cart)
@@ -29,7 +51,7 @@ function buildGroups(cart) {
       const lines = Object.entries(items)
         .map(([productId, qty]) => {
           const product = findProduct(pharmacyId, productId);
-          return product ? { product, qty } : null;
+          return product?.source === "prescription" ? { product, qty } : null;
         })
         .filter(Boolean);
       if (lines.length === 0) return null;
@@ -49,8 +71,17 @@ export function CheckoutPage() {
   // Cart PRD section).
   const groups = useMemo(() => buildGroups(cart), [cart]);
   const itemsTotal = groups.reduce((sum, group) => sum + group.subtotal, 0);
-  const deliveryFee = groups.length * DELIVERY_FEE_PER_PHARMACY;
-  const grandTotal = itemsTotal + deliveryFee;
+  const needsDelivery = groups.some((group) => fulfilmentMethod(group) === "DELIVERY");
+  const prescriptionIds = [...new Set(groups.flatMap((group) => group.lines.map((l) => l.product.prescriptionId)))];
+
+  // Set on Review: the stock hold and the server's prices for it.
+  const [prepared, setPrepared] = useState(null); // { reservationId, preview }
+  const [preparing, setPreparing] = useState(false);
+  const [keys] = useState(() => ({ reservation: newIdempotencyKey(), order: newIdempotencyKey(), payment: newIdempotencyKey() }));
+  const preview = prepared?.preview;
+  const deliveryFee = preview ? naira(preview.deliveryFeeMinor) : null;
+  const platformFee = preview ? naira(preview.platformFeeMinor) : 0;
+  const grandTotal = preview ? naira(preview.totalPayableMinor) : itemsTotal;
 
   const [step, setStep] = useState(1);
   const [addresses, setAddresses] = useState(getAddresses);
@@ -58,6 +89,7 @@ export function CheckoutPage() {
   const [showAddressForm, setShowAddressForm] = useState(addresses.length === 0);
   const [newAddress, setNewAddress] = useState({ label: "", recipient: "", phone: "", address: "" });
   const [paymentMethod, setPaymentMethod] = useState("card");
+  const [newAddressError, setNewAddressError] = useState("");
   const [placing, setPlacing] = useState(false);
   const [toast, setToast] = useState("");
 
@@ -87,12 +119,19 @@ export function CheckoutPage() {
 
   const selectedAddress = addresses.find((a) => a.id === selectedAddressId) || null;
 
-  const handleSaveNewAddress = () => {
+  const handleSaveNewAddress = async () => {
     if (!newAddress.label.trim() || !newAddress.address.trim() || !newAddress.phone.trim()) {
       notify("Please fill in label, phone, and address");
       return;
     }
-    const saved = addAddress(newAddress);
+    // Riders need a map pin for the address; use where the patient is now.
+    const pin = await currentPosition();
+    if (!pin) {
+      setNewAddressError("Allow location access so we can pin this address for the rider.");
+      return;
+    }
+    setNewAddressError("");
+    const saved = addAddress({ ...newAddress, recipient: newAddress.recipient.trim() || getCurrentUser()?.fullName || "", ...pin });
     const next = getAddresses();
     setAddresses(next);
     setSelectedAddressId(saved.id);
@@ -101,34 +140,72 @@ export function CheckoutPage() {
   };
 
   const goToPayment = () => {
-    if (!selectedAddress) {
+    if (needsDelivery && !selectedAddress) {
       notify("Select or add a delivery address first");
+      return;
+    }
+    if (needsDelivery && (selectedAddress.lat == null || selectedAddress.lng == null)) {
+      notify("This address has no map pin — add it again so we can price delivery");
       return;
     }
     setStep(2);
   };
 
-  const handlePlaceOrder = () => {
-    if (!groups.length) return;
+  // Review: hold the stock for 20 minutes and get the server's final prices.
+  const goToReview = async () => {
+    if (prescriptionIds.length !== 1) {
+      notify("Check out one prescription at a time");
+      return;
+    }
+    setPreparing(true);
+    try {
+      const reservation = prepared?.reservationId
+        ? { id: prepared.reservationId }
+        : await createReservation({
+            prescriptionId: prescriptionIds[0],
+            idempotencyKey: keys.reservation,
+            allocations: groups.flatMap((group) =>
+              group.lines.map(({ product, qty }) => ({ prescriptionItemId: product.prescriptionItemId, quoteItemId: product.quoteItemId, selectedQuantity: qty }))),
+          });
+      const nextPreview = await previewCheckout(reservation.id, {
+        fulfilments: groups.map((group) => ({ pharmacyId: group.pharmacy.id, fulfilmentMethod: fulfilmentMethod(group) })),
+        deliveryCoordinates: needsDelivery ? { latitude: selectedAddress.lat, longitude: selectedAddress.lng } : undefined,
+      });
+      setPrepared({ reservationId: reservation.id, preview: nextPreview });
+      setStep(3);
+    } catch (err) {
+      notify(RESERVATION_ERRORS[err.code] || err.message);
+    } finally {
+      setPreparing(false);
+    }
+  };
+
+  // Creates the order from the held stock, then hands over to Paystack to pay.
+  const handlePlaceOrder = async () => {
+    if (!groups.length || !prepared) return;
     setPlacing(true);
-    const order = placeOrder({
-      groups: groups.map((group) => ({
-        pharmacyId: group.pharmacy.id,
-        pharmacyName: group.pharmacy.name,
-        items: group.lines.map(({ product, qty }) => ({ productId: product.id, name: product.name, qty, price: product.price })),
-        subtotal: group.subtotal,
-        deliveryFee: DELIVERY_FEE_PER_PHARMACY,
-      })),
-      itemsTotal,
-      deliveryFee,
-      grandTotal,
-      address: selectedAddress,
-      paymentMethod,
-    });
-    clearCart();
-    window.setTimeout(() => {
-      navigate(`/order-confirmation/${order.id}`);
-    }, 500);
+    try {
+      const order = await createOrder({
+        reservationId: prepared.reservationId,
+        idempotencyKey: keys.order,
+        fulfilments: groups.map((group) => ({ pharmacyId: group.pharmacy.id, fulfilmentMethod: fulfilmentMethod(group) })),
+        delivery: needsDelivery
+          ? {
+              recipientName: selectedAddress.recipient || getCurrentUser()?.fullName || "Patient",
+              recipientPhone: selectedAddress.phone.replace(/[\s-]/g, ""),
+              address: selectedAddress.address,
+              coordinates: { latitude: selectedAddress.lat, longitude: selectedAddress.lng },
+            }
+          : undefined,
+      });
+      const payment = await initializePayment(order.id, keys.payment);
+      rememberPendingOrder(order.id, needsDelivery ? selectedAddress : null);
+      clearCart();
+      window.location.assign(payment.authorizationUrl);
+    } catch (err) {
+      notify(err.message);
+      setPlacing(false);
+    }
   };
 
   return (
@@ -170,6 +247,11 @@ export function CheckoutPage() {
                   <h2 style={{ fontSize: "1rem" }}><MapPin size={16} style={{ verticalAlign: "-3px", marginRight: 6 }} />Where should we deliver this?</h2>
                 </div>
 
+                {!needsDelivery && (
+                  <p style={{ margin: "0 0 12px", fontSize: "0.84rem", color: "var(--sabi-text-secondary)" }}>
+                    Everything in this order is for in-store pickup, so no delivery address is needed.
+                  </p>
+                )}
                 <div className="sabi-address-grid">
                   {addresses.map((addr) => (
                     <div
@@ -211,6 +293,7 @@ export function CheckoutPage() {
                         <input type="text" placeholder="Street, area, city" value={newAddress.address} onChange={(e) => setNewAddress((p) => ({ ...p, address: e.target.value }))} />
                       </div>
                     </div>
+                    {newAddressError && <p className="sabi-form-error" role="alert">{newAddressError}</p>}
                     <div className="sabi-fam-form-footer">
                       <button type="button" className="sabi-btn-outline" onClick={() => setShowAddressForm(false)}>Cancel</button>
                       <button type="button" className="sabi-btn-primary" onClick={handleSaveNewAddress}>Save Address</button>
@@ -236,7 +319,9 @@ export function CheckoutPage() {
                       <div
                         key={method.id}
                         className={`sabi-payment-card ${paymentMethod === method.id ? "selected" : ""}`}
-                        onClick={() => setPaymentMethod(method.id)}
+                        onClick={() => !method.disabled && setPaymentMethod(method.id)}
+                        aria-disabled={method.disabled || undefined}
+                        style={method.disabled ? { opacity: 0.55, cursor: "not-allowed" } : undefined}
                       >
                         <div className="icon"><Icon size={18} /></div>
                         <strong>{method.label}</strong>
@@ -246,7 +331,7 @@ export function CheckoutPage() {
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
                   <button type="button" className="sabi-btn-outline" onClick={() => setStep(1)}>Back</button>
-                  <button type="button" className="sabi-btn-primary" onClick={() => setStep(3)}>Review Order</button>
+                  <button type="button" className="sabi-btn-primary" disabled={preparing} onClick={goToReview}>{preparing ? "Checking stock & prices…" : "Review Order"}</button>
                 </div>
               </div>
             )}
@@ -273,10 +358,16 @@ export function CheckoutPage() {
                 ))}
 
                 <div className="sabi-card" style={{ background: "var(--sabi-page-bg)", boxShadow: "none" }}>
-                  <div style={{ fontWeight: 700, fontSize: "0.86rem", marginBottom: 6 }}>Delivering to</div>
+                  <div style={{ fontWeight: 700, fontSize: "0.86rem", marginBottom: 6 }}>{needsDelivery ? "Delivering to" : "Collecting from"}</div>
                   <div style={{ fontSize: "0.84rem", color: "var(--sabi-text-secondary)" }}>
-                    {selectedAddress?.label} — {selectedAddress?.recipient}, {selectedAddress?.phone}<br />
-                    {selectedAddress?.address}
+                    {needsDelivery ? (
+                      <>
+                        {selectedAddress?.label} — {selectedAddress?.recipient}, {selectedAddress?.phone}<br />
+                        {selectedAddress?.address}
+                      </>
+                    ) : (
+                      groups.map((g) => g.pharmacy.name).join(", ")
+                    )}
                   </div>
                   <div style={{ fontWeight: 700, fontSize: "0.86rem", margin: "12px 0 4px" }}>Payment method</div>
                   <div style={{ fontSize: "0.84rem", color: "var(--sabi-text-secondary)" }}>
@@ -285,12 +376,12 @@ export function CheckoutPage() {
                 </div>
 
                 <p style={{ fontSize: "0.78rem", color: "var(--sabi-text-secondary)", marginTop: 4 }}>
-                  This sends your order request to the pharmacy. No payment is processed yet — connecting a real payment provider is required before this can charge a card, verify a transfer, or confirm the order.
+                  You&apos;ll pay securely on Paystack. Your medicines are held for you until {preview ? new Date(preview.reservationExpiresAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "checkout"}; the pharmacist reviews the prescription once payment succeeds.
                 </p>
                 <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
                   <button type="button" className="sabi-btn-outline" onClick={() => setStep(2)}>Back</button>
                   <button type="button" className="sabi-btn-primary" disabled={placing} onClick={handlePlaceOrder}>
-                    {placing ? "Sending Order…" : `Send Order Request · ${formatNaira(grandTotal)}`}
+                    {placing ? "Opening Paystack…" : `Pay Securely · ${formatNaira(grandTotal)}`}
                   </button>
                 </div>
               </div>
@@ -307,8 +398,14 @@ export function CheckoutPage() {
             ))}
             <div className="sabi-cart-summary-row">
               <span>Delivery fee</span>
-              <span>{formatNaira(deliveryFee)}</span>
+              <span>{deliveryFee == null ? (needsDelivery ? "Calculated at review" : formatNaira(0)) : formatNaira(deliveryFee)}</span>
             </div>
+            {platformFee > 0 && (
+              <div className="sabi-cart-summary-row">
+                <span>Service fee</span>
+                <span>{formatNaira(platformFee)}</span>
+              </div>
+            )}
             <div className="sabi-cart-summary-row total">
               <span>Total</span>
               <span>{formatNaira(grandTotal)}</span>

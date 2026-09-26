@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, AlertCircle, Clock, Store } from "lucide-react";
 
@@ -8,8 +8,8 @@ import "./PharmacyMarket.css";
 import { pageVars } from "../../pageVars";
 import { useZoom } from "../../hooks/useZoom";
 import { Sidebar, Topbar } from "../dashboard/components";
-import { addPrescriptionItemToCart } from "./cartStore";
 import { getRefillRecommendations } from "./refillRecommendationService";
+import { useApiData } from "../../api/useApiData";
 
 function formatDate(date) {
   return date ? new Date(date).toLocaleDateString("en-NG", { day: "numeric", month: "short" }) : "No dispense record";
@@ -18,10 +18,12 @@ function formatDate(date) {
 export function RefillPrescriptionPage() {
   const [zoom] = useZoom();
   const navigate = useNavigate();
-  const [recommendations] = useState(getRefillRecommendations);
-  const [selected, setSelected] = useState(() => new Set(
-    recommendations.filter((med) => med.eligible).map((med) => med.id)
-  ));
+  const { data, error } = useApiData(getRefillRecommendations, []);
+  const recommendations = useMemo(() => data || [], [data]);
+  const [selected, setSelected] = useState(() => new Set());
+  useEffect(() => {
+    setSelected(new Set(recommendations.filter((med) => med.eligible).map((med) => med.id)));
+  }, [recommendations]);
   const [toast, setToast] = useState("");
 
   const notify = (message) => {
@@ -48,15 +50,10 @@ export function RefillPrescriptionPage() {
       notify("Select at least one medication to refill");
       return;
     }
-    selectedMeds.forEach((med) => {
-      addPrescriptionItemToCart(
-        med.pharmacyId,
-        { id: med.id, name: med.name, category: med.category, price: med.price, photo: med.photo },
-        1
-      );
-    });
-    notify(`${selectedMeds.length} medication(s) added to cart`);
-    window.setTimeout(() => navigate("/cart"), 500);
+    // A refill needs today's prices, so the prescription goes back to pharmacies for fresh quotes.
+    const prescriptionIds = [...new Set(selectedMeds.map((med) => med.prescriptionId))];
+    if (prescriptionIds.length > 1) notify("Refill one prescription at a time — starting with the first");
+    window.setTimeout(() => navigate(`/prescriptions/${prescriptionIds[0]}/select-pharmacy`), prescriptionIds.length > 1 ? 1200 : 0);
   };
 
   return (
@@ -74,9 +71,14 @@ export function RefillPrescriptionPage() {
             <h1>Refill Prescription</h1>
             <p>We estimate availability from your dispense history, frequency, and days&apos; supply.</p>
           </div>
-          <span className="sabi-refill-heading-note">Temporary pharmacy match</span>
+          <span className="sabi-refill-heading-note">Based on your orders</span>
         </div>
 
+        {(!data || !recommendations.length) && (
+          <p className="sabi-refill-heading-note" style={{ display: "block", marginBottom: 16 }}>
+            {!data ? (error ? "We couldn't load your refills. Please refresh to try again." : "Loading your refills…") : "No refills yet — medicines you buy for your prescriptions will show up here."}
+          </p>
+        )}
         <div className="sabi-refill-grid">
           {recommendations.map((med) => {
             const checked = selected.has(med.id);
@@ -123,7 +125,7 @@ export function RefillPrescriptionPage() {
                     <AlertCircle size={14} /> {med.reason}
                   </div>
                 )}
-                <div className="sabi-refill-pharmacy"><Store size={13} /> Temporarily matched to {med.pharmacyName}</div>
+                <div className="sabi-refill-pharmacy"><Store size={13} /> Last bought from {med.pharmacyName}</div>
               </label>
             );
           })}

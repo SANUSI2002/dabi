@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, Send, Truck, PackageCheck } from "lucide-react";
 
@@ -12,27 +12,82 @@ import { useZoom } from "../../hooks/useZoom";
 
 import { Sidebar, Topbar } from "../dashboard/components";
 import { FilterTabs, MapPanel } from "../pharmacy-market/components";
-import { PHARMACIES, PHARMACY_FILTERS, PHARMACY_SEARCH_CONFIG, PHARMACY_STATS } from "../pharmacy-market/data";
-import { searchPharmacies } from "../pharmacy-market/pharmacySearch";
+import { PHARMACY_FILTERS, PHARMACY_SEARCH_CONFIG } from "../pharmacy-market/data";
+import { useApiData } from "../../api/useApiData";
+import { discoverPharmacies } from "../../api/commerceApi";
 import { SelectPharmacyList } from "./components/SelectPharmacyList";
 import { getPrescriptionDetail, recordSentToPharmacies } from "./prescriptionStore";
 
 const MAX_PHARMACIES = 4;
 const RADIUS_STEPS = PHARMACY_SEARCH_CONFIG.radiusSteps || [2, 4, 6, 8, 10];
+// Central Lagos, used when the browser can't share the patient's location.
+const FALLBACK_LOCATION = { latitude: 6.5244, longitude: 3.3792, label: "central Lagos" };
+
+function usePatientLocation() {
+  const [location, setLocation] = useState(null);
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocation(FALLBACK_LOCATION);
+      return undefined;
+    }
+    let live = true;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => live && setLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, label: "your location" }),
+      () => live && setLocation(FALLBACK_LOCATION),
+      { timeout: 8000, maximumAge: 300000 },
+    );
+    return () => { live = false; };
+  }, []);
+  return location;
+}
+
+// Discovery results in the shape the pharmacy cards and map read.
+const toCard = (p) => ({
+  id: p.id,
+  name: p.name,
+  rating: "New",
+  distance: `${p.distanceKm}km away`,
+  distanceKm: p.distanceKm,
+  status: [p.city, p.state].filter(Boolean).join(", ") || "Verified partner",
+  availability: "available",
+  delivery: "quoted by pharmacy",
+  lat: p.latitude,
+  lng: p.longitude,
+});
 
 export function SelectPharmacyPage() {
   const [zoom] = useZoom();
   const { id } = useParams();
   const navigate = useNavigate();
-  const detail = getPrescriptionDetail(id);
+  const { data: detail, loading } = useApiData(() => getPrescriptionDetail(id), [id]);
+  const location = usePatientLocation();
 
   const [activeFilter, setActiveFilter] = useState(PHARMACY_FILTERS[0]);
-  const [selectedIds, setSelectedIds] = useState([PHARMACIES[0].id]);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [sendError, setSendError] = useState("");
   const [sending, setSending] = useState(false);
   const [radiusKm, setRadiusKm] = useState(PHARMACY_SEARCH_CONFIG.defaultRadiusKm);
   const [deliveryPreference, setDeliveryPreference] = useState("delivery");
   const [notes, setNotes] = useState("");
   const [limitNotice, setLimitNotice] = useState("");
+
+  const { data: found } = useApiData(
+    () => (location ? discoverPharmacies(id, { latitude: location.latitude, longitude: location.longitude, radiusKm }) : Promise.resolve(null)),
+    [id, location, radiusKm],
+  );
+  const pharmacies = useMemo(() => (found || []).map(toCard), [found]);
+  const pharmacySearch = { results: pharmacies, radiusKm, hasUnavailableMedication: false };
+  const stats = {
+    count: pharmacies.length,
+    radius: `${radiusKm}km`,
+    closestDistance: pharmacies[0] ? pharmacies[0].distance.replace(" away", "") : "—",
+    deliveryTime: "Quoted by pharmacy",
+  };
+
+  // Start with the nearest pharmacy selected, as before.
+  useEffect(() => {
+    if (pharmacies.length && !selectedIds.length) setSelectedIds([pharmacies[0].id]);
+  }, [pharmacies]);
 
   if (!detail) {
     return (
@@ -41,7 +96,7 @@ export function SelectPharmacyPage() {
         <div className="sabi-main">
           <Topbar />
           <div className="sabi-card">
-            <p>We couldn&apos;t find this prescription.</p>
+            <p>{loading ? "Loading prescription…" : "We couldn't find this prescription."}</p>
             <button className="sabi-btn-primary" onClick={() => navigate("/prescriptions")}>
               Back to Prescriptions
             </button>
@@ -51,14 +106,6 @@ export function SelectPharmacyPage() {
     );
   }
 
-  /* DEBUG NOTE: Pharmacy search - Radius is capped by shared policy and ready for future recommendation ranking. */
-  const pharmacySearch = useMemo(() => searchPharmacies({
-    pharmacies: PHARMACIES,
-    radiusKm,
-    activeFilter,
-    recommendationStrategy: PHARMACY_SEARCH_CONFIG.recommendationStrategy,
-  }), [activeFilter, radiusKm]);
-  const pharmacies = pharmacySearch.results;
 
   const flashLimitNotice = (message) => {
     setLimitNotice(message);
@@ -76,16 +123,20 @@ export function SelectPharmacyPage() {
     });
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!selectedIds.length) return;
     setSending(true);
-    recordSentToPharmacies(id, selectedIds, { deliveryPreference, notes });
-    window.setTimeout(() => {
-      navigate(`/prescriptions/${id}/quotes`, { state: { pharmacyIds: selectedIds } });
-    }, 700);
+    setSendError("");
+    try {
+      await recordSentToPharmacies(id, selectedIds);
+      navigate(`/prescriptions/${id}/quotes`, { state: { pharmacyIds: selectedIds, deliveryPreference } });
+    } catch (err) {
+      setSendError(err.message);
+      setSending(false);
+    }
   };
 
-  const selectedPharmacyForMap = PHARMACIES.find((p) => p.id === selectedIds[selectedIds.length - 1]);
+  const selectedPharmacyForMap = pharmacies.find((p) => p.id === selectedIds[selectedIds.length - 1]);
 
   return (
     <div className="sabi-dashboard" style={{ ...pageVars, zoom }}>
@@ -120,7 +171,7 @@ export function SelectPharmacyPage() {
 
             <p className="sabi-market-location">
               <span>⌖</span>
-              {pharmacies.length} Pharmacies found within {pharmacySearch.radiusKm}km of your location
+              {found ? `${pharmacies.length} Pharmacies found within ${pharmacySearch.radiusKm}km of ${location.label}` : "Finding verified pharmacies near you…"}
             </p>
 
             <div className="sabi-market-radius-control">
@@ -146,7 +197,7 @@ export function SelectPharmacyPage() {
             <SelectPharmacyList pharmacies={pharmacies} selectedIds={selectedIds} onToggle={toggle} />
           </section>
 
-          <MapPanel pharmacies={pharmacies} selectedPharmacy={selectedPharmacyForMap} stats={PHARMACY_STATS} />
+          <MapPanel pharmacies={pharmacies} selectedPharmacy={selectedPharmacyForMap} stats={stats} />
         </div>
 
         <div className="sabi-card sabi-select-pharmacy-prefs">
@@ -192,7 +243,7 @@ export function SelectPharmacyPage() {
           </button>
         </div>
 
-        {limitNotice && <div className="sabi-toast">{limitNotice}</div>}
+        {(limitNotice || sendError) && <div className="sabi-toast">{limitNotice || sendError}</div>}
       </div>
     </div>
   );

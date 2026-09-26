@@ -14,16 +14,50 @@ import {
   AdherenceCard,
   AIAssistantCard,
 } from "./components";
-import {
-  PRESCRIPTION_STATS,
-  ADHERENCE,
-  AI_INSIGHT,
-} from "./data";
 import { getAllPrescriptionSummaries } from "./prescriptionStore";
+import { getDrugInfo } from "./drugInfo";
+import { useApiData } from "../../api/useApiData";
+import { listMedications } from "../../api/dashboardApi";
+
+const two = (n) => String(n).padStart(2, "0");
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+// Prescriptions and today's medication list, both from the Sabi API.
+async function loadPrescriptions() {
+  const [prescriptions, meds] = await Promise.all([getAllPrescriptionSummaries(), listMedications().catch(() => [])]);
+  return { prescriptions, meds };
+}
+
+function buildStats(prescriptions, meds) {
+  const taken = meds.filter((m) => m.isTaken).length;
+  return [
+    { key: "active", label: "Active Prescriptions", value: two(prescriptions.length), icon: "Pill", tone: "primary" },
+    { key: "dueToday", label: "Due Today", value: two(meds.length - taken), icon: "CalendarClock", tone: "primary" },
+    { key: "adherence", label: "Adherence Score", value: meds.length ? `${Math.round((taken / meds.length) * 100)}%` : "—", icon: "BarChart3", tone: "primary" },
+    { key: "renewals", label: "Renewals Needed", value: "00", icon: "BellRing", tone: "danger" },
+  ];
+}
 
 export function PrescriptionsPage() {
   const [zoom] = useZoom();
-  const prescriptions = getAllPrescriptionSummaries();
+  const loaded = useApiData(loadPrescriptions, []);
+  const prescriptions = useMemo(() => loaded.data?.prescriptions || [], [loaded.data]);
+  const meds = loaded.data?.meds || [];
+  const stats = buildStats(prescriptions, meds);
+  const pending = meds.filter((m) => !m.isTaken).length;
+  const adherence = {
+    message: !meds.length
+      ? "Add your medications on the dashboard to track your doses."
+      : pending
+        ? `You have ${pending} dose${pending === 1 ? "" : "s"} left to take today.`
+        : "You've taken all of today's doses. Keep it up!",
+    days: DAYS,
+    activeDay: DAYS[(new Date().getDay() + 6) % 7],
+  };
+  const firstDrug = prescriptions[0]?.name.replace(/ \+\d+ more$/, "");
+  const insight = firstDrug
+    ? { quote: getDrugInfo(firstDrug).criticalInteraction.body, note: "General guidance — confirm with your pharmacist or doctor" }
+    : { quote: "Prescriptions your doctor issues on Sabi Health will appear here.", note: "No prescriptions on file yet" };
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const navigate = useNavigate();
@@ -50,7 +84,8 @@ export function PrescriptionsPage() {
         {/* DEBUG NOTE: Prescriptions refactor - Retired renewal and upload actions from the page header. */}
         <PrescriptionsHeader />
 
-        <StatsGrid stats={PRESCRIPTION_STATS} />
+        <StatsGrid stats={stats} />
+        {loaded.error && <p className="sabi-rx-empty" role="alert">We couldn&apos;t load your prescriptions. Please refresh to try again.</p>}
 
         <div className="sabi-grid sabi-rx-grid">
           <div className="sabi-col">
@@ -69,9 +104,9 @@ export function PrescriptionsPage() {
             />
 
             <div className="sabi-rx-bottom-grid">
-              <AdherenceCard adherence={ADHERENCE} />
+              <AdherenceCard adherence={adherence} />
               <AIAssistantCard
-                insight={AI_INSIGHT}
+                insight={insight}
                 onAskQuestion={() => console.log("Ask a question clicked")}
               />
             </div>

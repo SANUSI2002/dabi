@@ -199,8 +199,14 @@ export function addQuoteItemsToCart(quote, items, meta = {}) {
       photo: "https://images.unsplash.com/photo-1550572017-edd951b55104?w=400&q=80",
       source: "prescription",
       deliveryMode: meta.deliveryMode,
+      // What the reservation needs: the prescription line and the quote line priced for it.
+      prescriptionId: meta.prescriptionId || item.prescriptionId,
+      prescriptionItemId: item.id,
+      quoteItemId: item.quoteItemId,
+      // The quantity is the prescribed quantity; the patient can't change it.
+      fixedQuantity: true,
     });
-    addToCart(quote.id, productId, item.quantity || 1);
+    setCartQty(quote.id, productId, item.quantity || 1);
   });
 }
 
@@ -232,11 +238,11 @@ const SEED_ADDRESSES = [
 export function getAddresses() {
   try {
     const raw = window.localStorage.getItem(ADDRESS_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) return JSON.parse(raw).filter((a) => !SEED_ADDRESSES.some((seed) => seed.id === a.id));
   } catch {
     /* fall through */
   }
-  return SEED_ADDRESSES;
+  return [];
 }
 
 function persistAddresses(addresses) {

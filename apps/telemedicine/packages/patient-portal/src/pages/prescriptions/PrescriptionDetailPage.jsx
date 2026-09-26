@@ -16,13 +16,14 @@ import {
   DetailActionBar,
 } from "./components/detail";
 import { getPrescriptionDetail } from "./prescriptionStore";
+import { useApiData } from "../../api/useApiData";
 
 export function PrescriptionDetailPage() {
   const [zoom] = useZoom();
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const detail = getPrescriptionDetail(id);
+  const { data: detail, loading } = useApiData(() => getPrescriptionDetail(id), [id]);
 
   /* DEBUG NOTE: Prescriptions refactor - Build one clean summary for download and native/clipboard sharing. */
   const prescriptionSummary = [
@@ -66,7 +67,7 @@ export function PrescriptionDetailPage() {
         <div className="sabi-main">
           <Topbar />
           <div className="sabi-card">
-            <p>We couldn&apos;t find details for this prescription.</p>
+            <p>{loading ? "Loading prescription…" : "We couldn't find details for this prescription."}</p>
             <button
               className="sabi-btn-primary"
               onClick={() => navigate("/prescriptions")}

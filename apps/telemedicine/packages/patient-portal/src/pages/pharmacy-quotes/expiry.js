@@ -1,13 +1,12 @@
-// "Quote Expiry Timer" future enhancement — pharmacy quotations expire a
-// configurable period after the prescription was sent out.
+// Quote Expiry Timer — each pharmacy quotation expires 24 hours after it was issued.
 
 export const QUOTE_EXPIRY_HOURS = 24;
 
-export function getExpiryInfo(sentAtIso) {
-  if (!sentAtIso) return { expiresAt: null, expired: false, label: null };
+/** `expiresAtIso` is the soonest quoteExpiresAt among the quotes shown. */
+export function getExpiryInfo(expiresAtIso) {
+  if (!expiresAtIso) return { expiresAt: null, expired: false, label: null };
 
-  const sentAt = new Date(sentAtIso).getTime();
-  const expiresAt = sentAt + QUOTE_EXPIRY_HOURS * 60 * 60 * 1000;
+  const expiresAt = new Date(expiresAtIso).getTime();
   const remainingMs = expiresAt - Date.now();
 
   if (remainingMs <= 0) {

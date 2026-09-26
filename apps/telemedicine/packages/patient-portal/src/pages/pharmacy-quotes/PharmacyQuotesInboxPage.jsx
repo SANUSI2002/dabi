@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, ReceiptText, Send } from "lucide-react";
 
@@ -9,11 +9,20 @@ import { pageVars } from "../../pageVars";
 import { useZoom } from "../../hooks/useZoom";
 import { Sidebar, Topbar } from "../dashboard/components";
 import { getSentPrescriptions } from "../prescriptions/prescriptionStore";
+import { useApiData } from "../../api/useApiData";
+import { listQuotes } from "../../api/commerceApi";
+
+// Sent prescriptions, each with how many current quotes have come back.
+async function loadInbox() {
+  const [sent, quotes] = await Promise.all([getSentPrescriptions(), listQuotes()]);
+  return sent.map((entry) => ({ ...entry, quoteCount: quotes.filter((q) => q.prescriptionId === entry.prescriptionId).length }));
+}
 
 export function PharmacyQuotesInboxPage() {
   const [zoom] = useZoom();
   const navigate = useNavigate();
-  const [sent] = useState(getSentPrescriptions);
+  const { data, error } = useApiData(loadInbox, []);
+  const sent = data || [];
 
   return (
     <div className="sabi-dashboard" style={{ ...pageVars, zoom }}>
@@ -26,7 +35,9 @@ export function PharmacyQuotesInboxPage() {
           <h2>Prescriptions you've sent out, and what pharmacies quoted back.</h2>
         </header>
 
-        {sent.length === 0 ? (
+        {!data ? (
+          <p className="sabi-rx-empty">{error ? "We couldn't load your quotes. Please refresh to try again." : "Loading your quotes…"}</p>
+        ) : sent.length === 0 ? (
           <div className="sabi-card sabi-empty-state">
             <ReceiptText size={40} />
             <h3>No prescriptions sent yet</h3>
@@ -37,7 +48,7 @@ export function PharmacyQuotesInboxPage() {
           </div>
         ) : (
           <div className="sabi-delivery-list">
-            {sent.map(({ prescriptionId, pharmacyIds, sentAt, detail }) => (
+            {sent.map(({ prescriptionId, pharmacyIds, sentAt, detail, quoteCount }) => (
               <button
                 type="button"
                 key={prescriptionId}
@@ -48,7 +59,7 @@ export function PharmacyQuotesInboxPage() {
                 <div className="sabi-delivery-list-body">
                   <div className="sabi-delivery-list-top">
                     <strong>{detail.name}</strong>
-                    <span className="sabi-delivery-status-pill current">Awaiting Quotes</span>
+                    <span className="sabi-delivery-status-pill current">{quoteCount ? `${quoteCount} Quote${quoteCount === 1 ? "" : "s"} Received` : "Awaiting Quotes"}</span>
                   </div>
                   <div className="sabi-delivery-list-meta">
                     <span>Sent to {pharmacyIds.length} pharmac{pharmacyIds.length === 1 ? "y" : "ies"}</span>

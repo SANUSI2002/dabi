@@ -176,6 +176,7 @@ export default function App() {
               <Route path="/delivery-tracking/:orderId" element={<DeliveryTrackingPage />} />
               <Route path="/cart" element={<CartPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
               <Route path="/order-confirmation/:orderId" element={<OrderConfirmationPage />} />
               <Route path="/pharmacy-market/prescription" element={<PrescriptionPage />} />
               <Route path="/pharmacy-market/refill" element={<RefillPrescriptionPage />} />

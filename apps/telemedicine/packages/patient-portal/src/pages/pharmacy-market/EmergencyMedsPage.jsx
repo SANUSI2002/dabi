@@ -11,8 +11,8 @@ import { formatNaira } from "../../utils/currency";
 import { Sidebar, Topbar } from "../dashboard/components";
 import { useApiData } from "../../api/useApiData";
 import { getProfile } from "../../api/profileApi";
-import { CONDITION_EMERGENCY_DRUGS, DEFAULT_MARKET_PHARMACY_ID } from "./marketFlowsData";
-import { addPrescriptionItemToCart, getCartCount } from "./cartStore";
+import { CONDITION_EMERGENCY_DRUGS } from "./marketFlowsData";
+import { getCartCount } from "./cartStore";
 
 function matchConditions(conditions) {
   const lower = conditions.map((c) => c.toLowerCase());
@@ -41,16 +41,8 @@ export function EmergencyMedsPage() {
     window.setTimeout(() => setToast(""), 2400);
   };
 
-  const addDrug = (drug) => {
-    addPrescriptionItemToCart(
-      DEFAULT_MARKET_PHARMACY_ID,
-      { id: drug.id, name: drug.name, category: drug.category, price: drug.price, photo: drug.photo },
-      1
-    );
-    setAdded((prev) => new Set(prev).add(drug.id));
-    setCartCount(getCartCount());
-    notify(`${drug.name} added to cart`);
-  };
+  // Marketplace checkout isn't open yet; prescriptions are ordered from Prescriptions.
+  const addDrug = () => notify("Buying over-the-counter items is coming soon. Your doctor's prescriptions can already be ordered from Prescriptions.");
 
   const addAllForGroup = (group) => {
     group.drugs.forEach(addDrug);

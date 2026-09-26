@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { Printer, ReceiptText, Sparkles, Truck, Store, MessageCircle } from "lucide-react";
 import { formatNaira } from "../../../utils/currency";
-import { unitPriceFor, quantityFromLabel, cheapestPharmacyForItem } from "../pricing";
+import { lineFor, cheapestPharmacyForItem } from "../pricing";
+import { getCurrentUser } from "../../../utils/sabiIdentity";
 
 /* Standard, reusable invoice surface for pharmacy quote responses.
  * Supports partial medicine selection (patients don't have to buy
@@ -15,13 +16,18 @@ export function PharmacyInvoice({ detail, quote, allQuotes, expired, onAddToCart
 
   const items = useMemo(
     () =>
-      detail.items.map((item) => ({
-        ...item,
-        quantity: quantityFromLabel(item.qty),
-        unitPrice: unitPriceFor(quote.id, item.name),
-        inStock: !unavailableIds.has(item.id),
-      })),
-    [detail.items, quote.id, unavailableIds]
+      detail.items.map((item) => {
+        const line = lineFor(quote, item);
+        return {
+          ...item,
+          quantity: line?.quantity || item.quantity || 1,
+          unitPrice: line?.unitPrice ?? 0,
+          quoteItemId: line?.quoteItemId,
+          prescriptionId: detail.id,
+          inStock: !unavailableIds.has(item.id),
+        };
+      }),
+    [detail.items, detail.id, quote, unavailableIds]
   );
 
   const availableItems = items.filter((item) => item.inStock);
@@ -30,7 +36,7 @@ export function PharmacyInvoice({ detail, quote, allQuotes, expired, onAddToCart
   const locked = unavailable || noneAvailable || expired;
 
   const [selected, setSelected] = useState(() => new Set(availableItems.map((i) => i.id)));
-  const [deliveryMode, setDeliveryMode] = useState("delivery");
+  const [deliveryMode, setDeliveryMode] = useState(quote.deliveryAvailable === false ? "pickup" : "delivery");
 
   const toggleItem = (id) => {
     if (locked) return;
@@ -44,10 +50,11 @@ export function PharmacyInvoice({ detail, quote, allQuotes, expired, onAddToCart
 
   const selectedItems = availableItems.filter((item) => selected.has(item.id));
   const subtotal = selectedItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-  const vat = Math.round(subtotal * 0.075);
-  const serviceCharge = selectedItems.length ? 250 : 0;
-  const deliveryFee = deliveryMode === "pickup" || !selectedItems.length ? 0 : (quote.deliveryFee || 1000);
-  const grandTotal = subtotal + vat + serviceCharge + deliveryFee;
+  const vat = 0;
+  const serviceCharge = null;
+  const deliveryFee = deliveryMode === "pickup" || !selectedItems.length ? 0 : null;
+  const grandTotal = subtotal;
+  const atCheckout = "Calculated at checkout";
 
   const handleAddToCart = () => {
     if (locked || !selectedItems.length) return;
@@ -109,6 +116,7 @@ export function PharmacyInvoice({ detail, quote, allQuotes, expired, onAddToCart
                 type="button"
                 className={deliveryMode === "delivery" ? "active" : ""}
                 onClick={() => setDeliveryMode("delivery")}
+                disabled={quote.deliveryAvailable === false}
               >
                 <Truck size={15} /> Home Delivery
               </button>
@@ -116,6 +124,7 @@ export function PharmacyInvoice({ detail, quote, allQuotes, expired, onAddToCart
                 type="button"
                 className={deliveryMode === "pickup" ? "active" : ""}
                 onClick={() => setDeliveryMode("pickup")}
+                disabled={quote.pickupAvailable === false}
               >
                 <Store size={15} /> In-Store Pickup
               </button>
@@ -131,7 +140,7 @@ export function PharmacyInvoice({ detail, quote, allQuotes, expired, onAddToCart
               <span>Amount</span>
             </div>
             {availableItems.map((item) => {
-              const best = allQuotes?.length > 1 ? cheapestPharmacyForItem(item.name, allQuotes) : null;
+              const best = allQuotes?.length > 1 ? cheapestPharmacyForItem(item, allQuotes) : null;
               const isBestHere = best?.id === quote.id;
               return (
                 <label className="sabi-invoice-item-row sabi-invoice-item-row-selectable" key={item.id}>
@@ -180,7 +189,7 @@ export function PharmacyInvoice({ detail, quote, allQuotes, expired, onAddToCart
       <div className="sabi-invoice-parties">
         <div>
           <span>Patient name</span>
-          <strong>Sabi Health Patient</strong>
+          <strong>{getCurrentUser()?.fullName || "Sabi Health Patient"}</strong>
         </div>
         <div>
           <span>Prescription number</span>
@@ -197,15 +206,15 @@ export function PharmacyInvoice({ detail, quote, allQuotes, expired, onAddToCart
             </div>
             <div>
               <dt>VAT</dt>
-              <dd>{formatNaira(vat)}</dd>
+              <dd>{vat ? formatNaira(vat) : "Included in price"}</dd>
             </div>
             <div>
               <dt>Service charge</dt>
-              <dd>{formatNaira(serviceCharge)}</dd>
+              <dd>{serviceCharge == null ? atCheckout : formatNaira(serviceCharge)}</dd>
             </div>
             <div>
               <dt>{deliveryMode === "pickup" ? "Delivery fee (pickup)" : "Delivery fee"}</dt>
-              <dd>{formatNaira(deliveryFee)}</dd>
+              <dd>{deliveryFee == null ? atCheckout : formatNaira(deliveryFee)}</dd>
             </div>
             <div className="sabi-invoice-grand-total">
               <dt>Grand total</dt>

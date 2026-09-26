@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
@@ -15,14 +15,9 @@ import {
     PharmacyCard
 } from "./components";
 
-import { ACTIVE_DELIVERIES, DELIVERY_JOURNEYS, DELIVERY_ITEMS, genericJourneyFor } from "./data";
-import { getOrders } from "../pharmacy-market/cartStore";
-import { formatNaira } from "../../utils/currency";
+import { getDelivery } from "./data";
+import { useApiData } from "../../api/useApiData";
 import { validateCoordinates } from "../../utils/mapUtils";
-
-function findCheckoutOrder(orderId) {
-    return getOrders().find((o) => o.id.replace(/^SH-/, "") === orderId) || null;
-}
 
 export function DeliveryTrackingPage() {
     const [zoom] = useZoom();
@@ -32,17 +27,21 @@ export function DeliveryTrackingPage() {
     const hasDestinationQuery = searchParams.has("lat") && searchParams.has("lng");
     const destinationCoordinates = validateCoordinates(searchParams.get("lat"), searchParams.get("lng"));
 
-    const known = ACTIVE_DELIVERIES.find((d) => d.id === orderId);
-    const checkoutOrder = !known ? findCheckoutOrder(orderId) : null;
+    const loaded = useApiData(() => getDelivery(orderId), [orderId]);
+    // Tracking updates as the pharmacy and rider move the order along.
+    useEffect(() => {
+        const timer = window.setInterval(() => loaded.reload(), 20000);
+        return () => window.clearInterval(timer);
+    }, [orderId]);
 
-    if (!known && !checkoutOrder) {
+    if (!loaded.data) {
         return (
             <div className="sabi-dashboard" style={{ ...pageVars, zoom }}>
                 <Sidebar />
                 <div className="sabi-main">
                     <Topbar />
                     <div className="sabi-card">
-                        <p>We couldn&apos;t find that delivery.</p>
+                        <p>{loaded.error ? "We couldn't find that delivery." : "Loading your delivery…"}</p>
                         <button className="sabi-btn-primary" onClick={() => navigate("/delivery-tracking")}>
                             Back to Deliveries
                         </button>
@@ -52,25 +51,7 @@ export function DeliveryTrackingPage() {
         );
     }
 
-    const order = known || {
-        id: orderId,
-        eta: checkoutOrder.status === "Delivered" ? "Delivered" : "Pending dispatch",
-        minutes: "—",
-        distance: "—",
-        rider: "Not assigned yet",
-        vehicle: "—",
-        pharmacy: checkoutOrder.groups?.[0]?.pharmacyName || "Sabi Health Order",
-        location: checkoutOrder.address?.address || "Delivery address on file",
-        destinationCoordinates: validateCoordinates(checkoutOrder.address?.lat, checkoutOrder.address?.lng),
-    };
-
-    const steps = known ? DELIVERY_JOURNEYS[orderId] : genericJourneyFor(checkoutOrder.status);
-
-    const items = known
-        ? DELIVERY_ITEMS[orderId]
-        : (checkoutOrder.groups || []).flatMap((g) =>
-            g.items.map((item) => ({ name: item.name, detail: g.pharmacyName, price: formatNaira(item.price * item.qty) }))
-          );
+    const { order, steps, items, deliveryFee } = loaded.data;
 
     return (
         <div
@@ -100,7 +81,7 @@ export function DeliveryTrackingPage() {
                     <aside>
                         <JourneyCard steps={steps} />
                         <PharmacyCard order={order} />
-                        <OrderSummary items={items} deliveryFee={known ? undefined : checkoutOrder.deliveryFee} />
+                        <OrderSummary items={items} deliveryFee={deliveryFee} />
                     </aside>
                 </div>
             </main>
