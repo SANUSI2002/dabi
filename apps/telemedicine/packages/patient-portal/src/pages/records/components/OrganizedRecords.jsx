@@ -4,9 +4,16 @@ import { FolderPlus } from "lucide-react";
 import { SectionTitle } from "../../dashboard/share";
 import { CategoryDetailModal } from "./CategoryDetailModal";
 import { AddCategoryModal } from "./AddCategoryModal";
-import { categoryIcon } from "../data";
 
-export function OrganizedRecords({ categories, allRecords, onAddCategory, onFile, onCreateRecord, onDeleteCategory }) {
+function formatCount(category, filedCount) {
+  if (category.countLabel) {
+    return filedCount > 0 ? `${category.countLabel} · +${filedCount} filed` : category.countLabel;
+  }
+  const total = (category.baseCount || 0) + filedCount;
+  return `${total} ${category.unit}`;
+}
+
+export function OrganizedRecords({ categories, allRecords, onAddCategory, onAssign, onUnassign, onCreateRecord, onDeleteCategory }) {
   const [openCategoryId, setOpenCategoryId] = useState(null);
   const [showAddCategory, setShowAddCategory] = useState(false);
 
@@ -16,14 +23,13 @@ export function OrganizedRecords({ categories, allRecords, onAddCategory, onFile
     <section>
       <SectionTitle>Organized Records</SectionTitle>
       <p className="sabi-organized-sub">
-        Your records, sorted into folders. Open a folder to see what's filed, file an existing record into it, or take one
-        out — or create a new folder for anything that doesn't fit yet.
+        Your records, sorted into categories. Click a category to see what's filed, add an existing record to it, or
+        remove one — or create a new category for anything that doesn't fit yet.
       </p>
 
       <div className="sabi-category-grid">
         {categories.map((category) => {
-          const Icon = categoryIcon(category.icon);
-          const count = allRecords.filter((r) => r.categoryId === category.id).length;
+          const filedCount = allRecords.filter((r) => r.categoryId === category.id).length;
           return (
             <Card
               key={category.id}
@@ -34,12 +40,10 @@ export function OrganizedRecords({ categories, allRecords, onAddCategory, onFile
               onKeyDown={(e) => e.key === "Enter" && setOpenCategoryId(category.id)}
             >
               <div className="sabi-category-icon">
-                <Icon size={20} />
+                <category.icon size={20} />
               </div>
-              <div className="sabi-category-label">{category.name}</div>
-              <div className="sabi-category-count">
-                {count} {count === 1 ? "Record" : "Records"}
-              </div>
+              <div className="sabi-category-label">{category.label}</div>
+              <div className="sabi-category-count">{formatCount(category, filedCount)}</div>
               <span className="sabi-category-bar" />
             </Card>
           );
@@ -47,7 +51,7 @@ export function OrganizedRecords({ categories, allRecords, onAddCategory, onFile
 
         <button type="button" className="sabi-category-add" onClick={() => setShowAddCategory(true)}>
           <FolderPlus size={20} />
-          Add Folder
+          Add Category
         </button>
       </div>
 
@@ -56,9 +60,9 @@ export function OrganizedRecords({ categories, allRecords, onAddCategory, onFile
           category={openCategory}
           allRecords={allRecords}
           onClose={() => setOpenCategoryId(null)}
-          onAssign={(recordId) => onFile(recordId, openCategory.id)}
-          onUnassign={(recordId) => onFile(recordId, null)}
-          onCreate={(fields) => onCreateRecord({ ...fields, categoryId: openCategory.id })}
+          onAssign={(recordId) => onAssign(recordId, openCategory.id)}
+          onUnassign={onUnassign}
+          onCreate={(record) => onCreateRecord(openCategory.id, record)}
           onDeleteCategory={onDeleteCategory}
         />
       )}
@@ -66,8 +70,8 @@ export function OrganizedRecords({ categories, allRecords, onAddCategory, onFile
       {showAddCategory && (
         <AddCategoryModal
           onClose={() => setShowAddCategory(false)}
-          onCreate={async (newCategory) => {
-            await onAddCategory(newCategory);
+          onCreate={(newCategory) => {
+            onAddCategory(newCategory);
             setShowAddCategory(false);
           }}
         />

@@ -1,55 +1,51 @@
-import React, { useState } from "react";
-import { Button } from "design-system";
-import { Plus } from "lucide-react";
+import React from "react";
 import { Sidebar, Topbar } from "../dashboard/components";
-import {
-  StatsRow,
-  VitalInfoCard,
-  RecordsSection,
-  RecentActivityCard,
-  HealthInsightCard,
-  OrganizedRecords,
-  DocumentsCard,
-  RecordFormModal,
-} from "./components";
-import { LoadState } from "../hospitals/hospitalShared";
+import { StatsRow, VitalInfoCard, RecordsSection, RecentActivityCard, HealthInsightCard, OrganizedRecords } from "./components";
+import { iconName, sortCategories, toUiCategory, toUiRecord } from "./data";
 import { useApiData } from "../../api/useApiData";
-import { createCategory, createRecord, deleteCategory, fileRecord, listCategories, listDocuments, listRecords } from "../../api/recordsApi";
+import { createCategory, createRecord, deleteCategory, fileRecord, listCategories, listRecords } from "../../api/recordsApi";
 import { pageVars } from "../../pageVars";
 import { useZoom } from "../../hooks/useZoom";
 import "../dashboard/Dashboard.css";
 import "./Records.css";
 
+const loadRecords = async () => (await listRecords()).map(toUiRecord);
+const loadCategories = async () => sortCategories((await listCategories()).map(toUiCategory));
+
+// "Jul 17, 2026" (or blank) -> yyyy-mm-dd; blank or unreadable dates are recorded as today.
+const toDateInput = (text) => {
+  const parsed = new Date(text);
+  const d = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+// Saves to the Sabi API, then reloads; failures are shown to the patient.
+const run = (action, reload) => action().then(reload, (err) => alert(err.message));
+
 export function Records() {
   const [zoom] = useZoom();
-  const records = useApiData(listRecords, []);
-  const categories = useApiData(listCategories, []);
-  const documents = useApiData(listDocuments, []);
-  const [showNewRecord, setShowNewRecord] = useState(false);
+  const recordsData = useApiData(loadRecords, []);
+  const categoriesData = useApiData(loadCategories, []);
+  const records = recordsData.data || [];
+  const categories = categoriesData.data || [];
+  const reloadAll = () => Promise.all([recordsData.reload(), categoriesData.reload()]);
 
-  // Folder counts are computed by the server, so any change to filing reloads both lists.
-  const refreshRecords = () => Promise.all([records.reload(), categories.reload()]);
+  const timelineRecords = records.filter((r) => r.isTimelineEntry);
 
-  const handleCreateRecord = async (fields) => {
-    await createRecord(fields);
-    await refreshRecords();
-  };
-  const handleFile = async (recordId, categoryId) => {
-    await fileRecord(recordId, categoryId);
-    await refreshRecords();
-  };
-  const handleAddCategory = async ({ label, icon }) => {
-    await createCategory(label, icon);
-    await categories.reload();
-  };
-  const handleDeleteCategory = async (categoryId) => {
-    await deleteCategory(categoryId);
-    await categories.reload();
-  };
+  const handleAddCategory = ({ label, icon }) => run(() => createCategory(label, iconName(icon)), categoriesData.reload);
 
-  const loading = (records.loading && !records.data) || (categories.loading && !categories.data);
-  const error = records.error || categories.error;
-  const allRecords = records.data || [];
+  const handleAssign = (recordId, categoryId) => run(() => fileRecord(recordId, categoryId), reloadAll);
+
+  const handleUnassign = (recordId) => run(() => fileRecord(recordId, null), reloadAll);
+
+  const handleCreateRecord = (categoryId, fields) =>
+    run(() => createRecord({ title: fields.title, recordType: "OTHER", date: toDateInput(fields.date), notes: fields.notes, categoryId }), reloadAll);
+
+  // Deleting a category only removes the folder itself — it's only
+  // ever allowed once every record has been taken out of it first
+  // (enforced in CategoryDetailModal), so no record is ever touched
+  // here. Records are never deletable by the patient at all.
+  const handleDeleteCategory = (categoryId) => run(() => deleteCategory(categoryId), categoriesData.reload);
 
   return (
     <div className="sabi-dashboard" style={{ ...pageVars, zoom }}>
@@ -57,53 +53,35 @@ export function Records() {
       <div className="sabi-main">
         <Topbar />
 
-        <div className="sabi-records-header sabi-records-header-row">
-          <div>
-            <h1>Medical Records</h1>
-            <p>Securely access and manage your complete health history. Your records are encrypted and private by default.</p>
-          </div>
-          <Button variant="primary" onClick={() => setShowNewRecord(true)}>
-            <Plus size={16} style={{ verticalAlign: "-3px", marginRight: 6 }} />
-            Add Record
-          </Button>
+        <div className="sabi-records-header">
+          <h1>Medical Records</h1>
+          <p>Securely access and manage your complete health history. Your records are encrypted and private by default.</p>
+          {(recordsData.error || categoriesData.error) && <p role="alert">We couldn't load your records. Please refresh to try again.</p>}
         </div>
 
-        <LoadState loading={loading} error={error} onRetry={refreshRecords} label="Loading your records…">
-          <StatsRow records={allRecords} documents={documents.data || []} />
+        <StatsRow records={records} />
 
-          <div className="sabi-grid sabi-records-grid">
-            <div className="sabi-col">
-              <RecordsSection records={allRecords} documents={documents} />
-              <OrganizedRecords
-                categories={categories.data || []}
-                allRecords={allRecords}
-                onAddCategory={handleAddCategory}
-                onFile={handleFile}
-                onCreateRecord={handleCreateRecord}
-                onDeleteCategory={handleDeleteCategory}
-              />
-              <DocumentsCard documents={documents} records={allRecords} />
-            </div>
-
-            <div className="sabi-col">
-              <VitalInfoCard />
-              <RecentActivityCard records={allRecords} documents={documents.data || []} />
-              <HealthInsightCard />
-            </div>
+        <div className="sabi-grid sabi-records-grid">
+          <div className="sabi-col">
+            <RecordsSection records={timelineRecords} />
+            <OrganizedRecords
+              categories={categories}
+              allRecords={records}
+              onAddCategory={handleAddCategory}
+              onAssign={handleAssign}
+              onUnassign={handleUnassign}
+              onCreateRecord={handleCreateRecord}
+              onDeleteCategory={handleDeleteCategory}
+            />
           </div>
-        </LoadState>
-      </div>
 
-      {showNewRecord && (
-        <RecordFormModal
-          categories={categories.data || []}
-          onClose={() => setShowNewRecord(false)}
-          onSave={async (fields) => {
-            await handleCreateRecord(fields);
-            setShowNewRecord(false);
-          }}
-        />
-      )}
+          <div className="sabi-col">
+            <VitalInfoCard />
+            <RecentActivityCard records={records} />
+            <HealthInsightCard />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

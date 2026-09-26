@@ -1,33 +1,27 @@
 import React from "react";
 import { Modal } from "./Modal";
-import { DocumentList, DocumentUpload } from "./DocumentsCard";
 
-/** Full record, plus the documents attached to it. `documents` is the page's documents loader. */
-export function RecordViewModal({ record, documents, onClose }) {
+export function RecordViewModal({ record, onClose }) {
   if (!record) return null;
-  const attached = (documents?.data || []).filter((d) => d.medicalRecordId === record.id);
+  const TagIcon = record.tagIcon;
 
   return (
-    <Modal title={record.title} onClose={onClose} wide>
+    <Modal title={record.title} onClose={onClose}>
       <div className="sabi-record-view">
         <div className="sabi-record-view-row">
           <span>Date</span>
           <strong>{record.date}</strong>
         </div>
-        <div className="sabi-record-view-row">
-          <span>Type</span>
-          <strong>{record.typeLabel}</strong>
-        </div>
-        {record.facility && (
+        {record.meta && (
           <div className="sabi-record-view-row">
-            <span>Facility</span>
-            <strong>{record.facility}</strong>
+            <span>Details</span>
+            <strong>{record.meta}</strong>
           </div>
         )}
-        {record.doctorName && (
+        {record.tag && (
           <div className="sabi-record-view-row">
-            <span>Doctor</span>
-            <strong>{record.doctorName}</strong>
+            <span>Category Tag</span>
+            <strong>{TagIcon && <TagIcon size={13} style={{ verticalAlign: "-2px", marginRight: 4 }} />}{record.tag}</strong>
           </div>
         )}
         {record.diagnosis && (
@@ -46,14 +40,6 @@ export function RecordViewModal({ record, documents, onClose }) {
           <div className="sabi-record-view-block">
             <span>Notes</span>
             <p>{record.notes}</p>
-          </div>
-        )}
-
-        {documents && (
-          <div className="sabi-record-view-block">
-            <span>Attached documents</span>
-            <DocumentList documents={attached} onChanged={documents.reload} emptyText="No documents attached to this record." />
-            <DocumentUpload medicalRecordId={record.id} onUploaded={documents.reload} />
           </div>
         )}
       </div>

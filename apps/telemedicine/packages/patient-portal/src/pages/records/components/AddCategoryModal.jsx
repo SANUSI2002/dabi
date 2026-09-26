@@ -1,38 +1,29 @@
 import React, { useState } from "react";
 import { Button } from "design-system";
 import { Modal } from "./Modal";
-import { CATEGORY_ICON_CHOICES, categoryIcon } from "../data";
+import { CATEGORY_ICON_CHOICES } from "../data";
 
 export function AddCategoryModal({ onClose, onCreate }) {
   const [label, setLabel] = useState("");
-  const [icon, setIcon] = useState(CATEGORY_ICON_CHOICES[0]);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
+  const [iconIndex, setIconIndex] = useState(0);
+  const Icon = CATEGORY_ICON_CHOICES[iconIndex];
 
-  const submit = async (e) => {
+  const submit = (e) => {
     e.preventDefault();
     if (!label.trim()) return;
-    setSaving(true);
-    setError(null);
-    try {
-      await onCreate({ label: label.trim(), icon });
-    } catch (err) {
-      setError(err.message);
-      setSaving(false);
-    }
+    onCreate({ label: label.trim(), icon: CATEGORY_ICON_CHOICES[iconIndex] });
   };
 
   return (
-    <Modal title="Add Folder" onClose={onClose}>
+    <Modal title="Add Category" onClose={onClose}>
       <form className="sabi-cat-form" onSubmit={submit}>
         <label>
-          Folder name
+          Category name
           <input
             type="text"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="e.g. Dental Records"
-            maxLength={80}
             autoFocus
             required
           />
@@ -40,29 +31,25 @@ export function AddCategoryModal({ onClose, onCreate }) {
 
         <div className="sabi-icon-picker-label">Icon</div>
         <div className="sabi-icon-picker">
-          {CATEGORY_ICON_CHOICES.map((name) => {
-            const ChoiceIcon = categoryIcon(name);
-            return (
-              <button
-                key={name}
-                type="button"
-                className={"sabi-icon-choice" + (name === icon ? " selected" : "")}
-                onClick={() => setIcon(name)}
-                aria-pressed={name === icon}
-                aria-label={`Use the ${name} icon`}
-              >
-                <ChoiceIcon size={17} />
-              </button>
-            );
-          })}
+          {CATEGORY_ICON_CHOICES.map((ChoiceIcon, i) => (
+            <button
+              key={i}
+              type="button"
+              className={"sabi-icon-choice" + (i === iconIndex ? " selected" : "")}
+              onClick={() => setIconIndex(i)}
+              aria-pressed={i === iconIndex}
+              aria-label={`Use this icon`}
+            >
+              <ChoiceIcon size={17} />
+            </button>
+          ))}
         </div>
 
-        {error && <p className="sabi-form-error" role="alert">{error}</p>}
         <div className="sabi-modal-actions">
-          <Button type="submit" variant="primary" disabled={saving}>
-            {saving ? "Creating…" : "Create Folder"}
+          <Button type="submit" variant="primary">
+            Create Category
           </Button>
-          <Button type="button" variant="secondary" onClick={onClose} disabled={saving}>
+          <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
           </Button>
         </div>

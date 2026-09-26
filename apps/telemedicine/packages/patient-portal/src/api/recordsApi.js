@@ -58,6 +58,8 @@ export function createRecord(fields) {
   return send("POST", "/api/v1/medical-records", body).then(toRecord);
 }
 
+export const getRecord = (id) => get(`/api/v1/medical-records/${id}`).then(toRecord);
+
 export const fileRecord = (recordId, categoryId) =>
   send("PATCH", `/api/v1/medical-records/${recordId}/category`, { categoryId }).then(toRecord);
 

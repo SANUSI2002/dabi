@@ -5,7 +5,9 @@ import { ArrowLeft, Printer, User, Stethoscope, ClipboardList, Pill, FlaskConica
 import { Sidebar, Topbar } from "../dashboard/components";
 import { pageVars } from "../../pageVars";
 import { useZoom } from "../../hooks/useZoom";
-import { getReport, PATIENT } from "../../data/consultationReports";
+import { useApiData } from "../../api/useApiData";
+import { getRecord } from "../../api/recordsApi";
+import { getProfile } from "../../api/profileApi";
 import "../dashboard/Dashboard.css";
 import "./ConsultationReport.css";
 
@@ -13,7 +15,49 @@ export function ConsultationReport() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [zoom] = useZoom();
-  const report = getReport(id);
+  const { data, loading, error } = useApiData(async () => {
+    const [record, profile] = await Promise.all([getRecord(id), getProfile()]);
+    return { record, profile };
+  }, [id]);
+
+  if (!data) {
+    return (
+      <div className="sabi-dashboard" style={{ ...pageVars, zoom }}>
+        <Sidebar />
+        <div className="sabi-main">
+          <Topbar />
+          <div className="sabi-card">
+            <p>{loading && !error ? "Loading report…" : "We couldn't find that record."}</p>
+            <button className="sabi-btn-primary" onClick={() => navigate(-1)}>Back</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // The patient's own record and profile, in the report's shape. Sections the record doesn't hold stay empty.
+  const { record, profile } = data;
+  const dob = profile.form.dob ? new Date(profile.form.dob) : null;
+  const PATIENT = {
+    name: profile.form.fullName || "—",
+    age: dob ? Math.floor((Date.now() - dob.getTime()) / 31557600000) : "—",
+    gender: "—",
+    patientId: (profile.account.patientId || "—").replace(/^#/, ""),
+  };
+  const report = {
+    title: record.title,
+    date: record.date,
+    doctor: record.doctorName || "Not recorded",
+    specialty: "Not recorded",
+    reason: record.notes || "Not recorded.",
+    assessment: record.diagnosis || "Not recorded.",
+    treatment: record.treatment,
+    medications: [],
+    lifestyle: [],
+    testsReferrals: [],
+    followUp: { nextAppointment: "As advised by your doctor", warningSigns: [] },
+    aiSummary: null,
+  };
 
   return (
     <div className="sabi-dashboard" style={{ ...pageVars, zoom }}>
@@ -90,10 +134,11 @@ export function ConsultationReport() {
                 </tbody>
               </table>
             ) : (
-              <p className="sabi-report-muted">No medications prescribed at this visit.</p>
+              <p className={report.treatment ? undefined : "sabi-report-muted"}>{report.treatment || "No medications prescribed at this visit."}</p>
             )}
             <div className="sabi-report-sublabel">Lifestyle Recommendations</div>
             <ul>
+              {!report.lifestyle.length && <li>None recorded</li>}
               {report.lifestyle.map((l) => (
                 <li key={l}>{l}</li>
               ))}
@@ -104,6 +149,7 @@ export function ConsultationReport() {
           <section className="sabi-report-section">
             <h2><FlaskConical size={16} /> Tests & Referrals</h2>
             <ul>
+              {!report.testsReferrals.length && <li>None recorded</li>}
               {report.testsReferrals.map((t) => (
                 <li key={t}>{t}</li>
               ))}
@@ -121,6 +167,7 @@ export function ConsultationReport() {
               <div>
                 <div className="sabi-report-sublabel" style={{ margin: 0 }}>Warning signs that need urgent attention</div>
                 <ul>
+                  {!report.followUp.warningSigns.length && <li>Any new or worsening symptoms — contact your doctor promptly.</li>}
                   {report.followUp.warningSigns.map((w) => (
                     <li key={w}>{w}</li>
                   ))}
@@ -130,7 +177,7 @@ export function ConsultationReport() {
           </section>
 
           {/* 8. AI Summary */}
-          <section className="sabi-report-section sabi-report-ai">
+          {report.aiSummary && <section className="sabi-report-section sabi-report-ai">
             <h2><Sparkles size={16} /> AI Summary (Sabi AI)</h2>
             <p><strong>In plain terms:</strong> {report.aiSummary.explanation}</p>
             <p><strong>Your medication:</strong> {report.aiSummary.medicationInstructions}</p>
@@ -140,7 +187,7 @@ export function ConsultationReport() {
                 <li key={t}>{t}</li>
               ))}
             </ul>
-          </section>
+          </section>}
         </div>
 
         <p className="sabi-report-disclaimer">
