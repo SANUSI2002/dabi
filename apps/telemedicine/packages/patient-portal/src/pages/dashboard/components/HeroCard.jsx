@@ -4,14 +4,9 @@ import { Card, Button } from "design-system";
 import { Stethoscope } from "lucide-react";
 import { getCurrentUser } from "../../../utils/sabiIdentity";
 
-const greeting = () => {
-  const hour = new Date().getHours();
-  return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-};
-
 export function HeroCard() {
   const navigate = useNavigate();
-  const firstName = getCurrentUser()?.fullName?.trim().split(/\s+/)[0];
+  const firstName = getCurrentUser()?.fullName?.trim().split(/\s+/)[0] || "there";
 
   return (
     <Card className="sabi-hero" style={{ background: "linear-gradient(135deg, var(--sabi-primary) 0%, var(--sabi-primary-dark) 100%)", color: "#fff" }}>
@@ -23,18 +18,16 @@ export function HeroCard() {
 
       <div className="sabi-hero-copy">
         <div>
-          <h2>
-            {greeting()}
-            {firstName ? `, ${firstName}` : ""} 👋
-          </h2>
+          <h2>Hello, {firstName} 👋</h2>
           <p>Welcome back to Sabi Health.</p>
         </div>
         <Button variant="secondary" className="sabi-hero-cta" onClick={() => navigate("/vitals")}>
-          View Your Vitals
+          View Full Health Report
         </Button>
       </div>
 
-      <div className="sabi-hero-art" aria-hidden="true">
+      {/* Swap this for a real <img src="..." alt="..." /> once you have the asset */}
+      <div className="sabi-hero-art" role="img" aria-label="Wellness illustration">
         <span className="sabi-hero-art-glyph">
           <Stethoscope />
         </span>

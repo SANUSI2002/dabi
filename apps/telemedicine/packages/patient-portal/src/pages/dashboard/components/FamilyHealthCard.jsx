@@ -7,45 +7,26 @@ import { useApiData } from "../../../api/useApiData";
 import { listDependents } from "../../../api/sabiApi";
 
 const PALETTE = [colors.primary, colors.warning, colors.primaryDark, colors.danger];
-const initials = (name) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((p) => p[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+const initialsOf = (name = "") => name.split(/\s+/).filter(Boolean).map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 
 export function FamilyHealthCard() {
   const navigate = useNavigate();
-  const { data, error } = useApiData(listDependents, []);
-
+  const { data } = useApiData(listDependents, []);
+  const FAMILY = (data || []).map((d, i) => ({ initials: initialsOf(d.name), bg: PALETTE[i % PALETTE.length], online: false }));
   return (
     <Card>
-      <SectionTitle action="Manage" onAction={() => navigate("/family")}>Family Health</SectionTitle>
-      {error ? (
-        <p className="sabi-dash-empty">{error.message}</p>
-      ) : (
-        <div className="sabi-family-row">
-          {(data || []).map((f, i) => (
-            <button
-              type="button"
-              className="sabi-family-avatar"
-              style={{ background: PALETTE[i % PALETTE.length] }}
-              key={f.id}
-              title={f.name}
-              aria-label={`Open ${f.name}'s profile`}
-              onClick={() => navigate(`/family/member/${f.id}`)}
-            >
-              {initials(f.name)}
-            </button>
-          ))}
-          <button type="button" className="sabi-family-add" aria-label="Add a dependent" onClick={() => navigate("/family/add/dependent")}>
-            <Plus size={18} />
-          </button>
-        </div>
-      )}
-      {data && data.length === 0 && <p className="sabi-dash-empty">Add the people you care for to manage their health here.</p>}
+      <SectionTitle>Family Health</SectionTitle>
+      <div className="sabi-family-row">
+        {FAMILY.map((f, i) => (
+          <div className="sabi-family-avatar" style={{ background: f.bg }} key={i}>
+            {f.initials}
+            {f.online && <span className="sabi-family-status" />}
+          </div>
+        ))}
+        <button type="button" className="sabi-family-add" aria-label="Add family member" onClick={() => navigate("/family/add")}>
+          <Plus size={18} />
+        </button>
+      </div>
     </Card>
   );
 }
