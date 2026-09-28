@@ -29,7 +29,7 @@ const SPHERE = [
 export default function Nutrition() {
   const { cmamScreenings, patientById, addCmamScreening, setCmamOutcome } = useEmr();
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState({ patientId: "", muac: 0, oedema: "None", appetite: "Pass", date: "" });
+  const [f, setF] = useState({ patientId: "", muac: 0, oedema: "None", appetite: "Pass", date: "", growthMonitoringDone: true, notes: "" });
   const cls = classify(f.muac || 13, f.oedema);
   const program = cls === "SAM" ? "OTP" : cls === "MAM" ? "SFP" : "—";
   const [outcomeFor, setOutcomeFor] = useState<string | null>(null);
@@ -61,7 +61,7 @@ export default function Nutrition() {
             cmamScreenings.length === 0 ? (
               <EmptyState title="No screenings yet" hint='Click "New Screening" to add one.' />
             ) : (
-              <Table columns={["Patient", "Date", "MUAC", "Oedema", "Classification", "Program", "Source", "Status"]}>
+              <Table columns={["Patient", "Date", "MUAC", "Oedema", "Classification", "Program", "Source", "Growth checked", "Notes", "Status"]}>
                 {cmamScreenings.map((s, i) => (
                   <Row key={s.id} index={i}>
                     <Cell><PatientLink patient={patientById(s.patientId)} /></Cell>
@@ -71,6 +71,8 @@ export default function Nutrition() {
                     <Cell><Badge tone={s.cls === "SAM" ? "action" : s.cls === "MAM" ? "amber" : "brand"}>{s.cls}</Badge></Cell>
                     <Cell>{s.program}</Cell>
                     <Cell className="text-mist-400">{s.source ?? "Nutrition"}</Cell>
+                    <Cell>{s.growthMonitoringDone === undefined ? "Unknown" : s.growthMonitoringDone ? "Yes" : "No"}</Cell>
+                    <Cell className="max-w-[220px] whitespace-normal text-xs text-mist-500">{s.notes || "—"}</Cell>
                     <Cell>{s.outcome ? <Badge tone={s.outcome === "Cured" ? "brand" : "action"}>{s.outcome}</Badge> : s.cls === "Normal" ? "—" : <Badge tone="amber">In caseload</Badge>}</Cell>
                   </Row>
                 ))}
@@ -118,7 +120,7 @@ export default function Nutrition() {
           <Button disabled={!f.patientId || !f.date} onClick={() => {
             addCmamScreening({ ...f, date: new Date(f.date).toISOString(), cls, program, source: "Nutrition" });
             setOpen(false);
-            setF({ patientId: "", muac: 0, oedema: "None", appetite: "Pass", date: "" });
+            setF({ patientId: "", muac: 0, oedema: "None", appetite: "Pass", date: "", growthMonitoringDone: true, notes: "" });
           }}>Save Screening</Button></>}
       >
         <div className="space-y-4">
@@ -129,11 +131,11 @@ export default function Nutrition() {
             <Field label="Oedema (NHMIS col 184)"><Select value={f.oedema} onChange={(e) => setF({ ...f, oedema: e.target.value })} options={["None", "+ (mild)", "++ (moderate)", "+++ (severe)"]} /></Field>
             <Field label="Appetite test"><Select value={f.appetite} onChange={(e) => setF({ ...f, appetite: e.target.value })} options={["Pass", "Fail"]} /></Field>
           </Grid>
-          <Checkbox label="Growth monitoring done (NHMIS col 178)" defaultChecked />
+          <Checkbox label="Growth monitoring done (NHMIS col 178)" checked={f.growthMonitoringDone} onChange={(event) => setF({ ...f, growthMonitoringDone: event.target.checked })} />
           <div className={`rounded-xl px-3 py-2 text-sm font-semibold ${cls === "Normal" ? "bg-brand-50 text-brand-700" : cls === "MAM" ? "bg-amber-50 text-amber-700" : "bg-action-50 text-action-700"}`}>
             Auto-classification: <b>{cls}</b> {cls !== "Normal" ? `→ enrol in ${program}` : "→ discharge with health education"}
           </div>
-          <Field label="Notes"><Textarea placeholder="Anything else?" /></Field>
+          <Field label="Notes"><Textarea placeholder="Anything else?" value={f.notes} onChange={(event) => setF({ ...f, notes: event.target.value })} /></Field>
         </div>
       </Modal>
 

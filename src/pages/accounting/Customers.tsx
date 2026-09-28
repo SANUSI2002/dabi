@@ -16,7 +16,7 @@ const TYPES: CustomerType[] = ["Patient", "NHIS", "HMO", "Corporate", "Walk-in"]
 const blank = { name: "", type: "Corporate" as CustomerType, email: "", phone: "", address: "", city: "", paymentTermId: "pt-net30", creditLimit: 0, openingBalance: 0 };
 
 export default function Customers() {
-  const { customers, invoices, receipts, addCustomer, updateCustomer, customerBalance, invoicesOf, invoiceBalance, agingFor, markStatementSent, lastStatementSent, importCustomers } = useAR();
+  const { customers, invoices, receipts, addCustomer, updateCustomer, customerBalance, invoicesOf, invoiceBalance, agingFor, importCustomers } = useAR();
   const paymentTerms = useAccountingSettings((s) => s.paymentTerms);
   const termById = useAccountingSettings((s) => s.termById);
   const termName = (id?: string) => termById(id)?.name ?? "Net 30";
@@ -155,12 +155,10 @@ export default function Customers() {
         ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         let run = statement.openingBalance;
         const ageRow = aging.find((a) => a.customer.id === statement.id);
-        const lastSent = lastStatementSent(statement.id);
         return (
           <PrintDoc open onClose={() => setStatement(null)} docTitle="Customer Statement">
             <div className="no-print mb-4 flex items-center justify-between rounded-lg bg-mist-50 px-3 py-2 text-sm">
-              <span className="text-mist-500">{statement.email ? `Deliver to ${statement.email}` : "No email on file"}{lastSent && ` · last sent ${shortDate(lastSent)}`}</span>
-              <Button variant="soft" disabled={!statement.email} onClick={() => { const r = markStatementSent(statement.id); if (r.ok) alert(`Statement sent to ${r.to}`); }}>Send statement</Button>
+              <span className="text-mist-500">Preview only. Print or save this statement as PDF; no email is sent from this screen.</span>
             </div>
             <Section title="Statement of Account">
               <Line label="Customer" value={statement.name} />

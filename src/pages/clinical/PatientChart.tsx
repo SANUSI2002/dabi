@@ -549,8 +549,8 @@ export default function PatientChart() {
 
           if (tab === "Vitals") {
             return (
-              <Table columns={["Taken", "BP", "Temp", "Pulse", "Resp", "SpO₂", "Weight", "Recorded by"]} caption="Recorded vital signs">
-                {vitals.length === 0 && <EmptyRow colSpan={8}>No vital signs have been recorded.</EmptyRow>}
+              <Table columns={["Taken", "BP", "Temp", "Pulse", "Resp", "SpO₂", "Weight", "Notes", "Recorded by"]} caption="Recorded vital signs">
+                {vitals.length === 0 && <EmptyRow colSpan={9}>No vital signs have been recorded.</EmptyRow>}
                 {[...vitals].reverse().map((entry, index) => (
                   <Row key={index} index={index}>
                     <Cell>{dateTime(entry.takenAt)}</Cell>
@@ -560,6 +560,7 @@ export default function PatientChart() {
                     <Cell>{entry.resp ?? "—"}</Cell>
                     <Cell>{entry.spo2 ? `${entry.spo2}%` : "—"}</Cell>
                     <Cell>{entry.weight ? `${entry.weight} kg` : "—"}</Cell>
+                    <Cell className="max-w-[220px] whitespace-normal text-mist-500">{entry.notes || "—"}</Cell>
                     <Cell className="text-mist-500">{entry.takenBy}</Cell>
                   </Row>
                 ))}

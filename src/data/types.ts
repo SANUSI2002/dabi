@@ -35,6 +35,7 @@ export type Patient = {
 
 export type Vitals = {
   bp?: string;
+  notes?: string;
   temp?: number;
   pulse?: number;
   resp?: number;
@@ -390,6 +391,10 @@ export type Delivery = {
   id: string;
   patientId: string;
   date: string;
+  bookingStatus?: string;
+  complications?: string;
+  notes?: string;
+  nhmisIndicators?: string[];
   mode: string;
   gaWeeks: number;
   motherStatus: "Alive" | "Died" | "Referred";
@@ -448,6 +453,8 @@ export type CmamScreening = {
   id: string;
   patientId: string;
   date: string;
+  growthMonitoringDone?: boolean;
+  notes?: string;
   muac: number;
   oedema: string;
   appetite: string;

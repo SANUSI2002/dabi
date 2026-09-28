@@ -27,6 +27,7 @@ export default function Labour() {
   const { deliveries, birthRegister, patientById, addDelivery, notifyBirth, registerBirth, issueBirthCertificate } = useEmr();
   const [f, setF] = useState({
     patientId: "", date: "", mode: "SVD", gaWeeks: 39,
+    bookingStatus: "Booked", complications: "", notes: "", nhmisIndicators: [] as string[],
     motherStatus: "Alive" as const, bloodLoss: 250,
     babySex: "F" as Sex, babyStatus: "Alive" as const, weight: 3.1, apgar1: 8, apgar5: 10, breastfed1h: true,
     conductedBy: "Dr. Adaeze Okonjo",
@@ -59,7 +60,7 @@ export default function Labour() {
                 <p className="mb-2 text-xs font-bold uppercase text-mist-400">Mother & ANC link</p>
                 <Grid cols={2}>
                   <Field label="Patient"><PatientPicker value={f.patientId} onChange={(id) => setF({ ...f, patientId: id })} filter={(p) => p.sex === "F"} /></Field>
-                  <Field label="Booking status"><Select options={["Booked", "Unbooked", "Referred in"]} /></Field>
+                  <Field label="Booking status"><Select value={f.bookingStatus} onChange={(event) => setF({ ...f, bookingStatus: event.target.value })} options={["Booked", "Unbooked", "Referred in"]} /></Field>
                 </Grid>
               </section>
               <section>
@@ -75,7 +76,7 @@ export default function Labour() {
                 <Grid cols={3}>
                   <Field label="Status"><Select value={f.motherStatus} onChange={(e) => setF({ ...f, motherStatus: e.target.value as never })} options={["Alive", "Died", "Referred"]} /></Field>
                   <Field label="Blood loss (ml)"><Input type="number" value={f.bloodLoss} onChange={(e) => setF({ ...f, bloodLoss: +e.target.value })} /></Field>
-                  <Field label="Complications"><Input placeholder="None" /></Field>
+                  <Field label="Complications"><Input placeholder="None" value={f.complications} onChange={(event) => setF({ ...f, complications: event.target.value })} /></Field>
                 </Grid>
               </section>
               <section>
@@ -95,22 +96,22 @@ export default function Labour() {
                   <div>
                     <p className="mb-1.5 text-[11px] font-bold uppercase text-white/70">Labour details</p>
                     <div className="space-y-1 text-sm text-white/90">
-                      {NHMIS_LABOUR.map((x) => <label key={x} className="flex items-center gap-2"><input type="checkbox" className="h-3.5 w-3.5 rounded border-white/40 bg-white/20" /> {x}</label>)}
+                      {NHMIS_LABOUR.map((x) => <label key={x} className="flex items-center gap-2"><input type="checkbox" checked={f.nhmisIndicators.includes(x)} onChange={(event) => setF({ ...f, nhmisIndicators: event.target.checked ? [...f.nhmisIndicators, x] : f.nhmisIndicators.filter((item) => item !== x) })} className="h-3.5 w-3.5 rounded border-white/40 bg-white/20" /> {x}</label>)}
                     </div>
                   </div>
                   <div>
                     <p className="mb-1.5 text-[11px] font-bold uppercase text-white/70">Newborn care</p>
                     <div className="space-y-1 text-sm text-white/90">
-                      {NHMIS_NEWBORN.map((x) => <label key={x} className="flex items-center gap-2"><input type="checkbox" className="h-3.5 w-3.5 rounded border-white/40 bg-white/20" /> {x}</label>)}
+                      {NHMIS_NEWBORN.map((x) => <label key={x} className="flex items-center gap-2"><input type="checkbox" checked={f.nhmisIndicators.includes(x)} onChange={(event) => setF({ ...f, nhmisIndicators: event.target.checked ? [...f.nhmisIndicators, x] : f.nhmisIndicators.filter((item) => item !== x) })} className="h-3.5 w-3.5 rounded border-white/40 bg-white/20" /> {x}</label>)}
                     </div>
                   </div>
                 </div>
               </section>
-              <Field label="Conducted by & notes"><Textarea placeholder="Brief notes / complications…" /></Field>
+              <Grid cols={2}><Field label="Conducted by"><Input value={f.conductedBy} onChange={(event) => setF({ ...f, conductedBy: event.target.value })} /></Field><Field label="Notes"><Textarea placeholder="Brief notes / complications…" value={f.notes} onChange={(event) => setF({ ...f, notes: event.target.value })} /></Field></Grid>
               <div className="flex justify-end">
                 <Button
                   disabled={!f.patientId || !f.date}
-                  onClick={() => { addDelivery({ ...f, date: new Date(f.date).toISOString() }); setF({ ...f, patientId: "", date: "" }); }}
+                  onClick={() => { addDelivery({ ...f, date: new Date(f.date).toISOString() }); setF({ ...f, patientId: "", date: "", complications: "", notes: "", nhmisIndicators: [] }); }}
                 >
                   Save Delivery
                 </Button>
@@ -120,7 +121,7 @@ export default function Labour() {
             deliveries.length === 0 ? (
               <EmptyState title="No deliveries recorded yet" hint='Switch to "Record Delivery" to add one.' />
             ) : (
-              <Table columns={["Mother", "Date", "Mode", "GA", "Mother", "Baby", "Weight", "APGAR", ""]}>
+              <Table columns={["Mother", "Date", "Mode", "GA", "Mother", "Baby", "Weight", "APGAR", "Details", ""]}>
                 {deliveries.map((d, i) => {
                   const p = patientById(d.patientId);
                   return (
@@ -133,6 +134,10 @@ export default function Labour() {
                       <Cell><Badge tone={d.babyStatus === "Alive" ? "brand" : "action"}>{d.babyStatus}</Badge></Cell>
                       <Cell>{d.weight} kg</Cell>
                       <Cell>{d.apgar1}/{d.apgar5}</Cell>
+                      <Cell className="max-w-[230px] whitespace-normal text-xs text-mist-500">
+                        {[d.bookingStatus, d.complications, d.notes].filter(Boolean).join(" · ") || "—"}
+                        {!!d.nhmisIndicators?.length && <details className="mt-1"><summary className="cursor-pointer text-brand-700">{d.nhmisIndicators.length} indicators recorded</summary><ul className="mt-1 list-disc pl-4">{d.nhmisIndicators.map((indicator) => <li key={indicator}>{indicator}</li>)}</ul></details>}
+                      </Cell>
                       <Cell>
                         {d.babyStatus === "Alive" && !registeredId(d.id) && (
                           <button

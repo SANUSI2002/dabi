@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/primitives";
 import { Field, Input, Select, Grid, Textarea } from "@/components/ui/form";
 import { useEmr } from "@/store/useEmr";
 import { STATIONS } from "@/data/catalog";
-import type { Station } from "@/data/types";
+import type { QueueEntry, Station } from "@/data/types";
 
 export function VitalsModal({
   patientId,
@@ -17,17 +17,28 @@ export function VitalsModal({
   open: boolean;
   onClose: () => void;
 }) {
-  const { patientById, recordVitals, advanceQueue } = useEmr();
+  const { patientById, recordVitals, advanceQueue, setQueuePriority } = useEmr();
+  const queueEntry = useEmr((state) => state.queue.find((entry) => entry.id === queueId));
   const p = patientById(patientId);
   const [v, setV] = useState<Record<string, string>>({});
-  const [route, setRoute] = useState<Station>("Consultation");
-  const [priority, setPriority] = useState("Normal");
+  const [route, setRoute] = useState<Station | undefined>();
+  const [priority, setPriority] = useState<QueueEntry["priority"] | undefined>();
+  const selectedRoute = route ?? queueEntry?.station ?? "Consultation";
+  const selectedPriority = priority ?? queueEntry?.priority ?? "Normal";
 
   const num = (k: string) => (v[k] ? +v[k] : undefined);
+
+  function close() {
+    setV({});
+    setRoute(undefined);
+    setPriority(undefined);
+    onClose();
+  }
 
   function save() {
     recordVitals(patientId, {
       bp: v.bp || undefined,
+      notes: v.notes?.trim() || undefined,
       temp: num("temp"),
       pulse: num("pulse"),
       resp: num("resp"),
@@ -37,20 +48,22 @@ export function VitalsModal({
       muac: num("muac"),
       glucose: num("glucose"),
     });
-    if (queueId) advanceQueue(queueId, "Waiting", route);
-    onClose();
-    setV({});
+    if (queueId) {
+      setQueuePriority(queueId, selectedPriority);
+      advanceQueue(queueId, "Waiting", selectedRoute);
+    }
+    close();
   }
 
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={close}
       title={`Vitals & Routing — ${p ? `${p.firstName} ${p.lastName}` : ""}`}
       wide
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" onClick={close}>Cancel</Button>
           <Button onClick={save}>Save {queueId ? "& Route" : "Vitals"}</Button>
         </>
       }
@@ -73,14 +86,14 @@ export function VitalsModal({
           <Field label="MUAC (cm)"><Input type="number" step="0.1" value={v.muac ?? ""} onChange={(e) => setV({ ...v, muac: e.target.value })} /></Field>
           <Field label="Glucose (mmol/L)"><Input type="number" step="0.1" value={v.glucose ?? ""} onChange={(e) => setV({ ...v, glucose: e.target.value })} /></Field>
         </Grid>
-        <Field label="Vitals notes"><Textarea placeholder="Brief observations…" /></Field>
+        <Field label="Vitals notes"><Textarea placeholder="Brief observations…" value={v.notes ?? ""} onChange={(event) => setV({ ...v, notes: event.target.value })} /></Field>
 
         {queueId && (
           <>
             <p className="text-xs font-bold uppercase tracking-wide text-mist-400">Routing</p>
             <Grid cols={2}>
-              <Field label="Priority"><Select value={priority} onChange={(e) => setPriority(e.target.value)} options={["Normal", "Urgent", "Emergency"]} /></Field>
-              <Field label="Route to next"><Select value={route} onChange={(e) => setRoute(e.target.value as Station)} options={[...STATIONS]} /></Field>
+              <Field label="Priority"><Select value={selectedPriority} onChange={(e) => setPriority(e.target.value as QueueEntry["priority"])} options={["Normal", "Urgent", "Emergency"]} /></Field>
+              <Field label="Route to next"><Select value={selectedRoute} onChange={(e) => setRoute(e.target.value as Station)} options={[...STATIONS]} /></Field>
             </Grid>
           </>
         )}

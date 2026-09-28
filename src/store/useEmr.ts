@@ -89,6 +89,7 @@ type EmrState = {
   likelyDuplicatePairs: () => { left: Patient; right: Patient; reasons: string[] }[];
   addToQueue: (patientId: string, station: Station, priority: QueueEntry["priority"], complaint?: string, context?: { appointmentId?: string; provider?: string; visitType?: string }) => { queueId: string; encounterId: string; accountId?: string };
   advanceQueue: (id: string, status: QueueEntry["status"], station?: Station) => void;
+  setQueuePriority: (id: string, priority: QueueEntry["priority"]) => void;
   callNext: (station?: Station) => QueueEntry | undefined;
 
   saveEncounter: (e: Omit<Encounter, "id" | "date">) => string;
@@ -327,6 +328,8 @@ export const useEmr = create<EmrState>(persisted<EmrState>("emr", (set, get) => 
         }),
       };
     }),
+  setQueuePriority: (id, priority) =>
+    set((s) => ({ queue: s.queue.map((entry) => entry.id === id ? { ...entry, priority } : entry) })),
 
   callNext: (station) => {
     const priorityRank = { Emergency: 0, Urgent: 1, Normal: 2 } as const;

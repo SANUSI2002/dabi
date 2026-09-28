@@ -1,16 +1,10 @@
-import { useState } from "react";
-import { RefreshCw, CheckCircle2, Cloud, Loader2 } from "lucide-react";
+import { Download, Cloud } from "lucide-react";
 import { PageHeader, Card, Button, Badge, StatCard } from "@/components/ui/primitives";
 import { Reveal } from "@/components/motion/Reveal";
 import { useEmr } from "@/store/useEmr";
-import { useAudit } from "@/store/useAudit";
-import { timeAgo } from "@/lib/format";
 
 export default function NhmisSync() {
   const emr = useEmr();
-  const log = useAudit((s) => s.log);
-  const [state, setState] = useState<"idle" | "syncing" | "done">("idle");
-  const [lastSync, setLastSync] = useState(() => new Date(Date.now() - 6 * 3600e3).toISOString());
 
   // Record counts are drawn only from what this EMR actually holds — no
   // dataset here is padded with an invented baseline. A dataset this build
@@ -29,33 +23,34 @@ export default function NhmisSync() {
   const available = DATASETS.filter((dataset) => dataset.records !== null);
   const endpoints = new Set(DATASETS.map((dataset) => dataset.target.split(" · ")[0])).size;
 
-  function run() {
-    setState("syncing");
-    setTimeout(() => {
-      setState("done");
-      setLastSync(new Date().toISOString());
-      log("synced NHMIS", "nhmis/dhis2");
-    }, 1800);
+  function downloadSummary() {
+    const rows = [["Dataset", "Destination", "Local record count", "Connection status"], ...DATASETS.map((dataset) => [dataset.name, dataset.target, dataset.records === null ? "Unavailable" : String(dataset.records), "Not connected"])];
+    const csv = rows.map((row) => row.map((cell) => `"${cell.replaceAll('"', '""')}"`).join(",")).join("\r\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "sabi-emr-nhmis-local-summary.csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
   return (
     <div>
       <PageHeader
         title="NHMIS Sync"
-        subtitle={`Push aggregated data to national platforms · last synced ${timeAgo(lastSync)}`}
+        subtitle="Local dataset preview only · no national-platform connection"
         actions={
-          <Button onClick={run} disabled={state === "syncing"}>
-            {state === "syncing" ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
-            {state === "syncing" ? "Syncing…" : "Sync Now"}
-          </Button>
+          <Button onClick={downloadSummary}><Download size={15} /> Download summary CSV</Button>
         }
       />
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Datasets" value={DATASETS.length} tone="brand" icon={<Cloud size={18} />} />
-        <StatCard label="Records Queued" value={available.reduce((n, d) => n + (d.records ?? 0), 0)} tone="mist" delay={0.05} />
-        <StatCard label="Endpoints" value={endpoints} tone="mist" delay={0.1} />
-        <StatCard label="Status" value={state === "done" ? "Up to date" : "Pending"} tone={state === "done" ? "brand" : "action"} delay={0.15} />
+        <StatCard label="Local records" value={available.reduce((n, d) => n + (d.records ?? 0), 0)} tone="mist" delay={0.05} />
+        <StatCard label="Named destinations" value={endpoints} tone="mist" delay={0.1} />
+        <StatCard label="Connection" value="Not connected" tone="amber" delay={0.15} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -68,22 +63,14 @@ export default function NhmisSync() {
                   {d.target} · {d.records === null ? "not tracked in this build" : `${d.records} records`}
                 </p>
               </div>
-              {d.records === null ? (
-                <Badge tone="mist">Unavailable</Badge>
-              ) : state === "done" ? (
-                <Badge tone="brand"><CheckCircle2 size={12} /> Synced</Badge>
-              ) : state === "syncing" ? (
-                <Loader2 size={16} className="animate-spin text-brand-500" />
-              ) : (
-                <Badge tone="amber">Queued</Badge>
-              )}
+              <Badge tone={d.records === null ? "mist" : "amber"}>{d.records === null ? "Unavailable" : "Local only"}</Badge>
             </Card>
           </Reveal>
         ))}
       </div>
 
       <p className="mt-5 text-center text-[11px] text-mist-300">
-        Frontend simulation — no live DHIS2/SORMAS connection is configured. Counts reflect only what is recorded in this EMR; sync events are written to the audit log.
+        No data is sent to DHIS2, SORMAS or another national platform. This CSV contains aggregate counts only and is not evidence of a submission.
       </p>
     </div>
   );
