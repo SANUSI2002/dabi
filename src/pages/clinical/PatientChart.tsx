@@ -7,6 +7,7 @@ import { Button, Badge, EmptyState, SectionNote, StatCard } from "@/components/u
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell, EmptyRow } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
+import { LocalFilePreview } from "@/components/ui/LocalFilePreview";
 import { Field, Input, Select, Textarea } from "@/components/ui/form";
 import { Lines } from "@/components/ui/Chart";
 import { PatientBanner } from "@/components/clinical/PatientBanner";
@@ -199,6 +200,11 @@ export default function PatientChart() {
                         ))}
                       </ul>
                     )}
+                  </div>
+                  <div className="card">
+                    <h3 className="mb-2 text-sm font-bold text-mist-700">Contact preference</h3>
+                    <p className="text-sm text-mist-700">Phone/SMS reminders: {patient.consentToContact === true ? "Opted in" : patient.consentToContact === false ? "Opted out" : "Not recorded"}</p>
+                    <p className="mt-1 text-xs text-mist-500">This is not treatment or data-sharing consent.</p>
                   </div>
                   <div className="card">
                     <h3 className="mb-2 text-sm font-bold text-mist-700">Care plans</h3>
@@ -444,6 +450,7 @@ export default function PatientChart() {
           if (tab === "Documents") {
             return (
               <div className="space-y-4">
+                <LocalFilePreview label="Preview a clinical document" />
                 <Table columns={["Document", "Type", "Author", "Date", "Status"]} caption="Clinical documents">
                   {encounters.length === 0 &&
                     procedures.filter((procedure) => procedure.noteSigned || procedure.status === "Performed").length === 0 &&

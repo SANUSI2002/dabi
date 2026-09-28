@@ -575,7 +575,13 @@ export const REPORTS: ReportFamily[] = [
     tabs: [
       { name: "Access Log Summary", kind: "table", columns: ["Action", "Count"], rows: () => [...new Set(auditTrail.map((e) => e.action))].map((a) => [a, auditTrail.filter((e) => e.action === a).length]) },
       { name: "Data Exports", kind: "table", columns: ["User", "Resource", "IP"], rows: () => auditTrail.filter((e) => e.action.includes("REPORT")).slice(0, 8).map((e) => [e.user, e.resource, e.ip]) },
-      { name: "Consent Records", kind: "kv", rows: (s) => [{ k: "Registered patients", v: s.patients.length }, { k: "Consent capture", v: "Not implemented in this build" }] },
+      { name: "Contact Preferences", kind: "kv", rows: (s) => [
+        { k: "Registered patients", v: s.patients.length },
+        { k: "Phone/SMS reminders opted in", v: s.patients.filter((patient) => patient.consentToContact === true).length },
+        { k: "Phone/SMS reminders opted out", v: s.patients.filter((patient) => patient.consentToContact === false).length },
+        { k: "Contact preference not recorded", v: s.patients.filter((patient) => patient.consentToContact === undefined).length },
+        { k: "Treatment or sharing consent", v: "Not captured in this frontend demo" },
+      ] },
       { name: "Amendment Log", kind: "empty", hint: "No record amendments in this period." },
     ],
   },

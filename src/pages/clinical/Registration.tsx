@@ -14,7 +14,7 @@ import type { Patient, Sex, Payer } from "@/data/types";
 
 const BLANK = {
   firstName: "", lastName: "", otherName: "", preferredName: "", sex: "F" as Sex, dob: "",
-  phone: "", consentToContact: true, address: "", lga: "Amuwo-Odofin", state: "Lagos", ward: "",
+  phone: "", consentToContact: false, address: "", lga: "Amuwo-Odofin", state: "Lagos", ward: "",
   language: "", occupation: "", category: "GEN", payer: "Out of Pocket" as Payer, nin: "", hospitalNumber: "",
   bloodGroup: "", allergies: "", nextOfKin: "", nokPhone: "", nokRelation: "",
   emergencyContactName: "", emergencyContactPhone: "", emergencyContactRelation: "",
@@ -224,6 +224,7 @@ export default function Registration() {
             </Grid>
             <div className="mt-3">
               <Checkbox label="Patient consents to contact by phone / SMS for reminders" checked={form.consentToContact} onChange={(event) => setField("consentToContact", event.target.checked)} />
+              <p className="mt-2 text-xs text-mist-500">Optional contact preference only; this is not consent for treatment or data sharing.</p>
             </div>
           </section>
 

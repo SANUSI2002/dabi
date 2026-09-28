@@ -4,6 +4,7 @@ import { PageHeader, Button, Badge, StatCard, EmptyState } from "@/components/ui
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell, EmptyRow } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
+import { LocalFilePreview } from "@/components/ui/LocalFilePreview";
 import { Field, Input, Select, Textarea, Grid, Checkbox } from "@/components/ui/form";
 import { PatientPicker } from "@/components/ui/PatientPicker";
 import { PatientLink } from "@/components/ui/PatientLink";
@@ -176,7 +177,8 @@ export default function Radiology() {
                     </div>
                   ))}
                 </div>
-                <p className="mt-2 text-[11px] text-mist-400">Viewer unavailable — no PACS/DICOM viewer is integrated with this facility build. Thumbnails above are placeholders only.</p>
+                <p className="mt-2 text-[11px] text-mist-500">Series metadata only; no images are stored with this study. The local preview below does not attach a file or replace a PACS/DICOM viewer.</p>
+                <div className="mt-3"><LocalFilePreview label="Preview a study image or PDF" /></div>
               </div>
             )}
 

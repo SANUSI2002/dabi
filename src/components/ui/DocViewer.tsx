@@ -2,12 +2,11 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Download, FileText, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react";
 
-export type ViewableDoc = { id: string; type?: string; filename: string; sizeKb?: number; dataUrl?: string };
+export type ViewableDoc = { id: string; type?: string; filename: string; sizeKb?: number; dataUrl?: string; previewUrl?: string; mimeType?: string };
 
-// A lightweight document viewer/lightbox. Renders image and PDF data URLs
-// inline; for documents without a data URL (the common demo case) it shows a
-// styled placeholder with the metadata. Supports zoom and prev/next when given
-// a list.
+// A lightweight document viewer/lightbox. Renders image and PDF data URLs or
+// temporary object URLs inline; metadata-only demo documents remain clearly
+// labelled as unavailable. Supports image zoom and prev/next for lists.
 export function DocViewer({ docs, startIndex = 0, onClose }: { docs: ViewableDoc[]; startIndex?: number; onClose: () => void }) {
   const [i, setI] = useState(startIndex);
   const [zoom, setZoom] = useState(1);
@@ -25,8 +24,9 @@ export function DocViewer({ docs, startIndex = 0, onClose }: { docs: ViewableDoc
   }, [docs.length, onClose]);
 
   if (!doc) return null;
-  const isImg = doc.dataUrl?.startsWith("data:image");
-  const isPdf = doc.dataUrl?.startsWith("data:application/pdf");
+  const source = doc.previewUrl ?? doc.dataUrl;
+  const isImg = doc.mimeType?.startsWith("image/") || source?.startsWith("data:image");
+  const isPdf = doc.mimeType === "application/pdf" || source?.startsWith("data:application/pdf");
 
   return (
     <AnimatePresence>
@@ -39,11 +39,11 @@ export function DocViewer({ docs, startIndex = 0, onClose }: { docs: ViewableDoc
               <p className="text-xs text-mist-400">{doc.type ?? "Document"}{doc.sizeKb ? ` · ${doc.sizeKb} KB` : ""}{docs.length > 1 ? ` · ${i + 1} of ${docs.length}` : ""}</p>
             </div>
             <div className="flex items-center gap-1">
-              {(isImg || isPdf) && <>
+              {isImg && <>
                 <button className="btn-ghost px-2 py-1" onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}><ZoomOut size={15} /></button>
                 <button className="btn-ghost px-2 py-1" onClick={() => setZoom((z) => Math.min(3, z + 0.25))}><ZoomIn size={15} /></button>
               </>}
-              {doc.dataUrl && <a href={doc.dataUrl} download={doc.filename} className="btn-ghost px-2 py-1"><Download size={15} /></a>}
+              {source && <a href={source} download={doc.filename} aria-label={`Download ${doc.filename}`} className="btn-ghost px-2 py-1"><Download size={15} /></a>}
               <button className="btn-ghost px-2 py-1" onClick={onClose}><X size={16} /></button>
             </div>
           </div>
@@ -56,9 +56,9 @@ export function DocViewer({ docs, startIndex = 0, onClose }: { docs: ViewableDoc
               </>
             )}
             {isImg ? (
-              <img src={doc.dataUrl} alt={doc.filename} style={{ transform: `scale(${zoom})` }} className="mx-auto origin-top rounded-lg shadow" />
+              <img src={source} alt={doc.filename} style={{ transform: `scale(${zoom})` }} className="mx-auto origin-top rounded-lg shadow" />
             ) : isPdf ? (
-              <iframe src={doc.dataUrl} title={doc.filename} className="h-[60vh] w-full rounded-lg border border-mist-200" />
+              <iframe src={source} title={doc.filename} className="h-[60vh] w-full rounded-lg border border-mist-200" />
             ) : (
               <div className="mx-auto flex h-full max-w-sm flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-mist-300 bg-white py-16 text-center">
                 <FileText size={40} className="text-mist-300" />
