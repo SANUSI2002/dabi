@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Search, ShieldAlert, CircleHelp, LogOut, User } from "lucide-react";
+import { ShieldAlert, CircleHelp, LogOut, User, Wallet } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { EmergencyCardModal } from "./EmergencyCardModal";
@@ -7,7 +7,6 @@ import { NotificationsBell } from "../../../notifications/NotificationsBell";
 import { getCurrentUser, signOut } from "../../../utils/sabiIdentity";
 
 export function Topbar({
-  placeholder = "Search records, doctors, or help...",
   userName,
   userId,
   showHelp = false,
@@ -45,8 +44,11 @@ export function Topbar({
 
   return (
     <div className="sabi-topbar">
-      {/* Row 1 (mobile): actions — emergency, bell, profile — aligned right with left padding guard */}
       <div className="sabi-topbar-actions">
+        <Link to="/wallet" className="sabi-wallet-shortcut" aria-label="Open Sabi Wallet. Current balance unavailable.">
+          <span className="sabi-wallet-shortcut-icon"><Wallet size={17} /></span>
+          <span className="sabi-wallet-shortcut-copy"><span>Sabi Wallet</span><strong>₦ —</strong></span>
+        </Link>
         {showHelp && (
           <button className="sabi-icon-btn" aria-label="Help">
             <CircleHelp />
@@ -98,12 +100,6 @@ export function Topbar({
             </div>
           )}
         </div>
-      </div>
-
-      {/* Row 2 (mobile): search bar — full width */}
-      <div className="sabi-search">
-        <Search size={17} />
-        <input type="text" placeholder={placeholder} />
       </div>
 
       {showEmergencyCard && <EmergencyCardModal onClose={() => setShowEmergencyCard(false)} />}

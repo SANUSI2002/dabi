@@ -24,7 +24,6 @@ import {
   HeartHandshake,
   Settings,
   LogOut,
-  Wallet,
 } from "lucide-react";
 
 // Placeholder content for the patient dashboard.
@@ -48,7 +47,6 @@ export const NAV_ITEMS = [
   // { key: "lab", label: "Lab Results", icon: TestTube },
   // { key: "vaccinations", label: "Vaccinations", icon: Syringe },
   { key: "insurance", label: "Insurance", icon: InsuranceIcon, to: "/insurance" },
-  { key: "wallet", label: "Sabi Wallet", icon: Wallet, to: "/wallet" },
   // { key: "medications", label: "Medications", icon: Pill },
   {key: "family",label: "Family", icon: Users,to: "/family",},
   // { key: "emergency", label: "Emergency ID", icon: ShieldAlert },

@@ -490,15 +490,7 @@
    Topbar
    ────────────────────────────────────────────────────────── */
 
-/*
-  Desktop layout (>640px):
-    [Search .........] [Emergency] [Bell] [Profile]
-
-  Mobile layout (≤640px) — 2-row CSS grid:
-    Row 1: [← 58px guard →] [Emergency] [Bell] [Avatar]
-    Row 2: [Search .................................]
-  The 58px guard clears the fixed mobile sidebar trigger (42px wide + 14px left + 2px gap).
-*/
+/* Wallet balance, emergency, notifications and profile sit on one row. */
 .sabi-topbar {
   width: 100%;
   border-radius: 20px;
@@ -516,42 +508,7 @@
   overflow: visible;
 }
 
-/* Search bar — desktop: use order:-1 so it appears first even though it's second in DOM.
-   DOM order (actions then search) is required for the mobile 2-row CSS Grid.
-   On desktop flex, `order` restores the correct visual sequence. */
-.sabi-search {
-  flex: 1;
-  min-width: 0;
-  max-width: 448px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--sabi-page-bg);
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 0 16px;
-  color: var(--sabi-text-secondary);
-  order: -1; /* appear first on desktop flex */
-}
-
-.sabi-search svg { width: 18px; height: 18px; flex-shrink: 0; }
-
-.sabi-search input {
-  flex: 1;
-  width: 100%;
-  border: none;
-  outline: none;
-  background: transparent;
-  font: inherit;
-  font-size: 0.9rem;
-  min-width: 0;
-  color: var(--sabi-text-primary);
-}
-
-.sabi-search input::placeholder { color: var(--sabi-text-secondary); }
-
-/* Actions group — emergency + bell + profile always together */
+/* Actions group — wallet + emergency + bell + profile always together */
 .sabi-topbar-actions {
   display: flex;
   align-items: center;
@@ -559,8 +516,27 @@
   flex-shrink: 0;
   margin-left: auto;
   min-width: 0;
-  order: 0; /* after search on desktop */
 }
+
+.sabi-wallet-shortcut {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 5px 12px 5px 6px;
+  border: 1px solid #cfe7db;
+  border-radius: 13px;
+  background: #f0faf4;
+  color: #0b5f4c;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.sabi-wallet-shortcut:hover { border-color: #8ac8ad; background: #e6f5eb; }
+.sabi-wallet-shortcut:focus-visible { outline: 2px solid var(--sabi-primary); outline-offset: 2px; }
+.sabi-wallet-shortcut-icon { display: grid; place-items: center; width: 31px; height: 31px; border-radius: 9px; background: #d8f0e0; }
+.sabi-wallet-shortcut-copy { display: grid; gap: 1px; line-height: 1.15; }
+.sabi-wallet-shortcut-copy span { font-size: .64rem; font-weight: 650; }
+.sabi-wallet-shortcut-copy strong { font-size: .88rem; font-variant-numeric: tabular-nums; }
 
 .sabi-icon-btn {
   width: 36px;              /* bumped from 24px for better tap target */
@@ -1099,7 +1075,7 @@
 /*
   Tablet (641–860px):
   Sidebar is icon-only (72px). Reduce topbar padding and gaps.
-  Search keeps single-row layout but is narrower.
+  The wallet shortcut stays visible beside the other account actions.
 */
 @media (min-width: 641px) and (max-width: 860px) {
   .sabi-topbar {
@@ -1108,35 +1084,24 @@
     border-radius: 16px;
   }
   .sabi-topbar-actions { gap: 8px; }
-  .sabi-search { max-width: 280px; }
 }
 
 /*
   Mobile (≤640px):
-  Switch to CSS Grid 2-row layout.
-  Row 1: actions (emergency + bell + profile), padded left to clear hamburger
-  Row 2: search bar spanning full width
-  This prevents ANY element from overlapping.
+  Keep the wallet amount visible in the single actions row.
 */
 @media (max-width: 640px) {
   .sabi-topbar {
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
-    gap: 10px;
+    display: flex;
     padding: 10px 12px;
     border-radius: 14px;
     /* Topbar sits directly below the in-flow sticky mobile header */
     margin-top: 0;
     min-height: auto;
-    align-items: stretch;
+    align-items: center;
   }
 
-  /* Row 1 — actions group right-aligned. No left padding guard needed:
-     the in-flow mobile header bar above .sabi-main owns the ☰ trigger. */
   .sabi-topbar-actions {
-    grid-row: 1;
-    grid-column: 1;
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -1146,16 +1111,6 @@
     min-height: 44px;
   }
 
-  /* Row 2 — search spans full width */
-  .sabi-search {
-    grid-row: 2;
-    grid-column: 1;
-    flex: unset;
-    width: 100%;
-    max-width: none;
-    min-width: 0;
-    height: 44px;
-  }
 }
 
 /* Very small mobile (≤400px): tighten further */
@@ -1169,7 +1124,10 @@
     gap: 6px;
     /* padding-left guard removed — trigger is in-flow, not fixed */
   }
-  .sabi-search { height: 42px; }
+  .sabi-wallet-shortcut { gap: 6px; min-height: 40px; padding: 4px 7px 4px 4px; }
+  .sabi-wallet-shortcut-icon { width: 29px; height: 29px; }
+  .sabi-wallet-shortcut-copy span { display: none; }
+  .sabi-wallet-shortcut-copy strong { font-size: .8rem; }
 }
 
 /* ──────────────────────────────────────────────────────────
