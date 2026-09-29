@@ -63,6 +63,7 @@ import { BookHospitalAppointmentPage } from "./pages/hospitals/BookHospitalAppoi
 import { CheckInPage } from "./pages/hospitals/CheckInPage";
 import { FamilyHospitalEnrollmentPage } from "./pages/hospitals/FamilyHospitalEnrollmentPage";
 import { InsurancePage } from "./pages/insurance/InsurancePage";
+import { WalletPage } from "./pages/wallet/WalletPage";
 import ForgotPassword from "./pages/Onboarding/ForgotPassword";
 import ResetPassword from "./pages/Onboarding/ResetPassword";
 import { HOSPITAL_ONBOARDING_URL } from "./ecosystemLinks";
@@ -196,6 +197,7 @@ export default function App() {
               <Route path="/hospitals/check-in/:appointmentId" element={<CheckInPage />} />
               <Route path="/family/hospital-enrollment" element={<FamilyHospitalEnrollmentPage />} />
               <Route path="/insurance" element={<InsurancePage />} />
+              <Route path="/wallet" element={<WalletPage />} />
               <Route path="/doctor" element={<FindYourDoctor />} />
               <Route path="/doctors" element={<Navigate to="/doctor" replace />} />
               <Route path="/appointments" element={<Appointments />} />

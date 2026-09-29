@@ -1,0 +1,55 @@
+.sabi-wallet-page { max-width: 1450px; margin: 0 auto; padding: clamp(12px, 2.4vw, 32px) clamp(2px, 1.8vw, 24px) 56px; }
+.sabi-wallet-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin: 6px 0 28px; }
+.sabi-wallet-heading h1 { margin: 6px 0 5px; color: var(--sabi-primary-dark); font-size: clamp(1.8rem, 3vw, 2.35rem); letter-spacing: -.035em; line-height: 1.1; }
+.sabi-wallet-heading p { margin: 0; color: var(--sabi-text-secondary); font-size: .96rem; line-height: 1.5; }
+.sabi-wallet-eyebrow { color: #718583; font-size: .66rem; font-weight: 800; letter-spacing: .16em; }
+.sabi-wallet-stage { display: inline-flex; align-items: center; gap: 8px; flex: none; border: 1px solid #d5e9e2; border-radius: 999px; background: #edf8f2; padding: 8px 12px; color: #176452; font-size: .73rem; font-weight: 800; }
+.sabi-wallet-stage span { width: 7px; height: 7px; border-radius: 50%; background: #39a977; }
+.sabi-wallet-layout { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(290px, .8fr); align-items: start; gap: 20px; }
+.sabi-wallet-primary, .sabi-wallet-aside { display: grid; gap: 20px; min-width: 0; }
+.sabi-wallet-balance { position: relative; isolation: isolate; overflow: hidden; min-height: 275px; border-radius: 22px; padding: clamp(22px, 3vw, 32px); color: white; background: linear-gradient(125deg, #044c46 0%, #007a69 58%, #138e70 100%); box-shadow: 0 18px 36px rgba(4, 76, 70, .13); }
+.sabi-wallet-balance-rings { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: -1; }
+.sabi-wallet-balance-rings span { position: absolute; border: 1px solid rgba(255, 255, 255, .16); border-radius: 50%; width: 350px; height: 350px; right: -92px; top: -132px; }
+.sabi-wallet-balance-rings span + span { width: 530px; height: 530px; right: -176px; top: -220px; }
+.sabi-wallet-balance-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 28px; }
+.sabi-wallet-mark { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid rgba(255, 255, 255, .3); border-radius: 14px; background: rgba(255, 255, 255, .13); }
+.sabi-wallet-status { border: 1px solid rgba(255, 255, 255, .35); border-radius: 999px; padding: 7px 11px; background: rgba(0, 0, 0, .1); font-size: .72rem; font-weight: 750; }
+.sabi-wallet-balance h2 { margin: 0; color: #d9f6ec; font-size: .85rem; font-weight: 650; }
+.sabi-wallet-balance-value { margin: 0; font-size: clamp(2.5rem, 5vw, 3.5rem); font-weight: 800; line-height: 1.12; }
+.sabi-wallet-balance-note { margin: 7px 0 24px; color: #e6faf3; font-size: .81rem; }
+.sabi-wallet-balance-footer { display: flex; align-items: center; gap: 8px; max-width: 560px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, .25); color: #d9f6ec; font-size: .75rem; line-height: 1.45; }
+.sabi-wallet-balance-footer svg { flex: none; }
+.sabi-wallet-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 0 4px; }
+.sabi-wallet-action { display: grid; justify-items: center; gap: 8px; color: #536763; font-size: .78rem; font-weight: 750; }
+.sabi-wallet-action button { display: grid; place-items: center; width: 56px; height: 56px; border: 1px dashed #b9d6cb; border-radius: 17px; color: #74998e; background: #f1f7f4; cursor: not-allowed; }
+.sabi-wallet-panel { border: 1px solid #e2ebe8; border-radius: 19px; padding: 22px; background: white; box-shadow: 0 3px 13px rgba(16, 47, 42, .035); }
+.sabi-wallet-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.sabi-wallet-panel h2 { margin: 5px 0 0; color: #183b35; font-size: 1.1rem; line-height: 1.25; }
+.sabi-wallet-filters { display: flex; flex-wrap: wrap; gap: 5px; padding: 4px; border-radius: 11px; background: #f2f6f4; }
+.sabi-wallet-filters button { border: 0; border-radius: 8px; padding: 7px 10px; background: transparent; color: #70837d; font: inherit; font-size: .72rem; font-weight: 700; text-transform: capitalize; cursor: pointer; }
+.sabi-wallet-filters button.active { color: #0b6554; background: white; box-shadow: 0 1px 5px rgba(20, 69, 57, .1); }
+.sabi-wallet-filters button:focus-visible, .sabi-wallet-uses a:focus-visible { outline: 2px solid #0a8d74; outline-offset: 2px; }
+.sabi-wallet-empty { display: grid; justify-items: center; padding: 38px 14px 22px; text-align: center; }
+.sabi-wallet-empty > span { display: grid; place-items: center; width: 58px; height: 58px; border-radius: 18px; color: #4b9682; background: #edf8f3; }
+.sabi-wallet-empty h3 { margin: 17px 0 6px; color: #213f39; font-size: .96rem; }
+.sabi-wallet-empty p { max-width: 390px; margin: 0; color: #71817d; font-size: .82rem; line-height: 1.55; }
+.sabi-wallet-notice { background: #f4faf7; border-color: #d8eae1; }
+.sabi-wallet-notice-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; color: #14765f; background: #dcefe5; }
+.sabi-wallet-notice h2 { margin: 14px 0 8px; }
+.sabi-wallet-notice > p, .sabi-wallet-aside-intro { margin: 0; color: #637b71; font-size: .82rem; line-height: 1.55; }
+.sabi-wallet-notice-line { display: flex; align-items: flex-start; gap: 9px; margin-top: 17px; padding-top: 15px; border-top: 1px solid #d8eae1; color: #225b4d; font-size: .77rem; font-weight: 650; line-height: 1.45; }
+.sabi-wallet-notice-line svg { flex: none; }
+.sabi-wallet-method { display: flex; align-items: center; gap: 12px; margin-top: 18px; padding: 15px; border: 1px dashed #d4e3dd; border-radius: 12px; color: #719187; background: #f8fbf9; }
+.sabi-wallet-method strong { color: #355b50; font-size: .81rem; }
+.sabi-wallet-method p { margin: 3px 0 0; color: #7c918a; font-size: .72rem; line-height: 1.4; }
+.sabi-wallet-aside-intro { margin-top: 11px; }
+.sabi-wallet-uses { display: grid; gap: 1px; margin-top: 14px; }
+.sabi-wallet-uses a { display: flex; align-items: center; gap: 11px; border-radius: 10px; padding: 9px 5px; color: #1d4a3e; text-decoration: none; }
+.sabi-wallet-uses a:hover { background: #f3f9f5; }
+.sabi-wallet-uses a > span:first-child { display: grid; place-items: center; width: 37px; height: 37px; border-radius: 10px; color: #168167; background: #ecf8f2; }
+.sabi-wallet-uses a > span:nth-child(2) { display: grid; gap: 2px; flex: 1; }
+.sabi-wallet-uses strong { font-size: .79rem; }
+.sabi-wallet-uses small { color: #879892; font-size: .71rem; }
+.sabi-wallet-uses a > svg { color: #85a399; }
+@media (max-width: 980px) { .sabi-wallet-layout { grid-template-columns: 1fr; } .sabi-wallet-aside { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sabi-wallet-aside > :last-child { grid-column: 1 / -1; } }
+@media (max-width: 640px) { .sabi-wallet-heading { flex-wrap: wrap; margin-bottom: 20px; } .sabi-wallet-stage { order: -1; } .sabi-wallet-aside { grid-template-columns: 1fr; } .sabi-wallet-aside > :last-child { grid-column: auto; } .sabi-wallet-panel { padding: 18px; } .sabi-wallet-panel-head { align-items: flex-start; flex-direction: column; } .sabi-wallet-filters { width: 100%; } .sabi-wallet-filters button { flex: 1; } }

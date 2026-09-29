@@ -21,7 +21,8 @@ import { getCurrentUser } from "../../utils/sabiIdentity";
 const PAYMENT_METHODS = [
   { id: "card", label: "Debit / Credit Card", icon: CreditCard },
   { id: "transfer", label: "Bank Transfer", icon: Landmark },
-  { id: "delivery", label: "Pay on Delivery (coming soon)", icon: Wallet, disabled: true },
+  { id: "wallet", label: "Sabi Wallet (not active)", icon: Wallet, disabled: true },
+  { id: "delivery", label: "Pay on Delivery (coming soon)", icon: Truck, disabled: true },
 ];
 
 // The delivery pin for a new address: the device's current location.
