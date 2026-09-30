@@ -132,12 +132,13 @@ export type LabOrder = {
   encounterId?: string;
   test: string;
   category: string;
-  urgency: "Routine" | "Urgent";
+  urgency: "Routine" | "Urgent" | "STAT";
   status: "Pending" | "Sample Collected" | "In Process" | "Awaiting Approval" | "Resulted" | "Rejected";
   orderedAt: string;
   orderedBy: string;
   result?: string;
-  flag?: "Normal" | "Low" | "High" | "Critical";
+  /** "Abnormal": a non-numeric result outside its normal answers (live hospitals' labs) */
+  flag?: "Normal" | "Low" | "High" | "Critical" | "Abnormal";
   verifiedBy?: string;
   // Workflow tracking — sample -> phased processing -> result entry -> sign-off
   sampleType?: string;

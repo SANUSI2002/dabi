@@ -8,6 +8,7 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string> = {
   "/queue": "queue.read",
   // The consultation room is for clinicians who diagnose (doctors), not every queue user.
   "/consultation": "diagnosis.record",
+  "/laboratory": "lab.order.read",
 };
 
 export type LiveRouteState = "connected" | "no-permission" | "not-connected";

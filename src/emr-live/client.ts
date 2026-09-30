@@ -5,7 +5,7 @@ import { useLiveEmr } from "./session";
 // selected in the live session. The organization-scoped access token is short-lived: on a 401 the
 // session refreshes and re-selects the hospital once, then retries the same request.
 
-type EmrRequest = { method?: "GET" | "POST" | "PATCH"; body?: unknown; version?: number; idempotencyKey?: string };
+type EmrRequest = { method?: "GET" | "POST" | "PUT" | "PATCH"; body?: unknown; version?: number; idempotencyKey?: string };
 
 const FIELD_LABELS: Record<string, string> = {
   givenName: "First name", familyName: "Surname", otherNames: "Other name", dateOfBirth: "Date of birth",
