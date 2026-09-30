@@ -6,7 +6,8 @@ import { TopBar } from "./TopBar";
 import { PageTransition } from "@/components/motion/Reveal";
 import { useIntegrations } from "@/store/useIntegrations";
 import { EntitlementBoundary } from "@/platform/EntitlementBoundary";
-import { useTenant } from "@/store/useTenant";
+import { useShellTenant } from "@/emr-live/shellData";
+import { useIsLiveEmr } from "@/emr-live/session";
 import { useRevenueCycle } from "@/billing/useRevenueCycle";
 import { EmrRouteLoadingScreen } from "./AppLoadingScreen";
 import "@/store/accounting/bootstrap";
@@ -25,7 +26,8 @@ function TimedRouteLoader({ pathname, tenantName }: { pathname: string; tenantNa
 export function AppShell() {
   const [mobileNav, setMobileNav] = useState(false);
   const loc = useLocation();
-  const tenantName = useTenant((state) => state.tenant.name);
+  const tenantName = useShellTenant().name;
+  const live = useIsLiveEmr();
 
   useEffect(() => {
     document.title = `Sabi OS — ${tenantName}`;
@@ -37,10 +39,11 @@ export function AppShell() {
   const autoSync = useIntegrations((s) => s.autoSync);
   const revenuePostingVersion = useRevenueCycle((state) => `${state.invoices.length}:${state.payments.length}`);
   useEffect(() => {
-    if (!autoSync) return;
+    // A live hospital's billing is posted by the backend, never mirrored from demo stores.
+    if (live || !autoSync) return;
     const c = useIntegrations.getState().pendingCounts();
     if (c.emrBilling || c.payrollAccrual || c.payrollSettlement || c.pharmacy) useIntegrations.getState().syncAll();
-  }, [autoSync, loc.pathname, revenuePostingVersion]);
+  }, [live, autoSync, loc.pathname, revenuePostingVersion]);
 
   return (
     <div className="flex h-full bg-mist-50">

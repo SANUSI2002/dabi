@@ -1,7 +1,7 @@
 import { apiBaseUrl } from '@/config/runtime';
 
 export type LiveIdentity = {
-  user: { id: string; email: string; roles: string[]; profile?: unknown };
+  user: { id: string; email: string; fullName?: string | null; roles: string[]; profile?: unknown };
   organizations: Array<{ id: string; status: string; organization: { id: string; type: string; name: string; status: string }; roles: string[]; permissions: string[] }>;
   platformAssigned: boolean;
   platform: { roles: string[]; permissions: string[] } | null;
@@ -9,6 +9,9 @@ export type LiveIdentity = {
 
 export type LivePlatformOrganization = { id: string; type: string; name: string; status: string; createdAt: string };
 export type LiveInvitation = { id: string; email: string; scope: 'PLATFORM' | 'ORGANIZATION'; roleCode: string; organizationId: string | null; organizationName: string | null; expiresAt: string; createdAt: string; status: 'PENDING' | 'ACCEPTED' | 'EXPIRED' | 'REVOKED'; existingAccount?: boolean };
+
+/** A failed API call: HTTP status, the service's error code, and per-field problems when it sends them. */
+export type LiveApiError = Error & { status: number; code?: string; details?: Array<{ field: string; message: string }> };
 
 let accessToken: string | null = null;
 let identity: LiveIdentity | null = null;
@@ -24,9 +27,10 @@ async function requestApi<T>(path: string, options: RequestInit = {}): Promise<T
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     const fieldError = Array.isArray(body.errors) ? body.errors[0] : undefined;
-    const error = new Error(fieldError?.field && fieldError?.message ? `${fieldError.field}: ${fieldError.message}` : body.message || body.error?.message || 'Identity service is unavailable.') as Error & { status: number; code?: string };
+    const error = new Error(fieldError?.field && fieldError?.message ? `${fieldError.field}: ${fieldError.message}` : body.message || body.error?.message || 'Identity service is unavailable.') as LiveApiError;
     error.status = response.status;
     error.code = body.error?.code;
+    if (Array.isArray(body.error?.details)) error.details = body.error.details;
     throw error;
   }
   return body as T;

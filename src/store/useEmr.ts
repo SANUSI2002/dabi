@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { rankDuplicates } from "@/lib/duplicates";
 import * as mock from "@/data/mock";
 import type {
   Patient,
@@ -205,28 +206,7 @@ export const useEmr = create<EmrState>(persisted<EmrState>("emr", (set, get) => 
     return patient;
   },
 
-  duplicateRisk: (candidate) => {
-    const normalise = (value?: string) => (value ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
-    const candidateName = normalise(`${candidate.firstName}${candidate.lastName}`);
-    const candidatePhone = normalise(candidate.phone);
-    const candidateNin = normalise(candidate.nin);
-    return get()
-      .patients.filter((existing) => existing.id !== candidate.excludeId)
-      .map((existing) => {
-        const reasons: string[] = [];
-        let score = 0;
-        if (candidateNin && normalise(existing.nin) === candidateNin) { reasons.push("Same NIN"); score += 5; }
-        if (candidatePhone && candidatePhone.length >= 7 && normalise(existing.phone) === candidatePhone) { reasons.push("Same phone number"); score += 3; }
-        const sameName = candidateName && normalise(`${existing.firstName}${existing.lastName}`) === candidateName;
-        const sameDob = candidate.dob && existing.dob.slice(0, 10) === candidate.dob.slice(0, 10);
-        if (sameName && sameDob) { reasons.push("Same name and date of birth"); score += 5; }
-        else if (sameName) { reasons.push("Same name"); score += 2; }
-        else if (sameDob && candidateName && normalise(existing.lastName) === normalise(candidate.lastName)) { reasons.push("Same surname and date of birth"); score += 2; }
-        return { patient: existing, reasons, score };
-      })
-      .filter((match) => match.score >= 2)
-      .sort((left, right) => right.score - left.score);
-  },
+  duplicateRisk: (candidate) => rankDuplicates(candidate, get().patients.filter((existing) => existing.id !== candidate.excludeId)),
 
   likelyDuplicatePairs: () => {
     const normalise = (value?: string) => (value ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");

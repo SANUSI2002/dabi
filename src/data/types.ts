@@ -1,5 +1,6 @@
-export type Sex = "M" | "F";
-export type Payer = "Out of Pocket" | "Government Scheme" | "NHIS";
+/** "Other" and "Unknown" come from live hospital records (the registration form offers F/M). */
+export type Sex = "M" | "F" | "Other" | "Unknown";
+export type Payer = "Out of Pocket" | "Government Scheme" | "NHIS" | "HMO" | "Corporate";
 
 export type Patient = {
   id: string;

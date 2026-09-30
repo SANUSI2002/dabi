@@ -1,16 +1,18 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { UserPlus, CreditCard, ScrollText, ListPlus, MoreVertical, TriangleAlert, Users } from "lucide-react";
 import { PageHeader, Button, Badge, EmptyState } from "@/components/ui/primitives";
 import { Table, Row, Cell, EmptyRow } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Grid, Checkbox } from "@/components/ui/form";
-import { useEmr } from "@/store/useEmr";
+import { useRegistrySource } from "@/emr-live/sources";
+import { describeEmrError } from "@/emr-live/client";
 import { PATIENT_CATEGORIES } from "@/data/catalog";
 import { ageFromDob, shortDate } from "@/lib/format";
 import { PatientCardDoc, BirthCertificateDoc } from "@/components/print/documents";
 import { PatientLink } from "@/components/ui/PatientLink";
 import type { Patient, Sex, Payer } from "@/data/types";
+import { STRONG_DUPLICATE_SCORE } from "@/lib/duplicates";
 
 const BLANK = {
   firstName: "", lastName: "", otherName: "", preferredName: "", sex: "F" as Sex, dob: "",
@@ -24,7 +26,6 @@ const LANGUAGES = ["English", "Yoruba", "Igbo", "Hausa", "Pidgin", "French", "Ot
 
 export default function Registration() {
   const nav = useNavigate();
-  const { patients, registerPatient, addToQueue, duplicateRisk, likelyDuplicatePairs } = useEmr();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [duplicatesOpen, setDuplicatesOpen] = useState(false);
@@ -33,29 +34,27 @@ export default function Registration() {
   const [doc, setDoc] = useState<{ kind: "card" | "birth"; patient: Patient } | null>(null);
   const [acknowledgedDuplicate, setAcknowledgedDuplicate] = useState(false);
   const [renderedAt] = useState(Date.now);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const registry = useRegistrySource(
+    query,
+    form.firstName && form.lastName ? { firstName: form.firstName, lastName: form.lastName, dob: form.dob, phone: form.phone, nin: form.nin } : null,
+    refreshKey,
+  );
 
   const setField = (key: keyof typeof BLANK, value: string | boolean) => {
     setForm((current) => ({ ...current, [key]: value }));
     setAcknowledgedDuplicate(false);
   };
 
-  const list = patients.filter((patient) =>
-    `${patient.firstName} ${patient.lastName} ${patient.otherName ?? ""} ${patient.mrn} ${patient.phone ?? ""} ${patient.nin ?? ""}`
-      .toLowerCase()
-      .includes(query.toLowerCase()),
-  );
+  const list = registry.list;
 
   const categoryOf = (code: string) => PATIENT_CATEGORIES.find((entry) => entry.code === code);
-  const duplicatePairs = likelyDuplicatePairs();
+  const duplicatePairs = registry.pairs;
 
-  const matches = useMemo(
-    () =>
-      form.firstName && form.lastName
-        ? duplicateRisk({ firstName: form.firstName, lastName: form.lastName, dob: form.dob, phone: form.phone, nin: form.nin })
-        : [],
-    [form.firstName, form.lastName, form.dob, form.phone, form.nin, duplicateRisk],
-  );
-  const strongMatch = matches.some((match) => match.score >= 5);
+  const matches = registry.matches;
+  const strongMatch = matches.some((match) => match.score >= STRONG_DUPLICATE_SCORE);
 
   const dobInFuture = form.dob !== "" && new Date(form.dob).getTime() > renderedAt;
   const ninInvalid = form.nin !== "" && !/^\d{11}$/.test(form.nin.replace(/\s/g, ""));
@@ -63,32 +62,59 @@ export default function Registration() {
     Boolean(form.firstName.trim() && form.lastName.trim() && form.dob) &&
     !dobInFuture &&
     !ninInvalid &&
-    (!strongMatch || acknowledgedDuplicate);
+    (!strongMatch || acknowledgedDuplicate) &&
+    !busy;
 
-  function submit() {
+  async function submit() {
     if (!canRegister) return;
-    registerPatient(form as unknown as Omit<Patient, "id" | "mrn" | "registeredAt">);
-    setOpen(false);
-    setForm(BLANK);
-    setAcknowledgedDuplicate(false);
+    setBusy(true);
+    setActionError("");
+    try {
+      await registry.register(form);
+      setOpen(false);
+      setForm(BLANK);
+      setAcknowledgedDuplicate(false);
+      setRefreshKey((key) => key + 1);
+    } catch (cause) {
+      setActionError(describeEmrError(cause));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function queuePatient(patientId: string) {
+    setExpandedRow(null);
+    setActionError("");
+    try {
+      await registry.addToQueue(patientId);
+      nav("/queue");
+    } catch (cause) {
+      setActionError(describeEmrError(cause));
+    }
   }
 
   return (
     <div>
       <PageHeader
         title="Patient registry"
-        subtitle={`${patients.length} patients on file`}
+        subtitle={`${registry.onFile} patients on file`}
         actions={
           <>
             <Button variant="ghost" onClick={() => setDuplicatesOpen(true)}>
               <ScrollText size={15} /> Review duplicates{duplicatePairs.length ? ` (${duplicatePairs.length})` : ""}
             </Button>
-            <Button onClick={() => { setForm(BLANK); setAcknowledgedDuplicate(false); setOpen(true); }}>
+            <Button onClick={() => { setForm(BLANK); setAcknowledgedDuplicate(false); setActionError(""); setOpen(true); }}>
               <UserPlus size={15} /> New patient
             </Button>
           </>
         }
       />
+
+      {(registry.error || (actionError && !open)) && (
+        <p role="alert" className="mb-4 rounded-xl bg-action-50 px-4 py-2.5 text-sm font-medium text-action-800 ring-1 ring-action-200">
+          {registry.error || actionError}
+        </p>
+      )}
 
       <label className="mb-4 block max-w-md">
         <span className="sr-only">Search patients</span>
@@ -140,7 +166,7 @@ export default function Registration() {
                       <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 hover:bg-brand-50" onClick={() => { setExpandedRow(null); nav(`/patients/${patient.id}`); }}>
                         <ScrollText size={14} /> Open chart
                       </button>
-                      <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 hover:bg-brand-50" onClick={() => { addToQueue(patient.id, "Vital", "Normal"); setExpandedRow(null); nav("/queue"); }}>
+                      <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 hover:bg-brand-50" onClick={() => { void queuePatient(patient.id); }}>
                         <ListPlus size={14} /> Add to queue
                       </button>
                       <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 hover:bg-brand-50" onClick={() => { setDoc({ kind: "card", patient }); setExpandedRow(null); }}>
@@ -158,7 +184,10 @@ export default function Registration() {
         </Table>
       )}
 
-      <p className="mt-3 text-right text-[11px] text-mist-300">Registry as of {shortDate(new Date())}</p>
+      <p className="mt-3 text-right text-[11px] text-mist-300">
+        {registry.moreThanShown > 0 && `Showing the ${list.length} most recent of ${registry.moreThanShown} — search to find others · `}
+        Registry as of {shortDate(new Date())}
+      </p>
 
       <Modal
         open={open}
@@ -168,11 +197,14 @@ export default function Registration() {
         footer={
           <>
             <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button disabled={!canRegister} onClick={submit}>Register patient</Button>
+            <Button disabled={!canRegister} onClick={() => { void submit(); }}>{busy ? "Registering…" : "Register patient"}</Button>
           </>
         }
       >
         <div className="space-y-5">
+          {actionError && (
+            <p role="alert" className="rounded-xl bg-action-50 px-4 py-3 text-sm font-medium text-action-800 ring-1 ring-action-200">{actionError}</p>
+          )}
           {matches.length > 0 && (
             <div className={`rounded-xl px-4 py-3 text-sm ring-1 ${strongMatch ? "bg-action-50 text-action-800 ring-action-200" : "bg-amber-50 text-amber-800 ring-amber-200"}`}>
               <p className="flex items-center gap-1.5 font-semibold">

@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
-import { useEmr } from "@/store/useEmr";
+import { useChosenPatient, usePatientLookup } from "@/emr-live/sources";
 import { ageFromDob } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import type { Patient } from "@/data/types";
 
 export function PatientPicker({
   value,
@@ -12,20 +13,15 @@ export function PatientPicker({
 }: {
   value?: string | null;
   onChange: (id: string) => void;
-  filter?: (p: import("@/data/types").Patient) => boolean;
+  filter?: (p: Patient) => boolean;
   placeholder?: string;
 }) {
-  const patients = useEmr((s) => s.patients);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
-  const selected = patients.find((p) => p.id === value);
-
-  const list = patients
-    .filter((p) => (filter ? filter(p) : true))
-    .filter((p) =>
-      `${p.firstName} ${p.lastName} ${p.mrn} ${p.phone ?? ""}`.toLowerCase().includes(q.toLowerCase()),
-    )
-    .slice(0, 8);
+  const list = usePatientLookup(q, 8, filter);
+  // Remember the chosen patient: a live search result is not kept anywhere else.
+  const [picked, setPicked] = useState<Patient | null>(null);
+  const selected = useChosenPatient(value, picked);
 
   return (
     <div className="relative">
@@ -49,6 +45,7 @@ export function PatientPicker({
             <button
               key={p.id}
               onMouseDown={() => {
+                setPicked(p);
                 onChange(p.id);
                 setOpen(false);
                 setQ("");

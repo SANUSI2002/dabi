@@ -2,6 +2,8 @@ import { type ReactNode } from "react";
 import { useLocation, Link } from "react-router-dom";
 import { Lock, ArrowRight } from "lucide-react";
 import { useRouteGate } from "./useEntitlements";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { LiveRouteBoundary } from "@/emr-live/shell";
 
 // The client-side entitlement gate. Wraps the routed content; if the current
 // path belongs to a module/product the org has not licensed, the real page is
@@ -14,6 +16,11 @@ export function EntitlementBoundary({ children }: { children: ReactNode }) {
   const gate = useRouteGate();
   const allowed = gate.isRouteAllowed(loc.pathname);
   const reason = gate.routeBlockReason(loc.pathname);
+  const live = useIsLiveEmr();
+
+  // A live hospital: the backend has already verified its EMR entitlement; what remains is
+  // whether this screen is connected to live records and the user's role may open it.
+  if (live) return <LiveRouteBoundary pathname={loc.pathname}>{children}</LiveRouteBoundary>;
 
   if (gate.accessMode === "blocked") {
     return (

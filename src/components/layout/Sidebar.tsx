@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ShieldPlus } from "lucide-react";
 import { NAV, type NavItem } from "@/data/nav";
 import { PRESCRIPTION_PENDING_STATUSES } from "@/data/pharmacyOps";
 import { useEmr } from "@/store/useEmr";
-import { useTenant } from "@/store/useTenant";
+import { useIsLiveEmr, liveCan } from "@/emr-live/session";
+import { useShellTenant } from "@/emr-live/shellData";
+import { useLiveQueue } from "@/emr-live/queue";
 import { cn } from "@/lib/cn";
 import { useRouteGate } from "@/platform/useEntitlements";
 
@@ -92,8 +94,16 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const queue = useEmr((s) => s.queue);
   const labs = useEmr((s) => s.labOrders);
   const encounters = useEmr((s) => s.encounters);
-  const tenant = useTenant((s) => s.tenant);
+  const tenant = useShellTenant();
+  const live = useIsLiveEmr();
+  const liveQueue = useLiveQueue((s) => s.entries);
+  const liveQueueLoaded = useLiveQueue((s) => s.loaded);
   const { isRouteAllowed } = useRouteGate();
+
+  // Live hospital: load the queue once for its badge (the queue screen keeps it fresh).
+  useEffect(() => {
+    if (live && !liveQueueLoaded && liveCan("queue.read")) void useLiveQueue.getState().load();
+  }, [live, liveQueueLoaded]);
 
   // drop nav items whose route isn't licensed; drop nested items with no allowed children; drop empty groups
   const nav = NAV.map((group) => ({
@@ -105,10 +115,11 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       .filter((item) => (item.children ? item.children.length > 0 : isRouteAllowed(item.to))),
   })).filter((group) => group.items.length > 0);
 
+  // Live: only the queue is connected, so lab and pharmacy show no demo counts.
   const badges = {
-    queue: queue.filter((q) => q.status === "Waiting" || q.status === "In Progress").length,
-    lab: labs.filter((l) => l.status === "Pending" || l.status === "Sample Collected").length,
-    rx: encounters.flatMap((e) => e.prescriptions).filter((r) => (PRESCRIPTION_PENDING_STATUSES as readonly string[]).includes(r.status)).length,
+    queue: (live ? liveQueue : queue).filter((q) => q.status === "Waiting" || q.status === "In Progress").length,
+    lab: live ? 0 : labs.filter((l) => l.status === "Pending" || l.status === "Sample Collected").length,
+    rx: live ? 0 : encounters.flatMap((e) => e.prescriptions).filter((r) => (PRESCRIPTION_PENDING_STATUSES as readonly string[]).includes(r.status)).length,
   };
 
   return (
@@ -150,7 +161,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       <div className="border-t border-mist-100 px-5 py-3 text-[11px] text-mist-400">
-        {tenant.name} · {tenant.state}, {tenant.country}
+        {tenant.name}{tenant.location ? ` · ${tenant.location}` : ""}
       </div>
     </aside>
   );

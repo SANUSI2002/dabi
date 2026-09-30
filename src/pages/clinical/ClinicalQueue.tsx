@@ -8,36 +8,53 @@ import { Field, Select, Textarea } from "@/components/ui/form";
 import { PatientPicker } from "@/components/ui/PatientPicker";
 import { PatientLink } from "@/components/ui/PatientLink";
 import { VitalsModal } from "@/components/clinical/VitalsModal";
-import { useEmr, queueWaitMinutes } from "@/store/useEmr";
+import { queueWaitMinutes } from "@/store/useEmr";
+import { useQueueSource } from "@/emr-live/sources";
+import { describeEmrError } from "@/emr-live/client";
+import type { QueueEntry, Station } from "@/data/types";
 import { STATIONS } from "@/data/catalog";
 import { ageFromDob } from "@/lib/format";
 
 export default function ClinicalQueue() {
   const nav = useNavigate();
-  const { queue, patientById, addToQueue, advanceQueue, callNext } = useEmr();
+  const source = useQueueSource();
+  const { queue } = source;
   const [tab, setTab] = useState<"All" | "Waiting" | "In Progress" | "Completed" | "Referred">("All");
   const [station, setStation] = useState<string>("All Stations");
   const [add, setAdd] = useState(false);
   const [vitalsFor, setVitalsFor] = useState<{ patientId: string; queueId: string } | null>(null);
   const [banner, setBanner] = useState("");
 
-  function handleCallNext() {
-    const stationFilter = station === "All Stations" ? undefined : (station as never);
-    const next = callNext(stationFilter);
-    if (!next) {
-      setBanner(`No patients are waiting${station === "All Stations" ? "" : ` at the ${station} station`}.`);
-    } else {
-      const patient = patientById(next.patientId);
-      setBanner(`Now serving ${patient ? `${patient.firstName} ${patient.lastName}` : "the next patient"} · ${next.station} · ${next.priority} priority`);
-      if (next.station === "Consultation") nav("/consultation");
-    }
+  function flash(message: string) {
+    setBanner(message);
     setTimeout(() => setBanner(""), 4000);
   }
+
+  async function run(action: () => Promise<void>) {
+    try {
+      await action();
+    } catch (cause) {
+      flash(describeEmrError(cause));
+    }
+  }
+
+  const handleCallNext = () => run(async () => {
+    const stationFilter = station === "All Stations" ? undefined : (station as Station);
+    const next = await source.callNext(stationFilter);
+    if (!next) {
+      flash(`No patients are waiting${station === "All Stations" ? "" : ` at the ${station} station`}.`);
+    } else {
+      const { entry, patient } = next;
+      flash(`Now serving ${patient ? `${patient.firstName} ${patient.lastName}` : "the next patient"} · ${entry.station} · ${entry.priority} priority`);
+      if (entry.station === "Consultation") nav("/consultation");
+    }
+  });
 
   const [pid, setPid] = useState<string | null>(null);
   const [pr, setPr] = useState("Normal");
   const [complaint, setComplaint] = useState("");
   const [toStation, setToStation] = useState<string>("Vital");
+  const [addError, setAddError] = useState("");
 
   const filtered = queue.filter(
     (q) =>
@@ -63,12 +80,18 @@ export default function ClinicalQueue() {
             <Button variant="ghost" onClick={handleCallNext} disabled={counts.Waiting === 0}>
               <PhoneCall size={15} /> Call next
             </Button>
-            <Button onClick={() => setAdd(true)}>
+            <Button onClick={() => { setAddError(""); setAdd(true); }}>
               <Plus size={15} /> Add to queue
             </Button>
           </>
         }
       />
+
+      {source.error && (
+        <p role="alert" className="mb-4 rounded-xl bg-action-50 px-4 py-2.5 text-sm font-medium text-action-800 ring-1 ring-action-200">
+          {source.error}
+        </p>
+      )}
 
       {banner && (
         <div role="status" className="mb-4 rounded-xl bg-brand-50 px-4 py-2.5 text-sm font-medium text-brand-700 ring-1 ring-brand-200">
@@ -100,7 +123,7 @@ export default function ClinicalQueue() {
           </EmptyRow>
         )}
         {filtered.map((q, i) => {
-          const p = patientById(q.patientId);
+          const p = source.patientOf(q);
           const wait = queueWaitMinutes(q);
           return (
             <Row key={q.id} index={i}>
@@ -131,7 +154,7 @@ export default function ClinicalQueue() {
                   )}
                   {q.status === "Waiting" && q.station !== "Vital" && (
                     <button
-                      onClick={() => advanceQueue(q.id, "In Progress")}
+                      onClick={() => { void run(() => source.start(q)); }}
                       className="btn-soft px-2.5 py-1 text-xs"
                     >
                       Start
@@ -164,10 +187,15 @@ export default function ClinicalQueue() {
             <Button
               disabled={!pid}
               onClick={() => {
-                if (pid) addToQueue(pid, toStation as never, pr as never, complaint);
-                setAdd(false);
-                setPid(null);
-                setComplaint("");
+                if (!pid) return;
+                setAddError("");
+                source.addToQueue(pid, toStation as Station, pr as QueueEntry["priority"], complaint)
+                  .then(() => {
+                    setAdd(false);
+                    setPid(null);
+                    setComplaint("");
+                  })
+                  .catch((cause) => setAddError(describeEmrError(cause)));
               }}
             >
               Add to Queue
@@ -176,6 +204,9 @@ export default function ClinicalQueue() {
         }
       >
         <div className="space-y-4">
+          {addError && (
+            <p role="alert" className="rounded-xl bg-action-50 px-4 py-3 text-sm font-medium text-action-800 ring-1 ring-action-200">{addError}</p>
+          )}
           <Field label="Patient">
             <PatientPicker value={pid} onChange={setPid} />
           </Field>

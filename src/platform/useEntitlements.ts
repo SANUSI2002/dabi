@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { persisted, writeTenantState } from "./persist";
 import { audit } from "@/store/useAudit";
 import { MODULES, PRODUCTS, ALWAYS_ON_ROUTES, moduleForRoute, submoduleForRoute, type ProductKey } from "./entitlements";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { isEmrRoute } from "@/emr-live/routes";
 
 export type OrgProfile = {
   id: string;
@@ -169,11 +171,13 @@ export function useRouteGate() {
   const accessMode = useEntitlements((s) => s.accessMode);
   const subscriptionStatus = useEntitlements((s) => s.subscriptionStatus);
   const licenseStatus = useEntitlements((s) => s.licenseStatus);
+  const live = useIsLiveEmr();
   // products/modules/submodules are in the deps implicitly via the closure
   void products; void modules; void submodules;
   const s = useEntitlements.getState();
   return {
-    isRouteAllowed: (path: string) => s.isRouteAllowed(path),
+    // A live hospital is licensed for the EMR product (verified by the backend): list its screens.
+    isRouteAllowed: (path: string) => (live ? isEmrRoute(path) : s.isRouteAllowed(path)),
     routeBlockReason: (path: string) => s.routeBlockReason(path),
     isModuleEnabled: (key: string) => s.isModuleEnabled(key),
     accessMode,

@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/primitives";
 import { Field, Input, Select, Grid, Textarea } from "@/components/ui/form";
-import { useEmr } from "@/store/useEmr";
+import { useVitalsSource } from "@/emr-live/sources";
+import { describeEmrError } from "@/emr-live/client";
 import { STATIONS } from "@/data/catalog";
 import type { QueueEntry, Station } from "@/data/types";
 
@@ -17,10 +18,12 @@ export function VitalsModal({
   open: boolean;
   onClose: () => void;
 }) {
-  const { patientById, recordVitals, advanceQueue, setQueuePriority } = useEmr();
-  const queueEntry = useEmr((state) => state.queue.find((entry) => entry.id === queueId));
-  const p = patientById(patientId);
+  const source = useVitalsSource(patientId, queueId);
+  const queueEntry = source.entry;
+  const p = source.patient;
   const [v, setV] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const [route, setRoute] = useState<Station | undefined>();
   const [priority, setPriority] = useState<QueueEntry["priority"] | undefined>();
   const selectedRoute = route ?? queueEntry?.station ?? "Consultation";
@@ -32,27 +35,32 @@ export function VitalsModal({
     setV({});
     setRoute(undefined);
     setPriority(undefined);
+    setError("");
     onClose();
   }
 
-  function save() {
-    recordVitals(patientId, {
-      bp: v.bp || undefined,
-      notes: v.notes?.trim() || undefined,
-      temp: num("temp"),
-      pulse: num("pulse"),
-      resp: num("resp"),
-      spo2: num("spo2"),
-      weight: num("weight"),
-      height: num("height"),
-      muac: num("muac"),
-      glucose: num("glucose"),
-    });
-    if (queueId) {
-      setQueuePriority(queueId, selectedPriority);
-      advanceQueue(queueId, "Waiting", selectedRoute);
+  async function save() {
+    setSaving(true);
+    setError("");
+    try {
+      await source.save({
+        bp: v.bp || undefined,
+        notes: v.notes?.trim() || undefined,
+        temp: num("temp"),
+        pulse: num("pulse"),
+        resp: num("resp"),
+        spo2: num("spo2"),
+        weight: num("weight"),
+        height: num("height"),
+        muac: num("muac"),
+        glucose: num("glucose"),
+      }, selectedRoute, selectedPriority);
+      close();
+    } catch (cause) {
+      setError(describeEmrError(cause));
+    } finally {
+      setSaving(false);
     }
-    close();
   }
 
   return (
@@ -64,11 +72,14 @@ export function VitalsModal({
       footer={
         <>
           <Button variant="ghost" onClick={close}>Cancel</Button>
-          <Button onClick={save}>Save {queueId ? "& Route" : "Vitals"}</Button>
+          <Button disabled={saving} onClick={() => { void save(); }}>{saving ? "Saving…" : `Save ${queueId ? "& Route" : "Vitals"}`}</Button>
         </>
       }
     >
       <div className="space-y-4">
+        {error && (
+          <p role="alert" className="rounded-xl bg-action-50 px-4 py-3 text-sm font-medium text-action-800 ring-1 ring-action-200">{error}</p>
+        )}
         {p && (
           <div className="rounded-xl bg-mist-50 px-3 py-2 text-xs text-mist-500">
             {p.mrn} · {p.sex} · {p.category}

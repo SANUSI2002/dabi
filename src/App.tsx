@@ -7,6 +7,7 @@ import { AppLoadingScreen } from "@/components/layout/AppLoadingScreen";
 import { hasPharmacyPortalAccess } from "@/pharmacy/access";
 import { deploymentSurface, otherSurfaceUrl } from "@/deployment/surface";
 import { apiConfigured } from "@/config/runtime";
+import { LiveWorkspaceGate } from "@/emr-live/shell";
 
 const AppShell = lazy(() => import("@/components/layout/AppShell").then((m) => ({ default: m.AppShell })));
 const WorkforceLayout = lazy(() => import("@/components/layout/WorkforceLayout").then((m) => ({ default: m.WorkforceLayout })));
@@ -198,7 +199,8 @@ function WorkspaceGate() {
   const { authed, identity, activeMembership } = useAuth();
   const activeTenant = useTenant((state) => state.tenant.id);
   const setup = useTenantSetup((state) => state.records.find((item) => item.organizationId === activeTenant));
-  if (apiConfigured) return <Navigate to="/identity/account" replace />;
+  // A real Sabi sign-in works in its verified hospital's live EMR (see src/emr-live).
+  if (apiConfigured) return <LiveWorkspaceGate><AppShell /></LiveWorkspaceGate>;
   if (!authed || !identity) return <Navigate to="/login" replace />;
   if (identity.kind === "platform") return <Navigate to="/command-center" replace />;
   if (identity.kind === "patient") return <Navigate to="/patient" replace />;

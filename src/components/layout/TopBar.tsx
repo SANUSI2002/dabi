@@ -4,7 +4,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, Bell, RefreshCw, LogOut, ChevronDown, Menu, MonitorSmartphone, Building2 } from "lucide-react";
 import { useAuth } from "@/store/useAuth";
 import { initials, shortDate } from "@/lib/format";
-import { useTenant } from "@/store/useTenant";
+import { useShellTenant } from "@/emr-live/shellData";
+import { useIsLiveEmr, useLiveEmr } from "@/emr-live/session";
+import { useLivePatientSearch } from "@/emr-live/registry";
 import { useEmr } from "@/store/useEmr";
 import { NAV } from "@/data/nav";
 import { useRouteGate } from "@/platform/useEntitlements";
@@ -14,8 +16,10 @@ type SearchResult = { label: string; detail: string; to: string };
 
 export function TopBar({ onMenu }: { onMenu?: () => void }) {
   const navigate = useNavigate();
-  const { user, signOut, identity, memberships } = useAuth();
-  const tenant = useTenant((s) => s.tenant);
+  const demoAuth = useAuth();
+  const live = useIsLiveEmr();
+  const liveUser = useLiveEmr((s) => s.user);
+  const tenant = useShellTenant();
   const patients = useEmr((s) => s.patients);
   const alertsForUser = useNotifications((s) => s.alerts);
   const { isRouteAllowed } = useRouteGate();
@@ -29,7 +33,17 @@ export function TopBar({ onMenu }: { onMenu?: () => void }) {
   const notificationsRef = useRef<HTMLDivElement>(null);
 
   const query = search.trim().toLowerCase();
-  const patientResults: SearchResult[] = query.length < 2 ? [] : patients
+  const livePatients = useLivePatientSearch(search.trim(), live && query.length >= 2, 5);
+  // Live: the signed-in Sabi ID and its verified hospital; demo: the local demo identity.
+  const user = live && liveUser ? { name: liveUser.name, role: liveUser.role, systemRole: liveUser.role } : demoAuth.user;
+  const email = live ? liveUser?.email : demoAuth.identity?.email;
+  const canSwitch = live || demoAuth.memberships.length > 1;
+  const signOut = live
+    ? async () => { await useLiveEmr.getState().signOut(); navigate("/login", { replace: true }); }
+    : demoAuth.signOut;
+  const patientResults: SearchResult[] = query.length < 2 ? [] : live
+    ? livePatients.map((patient) => ({ label: `${patient.firstName} ${patient.lastName}`, detail: patient.mrn, to: `/patients/${patient.id}` }))
+    : patients
     .filter((patient) => isRouteAllowed(`/patients/${patient.id}`))
     .filter((patient) => [patient.firstName, patient.lastName, patient.mrn, `${patient.firstName} ${patient.lastName}`]
       .some((value) => value.toLowerCase().includes(query)))
@@ -105,7 +119,7 @@ export function TopBar({ onMenu }: { onMenu?: () => void }) {
           <RefreshCw size={17} />
         </button>
         <div className="relative" ref={notificationsRef}>
-          <button type="button" onClick={() => { setNotifications(alertsForUser()); setNotificationsOpen((open) => !open); }} className="rounded-lg p-2 text-mist-500 hover:bg-mist-100" aria-label="Notifications" aria-expanded={notificationsOpen}><Bell size={17} /></button>
+          <button type="button" onClick={() => { setNotifications(live ? [] : alertsForUser()); setNotificationsOpen((open) => !open); }} className="rounded-lg p-2 text-mist-500 hover:bg-mist-100" aria-label="Notifications" aria-expanded={notificationsOpen}><Bell size={17} /></button>
           {notificationsOpen && <div className="absolute right-0 top-full z-50 mt-2 w-80 max-w-[90vw] rounded-xl border border-mist-200 bg-white p-3 shadow-pop">
             <p className="mb-2 text-sm font-bold text-mist-900">In-app alerts</p>
             {notifications.length ? <div className="max-h-72 space-y-1 overflow-y-auto">{notifications.slice(0, 10).map((item) => <Link key={item.id} to={item.href} onClick={() => setNotificationsOpen(false)} className="block rounded-lg px-2 py-2 hover:bg-mist-50"><span className="block text-sm font-semibold text-mist-800">{item.title}</span><span className="block text-xs text-mist-500">{item.detail}</span></Link>)}</div> : <p className="text-sm text-mist-500">No current in-app alerts.</p>}
@@ -139,14 +153,14 @@ export function TopBar({ onMenu }: { onMenu?: () => void }) {
               >
                 <div className="border-b border-mist-100 px-3 py-2 text-xs text-mist-400">
                   Signed in with Sabi ID
-                  <span className="mt-0.5 block truncate font-medium text-mist-700">{identity?.email}</span>
+                  <span className="mt-0.5 block truncate font-medium text-mist-700">{email}</span>
                   <span className="mt-0.5 block text-[11px] text-mist-400">{user.systemRole}</span>
                   <span className="mt-1 block truncate text-[11px] font-semibold text-brand-700">{tenant.name} · {tenant.tenantId}</span>
                 </div>
-                <Link to="/account/sessions" onClick={() => setMenu(false)} className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-mist-600 hover:bg-mist-50"><MonitorSmartphone size={15}/> Sessions & devices</Link>
-                {memberships.length > 1 && <Link to="/choose-organization" onClick={() => setMenu(false)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-mist-600 hover:bg-mist-50"><Building2 size={15}/> Switch organization</Link>}
+                <Link to={live ? "/identity/account" : "/account/sessions"} onClick={() => setMenu(false)} className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-mist-600 hover:bg-mist-50"><MonitorSmartphone size={15}/> Sessions & devices</Link>
+                {canSwitch && <Link to={live ? "/identity/account" : "/choose-organization"} onClick={() => setMenu(false)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-mist-600 hover:bg-mist-50"><Building2 size={15}/> Switch organization</Link>}
                 <button
-                  onClick={signOut}
+                  onClick={() => { void signOut(); }}
                   className="mt-1 flex w-full items-center gap-2 rounded-lg border-t border-mist-100 px-3 py-2 text-sm font-medium text-action-600 hover:bg-action-50"
                 >
                   <LogOut size={15} /> Sign out
