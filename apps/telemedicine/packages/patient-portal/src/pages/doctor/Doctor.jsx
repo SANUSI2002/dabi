@@ -23,6 +23,7 @@ import { useApiData } from "../../api/useApiData";
 import { listUiDoctors } from "../../api/doctorsApi";
 import { BookingModal } from "./components/BookingModal";
 import { DoctorProfileModal } from "./components/DoctorProfileModal";
+import { SwipeRow } from "../../ui/SwipeRow";
 
 function SpecialtyGrid({ activeSpecialty, onSelect, doctors }) {
     return (
@@ -34,7 +35,7 @@ function SpecialtyGrid({ activeSpecialty, onSelect, doctors }) {
                 </div>
             </div>
 
-            <div className="sabi-doctor-specialty-grid">
+            <SwipeRow className="sabi-doctor-specialty-grid" label="Featured specialties">
                 {SPECIALTIES.map(({ label, icon: Icon }) => (
                     <button
                         key={label}
@@ -53,7 +54,7 @@ function SpecialtyGrid({ activeSpecialty, onSelect, doctors }) {
                         <small>{doctors.filter((d) => inSpecialty(d, label)).length} Doctors</small>
                     </button>
                 ))}
-            </div>
+            </SwipeRow>
         </section>
     );
 }

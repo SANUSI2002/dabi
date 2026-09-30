@@ -995,8 +995,10 @@
 }
 
 @media (max-width: 620px) {
-    .sabi-storefront-categories { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .sabi-storefront-pharmacies { grid-template-columns: 1fr; }
+    .sabi-storefront-categories.sabi-mobile-swipe,
+    .sabi-storefront-pharmacies.sabi-mobile-swipe { display: flex; gap: 12px; }
+    .sabi-storefront-categories.sabi-mobile-swipe > * { flex: 0 0 min(38vw, 155px); }
+    .sabi-storefront-pharmacies.sabi-mobile-swipe > * { flex: 0 0 min(82vw, 320px); }
     .sabi-store-products { grid-template-columns: 1fr; }
 }
 

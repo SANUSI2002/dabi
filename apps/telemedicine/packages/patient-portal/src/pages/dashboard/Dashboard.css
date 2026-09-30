@@ -971,6 +971,11 @@ display: block;
 .sabi-dashboard-home .sabi-quick-card { padding: 15px; border-radius: 14px; }
 .sabi-dashboard-home .sabi-score-card { min-height: auto; border-radius: 18px; padding: 22px 18px 18px; }
 
+@media (max-width: 620px) {
+  .sabi-dashboard-home .sabi-quick-grid.sabi-mobile-swipe { display: flex; gap: 12px; }
+  .sabi-dashboard-home .sabi-quick-grid.sabi-mobile-swipe > * { flex: 0 0 min(72vw, 230px); }
+}
+
 /* Tablet: single-column dashboard grid */
 @media (max-width: 1080px) {
   .sabi-dashboard-home .sabi-grid { grid-template-columns: 1fr; }
@@ -992,13 +997,11 @@ display: block;
   .sabi-dashboard-home .sabi-main { padding: 12px; }
   .sabi-dashboard-home .sabi-hero { padding: 20px; border-radius: 16px; min-height: auto; }
   .sabi-vitals-grid { grid-template-columns: 1fr; }
-  .sabi-quick-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
 }
 
 /* Small mobile: single-column everything */
 @media (max-width: 400px) {
   .sabi-dashboard-home .sabi-hero { padding: 16px; }
   .sabi-hero-copy h2 { font-size: 1.2rem; }
-  .sabi-quick-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
   .sabi-vitals-grid { grid-template-columns: 1fr; }
 }

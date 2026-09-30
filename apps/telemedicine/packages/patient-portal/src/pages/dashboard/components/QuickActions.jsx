@@ -4,6 +4,7 @@ import { Card } from "design-system";
 import { SectionTitle } from "../share";
 import { QUICK_ACTIONS } from "../data";
 import { EmergencyCardModal } from "./EmergencyCardModal";
+import { SwipeRow } from "../../../ui/SwipeRow";
 
 export function QuickActions() {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ export function QuickActions() {
   return (
     <section>
       <SectionTitle>Quick Actions</SectionTitle>
-      <div className="sabi-quick-grid">
+      <SwipeRow className="sabi-quick-grid" label="Quick actions">
         {QUICK_ACTIONS.map((a) => (
           <Card
             key={a.title}
@@ -37,7 +38,7 @@ export function QuickActions() {
             <p className="sabi-quick-sub">{a.subtitle}</p>
           </Card>
         ))}
-      </div>
+      </SwipeRow>
 
       {showEmergency && <EmergencyCardModal onClose={() => setShowEmergency(false)} />}
     </section>

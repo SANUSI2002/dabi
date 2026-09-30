@@ -1053,6 +1053,11 @@
     font-weight: 800;
     letter-spacing: .04em;
 }
+
+@media (max-width: 620px) {
+    .sabi-doctor-specialty-grid.sabi-mobile-swipe { display: flex; gap: 12px; }
+    .sabi-doctor-specialty-grid.sabi-mobile-swipe > * { flex: 0 0 min(68vw, 220px); }
+}
 .sabi-booking-doctor .sabi-booking-initials { width: 56px; height: 56px; flex-shrink: 0; border-radius: var(--sabi-radius-md); font-size: 1.1rem; }
 .sabi-profile-hero .sabi-profile-initials { width: 108px; height: 108px; flex-shrink: 0; border-radius: var(--sabi-radius-lg); font-size: 2rem; box-shadow: 0 8px 20px rgba(0, 0, 0, .25); }
 @media (max-width: 640px) { .sabi-profile-hero .sabi-profile-initials { width: 76px; height: 76px; } }

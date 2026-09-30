@@ -1139,6 +1139,26 @@
   .sabi-main { padding: 12px; }
 }
 
+/* Repeated discovery cards swipe on phones; forms and records keep their stacked layouts. */
+.sabi-swipe-controls { display: none; }
+@media (max-width: 620px) {
+  .sabi-mobile-swipe {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding-bottom: 8px;
+  }
+  .sabi-mobile-swipe > * { flex-shrink: 0; scroll-snap-align: start; }
+  .sabi-swipe-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 6px; color: var(--sabi-text-secondary); font-size: .75rem; font-weight: 700; }
+  .sabi-swipe-controls > div { display: flex; gap: 8px; }
+  .sabi-swipe-controls button { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--sabi-border); border-radius: 50%; background: #fff; color: var(--sabi-primary-dark); cursor: pointer; }
+  .sabi-swipe-controls button:disabled { opacity: .4; cursor: not-allowed; }
+  .sabi-swipe-controls button:focus-visible { outline: 2px solid var(--sabi-primary); outline-offset: 2px; }
+}
+
 /* ---- Live (backend-connected) page states ---- */
 .sabi-live-state {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;

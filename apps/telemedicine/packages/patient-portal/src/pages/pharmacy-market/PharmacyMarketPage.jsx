@@ -26,6 +26,7 @@ import { useZoom } from "../../hooks/useZoom";
 import { Sidebar, Topbar } from "../dashboard/components";
 import { QUICK_ACTIONS, CATEGORIES, getMarketplacePharmacies } from "./marketplaceData";
 import { openExternalDirections } from "../../utils/mapUtils";
+import { SwipeRow } from "../../ui/SwipeRow";
 
 const ICONS = {
     UploadCloud, RotateCw, Siren, History,
@@ -120,7 +121,7 @@ export function PharmacyMarketPage() {
                         <button type="button" onClick={() => notify("Showing all categories")}>View All →</button>
                     </div>
 
-                    <div className="sabi-storefront-categories">
+                    <SwipeRow className="sabi-storefront-categories" label="Pharmacy categories">
                         {CATEGORIES.map((cat) => {
                             const Icon = ICONS[cat.icon] || Pill;
                             const active = activeCategory === cat.key;
@@ -141,7 +142,7 @@ export function PharmacyMarketPage() {
                                 </button>
                             );
                         })}
-                    </div>
+                    </SwipeRow>
                 </section>
 
                 <section className="sabi-storefront-section" id="storefront-pharmacies">
@@ -149,7 +150,7 @@ export function PharmacyMarketPage() {
                         <h2>Featured Pharmacies</h2>
                     </div>
 
-                    <div className="sabi-storefront-pharmacies">
+                    <SwipeRow className="sabi-storefront-pharmacies" label="Featured pharmacies">
                         {pharmacies.map((pharmacy) => (
                             <article key={pharmacy.id} className="sabi-storefront-pharmacy-card sabi-card">
                                 <div className="sabi-storefront-pharmacy-photo">
@@ -176,7 +177,7 @@ export function PharmacyMarketPage() {
                                 </div>
                             </article>
                         ))}
-                    </div>
+                    </SwipeRow>
                 </section>
 
                 <section className="sabi-storefront-promos">
