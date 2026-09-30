@@ -9,6 +9,7 @@ import { useIsLiveEmr, liveCan } from "@/emr-live/session";
 import { useShellTenant } from "@/emr-live/shellData";
 import { useLiveQueue } from "@/emr-live/queue";
 import { useLiveLab } from "@/emr-live/lab";
+import { useLivePharmacy } from "@/emr-live/pharmacy";
 import { cn } from "@/lib/cn";
 import { useRouteGate } from "@/platform/useEntitlements";
 
@@ -100,6 +101,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const liveQueue = useLiveQueue((s) => s.entries);
   const liveQueueLoaded = useLiveQueue((s) => s.loaded);
   const liveLabTests = useLiveLab((s) => s.tests);
+  const liveRxLines = useLivePharmacy((s) => s.lines);
   const { isRouteAllowed } = useRouteGate();
 
   // Live hospital: load the queue once for its badge (the queue screen keeps it fresh).
@@ -117,11 +119,11 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       .filter((item) => (item.children ? item.children.length > 0 : isRouteAllowed(item.to))),
   })).filter((group) => group.items.length > 0);
 
-  // Live: queue and lab counts come from the hospital (the lab once its screen has loaded); pharmacy is not connected yet.
+  // Live: counts come from the hospital (lab and pharmacy once their screens have loaded).
   const badges = {
     queue: (live ? liveQueue : queue).filter((q) => q.status === "Waiting" || q.status === "In Progress").length,
     lab: (live ? liveLabTests : labs).filter((l) => l.status === "Pending" || l.status === "Sample Collected").length,
-    rx: live ? 0 : encounters.flatMap((e) => e.prescriptions).filter((r) => (PRESCRIPTION_PENDING_STATUSES as readonly string[]).includes(r.status)).length,
+    rx: (live ? liveRxLines : encounters.flatMap((e) => e.prescriptions)).filter((r) => (PRESCRIPTION_PENDING_STATUSES as readonly string[]).includes(r.status)).length,
   };
 
   return (

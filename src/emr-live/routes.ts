@@ -9,6 +9,8 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string> = {
   // The consultation room is for clinicians who diagnose (doctors), not every queue user.
   "/consultation": "diagnosis.record",
   "/laboratory": "lab.order.read",
+  // The pharmacy queue is for pharmacy staff (the backend allows reviewers and dispensers).
+  "/pharmacy": "prescription.dispense",
 };
 
 export type LiveRouteState = "connected" | "no-permission" | "not-connected";

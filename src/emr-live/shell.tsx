@@ -30,7 +30,7 @@ export function LiveRouteBoundary({ pathname, children }: { pathname: string; ch
   if (state === "connected") return <>{children}</>;
 
   const connected = Object.keys(LIVE_CONNECTED_ROUTES).filter((path) => liveRouteState(path, permissions) === "connected");
-  const labels: Record<string, string> = { "/registration": "Registration", "/queue": "Clinical Queue", "/consultation": "Consultation", "/laboratory": "Laboratory" };
+  const labels: Record<string, string> = { "/registration": "Registration", "/queue": "Clinical Queue", "/consultation": "Consultation", "/laboratory": "Laboratory", "/pharmacy": "Pharmacy" };
   const Icon = state === "no-permission" ? Lock : PlugZap;
   return (
     <div className="grid place-items-center py-24">
