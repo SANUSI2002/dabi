@@ -11,7 +11,7 @@ export type LivePlatformOrganization = { id: string; type: string; name: string;
 export type LiveInvitation = { id: string; email: string; scope: 'PLATFORM' | 'ORGANIZATION'; roleCode: string; organizationId: string | null; organizationName: string | null; expiresAt: string; createdAt: string; status: 'PENDING' | 'ACCEPTED' | 'EXPIRED' | 'REVOKED'; existingAccount?: boolean };
 
 /** A failed API call: HTTP status, the service's error code, and per-field problems when it sends them. */
-export type LiveApiError = Error & { status: number; code?: string; details?: Array<{ field: string; message: string }> };
+export type LiveApiError = Error & { status: number; code?: string; details?: Array<{ field?: string; message: string }> };
 
 let accessToken: string | null = null;
 let identity: LiveIdentity | null = null;

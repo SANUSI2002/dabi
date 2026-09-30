@@ -20,7 +20,8 @@ const FIELD_LABELS: Record<string, string> = {
 export function describeEmrError(cause: unknown): string {
   const error = cause as Partial<LiveApiError>;
   const detail = error.details?.[0];
-  if (detail) {
+  if (detail && !detail.field) return detail.message;
+  if (detail?.field) {
     const field = detail.field.replace(/^(body|query)\./, "");
     const label = FIELD_LABELS[field.split(".")[0]] ?? field;
     return `${label}: ${detail.message}`;

@@ -80,6 +80,9 @@ export type PrescriptionStatus =
 export type Prescription = {
   id: string;
   drug: string;
+  /** live hospitals: the formulary product chosen, and the dose unit it is prescribed in */
+  drugCode?: string;
+  doseUnit?: string;
   dose: string;
   frequency: string;
   duration: string;

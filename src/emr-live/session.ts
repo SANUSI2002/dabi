@@ -11,7 +11,7 @@ import { liveSelectEmrOrganization, liveSignOut, restoreLiveIdentity, type LiveE
 
 const ORGANIZATION_KEY = "sabi.liveEmr.organizationId";
 
-export type LiveEmrUser = { name: string; email: string; role: string };
+export type LiveEmrUser = { id: string; name: string; email: string; role: string };
 type Status = "idle" | "loading" | "ready" | "error";
 
 type LiveEmrState = {
@@ -57,7 +57,7 @@ export const useLiveEmr = create<LiveEmrState>((set, get) => ({
       set({
         status: "ready",
         access,
-        user: { name: identity.user.fullName?.trim() || identity.user.email, email: identity.user.email, role: roleLabel(access.roles) },
+        user: { id: identity.user.id, name: identity.user.fullName?.trim() || identity.user.email, email: identity.user.email, role: roleLabel(access.roles) },
       });
       return access;
     } catch (cause) {

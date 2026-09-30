@@ -6,6 +6,8 @@ import { moduleForRoute } from "@/platform/entitlements";
 export const LIVE_CONNECTED_ROUTES: Record<string, string> = {
   "/registration": "patient.read",
   "/queue": "queue.read",
+  // The consultation room is for clinicians who diagnose (doctors), not every queue user.
+  "/consultation": "diagnosis.record",
 };
 
 export type LiveRouteState = "connected" | "no-permission" | "not-connected";

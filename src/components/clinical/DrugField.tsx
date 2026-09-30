@@ -1,24 +1,34 @@
 import { useState } from "react";
 import { useCatalog } from "@/store/useCatalog";
 import { cn } from "@/lib/cn";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { useLiveFormulary } from "@/emr-live/consultation";
 
-/** Drug autocomplete backed by the live catalog, showing on-hand stock. */
+/**
+ * Drug autocomplete showing on-hand stock: the demo catalog, or — for a live hospital — its
+ * formulary. Picking a live product also reports its code and dose unit; typing clears them.
+ */
 export function DrugField({
   value,
   onChange,
   className,
 }: {
   value: string;
-  onChange: (name: string) => void;
+  onChange: (name: string, product?: { code: string; doseUnit: string }) => void;
   className?: string;
 }) {
   const drugs = useCatalog((s) => s.drugs).filter((d) => d.active !== false);
+  const live = useIsLiveEmr();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
+  const formulary = useLiveFormulary(open ? q : value, live && open);
 
-  const matches = drugs
-    .filter((d) => `${d.name} ${d.strength}`.toLowerCase().includes((open ? q : value).toLowerCase()))
-    .slice(0, 6);
+  const matches = live
+    ? formulary.map((p) => ({ id: p.code, name: p.genericName, strength: p.strength, stock: p.inStock, reorder: 0, product: { code: p.code, doseUnit: p.doseUnit } }))
+    : drugs
+      .filter((d) => `${d.name} ${d.strength}`.toLowerCase().includes((open ? q : value).toLowerCase()))
+      .slice(0, 6)
+      .map((d) => ({ ...d, product: undefined }));
 
   return (
     <div className={cn("relative", className)}>
@@ -35,7 +45,7 @@ export function DrugField({
           {matches.map((d) => (
             <button
               key={d.id}
-              onMouseDown={() => { onChange(`${d.name} ${d.strength}`.trim()); setOpen(false); }}
+              onMouseDown={() => { onChange(`${d.name} ${d.strength}`.trim(), d.product); setOpen(false); }}
               className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-brand-50"
             >
               <span className="font-medium text-mist-800">{d.name} <span className="text-mist-400">{d.strength}</span></span>

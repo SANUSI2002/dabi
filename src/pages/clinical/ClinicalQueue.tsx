@@ -46,7 +46,7 @@ export default function ClinicalQueue() {
     } else {
       const { entry, patient } = next;
       flash(`Now serving ${patient ? `${patient.firstName} ${patient.lastName}` : "the next patient"} · ${entry.station} · ${entry.priority} priority`);
-      if (entry.station === "Consultation") nav("/consultation");
+      if (entry.station === "Consultation") nav("/consultation", { state: { queueId: entry.id } });
     }
   });
 
@@ -162,7 +162,7 @@ export default function ClinicalQueue() {
                   )}
                   {q.status === "In Progress" && q.station === "Consultation" && (
                     <button
-                      onClick={() => nav("/consultation")}
+                      onClick={() => nav("/consultation", { state: { queueId: q.id } })}
                       className="btn-primary px-2.5 py-1 text-xs"
                     >
                       <ArrowRightCircle size={13} /> Continue

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Trash2, FlaskConical, Pill, FileSignature, Save, BedDouble, ClipboardList, HeartPulse, ExternalLink } from "lucide-react";
 import { PageHeader, Button, Badge, SectionNote } from "@/components/ui/primitives";
@@ -23,7 +23,13 @@ import { useIdentity } from "@/store/useIdentity";
 import { useUnsavedGuard, confirmIfDirty } from "@/lib/useUnsavedGuard";
 import { ageFromDob, dateTime, timeAgo } from "@/lib/format";
 import { EXAMINATION_SYSTEMS, type PhysicalExaminationSystem } from "@/data/wardRound";
-import type { Prescription, Vitals } from "@/data/types";
+import type { Prescription, Sex, Vitals } from "@/data/types";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { useLiveConsultation, useLiveWardBeds, type LiveDraft } from "@/emr-live/consultation";
+import { describeEmrError } from "@/emr-live/client";
+import type { LiveQueueEntry } from "@/emr-live/mappers";
+
+const SEX_LABEL: Record<Sex, string> = { M: "Male", F: "Female", Other: "Other", Unknown: "Unknown" };
 
 const CONSULTATION_EXAM_SYSTEMS = EXAMINATION_SYSTEMS.filter((s) => s.key !== "genitourinary");
 
@@ -39,7 +45,7 @@ function CurrentVitalsPanel({ vitals, onViewTrend }: { vitals: Vitals | undefine
     ["Resp. rate", vitals?.resp && `${vitals.resp} /min`],
     ["Temperature", vitals?.temp && `${vitals.temp}°C`],
     ["SpO₂", vitals?.spo2 && `${vitals.spo2}%`],
-    ["Glucose", vitals?.glucose && `${vitals.glucose} mg/dL`],
+    ["Glucose", vitals?.glucose && `${vitals.glucose} mmol/L`],
     ["Pain score", vitals?.painScore !== undefined ? `${vitals.painScore}/10` : undefined],
     ["Weight", vitals?.weight && `${vitals.weight} kg`],
     ["BMI", bmi && bmi.toFixed(1)],
@@ -96,11 +102,12 @@ export default function Consultation() {
     (staff) => staff.status === "Active" && ["Medical Officer", "Nurse"].includes(staff.role),
   );
 
-  const consultQueue = queue.filter((entry) => ["Waiting", "In Progress"].includes(entry.status));
-  const [activeQueueId, setActiveQueueId] = useState<string | null>(consultQueue[0]?.id ?? null);
-  const entry = queue.find((item) => item.id === activeQueueId);
-  const patient = patientById(entry?.patientId);
-  const vitals = latestVitals(entry?.patientId);
+  // A live hospital works on its own consultation queue and visit records (see src/emr-live).
+  const live = useIsLiveEmr();
+  const demoConsultQueue = queue.filter((entry) => ["Waiting", "In Progress"].includes(entry.status));
+  // Opened from the queue ("Call next" / "Continue"): start on that patient.
+  const openedFor = (useLocation().state as { queueId?: string } | null)?.queueId;
+  const [activeQueueId, setActiveQueueId] = useState<string | null>(openedFor ?? (live ? null : demoConsultQueue[0]?.id ?? null));
 
   const [provider, setProvider] = useState(clinicians[0]?.name ?? currentUser);
   const [visitType, setVisitType] = useState("General consultation");
@@ -123,10 +130,33 @@ export default function Consultation() {
   const [finalizing, setFinalizing] = useState(false);
   const [examSystems, setExamSystems] = useState<PhysicalExaminationSystem[]>(emptyExamSystems());
   const [trendOpen, setTrendOpen] = useState(false);
+  const [actionError, setActionError] = useState("");
 
-  const vitalReadings: VitalReading[] = (emr.vitals[patient?.id ?? ""] ?? []).map((v) => ({
+  // Live: reopen the clinician's draft note (and the visit's type and indicators) for the chosen visit.
+  function applyLiveDraft(draft: LiveDraft) {
+    setSoap({ s: draft.subjective, o: draft.objective, a: draft.assessment, p: draft.plan });
+    setExamSystems(emptyExamSystems().map((system) => draft.examination.find((saved) => saved.system === system.system) ?? system));
+    setFollowUp(draft.followUp);
+    setInstructions(draft.patientInstructions);
+    if (draft.visitType) setVisitType(draft.visitType);
+    setNhmis(Object.fromEntries(draft.nhmisIndicators.map((indicator) => [indicator, true])));
+  }
+
+  const liveRoom = useLiveConsultation(activeQueueId, live, applyLiveDraft);
+  const consultQueue = live ? liveRoom.queue : demoConsultQueue;
+  const entry = live ? liveRoom.entry : queue.find((item) => item.id === activeQueueId);
+  const patientOf = (queueEntry: typeof entry) => (live ? (queueEntry as LiveQueueEntry | undefined)?.patient : patientById(queueEntry?.patientId));
+  const patient = patientOf(entry);
+  const vitals = live ? liveRoom.vitals.at(-1) : latestVitals(entry?.patientId);
+  const allergyText = live ? liveRoom.allergies : patient?.allergies && patient.allergies !== "NKA" ? patient.allergies : "";
+
+  const vitalReadings: VitalReading[] = live ? liveRoom.vitalReadings : (emr.vitals[patient?.id ?? ""] ?? []).map((v) => ({
     at: v.takenAt, by: v.takenBy, bp: v.bp, temp: v.temp, pulse: v.pulse, resp: v.resp, spo2: v.spo2, glucose: v.glucose, painScore: v.painScore,
   }));
+  // Lab panels: the demo catalog's test names, or the live hospital's tests grouped by lab section.
+  const labPanels: Record<string, { key: string; label: string }[]> = live
+    ? liveRoom.labPanels
+    : Object.fromEntries(Object.entries(LAB_PANELS).map(([panel, tests]) => [panel, tests.map((test) => ({ key: test, label: test }))]));
 
   const dirty = useMemo(
     () =>
@@ -150,6 +180,7 @@ export default function Consultation() {
     setTemplateKey("");
     setCarePlan({ open: false, title: "", category: "Chronic disease", goal: "" });
     setExamSystems(emptyExamSystems());
+    setActionError("");
   }
 
   function switchPatient(queueId: string) {
@@ -175,7 +206,10 @@ export default function Consultation() {
       a: current.a || template.soap.a,
       p: current.p || template.soap.p,
     }));
-    setLabs((current) => Array.from(new Set([...current, ...template.suggestedLabs.flatMap((panel) => LAB_PANELS[panel] ?? [])])));
+    // Live catalogs name tests their own way: suggested tests are matched by name, unmatched ones skipped.
+    const byName = new Map(Object.values(labPanels).flat().map((test) => [test.label.toLowerCase(), test.key]));
+    const suggested = template.suggestedLabs.flatMap((panel) => LAB_PANELS[panel] ?? []);
+    setLabs((current) => Array.from(new Set([...current, ...suggested.flatMap((name) => (live ? byName.get(name.toLowerCase()) ?? [] : [name]))])));
   }
 
   function addPrescription() {
@@ -189,13 +223,62 @@ export default function Consultation() {
   const occupiedBedLabels = new Set(
     emr.admissions.filter((admission) => admission.status === "Active").map((admission) => `${admission.ward}|${admission.bed}`),
   );
-  const admitWard = wards.find((ward) => ward.id === admitWardId);
-  const admitBeds = beds.filter(
-    (bed) => bed.wardId === admitWardId && bed.active && !occupiedBedLabels.has(`${admitWard?.name}|${bed.label}`),
-  );
+  // Wards and free beds: the demo ward store, or the live hospital's wards with their available beds.
+  const wardOptions = live
+    ? liveRoom.wards.map((ward) => ({ value: ward.id, label: `${ward.name} (${ward.beds.AVAILABLE} free)`, name: ward.name }))
+    : wards.map((ward) => ({ value: ward.id, label: `${ward.name} (${ward.type})`, name: ward.name }));
+  // Until a live ward is picked, the first of the hospital's wards is selected.
+  const selectedWardId = live && !wardOptions.some((ward) => ward.value === admitWardId) ? wardOptions[0]?.value ?? "" : admitWardId;
+  const admitWard = wardOptions.find((ward) => ward.value === selectedWardId);
+  const liveBeds = useLiveWardBeds(selectedWardId, live && admitOpen);
+  const admitBeds = live
+    ? liveBeds.map((bed) => ({ id: bed.id, label: bed.code, isVip: false }))
+    : beds.filter((bed) => bed.wardId === selectedWardId && bed.active && !occupiedBedLabels.has(`${admitWard?.name}|${bed.label}`));
+
+  async function admitLive(bedId: string) {
+    const bed = admitBeds.find((item) => item.id === bedId);
+    try {
+      await liveRoom.admit(bedId, diagnoses[0]?.name ?? soap.a ?? "For observation");
+      setAdmitOpen(false);
+      resetEncounter();
+      setActiveQueueId(null);
+      setToast(`Admitted to ${admitWard?.name ?? "the ward"} · ${bed?.label ?? ""}`);
+      setTimeout(() => setToast(""), 2800);
+    } catch (cause) {
+      setAdmitOpen(false);
+      setActionError(describeEmrError(cause));
+    }
+  }
+
+  async function finalizeLive(sign: boolean) {
+    setFinalizing(true);
+    setActionError("");
+    const input = {
+      soap, examination: examSystems, followUp, instructions, visitType,
+      nhmisIndicators: Object.entries(nhmis).filter(([, on]) => on).map(([indicator]) => indicator),
+      diagnoses, prescriptions, labCodes: labs, routeStation,
+    };
+    try {
+      if (sign) {
+        const recorded = await liveRoom.sign(input);
+        resetEncounter();
+        setActiveQueueId(null);
+        setToast(`Encounter signed${recorded.length ? ` · ${recorded.join(" · ")}` : ""}`);
+      } else {
+        await liveRoom.saveDraft(input);
+        setToast("Draft note saved — diagnoses and orders are recorded when you sign");
+      }
+      setTimeout(() => setToast(""), 3600);
+    } catch (cause) {
+      setActionError(describeEmrError(cause));
+    } finally {
+      setFinalizing(false);
+    }
+  }
 
   async function finalize(sign: boolean) {
     if (!entry || !patient) return;
+    if (live) return finalizeLive(sign);
     setFinalizing(true);
     const encounterId = saveEncounter({
       patientId: patient.id,
@@ -305,7 +388,7 @@ export default function Consultation() {
               Consultation queue · {consultQueue.length}
             </p>
             {consultQueue.map((queueEntry) => {
-              const queuePatient = patientById(queueEntry.patientId);
+              const queuePatient = patientOf(queueEntry);
               const active = activeQueueId === queueEntry.id;
               return (
                 <div
@@ -347,6 +430,7 @@ export default function Consultation() {
               );
             })}
             {consultQueue.length === 0 && <p className="p-3 text-sm text-mist-400">The consultation queue is clear.</p>}
+            {live && liveRoom.loadError && <p role="alert" className="p-3 text-sm text-action-700">{liveRoom.loadError}</p>}
           </div>
           {patient && <CurrentVitalsPanel vitals={vitals} onViewTrend={() => setTrendOpen(true)} />}
         </div>
@@ -368,10 +452,12 @@ export default function Consultation() {
                     {patient.firstName} {patient.lastName} {patient.otherName ?? ""}
                   </p>
                   <p className="text-xs text-mist-400">
-                    {patient.mrn} · {ageFromDob(patient.dob)} · {patient.sex === "M" ? "Male" : "Female"} ·{" "}
+                    {patient.mrn} · {ageFromDob(patient.dob)} · {SEX_LABEL[patient.sex]} ·{" "}
                     <Badge tone="mist">{patient.payer}</Badge>{" "}
-                    {patient.allergies && patient.allergies !== "NKA" ? (
-                      <Badge tone="action">Allergy: {patient.allergies}</Badge>
+                    {allergyText ? (
+                      <Badge tone="action">Allergy: {allergyText}</Badge>
+                    ) : live ? (
+                      <Badge tone="mist">{allergyText === null ? "Checking allergies…" : "No allergies recorded"}</Badge>
                     ) : (
                       <Badge tone="brand">NKA</Badge>
                     )}
@@ -383,9 +469,9 @@ export default function Consultation() {
                 <div className="flex flex-col items-end gap-1.5">
                   <ClinicalStatusBadge kind="note" status="draft" title="This note is not yet signed" />
                   <Select
-                    value={provider}
+                    value={live ? liveRoom.userName : provider}
                     onChange={(event) => setProvider(event.target.value)}
-                    options={clinicians.length ? clinicians.map((clinician) => clinician.name) : [currentUser]}
+                    options={live ? [liveRoom.userName] : clinicians.length ? clinicians.map((clinician) => clinician.name) : [currentUser]}
                     className="h-8 w-auto py-0 text-xs"
                   />
                 </div>
@@ -529,7 +615,7 @@ export default function Consultation() {
                     <DrugField
                       className="md:col-span-2"
                       value={prescription.drug}
-                      onChange={(name) => setPrescriptions((current) => current.map((item, itemIndex) => (itemIndex === index ? { ...item, drug: name } : item)))}
+                      onChange={(name, product) => setPrescriptions((current) => current.map((item, itemIndex) => (itemIndex === index ? { ...item, drug: name, drugCode: product?.code, doseUnit: product?.doseUnit } : item)))}
                     />
                     <input className="input" placeholder="Dose" value={prescription.dose} onChange={(event) => setPrescriptions((current) => current.map((item, itemIndex) => (itemIndex === index ? { ...item, dose: event.target.value } : item)))} />
                     <input className="input" placeholder="Frequency" value={prescription.frequency} onChange={(event) => setPrescriptions((current) => current.map((item, itemIndex) => (itemIndex === index ? { ...item, frequency: event.target.value } : item)))} />
@@ -552,19 +638,19 @@ export default function Consultation() {
                 <FlaskConical size={13} /> Laboratory orders
               </p>
               <div className="grid gap-4 md:grid-cols-3">
-                {Object.entries(LAB_PANELS).map(([panel, tests]) => (
+                {Object.entries(labPanels).map(([panel, tests]) => (
                   <div key={panel}>
                     <p className="mb-1.5 text-[11px] font-bold uppercase text-mist-400">{panel}</p>
                     <div className="space-y-1">
                       {tests.map((test) => (
-                        <label key={test} className="flex items-center gap-2 text-sm text-mist-600">
+                        <label key={test.key} className="flex items-center gap-2 text-sm text-mist-600">
                           <input
                             type="checkbox"
                             className="h-3.5 w-3.5 rounded border-mist-300 text-brand-600"
-                            checked={labs.includes(test)}
-                            onChange={(event) => setLabs((current) => (event.target.checked ? [...current, test] : current.filter((item) => item !== test)))}
+                            checked={labs.includes(test.key)}
+                            onChange={(event) => setLabs((current) => (event.target.checked ? [...current, test.key] : current.filter((item) => item !== test.key)))}
                           />
-                          {test}
+                          {test.label}
                         </label>
                       ))}
                     </div>
@@ -577,7 +663,7 @@ export default function Consultation() {
             <div className="card">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-bold uppercase tracking-wide text-mist-400">Care plan</p>
-                {!carePlan.open && (
+                {!carePlan.open && !live && (
                   <Button variant="soft" className="px-2.5 py-1 text-xs" onClick={() => setCarePlan({ ...carePlan, open: true, title: carePlan.title || `${diagnoses[0]?.name ?? "Follow-up"} — ongoing management` })}>
                     <ClipboardList size={13} /> Open a care plan
                   </Button>
@@ -594,6 +680,8 @@ export default function Consultation() {
                     <Button variant="ghost" className="px-2.5 py-1 text-xs" onClick={() => setCarePlan({ open: false, title: "", category: "Chronic disease", goal: "" })}>Remove plan</Button>
                   </div>
                 </div>
+              ) : live ? (
+                <SectionNote tone="unavailable">Care plans are not connected to this hospital&apos;s live records yet.</SectionNote>
               ) : (
                 <SectionNote>No care plan for this encounter. Open one to track goals and follow-up activities on the patient chart over time.</SectionNote>
               )}
@@ -624,6 +712,10 @@ export default function Consultation() {
               </div>
               <p className="mt-2 text-[11px] text-mist-400">Ticked indicators are saved with the encounter and feed the NHMIS report.</p>
             </div>
+
+            {actionError && (
+              <p role="alert" className="rounded-xl bg-action-50 px-4 py-3 text-sm font-medium text-action-800 ring-1 ring-action-200">{actionError}</p>
+            )}
 
             {/* actions */}
             <div className="sticky bottom-3 z-20 flex flex-wrap items-center gap-3 rounded-2xl border border-mist-200 bg-white/95 p-3 shadow-pop backdrop-blur">
@@ -660,6 +752,7 @@ export default function Consultation() {
             <Button
               disabled={!patient || !admitWard || !admitBedId}
               onClick={() => {
+                if (live) { void admitLive(admitBedId); return; }
                 const bed = beds.find((item) => item.id === admitBedId);
                 if (patient && admitWard && bed) {
                   admit(patient.id, admitWard.name, bed.label, diagnoses[0]?.name ?? soap.a ?? "For observation");
@@ -683,9 +776,9 @@ export default function Consultation() {
           <div className="grid grid-cols-2 gap-4">
             <Field label="Ward">
               <Select
-                value={admitWardId}
+                value={selectedWardId}
                 onChange={(event) => { setAdmitWardId(event.target.value); setAdmitBedId(""); }}
-                options={wards.map((ward) => ({ value: ward.id, label: `${ward.name} (${ward.type})` }))}
+                options={wardOptions.map(({ value, label }) => ({ value, label }))}
               />
             </Field>
             <Field label="Bed">
