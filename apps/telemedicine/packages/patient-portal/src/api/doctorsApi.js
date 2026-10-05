@@ -90,7 +90,7 @@ export function toDoctorAppointment(a) {
     upcoming: ACTIVE.has(a.status) && new Date(a.endsAt).getTime() > now,
     canChange: ACTIVE.has(a.status) && future,
     // The link is shown from confirmation until the consultation window has passed.
-    canJoin: a.status === "CONFIRMED" && a.consultationType === "VIRTUAL" && Boolean(a.meetingUrl) && new Date(a.endsAt).getTime() > now,
+    canJoin: a.status === "CONFIRMED" && a.consultationType === "VIRTUAL" && new Date(a.endsAt).getTime() + 15 * 60000 > now,
   };
 }
 
@@ -105,6 +105,9 @@ export async function listUpcomingDoctorAppointments() {
 }
 
 export const getDoctorAppointment = async (id) => toDoctorAppointment(await get(`/api/v1/doctor-appointments/${id}`));
+export const videoConfig = (signal) => data(authorizedRequest('/api/v1/doctor-appointments/video-config', { signal }));
+export const joinVideoSession = (id, consent) => post(`/api/v1/doctor-appointments/${encodeURIComponent(id)}/video-session`, consent);
+export const checkVideoSession = (id, signal) => data(authorizedRequest(`/api/v1/doctor-appointments/${encodeURIComponent(id)}/video-session`, { signal }));
 
 export const bookDoctor = async ({ slotId, consultationType, reason, dependentId }) =>
   toDoctorAppointment(await post("/api/v1/doctor-appointments", {

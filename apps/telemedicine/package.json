@@ -10,6 +10,7 @@
     "build:patient": "npm run build --workspace=patient-portal"
   },
   "dependencies": {
+    "@daily-co/daily-js": "0.93.0",
     "jspdf": "^4.2.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.499.0",

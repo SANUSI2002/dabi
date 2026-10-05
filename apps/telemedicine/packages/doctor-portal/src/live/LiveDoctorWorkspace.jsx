@@ -5,8 +5,9 @@ import PortalLayout from "../components/PortalLayout";
 import { getCurrentDoctor, signOutDoctor } from "../store/doctorSession";
 import { IDENTITY_UI_URL } from "../services/runtime";
 import * as api from "./doctorApi";
-import { groupPatients, localDay, safeMeetingUrl, statusLabel } from "./doctorData";
+import { groupPatients, localDay, statusLabel } from "./doctorData";
 import "./LiveDoctorWorkspace.css";
+import DailyConsultation from '../../../shared-video/DailyConsultation';
 
 function useResource(loader, key = "") {
   const [state, setState] = useState({ loading: true, data: null, error: "" });
@@ -67,7 +68,7 @@ function Appointments({ consultations = false }) {
   const [selectedId, setSelectedId] = useState(id || "");
   const [operation, setOperation] = useState("");
   const [reason, setReason] = useState("");
-  const [meeting, setMeeting] = useState("");
+  const [callId, setCallId] = useState('');
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const detail = useResource(async (signal) => {
@@ -77,17 +78,19 @@ function Appointments({ consultations = false }) {
   const navigate = useNavigate();
   const items = resource.data?.items || [];
   const selected = items.find((a) => a.id === (id || selectedId)) || (id ? detail.data : null);
-  useEffect(() => { setSelectedId(id || ""); setOperation(""); setNotice(""); }, [id]);
+  useEffect(() => { setSelectedId(id || ""); setOperation(""); setNotice(""); setCallId(''); }, [id]);
   useEffect(() => {
+    // Refreshing the gated page unmounts its children; never tear down an active call.
+    if (callId) return;
     const timer = setInterval(() => resource.reload(), 30000);
     return () => clearInterval(timer);
-  }, [filter, offset]);
+  }, [filter, offset, callId]);
   async function act(event) {
     event.preventDefault(); setBusy(true); setNotice("");
     try {
-      const body = operation === "decline" || operation === "cancel" ? { reason } : operation === "meeting-link" ? { meetingUrl: meeting || null } : operation === "confirm" && meeting ? { meetingUrl: meeting } : {};
+      const body = operation === "decline" || operation === "cancel" ? { reason } : {};
       await api.appointmentAction(selected.id, operation, body);
-      setNotice("Appointment updated. The patient sees the updated status in Sabi Health."); setOperation(""); setReason(""); setMeeting(""); resource.reload(); detail.reload();
+      setNotice("Appointment updated. The patient sees the updated status in Sabi Health."); setOperation(""); setReason(""); resource.reload(); detail.reload();
     } catch (error) { setNotice(error.message); }
     finally { setBusy(false); }
   }
@@ -100,16 +103,16 @@ function Appointments({ consultations = false }) {
     </section><section className="dp-panel">
       {id && <ResourceStatus resource={detail} />}
       {selected ? <><div className="dl-section-heading"><h2>{patientName(selected)}</h2><Status value={selected.status} /></div><dl className="dl-facts"><dt>Patient reference</dt><dd>{selected.patient?.patientId || "Not supplied"}</dd><dt>Consultation</dt><dd>{selected.consultationType === "VIRTUAL" ? "Virtual" : "In person"}</dd><dt>Scheduled for</dt><dd>{date(selected.startsAt)} · {time(selected.startsAt)}–{time(selected.endsAt)}</dd><dt>Reason for visit</dt><dd>{selected.reason || "No reason provided"}</dd>{selected.decisionReason && <><dt>Decision note</dt><dd>{selected.decisionReason}</dd></>}</dl>
-        {selected.status === "CONFIRMED" && safeMeetingUrl(selected.meetingUrl) && <a className="dp-btn dp-btn-primary" href={safeMeetingUrl(selected.meetingUrl)} target="_blank" rel="noreferrer"><Video size={16} /> Join consultation</a>}
+        {selected.status === "CONFIRMED" && selected.consultationType === 'VIRTUAL' && <button className="dp-btn dp-btn-primary" onClick={() => setCallId(selected.id)}><Video size={16} /> Join video and chat</button>}
         <div className="dl-actions dl-space">
           {selected.status === "REQUESTED" && <><button disabled={busy || new Date(selected.startsAt) <= new Date()} className="dp-btn dp-btn-primary" onClick={() => setOperation("confirm")}>Accept request</button><button disabled={busy} className="dp-btn dp-btn-outline" onClick={() => setOperation("decline")}>Decline</button></>}
-          {selected.status === "CONFIRMED" && selected.consultationType === "VIRTUAL" && <button disabled={busy} className="dp-btn dp-btn-outline" onClick={() => { setOperation("meeting-link"); setMeeting(selected.meetingUrl || ""); }}>Update meeting link</button>}
           {selected.status === "CONFIRMED" && new Date(selected.startsAt) <= new Date() && <button disabled={busy} className="dp-btn dp-btn-primary" onClick={() => setOperation("complete")}>Mark completed</button>}
           {["REQUESTED", "CONFIRMED"].includes(selected.status) && new Date(selected.startsAt) > new Date() && <button disabled={busy} className="dp-btn dp-btn-danger" onClick={() => setOperation("cancel")}>Cancel appointment</button>}
         </div>
-        {operation && <form className="dl-form dl-space" onSubmit={act}><h3>{operation === "complete" ? "Complete this consultation?" : operation === "confirm" ? "Confirm booking" : operation === "meeting-link" ? "Meeting link" : "Record your reason"}</h3>{["decline", "cancel"].includes(operation) && <label>Reason<textarea required maxLength={300} value={reason} onChange={(e) => setReason(e.target.value)} /></label>}{["confirm", "meeting-link"].includes(operation) && selected.consultationType === "VIRTUAL" && <label>HTTPS meeting link {operation === "confirm" && "(optional)"}<input type="url" pattern="https://.*" maxLength={500} value={meeting} onChange={(e) => setMeeting(e.target.value)} /></label>}<div className="dl-actions"><button className="dp-btn dp-btn-primary" disabled={busy}>{busy ? "Saving…" : "Confirm"}</button><button className="dp-btn dp-btn-outline" type="button" disabled={busy} onClick={() => setOperation("")}>Back</button></div></form>}
-      </> : !id && <Empty title="Select an appointment" text="Review its details, respond to the request, or add a meeting link." />}
+        {operation && <form className="dl-form dl-space" onSubmit={act}><h3>{operation === "complete" ? "Complete this consultation?" : operation === "confirm" ? "Confirm booking" : "Record your reason"}</h3>{["decline", "cancel"].includes(operation) && <label>Reason<textarea required maxLength={300} value={reason} onChange={(e) => setReason(e.target.value)} /></label>}{operation === 'confirm' && selected.consultationType === 'VIRTUAL' && <p>Sabi prepares a private Daily room when you or the patient joins. No meeting link is needed.</p>}<div className="dl-actions"><button className="dp-btn dp-btn-primary" disabled={busy}>{busy ? "Saving…" : "Confirm"}</button><button className="dp-btn dp-btn-outline" type="button" disabled={busy} onClick={() => setOperation("")}>Back</button></div></form>}
+      </> : !id && <Empty title="Select an appointment" text="Review its details, respond to the request, or join a consultation." />}
     </section></div>
+    {callId && <DailyConsultation key={callId} appointmentId={callId} title="Patient consultation" getConfig={api.videoConfig} joinSession={api.joinVideoSession} checkSession={api.checkVideoSession} onClose={() => setCallId('')} />}
   </Page>;
 }
 function Pagination({ offset, total, size, onChange }) {

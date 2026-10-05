@@ -7,6 +7,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "react": fileURLToPath(new URL("./node_modules/react", import.meta.url)),
+      "react-dom": fileURLToPath(new URL("./node_modules/react-dom", import.meta.url)),
+      "@daily-co/daily-js": fileURLToPath(new URL("./apps/telemedicine/node_modules/@daily-co/daily-js/dist/daily-esm.js", import.meta.url)),
     },
   },
   test: {

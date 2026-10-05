@@ -1,5 +1,8 @@
 import { doctorRequest } from "../services/doctorAuth";
 const ROOT = "/doctor-appointments/practice";
+export const videoConfig = (signal) => doctorRequest('/doctor-appointments/video-config', { signal }).then((r) => r.data);
+export const joinVideoSession = (id, consent) => doctorRequest(`${ROOT}/appointments/${encodeURIComponent(id)}/video-session`, { method: 'POST', body: JSON.stringify(consent) }).then((r) => r.data);
+export const checkVideoSession = (id, signal) => doctorRequest(`${ROOT}/appointments/${encodeURIComponent(id)}/video-session`, { signal }).then((r) => r.data);
 const json = (method, body) => ({ method, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
 export const loadAppointments = (query = "limit=100&offset=0", signal) => doctorRequest(`${ROOT}/appointments?${query}`, { signal }).then((r) => r.data);
 export const loadAppointment = (id, signal) => doctorRequest(`${ROOT}/appointments/${encodeURIComponent(id)}`, { signal }).then((r) => r.data);
