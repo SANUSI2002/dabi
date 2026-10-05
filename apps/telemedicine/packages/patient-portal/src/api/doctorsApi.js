@@ -187,7 +187,7 @@ const AVATAR_COLORS = ["#0B5E48", "#F5A623", "#E53935", "#073D30"];
 const byDoctor = (a) => {
   const ended = new Date(a.endsAt).getTime() <= Date.now();
   if (a.status === "REQUESTED") return ended ? "missed" : "pending-review";
-  if (a.status === "CONFIRMED") return ended ? "missed" : "active";
+  if (a.status === "CONFIRMED") return ended && !a.canJoin ? "missed" : "active";
   if (a.status === "COMPLETED") return "completed";
   return "cancelled"; // CANCELLED or DECLINED
 };

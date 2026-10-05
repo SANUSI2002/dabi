@@ -17,6 +17,9 @@ async function connect() {
   fireEvent.click(screen.getByRole('button', { name: 'Join video and chat' }));
 }
 describe('Daily call UI lifecycle', () => {
+  it('rejects an expired session before requesting camera access', () => {
+    expect(validVideoSession({ ...session, expiresAt: new Date(Date.now() - 1000).toISOString() })).toBe(false);
+  });
   it('requires explicit consent and creates exactly one frame under StrictMode', async () => {
     const view = mount();
     await waitFor(() => expect(screen.queryByText('Checking video availability…')).not.toBeInTheDocument());

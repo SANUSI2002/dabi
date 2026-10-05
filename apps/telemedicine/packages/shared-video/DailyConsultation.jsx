@@ -6,7 +6,7 @@ export function validVideoSession(session) {
     const url = new URL(session?.url);
     return url.protocol === 'https:' && /^[a-z0-9-]+\.daily\.co$/.test(url.hostname)
       && /^\/sabi-v-[a-f0-9]{32}$/.test(url.pathname) && !url.username && !url.password && !url.search && !url.hash
-      && typeof session.token === 'string' && session.token.length >= 20 && Number.isFinite(Date.parse(session.expiresAt));
+      && typeof session.token === 'string' && session.token.length >= 20 && session.token.length <= 8192 && Date.parse(session.expiresAt) > Date.now();
   } catch { return false; }
 }
 export default function DailyConsultation({ appointmentId, title, getConfig, joinSession, checkSession, onClose }) {
