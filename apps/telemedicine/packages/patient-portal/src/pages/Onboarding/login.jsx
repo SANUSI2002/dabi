@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { restoreSession, signIn, verifyMfaLogin } from "../../utils/sabiIdentity";
 import { useEffect } from "react";
+import { DOCTOR_PORTAL_URL } from "../../ecosystemLinks";
 
 export default function SabiHealthLogin() {
   const navigate = useNavigate();
@@ -184,6 +185,7 @@ export default function SabiHealthLogin() {
             </button>
           </p>
 
+          <p className="mt-4 text-center text-sm text-gray-500">Are you a doctor? <a href={`${DOCTOR_PORTAL_URL}/login`} className="font-semibold text-emerald-700 hover:underline">Open Doctor Portal</a></p>
           <div className="flex items-center justify-center gap-1.5 mt-4 text-gray-400">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
             <span className="text-[11px] font-medium tracking-wide">SECURE SABI IDENTITY SIGN-IN</span>

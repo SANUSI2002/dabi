@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 const repoRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const telemedicineRoot = resolve(repoRoot, "apps/telemedicine");
 const patientRoot = resolve(telemedicineRoot, "packages/patient-portal");
+const doctorRoot = resolve(telemedicineRoot, "packages/doctor-portal");
 const surface = process.argv[2];
 
 if (!["health", "emr", "pharmacy", "command-center", "telemedicine"].includes(surface)) {
@@ -36,6 +37,9 @@ if (surface === "telemedicine") {
   run("Telemedicine", patientVite, ["build", "--base", "/", "--outDir", output, "--emptyOutDir"], patientRoot, {
     VITE_HOSPITAL_ONBOARDING_URL: process.env.VITE_HOSPITAL_ONBOARDING_URL || (healthOrigin ? `${healthOrigin}/register/organization` : "/register/organization"),
   });
+  run("Doctor portal", patientVite, ["build", "--base", "/doctor-portal/", "--outDir", resolve(output, "doctor-portal"), "--emptyOutDir"], doctorRoot, {
+    VITE_SABI_IDENTITY_API_URL: process.env.VITE_SABI_IDENTITY_API_URL || process.env.VITE_API_BASE_URL || "same-origin",
+  });
   console.log(`Prepared ${surface} deployment in ${output}`);
   process.exit(0);
 }
@@ -53,6 +57,9 @@ if (surface === "health") {
   mkdirSync(output, { recursive: true });
   run("Telemedicine", patientVite, ["build", "--base", "/telemedicine/", "--outDir", resolve(output, "telemedicine"), "--emptyOutDir"], patientRoot, {
     VITE_HOSPITAL_ONBOARDING_URL: process.env.VITE_HOSPITAL_ONBOARDING_URL || "/register/organization",
+  });
+  run("Doctor portal", patientVite, ["build", "--base", "/telemedicine/doctor-portal/", "--outDir", resolve(output, "telemedicine/doctor-portal"), "--emptyOutDir"], doctorRoot, {
+    VITE_SABI_IDENTITY_API_URL: process.env.VITE_SABI_IDENTITY_API_URL || process.env.VITE_API_BASE_URL || "same-origin",
   });
 }
 

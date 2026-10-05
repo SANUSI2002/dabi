@@ -1,0 +1,55 @@
+/* ─── Shell Layout ─────────────────────────────────────────── */
+.dp-preview-banner { margin: 0 32px 16px; border-radius: 10px; padding: 10px 14px; background: #fff7df; color: #8d5d08; font-size: 13px; }
+.dp-shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--sabi-background);
+  font-family: var(--sabi-font-family);
+  color: var(--sabi-text-primary);
+}
+
+.dp-shell-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.dp-shell-content {
+  flex: 1;
+  padding: 0 32px 32px;
+}
+
+/* ─── Mobile Sidebar Overlay ───────────────────────────────── */
+.dp-sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  background: rgba(15, 23, 42, 0.45);
+  /* Fade in */
+  animation: dp-overlay-in 0.18s ease forwards;
+}
+
+@keyframes dp-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ─── Responsive ───────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .dp-shell-content {
+    padding: 0 24px 28px;
+  }
+}
+
+@media (max-width: 900px) {
+  .dp-shell-content {
+    padding: 0 16px 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dp-shell-content {
+    padding: 0 12px 20px;
+  }
+}

@@ -9,6 +9,7 @@ const npmArgs = (args) => (npmCli ? [npmCli, ...args] : args);
 const processes = [
   spawn(npmCommand, npmArgs(["run", "dev:main"]), { stdio: "inherit" }),
   spawn(npmCommand, npmArgs(["run", "dev:telemedicine"]), { stdio: "inherit" }),
+  spawn(npmCommand, npmArgs(["run", "dev:doctor"]), { stdio: "inherit" }),
 ];
 
 let stopping = false;

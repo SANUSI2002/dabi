@@ -1,0 +1,339 @@
+.dp-appointments-heading h1 {
+  font-size: 24px;
+  margin: 0 0 4px;
+}
+
+.dp-appointments-heading p {
+  color: var(--sabi-text-secondary);
+  font-size: 14px;
+  margin: 0 0 18px;
+}
+
+.dp-tabs {
+  display: flex;
+  gap: 22px;
+  border-bottom: 1px solid var(--sabi-border);
+  margin-bottom: 16px;
+}
+
+.dp-tab {
+  border: none;
+  background: none;
+  padding: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--sabi-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 2px solid transparent;
+}
+
+.dp-tab-active {
+  color: var(--sabi-primary-dark);
+  border-bottom-color: var(--sabi-primary-dark);
+}
+
+.dp-tab-badge {
+  background: var(--sabi-danger);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 1px 6px;
+}
+
+.dp-appt-filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.dp-appt-search {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px 14px;
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-sm);
+  font-size: 14px;
+  font-family: var(--sabi-font-family);
+}
+
+.dp-appt-select {
+  padding: 10px 12px;
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-sm);
+  font-size: 13.5px;
+  font-family: var(--sabi-font-family);
+  background: var(--sabi-surface);
+}
+
+.dp-appt-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .dp-appt-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dp-appt-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-lg);
+  overflow: hidden;
+  background: var(--sabi-surface);
+}
+
+.dp-appt-list-item {
+  text-align: left;
+  border: none;
+  border-bottom: 1px solid var(--sabi-border);
+  background: var(--sabi-surface);
+  padding: 14px 16px;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 8px;
+}
+
+.dp-appt-list-item:last-child {
+  border-bottom: none;
+}
+
+.dp-appt-list-item:hover {
+  background: var(--sabi-surface-muted);
+}
+
+.dp-appt-list-item-active {
+  background: var(--sabi-primary-light);
+  border-left: 3px solid var(--sabi-primary-dark);
+}
+
+.dp-appt-list-type {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--sabi-primary-dark);
+  letter-spacing: 0.03em;
+}
+
+.dp-appt-list-name {
+  font-weight: 600;
+  font-size: 14.5px;
+  grid-column: 1 / -1;
+}
+
+.dp-appt-list-time {
+  font-size: 12px;
+  color: var(--sabi-text-secondary);
+  grid-column: 1 / -1;
+}
+
+.dp-tag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  justify-self: end;
+  white-space: nowrap;
+  height: fit-content;
+}
+
+.dp-tag-warning {
+  background: #fef3c7;
+  color: #b45309;
+}
+.dp-tag-success {
+  background: #d1fae5;
+  color: #065f46;
+}
+.dp-tag-neutral {
+  background: #e2e8f0;
+  color: var(--sabi-text-secondary);
+}
+.dp-tag-danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.dp-appt-detail {
+  background: var(--sabi-surface);
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-lg);
+  padding: 24px;
+  min-height: 300px;
+}
+
+.dp-appt-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.dp-appt-req-id {
+  font-size: 12px;
+  color: var(--sabi-text-secondary);
+  font-family: monospace;
+}
+
+.dp-appt-detail-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.dp-options-wrap {
+  position: relative;
+}
+
+.dp-options-menu {
+  position: absolute;
+  right: 0;
+  top: 42px;
+  background: var(--sabi-surface);
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  padding: 6px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 170px;
+}
+
+.dp-options-menu button {
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 9px 10px;
+  border-radius: var(--sabi-radius-sm);
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+.dp-options-menu button:hover {
+  background: var(--sabi-surface-muted);
+}
+
+.dp-options-danger {
+  color: var(--sabi-danger);
+}
+
+.dp-appt-detail-name {
+  font-size: 22px;
+  margin: 0 0 20px;
+}
+
+.dp-reschedule-inline {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  background: var(--sabi-surface-muted);
+  padding: 12px;
+  border-radius: var(--sabi-radius-md);
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.dp-reschedule-inline input {
+  padding: 8px 10px;
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-sm);
+  font-family: var(--sabi-font-family);
+}
+
+.dp-appt-detail-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 600px) {
+  .dp-appt-detail-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dp-detail-card {
+  background: var(--sabi-surface-muted);
+  border-radius: var(--sabi-radius-md);
+  padding: 14px 16px;
+}
+
+.dp-detail-card-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--sabi-text-secondary);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.dp-detail-card-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13.5px;
+  margin-bottom: 6px;
+}
+
+.dp-detail-card-row span {
+  color: var(--sabi-text-secondary);
+}
+
+.dp-detail-block {
+  margin-bottom: 20px;
+}
+
+.dp-detail-reason {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--sabi-text-primary);
+  background: var(--sabi-surface-muted);
+  padding: 14px 16px;
+  border-radius: var(--sabi-radius-md);
+  margin: 0;
+}
+
+.dp-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dp-history-row {
+  display: flex;
+  gap: 14px;
+  border-left: 2px solid var(--sabi-border);
+  padding-left: 14px;
+}
+
+.dp-history-date {
+  font-size: 11.5px;
+  color: var(--sabi-text-secondary);
+  min-width: 76px;
+}
+
+.dp-history-label {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.dp-history-note {
+  font-size: 12.5px;
+  color: var(--sabi-text-secondary);
+  margin-top: 2px;
+}

@@ -5,7 +5,7 @@ import { PRODUCTS, modulesByProduct, type ProductKey } from "@/platform/entitlem
 import { useCommandCenter } from "@/command-center/useCommandCenter";
 import { CheckList, Eyebrow, JourneyMap, ProductWindow, PublicCta, SectionHeading, Status } from "@/public/components";
 import { categoryCards } from "@/public/content";
-import { TELEMEDICINE_SIGN_IN_URL } from "@/public/ecosystemLinks";
+import { DOCTOR_SIGN_IN_URL, TELEMEDICINE_SIGN_IN_URL } from "@/public/ecosystemLinks";
 import { apiConfigured } from "@/config/runtime";
 import { useLivePackages } from "@/registration/useLivePackages";
 
@@ -99,7 +99,7 @@ export function ResourcesPage() {
 }
 
 export function RegisterEntryPage() {
-  return <><PageHero eyebrow="Get started" title="How would you like to use Sabi?" copy="Choose the pathway that matches who you are. Organization onboarding and patient registration remain separate." /><section className="px-5 py-20 lg:px-8"><div className="mx-auto grid max-w-[1050px] gap-5 md:grid-cols-3"><EntryCard icon={<Hospital/>} title="Healthcare Organization" copy="Hospital, clinic, laboratory, diagnostic centre or healthcare organization." status="Available" action="Begin organization application" to="/register/organization"/><EntryCard icon={<Stethoscope/>} title="Healthcare Professional" copy="Professional registration requires backend verification before access can be granted." status="Registration pending" action="View product information" to="/products/sabi-health"/><EntryCard icon={<CircleUserRound/>} title="Patient" copy="Use the existing Sabi Health patient and telemedicine platform." status="Available" action="Open Sabi Health" to={TELEMEDICINE_SIGN_IN_URL}/></div><p className="mx-auto mt-8 max-w-2xl text-center text-sm leading-6 text-slate-500">Organization applications are saved progressively and remain separate from production tenants until verification, approval and authorized provisioning are complete.</p></section></>;
+  return <><PageHero eyebrow="Get started" title="How would you like to use Sabi?" copy="Choose the pathway that matches who you are. Organization onboarding and patient registration remain separate." /><section className="px-5 py-20 lg:px-8"><div className="mx-auto grid max-w-[1050px] gap-5 md:grid-cols-3"><EntryCard icon={<Hospital/>} title="Healthcare Organization" copy="Hospital, clinic, laboratory, diagnostic centre or healthcare organization." status="Available" action="Begin organization application" to="/register/organization"/><EntryCard icon={<Stethoscope/>} title="Doctor Portal" copy="A dedicated workspace for verified doctors to manage appointments, availability and prescriptions." status="Verified doctor access" action="Open Doctor Portal" to={DOCTOR_SIGN_IN_URL}/><EntryCard icon={<CircleUserRound/>} title="Patient" copy="Use the existing Sabi Health patient and telemedicine platform." status="Available" action="Open Sabi Health" to={TELEMEDICINE_SIGN_IN_URL}/></div><p className="mx-auto mt-8 max-w-2xl text-center text-sm leading-6 text-slate-500">Organization applications are saved progressively and remain separate from production tenants until verification, approval and authorized provisioning are complete.</p></section></>;
 }
 
 export function BookDemoPage() {

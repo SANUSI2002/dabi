@@ -66,7 +66,12 @@ import { InsurancePage } from "./pages/insurance/InsurancePage";
 import { WalletPage } from "./pages/wallet/WalletPage";
 import ForgotPassword from "./pages/Onboarding/ForgotPassword";
 import ResetPassword from "./pages/Onboarding/ResetPassword";
-import { HOSPITAL_ONBOARDING_URL } from "./ecosystemLinks";
+import { HOSPITAL_ONBOARDING_URL, DOCTOR_PORTAL_URL } from "./ecosystemLinks";
+
+function DoctorRegistrationRedirect() {
+  useEffect(() => { window.location.replace(`${DOCTOR_PORTAL_URL}/register`); }, []);
+  return <div className="grid min-h-screen place-items-center"><a href={`${DOCTOR_PORTAL_URL}/register`}>Continue to doctor registration</a></div>;
+}
 
 function HospitalOnboardingRedirect() {
   useEffect(() => {
@@ -155,6 +160,7 @@ export default function App() {
               <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/verify-email/:uid" element={<VerifyEmail />} />
               <Route path="/signup/caregiver" element={<CaregiverOnboarding />} />
+              <Route path="/signup/professional/doctor" element={<DoctorRegistrationRedirect />} />
               <Route path="/signup/professional/:type" element={<ProfessionalOnboarding />} />
               <Route path="/signup/organisation/:type" element={<HospitalOnboardingRedirect />} />
               <Route path="/signup/organization/:type" element={<HospitalOnboardingRedirect />} />

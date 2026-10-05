@@ -1,0 +1,212 @@
+.dp-hw-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.dp-hw-header h1 {
+  font-size: 21px;
+  margin: 0 0 4px;
+}
+
+.dp-hw-header-sub {
+  font-size: 13px;
+  color: var(--sabi-text-secondary);
+}
+
+.dp-hw-shift {
+  text-align: right;
+}
+
+.dp-hw-shift-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--sabi-text-secondary);
+  letter-spacing: 0.04em;
+}
+
+.dp-hw-shift-time {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--sabi-primary-dark);
+}
+
+.dp-hw-layout {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1000px) {
+  .dp-hw-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dp-hw-queue-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.dp-hw-queue-title-row h2 {
+  font-size: 17px;
+  margin: 0;
+}
+
+.dp-hw-tabs {
+  border-bottom: none;
+  gap: 6px;
+  margin-bottom: 0;
+}
+
+.dp-hw-tabs .dp-tab {
+  padding: 6px 12px;
+  border: 1px solid var(--sabi-border);
+  border-radius: 999px;
+  font-size: 12.5px;
+}
+
+.dp-hw-tabs .dp-tab-active {
+  background: var(--sabi-primary-light);
+  border-color: var(--sabi-primary-dark);
+}
+
+.dp-hw-queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dp-hw-queue-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--sabi-surface);
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-md);
+  padding: 14px 16px;
+  flex-wrap: wrap;
+}
+
+.dp-hw-queue-row-urgent {
+  border-left: 3px solid var(--sabi-danger);
+}
+
+.dp-hw-queue-code {
+  font-family: monospace;
+  font-size: 12px;
+  background: var(--sabi-surface-muted);
+  padding: 3px 8px;
+  border-radius: 6px;
+  color: var(--sabi-text-secondary);
+}
+
+.dp-hw-queue-info {
+  flex: 1;
+  min-width: 160px;
+}
+
+.dp-hw-queue-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.dp-hw-queue-sub {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--sabi-text-secondary);
+  margin: 3px 0 6px;
+}
+
+.dp-hw-schedule-sub {
+  font-size: 12px;
+  color: var(--sabi-text-secondary);
+  margin: -10px 0 14px;
+}
+
+.dp-hw-schedule-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.dp-hw-schedule-row {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--sabi-border);
+}
+
+.dp-hw-schedule-row:last-child {
+  border-bottom: none;
+}
+
+.dp-hw-schedule-time {
+  width: 72px;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--sabi-text-secondary);
+  padding-top: 10px;
+}
+
+.dp-hw-schedule-card {
+  flex: 1;
+  background: var(--sabi-surface-muted);
+  border-radius: var(--sabi-radius-sm);
+  padding: 10px 12px;
+}
+
+.dp-hw-schedule-row-now .dp-hw-schedule-card {
+  background: var(--sabi-primary-light);
+}
+
+.dp-hw-schedule-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+}
+
+.dp-hw-schedule-place {
+  font-size: 12px;
+  color: var(--sabi-text-secondary);
+  margin-top: 2px;
+}
+
+.dp-hw-info-panel {
+  margin-top: 20px;
+  background: var(--sabi-primary-light);
+  border-color: transparent;
+}
+
+.dp-hw-info-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--sabi-primary-dark);
+  margin-bottom: 14px;
+}
+
+.dp-hw-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.dp-hw-info-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--sabi-primary-dark);
+  margin-bottom: 4px;
+}

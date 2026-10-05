@@ -10,6 +10,8 @@ export default defineConfig({
     },
   },
   test: {
+    // Workspace-specific Node/backend tests run in their own commands, not jsdom.
+    include: ["src/**/*.{test,spec}.{ts,tsx,js,jsx}"],
     environment: "jsdom",
     setupFiles: ["./src/testing/setup.ts"],
     clearMocks: true,

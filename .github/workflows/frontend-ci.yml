@@ -18,6 +18,8 @@ jobs:
         run: npm ci
       - name: Install telemedicine dependencies
         run: npm ci --prefix apps/telemedicine
+      - name: Verify doctor portal workflows and identity integration
+        run: npm run test:doctor
       - name: Lint, test, and type-check root app
         run: npm run check
       - name: Build each deployed surface

@@ -1,0 +1,385 @@
+.dp-rx-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.dp-rx-heading h1 {
+  font-size: 22px;
+  margin: 0 0 4px;
+}
+
+.dp-rx-heading p {
+  color: var(--sabi-text-secondary);
+  font-size: 14px;
+  margin: 0;
+}
+
+.dp-rx-empty {
+  background: var(--sabi-surface);
+  border: 1px dashed var(--sabi-border);
+  border-radius: var(--sabi-radius-lg);
+  padding: 40px;
+  text-align: center;
+  color: var(--sabi-text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.dp-rx-table {
+  background: var(--sabi-surface);
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-lg);
+  overflow: hidden;
+}
+
+.dp-rx-table-header,
+.dp-rx-table-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 0.9fr 1.1fr 0.9fr 0.9fr 0.8fr;
+  gap: 10px;
+  align-items: center;
+  padding: 14px 18px;
+}
+
+.dp-rx-table-header {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sabi-text-secondary);
+  border-bottom: 1px solid var(--sabi-border);
+}
+
+.dp-rx-table-row {
+  border-bottom: 1px solid var(--sabi-border);
+  font-size: 13.5px;
+}
+
+.dp-rx-table-row:last-child {
+  border-bottom: none;
+}
+
+.dp-rx-patient-name {
+  font-weight: 600;
+}
+
+.dp-rx-diagnosis-label {
+  font-size: 12px;
+  color: var(--sabi-text-secondary);
+  margin-top: 2px;
+}
+
+.dp-rx-id {
+  font-family: monospace;
+  font-size: 12.5px;
+  color: var(--sabi-text-secondary);
+}
+
+.dp-rx-sent-check {
+  font-size: 12px;
+  color: var(--sabi-primary-dark);
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .dp-rx-table-header {
+    display: none;
+  }
+  .dp-rx-table-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Composer */
+.dp-rx-composer {
+  max-width: 720px;
+}
+
+.dp-rx-back {
+  margin-bottom: 10px;
+}
+
+.dp-rx-composer h1 {
+  font-size: 22px;
+  margin: 0 0 18px;
+}
+
+.dp-rx-steps {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.dp-rx-step {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sabi-text-secondary);
+  background: var(--sabi-surface-muted);
+  padding: 6px 12px;
+  border-radius: 999px;
+}
+
+.dp-rx-step-active {
+  background: var(--sabi-primary-dark);
+  color: #fff;
+}
+
+.dp-rx-step-done {
+  background: var(--sabi-primary-light);
+  color: var(--sabi-primary-dark);
+}
+
+.dp-rx-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dp-rx-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sabi-text-secondary);
+}
+
+.dp-rx-field select,
+.dp-rx-field textarea {
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-sm);
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: var(--sabi-font-family);
+  color: var(--sabi-text-primary);
+}
+
+.dp-dx-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dp-dx-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-md);
+  padding: 12px 14px;
+  cursor: pointer;
+}
+
+.dp-dx-row-selected {
+  border-color: var(--sabi-primary-dark);
+  background: var(--sabi-primary-light);
+}
+
+.dp-dx-row-locked {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--sabi-surface-muted);
+}
+
+.dp-dx-row-info {
+  flex: 1;
+}
+
+.dp-dx-row-label {
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dp-dx-row-sub {
+  font-size: 12px;
+  color: var(--sabi-text-secondary);
+  margin-top: 2px;
+}
+
+.dp-dx-locked-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--sabi-text-secondary);
+  white-space: nowrap;
+}
+
+.dp-dx-hint {
+  font-size: 13px;
+  color: var(--sabi-warning);
+  background: #fef3c7;
+  padding: 12px 14px;
+  border-radius: var(--sabi-radius-md);
+  margin: 0;
+}
+
+.dp-dx-linked-banner {
+  background: var(--sabi-primary-light);
+  color: var(--sabi-primary-dark);
+  padding: 12px 16px;
+  border-radius: var(--sabi-radius-md);
+  font-size: 14px;
+}
+
+.dp-med-card {
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dp-med-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--sabi-text-secondary);
+}
+
+.dp-med-card input {
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-sm);
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: var(--sabi-font-family);
+}
+
+.dp-med-remove {
+  align-self: flex-end;
+}
+
+.dp-med-add {
+  align-self: flex-start;
+}
+
+.dp-rx-review-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: var(--sabi-text-secondary);
+}
+
+.dp-rx-review-meds {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dp-rx-review-med {
+  border-left: 3px solid var(--sabi-primary-dark);
+  background: var(--sabi-surface-muted);
+  border-radius: var(--sabi-radius-sm);
+  padding: 12px 14px;
+}
+
+.dp-rx-review-med-name {
+  font-weight: 700;
+  font-size: 14.5px;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.dp-rx-review-med-name span {
+  font-weight: 500;
+  font-size: 12.5px;
+  color: var(--sabi-text-secondary);
+}
+
+.dp-rx-review-med-sub {
+  font-size: 12.5px;
+  color: var(--sabi-text-secondary);
+  margin-top: 2px;
+}
+
+.dp-rx-review-med-instr {
+  font-size: 12.5px;
+  margin-top: 6px;
+  font-style: italic;
+}
+
+.dp-rx-success h1 {
+  font-size: 20px;
+  margin: 0 0 10px;
+}
+
+.dp-rx-success p {
+  font-size: 14px;
+  color: var(--sabi-text-secondary);
+  margin: 0 0 6px;
+}
+
+.dp-allergy-warning {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: #fee2e2;
+  color: #b91c1c;
+  border-radius: var(--sabi-radius-md);
+  padding: 12px 14px;
+  font-size: 13px;
+  margin: -4px 0 4px;
+}
+
+.dp-allergy-ack {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dp-pharmacy-directives {
+  margin-top: 4px;
+}
+
+.dp-directive-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--sabi-surface-muted);
+  border-radius: var(--sabi-radius-md);
+  padding: 14px 16px;
+  cursor: pointer;
+}
+
+.dp-directive-check {
+  color: var(--sabi-primary-dark);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.dp-directive-row strong {
+  font-size: 13.5px;
+  display: block;
+  margin-bottom: 3px;
+}
+
+.dp-directive-row p {
+  font-size: 12.5px;
+  color: var(--sabi-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.dp-lab-orders { margin: 20px 0; }
+.dp-lab-orders h3 { margin: 0; font-size: 16px; }
+.dp-patient-preview { max-width: 850px; margin: 40px auto; padding: 24px; }
+.dp-patient-preview .dp-rx-panel { margin: 24px 0; }

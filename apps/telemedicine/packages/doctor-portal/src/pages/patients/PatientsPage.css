@@ -1,0 +1,310 @@
+.dp-registry {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .dp-registry {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dp-registry-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.dp-registry-header h1 {
+  font-size: 21px;
+  margin: 0 0 3px;
+}
+
+.dp-registry-header p {
+  font-size: 13px;
+  color: var(--sabi-text-secondary);
+  margin: 0;
+}
+
+.dp-registry-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.dp-registry-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 700px) {
+  .dp-registry-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dp-registry-card {
+  background: var(--sabi-surface);
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-lg);
+  padding: 16px;
+}
+
+.dp-registry-card-active {
+  border-color: var(--sabi-primary-dark);
+  box-shadow: 0 0 0 1px var(--sabi-primary-dark);
+}
+
+.dp-registry-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.dp-registry-card-name-block {
+  flex: 1;
+  min-width: 0;
+}
+
+.dp-registry-card-name {
+  font-weight: 700;
+  font-size: 14.5px;
+}
+
+.dp-registry-card-sub {
+  font-size: 12px;
+  color: var(--sabi-text-secondary);
+  margin-top: 2px;
+}
+
+.dp-risk-tag {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.dp-risk-stable {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.dp-risk-followup {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.dp-risk-critical {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.dp-registry-card-dates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  background: var(--sabi-surface-muted);
+  border-radius: var(--sabi-radius-sm);
+  padding: 10px 12px;
+  font-size: 12.5px;
+  margin-bottom: 12px;
+}
+
+.dp-registry-card-date-label {
+  font-size: 10.5px;
+  color: var(--sabi-text-secondary);
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.dp-registry-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.dp-registry-right {
+  background: var(--sabi-surface);
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-lg);
+  padding: 20px;
+  position: sticky;
+  top: 20px;
+}
+
+.dp-registry-detail-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.dp-registry-detail-name-block {
+  flex: 1;
+}
+
+.dp-registry-detail-name-block h2 {
+  font-size: 18px;
+  margin: 0 0 2px;
+}
+
+.dp-registry-detail-name-block p {
+  font-size: 12.5px;
+  color: var(--sabi-text-secondary);
+  margin: 0;
+}
+
+.dp-registry-detail-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.dp-registry-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sabi-text-secondary);
+  margin: 20px 0 10px;
+}
+
+.dp-registry-section-label:first-of-type {
+  margin-top: 0;
+}
+
+.dp-shared-context {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dp-shared-context-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--sabi-surface-muted);
+  border-radius: var(--sabi-radius-sm);
+  padding: 10px 12px;
+}
+
+.dp-shared-context-label {
+  font-size: 11.5px;
+  color: var(--sabi-text-secondary);
+  margin-bottom: 3px;
+}
+
+.dp-shared-context-value {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.dp-shared-context-hidden {
+  color: var(--sabi-text-secondary);
+  font-weight: 400;
+  font-style: italic;
+}
+
+.dp-shared-context-allergy {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sabi-danger);
+}
+
+.dp-clinical-history {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dp-clinical-history-row {
+  display: flex;
+  gap: 10px;
+}
+
+.dp-clinical-history-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sabi-primary-dark);
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.dp-clinical-history-card {
+  flex: 1;
+  background: var(--sabi-surface-muted);
+  border-radius: var(--sabi-radius-sm);
+  padding: 10px 12px;
+}
+
+.dp-clinical-history-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.dp-clinical-history-top span {
+  font-size: 11px;
+  color: var(--sabi-text-secondary);
+}
+
+.dp-clinical-history-card p {
+  font-size: 12.5px;
+  color: var(--sabi-text-secondary);
+  margin: 0 0 6px;
+  line-height: 1.5;
+}
+
+.dp-clinical-history-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dp-clinical-history-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--sabi-primary-dark);
+  font-weight: 600;
+}
+
+.dp-recent-rx-table {
+  background: var(--sabi-surface-muted);
+  border-radius: var(--sabi-radius-sm);
+  overflow: hidden;
+}
+
+.dp-recent-rx-header,
+.dp-recent-rx-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 0.7fr;
+  gap: 8px;
+  padding: 9px 12px;
+  font-size: 12px;
+}
+
+.dp-recent-rx-header {
+  font-weight: 700;
+  color: var(--sabi-text-secondary);
+  font-size: 10.5px;
+  text-transform: uppercase;
+}
+
+.dp-recent-rx-row {
+  border-top: 1px solid var(--sabi-border);
+}

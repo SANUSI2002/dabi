@@ -1,0 +1,298 @@
+/* =============================================================
+   Sidebar.css — Doctor Portal Navigation
+   ============================================================= */
+
+/* ─── Sidebar shell ─────────────────────────────────────────── */
+.dp-sidebar {
+  width: 256px;
+  min-width: 256px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  background: var(--sabi-surface);
+  border-right: 1px solid var(--sabi-border);
+  display: flex;
+  flex-direction: column;
+  padding: 24px 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  /* Smooth desktop collapse animation */
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── Collapsed state (desktop only) ─────────────────────────
+   Width shrinks to icon-only mode.
+   All text is hidden; icons remain visible and centered.
+   ────────────────────────────────────────────────────────────── */
+.dp-sidebar.dp-sidebar-collapsed {
+  width: 72px;
+  min-width: 72px;
+}
+
+/* Hide text labels in collapsed state */
+.dp-sidebar.dp-sidebar-collapsed .dp-sidebar-brand-text,
+.dp-sidebar.dp-sidebar-collapsed .dp-sidebar-link>span,
+.dp-sidebar.dp-sidebar-collapsed .dp-sidebar-profile>span {
+  /* Visually hidden but let the sidebar width transition do the clipping */
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+/* Center icons when collapsed */
+.dp-sidebar.dp-sidebar-collapsed .dp-sidebar-link,
+.dp-sidebar.dp-sidebar-collapsed .dp-sidebar-profile {
+  justify-content: center;
+  padding: 10px 0;
+  gap: 0;
+}
+
+/* Brand area in collapsed mode: stack icon + toggle vertically */
+.dp-sidebar.dp-sidebar-collapsed .dp-sidebar-brand {
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 20px;
+}
+
+.dp-sidebar.dp-sidebar-collapsed .dp-sidebar-toggle {
+  margin-left: 0;
+}
+
+/* Footer centering when collapsed */
+.dp-sidebar.dp-sidebar-collapsed .dp-sidebar-footer {
+  align-items: center;
+}
+
+/* ─── Brand ──────────────────────────────────────────────────── */
+.dp-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 4px 24px;
+}
+
+.dp-sidebar-brand-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--sabi-radius-sm);
+  background: var(--sabi-primary-light);
+  color: var(--sabi-primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dp-sidebar-brand-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.dp-sidebar-brand-name {
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--sabi-primary-dark);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.dp-sidebar-brand-sub {
+  font-size: 12px;
+  color: var(--sabi-text-secondary);
+  white-space: nowrap;
+}
+
+/* ─── Collapse/expand toggle button ─────────────────────────── */
+.dp-sidebar-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  margin-left: auto;
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-sm);
+  background: transparent;
+  color: var(--sabi-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.dp-sidebar-toggle:hover {
+  background: var(--sabi-surface-muted);
+  color: var(--sabi-primary-dark);
+  border-color: var(--sabi-border-strong);
+}
+
+/* Hidden on mobile — mobile uses the hamburger in Topbar instead */
+@media (max-width: 900px) {
+  .dp-sidebar-toggle {
+    display: none;
+  }
+}
+
+/* ─── Mobile close button ────────────────────────────────────── */
+.dp-sidebar-close {
+  display: none;
+  /* shown only at ≤900px */
+  position: absolute;
+  top: 16px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: var(--sabi-surface-muted);
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--sabi-text-secondary);
+}
+
+/* ─── Main nav list ──────────────────────────────────────────── */
+.dp-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+/* ─── Nav link — base (shared by all items incl. Profile) ─────
+   NOTE: .dp-sidebar-profile also receives these base styles via
+   the rule below. The old code mistakenly gave Profile a permanent
+   teal background here — that is now removed.
+   ────────────────────────────────────────────────────────────── */
+.dp-sidebar-link,
+.dp-sidebar-profile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--sabi-radius-sm);
+  color: var(--sabi-text-primary);
+  font-size: 14.5px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+/* Hover for regular links */
+.dp-sidebar-link:hover {
+  background: var(--sabi-surface-muted);
+}
+
+/* Animated active indicator (framer-motion shared layoutId) */
+.dp-sidebar-active-indicator {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--sabi-primary-dark);
+
+
+  z-index: 0;
+}
+
+/* Active regular link — teal text on top of the indicator */
+.dp-sidebar-link-active {
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ─── Footer (Profile + Settings) ────────────────────────────── */
+.dp-sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 16px;
+  border-top: 1px solid var(--sabi-border);
+  margin-top: 16px;
+}
+
+/* ─── Profile link ────────────────────────────────────────────
+   BUG FIX: Base class must NOT carry the teal background.
+   Only dp-sidebar-profile-active (applied when on /profile)
+   should show the highlighted state.
+   ─────────────────────────────────────────────────────────── */
+
+/* Hover for Profile when NOT active */
+.dp-sidebar-profile:not(.dp-sidebar-profile-active):hover {
+  background: var(--sabi-surface-muted);
+}
+
+/* Active Profile — teal bg + white text, only on /profile route */
+.dp-sidebar-profile-active {
+  background: var(--sabi-primary-dark);
+  color: #fff;
+}
+
+.dp-sidebar-profile-active:hover {
+  background: var(--sabi-primary-dark);
+  opacity: 0.9;
+}
+
+/* ─── Mobile — sidebar slides in as a drawer ─────────────────── */
+@media (max-width: 900px) {
+  .dp-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 40;
+    transform: translateX(-100%);
+    /* Override the desktop collapse transition on mobile */
+    transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.14);
+    padding-top: 60px;
+    /* clear the mobile close button */
+
+    /* On mobile, always show the full sidebar regardless of collapsed state */
+    width: 256px !important;
+    min-width: 256px !important;
+  }
+
+  .dp-sidebar.dp-sidebar-open {
+    transform: translateX(0);
+  }
+
+  /* On mobile, ALWAYS show labels — collapsed state doesn't apply */
+  .dp-sidebar.dp-sidebar-collapsed .dp-sidebar-brand-text,
+  .dp-sidebar.dp-sidebar-collapsed .dp-sidebar-link>span,
+  .dp-sidebar.dp-sidebar-collapsed .dp-sidebar-profile>span {
+    opacity: 1;
+    width: auto;
+    overflow: visible;
+    pointer-events: auto;
+  }
+
+  .dp-sidebar.dp-sidebar-collapsed .dp-sidebar-link,
+  .dp-sidebar.dp-sidebar-collapsed .dp-sidebar-profile {
+    justify-content: flex-start;
+    padding: 10px 12px;
+    gap: 12px;
+  }
+
+  .dp-sidebar.dp-sidebar-collapsed .dp-sidebar-brand {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 0 4px 24px;
+  }
+
+  .dp-sidebar.dp-sidebar-collapsed .dp-sidebar-footer {
+    align-items: stretch;
+  }
+
+  .dp-sidebar-close {
+    display: flex;
+  }
+}

@@ -1,0 +1,127 @@
+.dp-reports-heading h1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 22px;
+  margin: 0 0 4px;
+}
+
+.dp-reports-heading p {
+  color: var(--sabi-text-secondary);
+  font-size: 14px;
+  margin: 0 0 18px;
+}
+
+.dp-reports-filter-tabs {
+  border-bottom: none;
+  gap: 6px;
+  margin-bottom: 0;
+}
+
+.dp-reports-filter-tabs .dp-tab {
+  padding: 8px 14px;
+  border: 1px solid var(--sabi-border);
+  border-radius: 999px;
+}
+
+.dp-reports-filter-tabs .dp-tab-active {
+  background: var(--sabi-primary-light);
+  border-color: var(--sabi-primary-dark);
+}
+
+.dp-report-table-header,
+.dp-report-table-row {
+  grid-template-columns: 1.1fr 0.8fr 1.6fr 0.8fr 0.9fr;
+}
+
+.dp-report-detail {
+  max-width: 900px;
+}
+
+.dp-report-back {
+  margin-bottom: 12px;
+}
+
+.dp-report-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.dp-report-detail-header h1 {
+  font-size: 21px;
+  margin: 0;
+}
+
+.dp-report-patient-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.dp-report-patient-card span {
+  color: var(--sabi-text-secondary);
+  font-size: 13px;
+}
+
+.dp-report-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 800px) {
+  .dp-report-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dp-report-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sabi-text-secondary);
+  margin-bottom: 14px;
+}
+
+.dp-report-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13.5px;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--sabi-border);
+}
+
+.dp-report-field span {
+  color: var(--sabi-text-secondary);
+  font-size: 12px;
+}
+
+.dp-report-message {
+  width: 100%;
+  border: 1px solid var(--sabi-border);
+  border-radius: var(--sabi-radius-sm);
+  padding: 12px;
+  font-size: 13.5px;
+  font-family: var(--sabi-font-family);
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.dp-report-patient-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dp-report-avatar {
+  width: 30px;
+  height: 30px;
+  font-size: 11px;
+}

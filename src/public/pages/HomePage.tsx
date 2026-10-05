@@ -4,7 +4,7 @@ import { ArrowDown, ArrowRight, BrainCircuit, Building2, CheckCircle2, CircleUse
 import { motion, useReducedMotion } from "framer-motion";
 import { PublicCta, ProductWindow, SectionHeading, Status, JourneyMap } from "@/public/components";
 import { categoryCards } from "@/public/content";
-import { EMR_SIGN_IN_URL, PHARMACY_SIGN_IN_URL, TELEMEDICINE_SIGN_IN_URL } from "@/public/ecosystemLinks";
+import { DOCTOR_SIGN_IN_URL, EMR_SIGN_IN_URL, PHARMACY_SIGN_IN_URL, TELEMEDICINE_SIGN_IN_URL } from "@/public/ecosystemLinks";
 import { MobileSlider } from "@/public/MobileSlider";
 
 const flow = ["Registration", "Consultation", "Laboratory", "Pharmacy", "Billing", "Follow-up"];
@@ -22,6 +22,7 @@ export default function HomePage() {
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-brand-300/20 bg-brand-300/10 px-3 py-1.5 text-xs font-bold text-brand-200"><Sparkles size={13} /> Intelligent Healthcare. Connected.</div>
             <h1 className="text-balance font-display text-[clamp(2.65rem,11vw,3.75rem)] font-extrabold leading-[.98] tracking-[-0.055em] sm:text-6xl xl:text-7xl">Healthcare,<br /><span className="text-brand-300">intelligently</span> connected.</h1>
             <p className="mt-7 max-w-xl text-lg leading-8 text-emerald-50/70">Book online care as a patient, or run your healthcare organization with Sabi OS—all within one connected healthcare ecosystem.</p>
+            <a href={DOCTOR_SIGN_IN_URL} className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-brand-200 hover:text-white">For doctors: open your workspace <ArrowRight size={14} /></a>
             <div className="mt-9 flex flex-wrap gap-3"><a href={TELEMEDICINE_SIGN_IN_URL} className="public-button-primary">Book a Consultation <ArrowRight size={16}/></a><PublicCta to="/register/organization" secondary>Register Healthcare Organization</PublicCta></div>
             <div className="mt-10 flex flex-wrap items-center gap-x-7 gap-y-3 border-t border-white/10 pt-6 text-xs font-semibold text-white/50"><span className="inline-flex items-center gap-2"><ShieldCheck size={15} className="text-brand-300" /> Tenant-aware architecture</span><span className="inline-flex items-center gap-2"><Workflow size={15} className="text-brand-300" /> Connected workflows</span><span className="inline-flex items-center gap-2"><CircleUserRound size={15} className="text-brand-300" /> Human-centred care</span></div>
           </motion.div>

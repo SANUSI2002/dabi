@@ -17,7 +17,7 @@ import {
   Sparkles,
   MoreHorizontal,
 } from "lucide-react";
-import { HOSPITAL_ONBOARDING_URL } from "../../ecosystemLinks";
+import { HOSPITAL_ONBOARDING_URL, DOCTOR_PORTAL_URL } from "../../ecosystemLinks";
 
 const VIDEO_SRC = "https://assets.mixkit.co/videos/29933/29933-720.mp4";
 
@@ -84,6 +84,10 @@ export default function AccountTypeSelection() {
   const [category, setCategory] = useState(null); // null | "personal" | "professional"
 
   const goToForm = (category_, slug) => {
+    if (category_ === "professional" && slug === "doctor") {
+      window.location.assign(`${DOCTOR_PORTAL_URL}/register`);
+      return;
+    }
     if (category_ === "personal") {
       navigate(`/signup/${slug}`);
     } else {
