@@ -51,6 +51,22 @@ test("simultaneous restores share a single refresh and outages stay retriable", 
   assert.equal(calls.filter((r) => r.path.endsWith("/refresh")).length, 1); assert.equal(results.every((r) => r.doctor.id === "profile-1"), true);
   await assert.rejects(harness({ unavailable: true }).client.restore(), { status: 503 });
 });
+test("pending doctors can complete only their onboarding, not clinical calls", async () => {
+  const { client, calls } = harness({ profile: { ...professional, verificationStatus: "PENDING" } });
+  await client.signIn("doctor@example.test", "synthetic");
+  await client.onboarding("/doctors/me");
+  await client.onboarding("/doctors/applications/11111111-1111-4111-8111-111111111111/credentials/licence", { method: "PUT", headers: { "Content-Type": "application/pdf" }, body: "synthetic" });
+  assert.equal(calls.at(-1).options.headers.Authorization, "Bearer server-token");
+  assert.equal(calls.at(-1).options.headers["Content-Type"], "application/pdf");
+  await assert.rejects(client.onboarding("/doctor-care/records"), /Invalid onboarding/);
+  await assert.rejects(client.authenticated("/doctor-care/records"), { status: 401 });
+});
+test("suspended and email-unverified doctors cannot upload credentials", async () => {
+  for (const options of [{ profile: { ...professional, verificationStatus: "SUSPENDED" } }, { person: { ...user, emailVerifiedAt: null } }]) {
+    const { client } = harness(options); await client.signIn("doctor@example.test", "synthetic");
+    await assert.rejects(client.onboarding("/doctors/me"), { status: 401 });
+  }
+});
 test("duplicate names and dependents retain separate server identities", () => {
   const rows = [{ id: "one", patient: { userId: "a", name: "Same Name" } }, { id: "two", patient: { userId: "b", name: "Same Name" } }, { id: "three", patient: { userId: "a", name: "Same Name" }, dependentId: "child", dependent: { name: "Same Name" } }];
   assert.equal(groupPatients(rows).length, 3);

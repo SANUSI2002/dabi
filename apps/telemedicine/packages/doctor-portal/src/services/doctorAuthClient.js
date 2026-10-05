@@ -69,6 +69,21 @@ export function createDoctorAuthClient({ base, fetcher = (...args) => fetch(...a
   }
   return {
     restore, authenticated,
+    publicRequest: request,
+    onboarding: async (path, options = {}) => {
+      if (!/^\/doctors\/(me|applications\/[0-9a-f-]{36}\/(submit|credentials\/(licence|registrationCertificate)))$/.test(path)) throw new Error("Invalid onboarding request.");
+      if (!accessToken) await restore();
+      if (!accessToken || sessionDoctor?.accountStatus !== "active" || !sessionDoctor.emailVerified || sessionDoctor.verificationStatus === "SUSPENDED") throw Object.assign(new Error("Verify your email, then sign in to complete your application."), { status: 401 });
+      const used = accessToken;
+      try { return await request(path, options); }
+      catch (error) {
+        if (error.status !== 401) throw error;
+        if (accessToken === used) accessToken = null;
+        await restore();
+        if (!accessToken) throw error;
+        return request(path, options);
+      }
+    },
     signIn: async (email, password) => {
       accessToken = null;
       sessionDoctor = null;

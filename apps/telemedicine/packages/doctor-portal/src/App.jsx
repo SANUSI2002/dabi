@@ -50,6 +50,7 @@ export default function App() {
         <Route path="/forgot-password" element={<SignInPage key="recovery" recovery />} />
         <Route path="/registration/status" element={<RegistrationStatusPage />} />
         <Route path="/verify-email" element={<RegistrationStatusPage verification />} />
+        <Route path="/verify-email/:uid" element={<RegistrationStatusPage verification />} />
         <Route path="/preview" element={PREVIEW_ENABLED ? <PortalPreviewPage /> : <Navigate to="/login" replace />} />
         <Route path="/switch-doctor" element={<Navigate to="/register" replace />} />
         {doctor ? doctor.isDemo ? <>

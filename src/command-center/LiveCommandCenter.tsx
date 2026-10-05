@@ -10,6 +10,7 @@ import { CommandPageHeader, MetricCard, Panel, PanelHeader, StatusPill } from '.
 import { cn } from '@/lib/cn';
 import LivePackagesPage from './LivePackagesPage';
 import LiveApplicationsPage from './LiveApplicationsPage';
+import LiveDoctorsPage from './LiveDoctorsPage';
 import { livePlatformApplications, type LivePlatformApplication } from '@/registration/livePlatform';
 
 const PRODUCTS: { value: ProductContext; label: string }[] = [
@@ -137,6 +138,8 @@ export default function LiveCommandCenter() {
     content = hasRegistry ? <LiveApplicationsPage canApprove={!!identity?.platform?.permissions.includes('platform.onboarding.approve')} /> : <UnavailableSection title="Verification center" />;
   } else if (path === '/command-center/internal-users') {
     content = <><CommandPageHeader eyebrow="Administration" title="Internal users" description="Invite Command Center staff by email with a server-enforced role." />{hasInvites ? <InvitationManager title="Command Center staff invitations" /> : <Panel><p className="p-5 text-sm text-slate-600">Your platform role does not permit staff invitations.</p></Panel>}</>;
+  } else if (path === '/command-center/sabi-health/doctors' || path.startsWith('/command-center/sabi-health/doctors/')) {
+    content = hasRegistry ? <LiveDoctorsPage canApprove={!!identity?.platform?.permissions.includes('platform.onboarding.approve')} userId={identity?.user.id || ''} /> : <UnavailableSection title="Doctor applications" />;
   } else {
     content = <UnavailableSection title={section?.label ?? 'Command Center'} />;
   }

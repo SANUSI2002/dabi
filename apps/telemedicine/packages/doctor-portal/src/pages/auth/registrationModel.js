@@ -14,13 +14,13 @@ export function passwordError(password) {
   if (password.length > 128) return "Use 128 characters or fewer.";
   return "";
 }
-export function documentError(file) {
+export function documentError(file, maxBytes = 5 * 1024 * 1024) {
   if (!file) return "Attach this document to continue.";
   if (!["application/pdf", "image/jpeg", "image/png"].includes(file.type)) return "Choose a PDF, JPG or PNG file.";
-  if (file.size === 0 || file.size > 5 * 1024 * 1024) return "Choose a file between 1 byte and 5 MB.";
+  if (file.size === 0 || file.size > maxBytes) return `Choose a file between 1 byte and ${(maxBytes / 1000000).toFixed(1)} MB.`;
   return "";
 }
-export function validateRegistrationStep(step, values, documents, today = new Date()) {
+export function validateRegistrationStep(step, values, documents, today = new Date(), requireDocuments = true) {
   const errors = {};
   const require = (key, message) => { if (!String(values[key] ?? "").trim()) errors[key] = message; };
   if (step === 0) {
@@ -45,8 +45,9 @@ export function validateRegistrationStep(step, values, documents, today = new Da
   }
   if (step === 2) {
     if (!["annual", "life"].includes(values.licenceType)) errors.licenceType = "Select your licence type.";
-    for (const key of ["licence", "registrationCertificate"]) { const error = documentError(documents[key]); if (error) errors[key] = error; }
-    if (values.licenceType === "annual" && (!/^\d{4}-\d{2}-\d{2}$/.test(values.licenceExpiry) || values.licenceExpiry < toISO(today))) errors.licenceExpiry = "Provide the expiry date of your current practising licence.";
+    if (requireDocuments) for (const key of ["licence", "registrationCertificate"]) { const error = documentError(documents[key]); if (error) errors[key] = error; }
+    const expiry = new Date(`${values.licenceExpiry}T00:00:00Z`);
+    if (values.licenceType === "annual" && (!Number.isFinite(expiry.getTime()) || expiry.toISOString().slice(0, 10) !== values.licenceExpiry || values.licenceExpiry < toISO(today))) errors.licenceExpiry = "Provide the expiry date of your current practising licence.";
   }
   if (step === 3) {
     if (!values.declaration) errors.declaration = "Confirm that your information is accurate.";

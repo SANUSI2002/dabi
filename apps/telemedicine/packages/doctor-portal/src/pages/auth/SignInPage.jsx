@@ -27,14 +27,18 @@ export default function SignInPage({ recovery = false }) {
       const result = challenge ? await verifySignIn(challenge, code, useRecovery) : await signInDoctor(canonicalEmail(email), password);
       setPassword(""); setCode("");
       if (result.mfaRequired && result.challengeId) { setChallenge(result.challengeId); return; }
-      if (result.doctor?.verificationStatus === "SUSPENDED" || result.doctor?.verificationStatus === "REJECTED" || result.doctor?.accountStatus !== "active") {
+      if (result.doctor?.verificationStatus === "SUSPENDED" || result.doctor?.accountStatus !== "active") {
         setNotice("Your doctor account is not active. Please contact Sabi Health support."); return;
       }
       if (!result.doctor?.emailVerified || !result.doctor?.licenceVerified) {
         navigate("/registration/status", { state: { mode: "account", status: result.doctor?.emailVerified ? "review_pending" : "email_pending", email } }); return;
       }
       activateDoctorSession(result.doctor); navigate("/dashboard", { replace: true });
-    } catch (error) { setNotice(error.name === "TimeoutError" ? "This request took too long. Please try again." : error.message); }
+    } catch (error) {
+      setPassword("");
+      if (error.code === "EMAIL_VERIFICATION_REQUIRED") navigate("/registration/status", { state: { email, status: "email_pending" } });
+      else setNotice(error.name === "TimeoutError" ? "This request took too long. Please try again." : error.message);
+    }
     finally { setBusy(false); }
   }
   return <AuthLayout compact>
