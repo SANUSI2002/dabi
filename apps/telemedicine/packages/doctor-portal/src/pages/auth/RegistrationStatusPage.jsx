@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { Mail, ShieldCheck } from "lucide-react";
 import AuthLayout from "./AuthLayout";
@@ -20,38 +20,70 @@ export default function RegistrationStatusPage({ verification = false }) {
   const [notice, setNotice] = useState("");
   const [sessionNotice, setSessionNotice] = useState("");
   const [files, setFiles] = useState({});
+  const [uploadErrors, setUploadErrors] = useState({});
+  const working = useRef(false);
+  const refreshing = useRef(null);
+  const revision = useRef(0);
   const preview = result.mode === "preview";
   useEffect(() => {
     if (verification && location.hash) window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
   }, [verification, location.hash]);
-  async function refresh() {
-    setLoading(true); setSessionNotice("");
-    try { setApplication((await doctorOnboardingRequest("/doctors/me")).data); }
-    catch (error) { setSessionNotice(error.message); }
-    finally { setLoading(false); }
+  async function refresh(silent = false) {
+    if (refreshing.current) { if (silent) return; await refreshing.current; }
+    const version = revision.current;
+    const pending = (async () => {
+      if (!silent) setLoading(true);
+      setSessionNotice("");
+      try { const result = await doctorOnboardingRequest("/doctors/me"); if (version === revision.current) setApplication(result.data); }
+      catch (error) { setSessionNotice(error.message); }
+      finally { if (!silent) setLoading(false); }
+    })();
+    refreshing.current = pending;
+    await pending;
+    if (refreshing.current === pending) refreshing.current = null;
   }
   useEffect(() => { if (AUTH_CONFIGURED && !preview && !verification) refresh(); }, [preview, verification]);
+  useEffect(() => {
+    if (!application || application.status !== "PENDING" || !application.credentials.length) return;
+    const timer = setInterval(() => { if (!working.current && document.visibilityState === "visible") refresh(true); }, 10000);
+    return () => clearInterval(timer);
+  }, [application?.applicationId, application?.status, application?.credentials.length]);
   async function action(name, work) {
-    if (busy) return;
+    if (working.current) return;
+    working.current = true;
     setBusy(name); setNotice("");
     try { await work(); }
     catch (error) { setNotice(error.name === "TimeoutError" ? "This request took too long. Try again; your account has not been duplicated." : error.message); }
-    finally { setBusy(""); }
+    finally { working.current = false; setBusy(""); }
   }
-  async function upload(kind) {
-    const file = files[kind];
+  async function upload(kind, file) {
     const error = documentError(file, application.maxUploadBytes);
     if (error) throw new Error(error);
-    await doctorOnboardingRequest(`/doctors/applications/${application.applicationId}/credentials/${kind}`, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
-    setFiles((current) => ({ ...current, [kind]: null }));
-    await refresh();
-    setNotice("Document uploaded privately. Malware screening runs in the background. Submit both documents for staff review.");
+    setUploadErrors((current) => ({ ...current, [kind]: "" }));
+    try {
+      const response = await doctorOnboardingRequest(`/doctors/applications/${application.applicationId}/credentials/${kind}`, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
+      revision.current += 1;
+      // Invalidate old submission immediately, even if the status refresh fails.
+      setApplication((current) => ({ ...current, submittedAt: null, credentials: [...current.credentials.filter((doc) => doc.kind !== kind), response.data] }));
+      await refresh();
+      setNotice("Document uploaded successfully. Security checks are running in the background.");
+    } catch (cause) {
+      setUploadErrors((current) => ({ ...current, [kind]: cause.name === "TimeoutError" ? "Upload timed out. Refresh your status to check whether it was received before retrying." : cause.message }));
+      throw cause;
+    }
+  }
+  function selectFile(kind, file) {
+    setFiles((current) => ({ ...current, [kind]: file }));
+    setNotice(""); setUploadErrors((current) => ({ ...current, [kind]: "" }));
+    if (!documentError(file, application.maxUploadBytes)) action(kind, () => upload(kind, file));
   }
   return <AuthLayout compact><div className="sh-login-content sh-status-content">
     <div className="sh-status-icon">{application ? <ShieldCheck size={30} /> : <Mail size={30} />}</div>
     <span className="sh-auth-kicker">{preview ? "REGISTRATION PREVIEW" : "DOCTOR APPLICATION"}</span>
-    <h1>{preview ? "Your application is ready" : application?.status === "VERIFIED" ? "Your credentials are approved" : application ? "Complete your credential application" : verified ? "Email verified" : verification ? "Verify your email" : "Verify email, then upload credentials"}</h1>
-    <p>{preview ? "No account has been created, no documents uploaded and no email sent in this local preview." : verified ? "Your email is verified. Sign in with the password you chose to upload your credentials." : application?.status === "VERIFIED" ? "Sabi operations has approved your credentials. Sign in again to open your clinical workspace." : "Registration → email verification → private credential upload → malware screening → staff authenticity review → workspace approval."}</p>
+    <h1>{preview ? "Your application is ready" : application?.status === "VERIFIED" ? "Your credentials are approved" : application?.submittedAt ? "Application submitted successfully" : application ? "Upload your credentials" : verified ? "Email verified" : verification ? "Verify your email" : "Verify email, then upload credentials"}</h1>
+    <p>{preview ? "No account has been created, no documents uploaded and no email sent in this local preview." : verified ? "Your email is verified. Sign in with the password you chose to upload your credentials." : application?.status === "VERIFIED" ? "Sabi operations has approved your credentials. Sign in again to open your clinical workspace." : "Choose both documents below. They upload automatically and are checked for malware in the background. Sabi operations will preview and review them in Command Center."}</p>
+    {application?.submittedAt && application.status === "PENDING" && <section className="sh-submission-success" role="status"><h2>Thank you — we have received your application</h2><p>Your documents have been sent to Sabi operations for review. You do not need to upload them again. We will email you when your doctor workspace is approved.</p><p>Submitted: {new Date(application.submittedAt).toLocaleString()}<br />Reference: {application.applicationId}</p></section>}
+    {notice && <div className="sh-form-notice" role="status">{notice}</div>}
     {!preview && !application && <>
       {verification && !verified && token && uid && <button className="sh-primary-button" disabled={!!busy} onClick={() => action("verify", async () => { await verifyEmail(uid, token); setVerified(true); })}>{busy === "verify" ? "Verifying…" : "Verify email"}</button>}
       {verification && !token && !verified && <p className="sh-form-notice">Open the full link in your verification email. If it has expired or was already used, request a new email below or try signing in.</p>}
@@ -72,15 +104,13 @@ export default function RegistrationStatusPage({ verification = false }) {
         {kinds.map(([kind, label]) => {
           const document = application.credentials.find((item) => item.kind === kind);
           return <CredentialUpload key={kind} kind={kind} label={label} document={document} file={files[kind]} maxBytes={application.maxUploadBytes} busy={busy}
-            onSelect={(selectedKind, file) => { setFiles((current) => ({ ...current, [selectedKind]: file })); setNotice(""); }}
-            onUpload={(selectedKind) => action(selectedKind, () => upload(selectedKind))} />;
+            uploadError={uploadErrors[kind]} onSelect={selectFile}
+            onRetry={(selectedKind, file) => action(selectedKind, () => upload(selectedKind, file))} />;
         })}
-        <button className="sh-primary-button" disabled={!!busy || !!application.submittedAt || application.credentials.length !== 2} onClick={() => action("submit", async () => { await doctorOnboardingRequest(`/doctors/applications/${application.applicationId}/submit`, { method: "POST", body: "{}" }); await refresh(); setNotice("Submitted to Sabi operations. Screening and independent authenticity review must complete before approval."); })}>{busy === "submit" ? "Submitting…" : application.submittedAt ? "Submitted for review" : "Submit credentials for review"}</button>
-        <div className="sh-status-timeline">{application.blockers.map((blocker) => <p key={blocker}>{blocker}</p>)}</div>
+        {!application.submittedAt && <button className="sh-primary-button" disabled={!!busy || Object.values(uploadErrors).some(Boolean) || Object.values(files).some((file) => documentError(file, application.maxUploadBytes)) || application.credentials.length !== 2} onClick={() => action("submit", async () => { const response = await doctorOnboardingRequest(`/doctors/applications/${application.applicationId}/submit`, { method: "POST", body: "{}" }); revision.current += 1; setApplication((current) => ({ ...current, submittedAt: response.data?.submittedAt || new Date().toISOString() })); await refresh(); setNotice("Your application was submitted successfully. Sabi operations will review your documents."); window.scrollTo({ top: 0, behavior: "smooth" }); })}>{busy === "submit" ? "Submitting…" : "Submit application"}</button>}
       </>}
-      <button className="sh-inline-link" disabled={loading || !!busy} onClick={refresh}>Refresh application status</button>
+      <button className="sh-inline-link" disabled={loading || !!busy} onClick={() => refresh()}>Refresh application status</button>
     </>}
-    {notice && <div className="sh-form-notice" role="status">{notice}</div>}
     <div className="sh-status-links"><Link to={preview ? "/register" : "/login"}>{preview ? "Start a new application" : "Sign in"}</Link><Link to="/register">Doctor registration</Link>{preview && <Link to="/preview">Explore local preview</Link>}</div>
   </div></AuthLayout>;
 }

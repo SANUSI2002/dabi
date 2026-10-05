@@ -130,3 +130,6 @@
 .sh-credential-upload input[type="file"] { height: auto; min-height: 43px; padding: 10px; }
 .sh-credential-upload > .sh-secondary-button { color: #576d5c; background: #fff; border: 1px solid #dce4dd; }
 .sh-credential-upload > .sh-secondary-button:disabled { cursor: not-allowed; }
+.sh-submission-success { margin: 22px 0; padding: 20px; border: 1px solid #9dd8b9; border-radius: 12px; background: #eaf8ef; color: #075b43; }
+.sh-submission-success h2 { margin: 0 0 10px; font-size: 18px; }
+.sh-submission-success p { font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
