@@ -25,8 +25,8 @@ export type LivePlatformApplicationDetail = LivePlatformApplication & {
 };
 export type LiveApprovalReadiness = { ready: boolean; requiredEvidence: string[]; blockers: string[] };
 export type LiveReviewNote = { id: string; reviewerId: string; note: string; createdAt: string };
-export type LiveEvidence = { id: string; requirementKey: string; fileName: string; contentType: string; sizeBytes: number; sha256: string; scanStatus: string; unscannedExceptionAt?: string | null; reviewStatus: string; createdAt: string };
-export type LiveEvidenceList = { requiredEvidence: string[] | null; items: LiveEvidence[] };
+export type LiveEvidence = { id: string; requirementKey: string; fileName: string; contentType: string; sizeBytes: number; sha256: string; scanStatus: string; scanErrorCode?: string | null; unscannedExceptionAt?: string | null; reviewStatus: string; createdAt: string };
+export type LiveEvidenceList = { requiredEvidence: string[] | null; items: LiveEvidence[]; maxUploadBytes?: number; scannerProvider?: string | null };
 
 export const livePublicPackages = () => liveApiRequest<{ data: { items: LivePackage[] } }>('/api/v1/catalog/packages');
 export const livePlatformPackages = () => liveApiRequest<{ data: { items: LivePackage[] } }>('/api/v1/platform/packages');
@@ -47,9 +47,9 @@ export const liveVerifyApplication = (id: string, token: string) => liveApiReque
 export const liveRequestVerificationLink = (id: string, email: string) => liveApiRequest<{ message: string }>(`/api/v1/applications/${encodeURIComponent(id)}/verification-link`, { method: 'POST', body: JSON.stringify({ email }) });
 export const liveRequestEvidenceAccess = (id: string, email: string) => liveApiRequest<{ message: string }>(`/api/v1/applications/${encodeURIComponent(id)}/evidence-access`, { method: 'POST', body: JSON.stringify({ email }) });
 export const liveApplicantEvidence = (id: string, token: string) => liveApiRequest<{ data: LiveEvidenceList }>(`/api/v1/applications/${encodeURIComponent(id)}/evidence`, { headers: { 'X-Sabi-Evidence-Token': token } });
-export async function liveUploadApplicantEvidence(id: string, key: string, token: string, file: File): Promise<{ data: LiveEvidence }> {
+export async function liveUploadApplicantEvidence(id: string, key: string, token: string, file: File, maxBytes = 10 * 1024 * 1024): Promise<{ data: LiveEvidence }> {
   if (!apiBaseUrl) throw new Error('Sabi API is not configured.');
-  if (!['application/pdf', 'image/jpeg', 'image/png'].includes(file.type) || file.size === 0 || file.size > 10 * 1024 * 1024) throw new Error('Select a PDF, JPEG, or PNG file no larger than 10 MB.');
+  if (!['application/pdf', 'image/jpeg', 'image/png'].includes(file.type) || file.size === 0 || file.size > maxBytes) throw new Error(`Select a PDF, JPEG, or PNG file no larger than ${maxBytes / 1000000} MB.`);
   const response = await fetch(`${apiBaseUrl}/api/v1/applications/${encodeURIComponent(id)}/evidence/${encodeURIComponent(key)}`, {
     method: 'PUT', credentials: 'include', headers: { 'Content-Type': file.type, 'X-Sabi-Client': 'browser', 'X-Sabi-Evidence-Token': token }, body: file,
   });
@@ -59,6 +59,7 @@ export async function liveUploadApplicantEvidence(id: string, key: string, token
 }
 export const livePlatformEvidence = (id: string) => liveApiRequest<{ data: { items: LiveEvidence[]; previewAvailable: boolean; unscannedExceptionAvailable: boolean } }>(`/api/v1/platform/applications/${encodeURIComponent(id)}/evidence`);
 export const liveEvidencePreview = (applicationId: string, evidenceId: string) => liveApiRequest<{ data: { url: string; expiresInSeconds: number } }>(`/api/v1/platform/applications/${encodeURIComponent(applicationId)}/evidence/${encodeURIComponent(evidenceId)}/preview`);
+export const liveRetryEvidenceScan = (applicationId: string, evidenceId: string) => liveApiRequest<{ data: { id: string; scanStatus: string } }>(`/api/v1/platform/applications/${encodeURIComponent(applicationId)}/evidence/${encodeURIComponent(evidenceId)}/retry-scan`, { method: 'POST', body: '{}' });
 export const liveUnscannedEvidenceDownload = (applicationId: string, evidenceId: string) => liveApiRequest<{ data: { url: string; sha256: string; expiresInSeconds: number; warning: string } }>(`/api/v1/platform/applications/${encodeURIComponent(applicationId)}/evidence/${encodeURIComponent(evidenceId)}/unscanned-download`);
 export const liveAcceptUnscannedException = (applicationId: string, evidenceId: string, sha256: string, note: string) => liveApiRequest<{ data: { id: string; scanStatus: string; unscannedExceptionAt: string } }>(`/api/v1/platform/applications/${encodeURIComponent(applicationId)}/evidence/${encodeURIComponent(evidenceId)}/unscanned-exception`, { method: 'POST', body: JSON.stringify({ sha256, note, acknowledgement: 'I ACCEPT THE UNSCANNED DOCUMENT RISK' }) });
 export const liveReviewEvidence = (applicationId: string, evidenceId: string, decision: { decision: 'VERIFIED'; sourceName: string; reference: string; note?: string } | { decision: 'REJECTED'; note: string }) => liveApiRequest<{ data: { id: string; reviewStatus: string; reviewedAt: string } }>(`/api/v1/platform/applications/${encodeURIComponent(applicationId)}/evidence/${encodeURIComponent(evidenceId)}/review`, { method: 'POST', body: JSON.stringify(decision) });

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AlertTriangle, ArrowLeft, ClipboardCheck, Loader2 } from 'lucide-react';
 import { liveAcceptUnscannedException, liveAddReviewNote, liveApprovalReadiness, liveApproveEmr, liveEvidencePreview, livePlatformApplicationDetail, livePlatformApplications, livePlatformEvidence, liveResendEmrSetup, liveReviewEvidence, liveReviewNotes, liveStartApplicationReview, liveUnscannedEvidenceDownload, type LiveApprovalReadiness, type LiveEvidence, type LivePlatformApplication, type LivePlatformApplicationDetail, type LiveReviewNote } from '@/registration/livePlatform';
 import { CommandButton, CommandPageHeader, Panel, PanelHeader, StatusPill } from './components/ui';
+import { liveRetryEvidenceScan } from '@/registration/livePlatform';
 
 const filters = ['SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'NEEDS_INFORMATION', 'REJECTED'] as const;
 type Filter = typeof filters[number];
@@ -74,6 +75,18 @@ function Detail({ application, back, startReview, starting, actionError, onUpdat
       if (url.protocol !== 'https:' || !url.hostname.endsWith('.supabase.co')) throw new Error('The preview URL is not a trusted storage URL.');
       setPreview({ id: evidenceId, url: url.toString() });
     } catch (cause) { setEvidenceActionError(cause instanceof Error ? cause.message : 'Preview is unavailable.'); }
+    finally { setEvidenceBusy(false); }
+  }
+  async function refreshEvidence(retryId?: string) {
+    if (evidenceBusy) return;
+    setEvidenceBusy(true); setEvidenceActionError('');
+    try {
+      if (retryId) await liveRetryEvidenceScan(application.id, retryId);
+      const [documents, gates] = await Promise.all([livePlatformEvidence(application.id), liveApprovalReadiness(application.id)]);
+      setEvidence(documents.data.items); setReadiness(gates.data);
+      setPreviewAvailable(documents.data.previewAvailable); setUnscannedExceptionAvailable(documents.data.unscannedExceptionAvailable);
+      setEvidenceError(''); setReadinessError('');
+    } catch (cause) { setEvidenceActionError(cause instanceof Error ? cause.message : 'Could not refresh scanning status.'); }
     finally { setEvidenceBusy(false); }
   }
   async function requestUnscannedDownload(evidenceId: string) {
@@ -151,7 +164,7 @@ function Detail({ application, back, startReview, starting, actionError, onUpdat
     <Panel className="mb-4"><PanelHeader title="EMR approval gates" description="Checked by the backend. Each document requires an eligible scan state or dated exception, plus an independent authenticity decision."/><div className="p-5 text-sm">{readinessError ? <p role="alert" className="text-red-700">{readinessError}</p> : !readiness ? <p role="status" className="inline-flex items-center gap-2 text-slate-500"><Loader2 size={16} className="animate-spin"/> Checking requirements…</p> : <><p className="font-semibold text-amber-800">{readiness.ready ? 'All checks passed. Approval may now be confirmed.' : `${readiness.blockers.length} approval requirement${readiness.blockers.length === 1 ? '' : 's'} outstanding`}</p><ul className="mt-3 grid gap-2 sm:grid-cols-2">{readiness.blockers.map((blocker) => <li key={blocker} className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">{blocker.replaceAll('_', ' ').replace(':', ': ')}</li>)}</ul></>}</div></Panel>
     {canApprove && (application.status === 'UNDER_REVIEW' || application.status === 'APPROVED') && <Panel className="mb-4"><PanelHeader title="EMR owner access" description="Approval provisions a pending tenant and sends a single-use setup link. No generated password is emailed."/><div className="space-y-3 p-5 text-sm">{application.status === 'UNDER_REVIEW' ? confirmApproval ? <div className="flex flex-wrap items-center gap-2"><p className="w-full text-amber-900">Confirm that all required documents were reviewed and independently verified. This will approve the hospital and email its owner.</p><CommandButton disabled={approving || !readiness?.ready} onClick={approve}>{approving ? 'Approving…' : 'Confirm EMR approval'}</CommandButton><CommandButton variant="secondary" disabled={approving} onClick={() => setConfirmApproval(false)}>Cancel</CommandButton></div> : <CommandButton disabled={!readiness?.ready} onClick={() => setConfirmApproval(true)}>Approve for EMR</CommandButton> : <><p>Approved {application.approvedAt ? new Date(application.approvedAt).toLocaleString() : ''}. {application.setupCompletedAt ? 'Owner account activated.' : 'Awaiting owner password setup.'}</p>{!application.setupCompletedAt && <><p className="text-xs text-slate-500">Initial setup deadline: {application.setupDeadlineAt ? new Date(application.setupDeadlineAt).toLocaleString() : 'Not available'}. Links expire after 48 hours; reissue after 10 minutes if needed.</p><CommandButton disabled={approving} onClick={resendSetup}>{approving ? 'Sending…' : 'Reissue one-time setup link'}</CommandButton></>}</>}{approvalMessage && <p role="status" className="text-emerald-800">{approvalMessage}</p>}{approvalError && <p role="alert" className="text-red-700">{approvalError}</p>}</div></Panel>}
     <Panel className="mb-4">
-      <PanelHeader title="Submitted evidence" description="Append-only document history. Clean files can be previewed; unscanned files require the separate risk exception above."/>
+      <PanelHeader title="Submitted evidence" description="Malware screening runs in the background. Only clean files can be previewed; authenticity must still be verified independently." action={<CommandButton variant="secondary" disabled={evidenceBusy} onClick={() => refreshEvidence()}>{evidenceBusy ? 'Refreshing…' : 'Refresh scan status'}</CommandButton>}/>
       <div className="p-5">
         {evidenceError ? <p role="alert" className="text-sm text-red-700">{evidenceError}</p>
           : evidenceLoading ? <p role="status" className="text-sm text-slate-500">Loading evidence history…</p>
@@ -163,6 +176,9 @@ function Detail({ application, back, startReview, starting, actionError, onUpdat
                 </div>
                 <p className="mt-1 text-xs text-slate-500">{item.fileName} · {Math.round(item.sizeBytes / 1024)} KB · {new Date(item.createdAt).toLocaleString()}</p>
                 <p className="mt-1 break-all font-mono text-[11px] text-slate-500">SHA-256: {item.sha256}</p>
+                {item.scanStatus === 'PENDING' && <p className="mt-2 text-xs text-slate-600">Queued for background screening. Refresh status after a short wait; preview and approval stay blocked until screening completes.</p>}
+                {item.scanStatus === 'FAILED' && <div className="mt-2 text-xs text-red-800"><p>Scanning could not complete ({item.scanErrorCode || 'service unavailable'}). This file has not been declared safe.</p>{item.scanErrorCode === 'CLOUDMERSIVE_FILE_TOO_LARGE' ? <p>Ask the applicant to compress the file and submit a new version within the scanner size limit.</p> : canApprove && previewAvailable && <button className="mt-2 font-bold underline disabled:opacity-50" disabled={evidenceBusy} onClick={() => refreshEvidence(item.id)}>Retry operational scan failure</button>}</div>}
+                {(item.scanStatus === 'INFECTED' || item.scanStatus === 'REJECTED') && <p className="mt-2 text-xs font-semibold text-red-800">Blocked by malware/content screening. Do not open this file. Ask for a safe replacement; it cannot be approved.</p>}
                 {previewAvailable && item.scanStatus === 'CLEAN' && <div className="mt-3 flex flex-wrap items-center gap-3">
                   <button className="text-xs font-bold text-emerald-800 underline disabled:opacity-50" disabled={evidenceBusy} onClick={() => requestPreview(item.id)}>Request 60-second private preview</button>
                   {preview?.id === item.id && <a className="text-xs font-bold text-emerald-800 underline" href={preview.url} target="_blank" rel="noopener noreferrer">Open private preview</a>}

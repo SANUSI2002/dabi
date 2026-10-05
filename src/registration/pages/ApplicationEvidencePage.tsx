@@ -41,7 +41,7 @@ export default function ApplicationEvidencePage() {
     if (!file || busyKey || !id) return;
     setError(''); setBusyKey(key);
     try {
-      const result = await liveUploadApplicantEvidence(id, key, accessToken, file);
+      const result = await liveUploadApplicantEvidence(id, key, accessToken, file, evidence?.maxUploadBytes);
       setEvidence((current) => current ? { ...current, items: [result.data, ...current.items] } : current);
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Upload failed.'); }
     finally { setBusyKey(''); }
@@ -70,13 +70,14 @@ export default function ApplicationEvidencePage() {
         {requestSent ? <p role="status" className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">If eligible, an access link has been sent. Check your inbox and spam folder.</p> : <form className="mt-4 flex flex-col gap-3 sm:flex-row" onSubmit={requestAccess}><input type="email" required autoComplete="email" aria-label="Application owner email" placeholder="Application owner email" className="min-w-0 flex-1 rounded-xl border border-slate-300 px-4 py-3 text-sm" value={email} onChange={(event) => setEmail(event.target.value)}/><button className="rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-800">Email access link</button></form>}
       </div>}
       {evidence && <>
+        {evidence.scannerProvider === 'cloudmersive' && <p className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">Credential files are stored privately in Supabase and sent to Cloudmersive for automated malware/content screening. Do not upload patient records. Scanning runs in the background; authenticity is checked separately by Sabi staff.</p>}
         <div className="mt-7 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><ShieldAlert size={20} className="shrink-0"/><span>This is a test release without database backups. Keep your own copies. Uploads go into private quarantine and may be reviewed under a temporary unscanned-file exception. “Uploaded” does not mean scanned, verified, approved, or that EMR access has been granted. Do not upload patient records.</span></div>
         {keys.length === 0 ? <p className="mt-6 rounded-2xl bg-white p-6 text-sm text-slate-600">These requirements need manual configuration. Do not upload documents until Sabi contacts you.</p> : <div className="mt-6 space-y-3">{keys.map((key) => {
           const versions = evidence.items.filter((item) => item.requirementKey === key);
           const latest = versions[0];
           return <section key={key} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-display font-bold">{labels[key] ?? key.replaceAll('_', ' ')}</h2><p className="mt-1 text-xs text-slate-500">{latest ? `${versions.length} submission${versions.length === 1 ? '' : 's'} · Latest: ${latest.scanStatus === 'UNSCANNED_EXCEPTION' ? 'unscanned exception' : latest.scanStatus.toLowerCase()}, ${latest.reviewStatus.toLowerCase()} review` : 'Not uploaded'}</p></div><label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-emerald-700 px-4 py-2 text-sm font-bold text-emerald-800 hover:bg-emerald-50"><UploadCloud size={17}/>{busyKey === key ? 'Uploading…' : latest ? 'Submit new version' : 'Choose document'}<input className="sr-only" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" disabled={!!busyKey} onChange={(event) => upload(key, event)}/></label></div>{latest && <p className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-3 text-xs text-slate-500"><FileCheck2 size={15}/>{latest.fileName} · {Math.round(latest.sizeBytes / 1024)} KB · {new Date(latest.createdAt).toLocaleString()}</p>}</section>;
         })}</div>}
-        <p className="mt-5 text-xs text-slate-500">PDF, JPEG, or PNG only; maximum 10 MB each. New submissions are retained as separate versions.</p>
+        <p className="mt-5 text-xs text-slate-500">PDF, JPEG, or PNG only; maximum {(evidence.maxUploadBytes ?? 10 * 1024 * 1024) / 1000000} MB each. New submissions are retained as separate versions.</p>
       </>}
     </section>
   </main>;

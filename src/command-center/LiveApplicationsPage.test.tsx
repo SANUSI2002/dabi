@@ -1,9 +1,10 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import LiveApplicationsPage from './LiveApplicationsPage';
+import { liveRetryEvidenceScan } from '@/registration/livePlatform';
 import { liveAcceptUnscannedException, liveAddReviewNote, liveApprovalReadiness, liveApproveEmr, liveEvidencePreview, livePlatformApplicationDetail, livePlatformApplications, livePlatformEvidence, liveReviewEvidence, liveReviewNotes, liveStartApplicationReview, liveUnscannedEvidenceDownload } from '@/registration/livePlatform';
 
-vi.mock('@/registration/livePlatform', () => ({ livePlatformApplications: vi.fn(), livePlatformApplicationDetail: vi.fn(), liveApprovalReadiness: vi.fn(), liveStartApplicationReview: vi.fn(), liveReviewNotes: vi.fn(), liveAddReviewNote: vi.fn(), livePlatformEvidence: vi.fn(), liveEvidencePreview: vi.fn(), liveUnscannedEvidenceDownload: vi.fn(), liveAcceptUnscannedException: vi.fn(), liveReviewEvidence: vi.fn(), liveApproveEmr: vi.fn(), liveResendEmrSetup: vi.fn() }));
+vi.mock('@/registration/livePlatform', () => ({ liveRetryEvidenceScan: vi.fn(), livePlatformApplications: vi.fn(), livePlatformApplicationDetail: vi.fn(), liveApprovalReadiness: vi.fn(), liveStartApplicationReview: vi.fn(), liveReviewNotes: vi.fn(), liveAddReviewNote: vi.fn(), livePlatformEvidence: vi.fn(), liveEvidencePreview: vi.fn(), liveUnscannedEvidenceDownload: vi.fn(), liveAcceptUnscannedException: vi.fn(), liveReviewEvidence: vi.fn(), liveApproveEmr: vi.fn(), liveResendEmrSetup: vi.fn() }));
 
 const summary = { id: 'app-1', reference: 'SABI-APP-TEST', organizationName: 'Test Hospital', status: 'SUBMITTED', createdAt: '2026-09-24T00:00:00Z', submittedAt: '2026-09-24T00:00:00Z', packageId: 'package-1', packageVersionId: 'version-1' };
 const detail = {
@@ -22,6 +23,40 @@ afterEach(() => { cleanup(); vi.resetAllMocks(); });
 beforeEach(() => { vi.mocked(livePlatformEvidence).mockResolvedValue({ data: { items: [], previewAvailable: false, unscannedExceptionAvailable: false } }); });
 
 describe('live application review workbench', () => {
+  it('refreshes background scan results and readiness without faking approval', async () => {
+    vi.mocked(livePlatformApplications).mockResolvedValue({ data: { items: [{ ...summary, status: 'UNDER_REVIEW' }], nextPage: null } });
+    vi.mocked(livePlatformApplicationDetail).mockResolvedValue({ data: { ...detail, status: 'UNDER_REVIEW' } } as never);
+    vi.mocked(liveReviewNotes).mockResolvedValue({ data: { items: [] } });
+    vi.mocked(liveApprovalReadiness).mockResolvedValue({ data: { ready: false, requiredEvidence: ['OFFICER_LICENCE'], blockers: ['AUTHENTICITY_REVIEW_REQUIRED'] } });
+    const item = { id: 'doc-1', requirementKey: 'OFFICER_LICENCE', fileName: 'credential.pdf', contentType: 'application/pdf', sizeBytes: 60, sha256: 'a'.repeat(64), scanStatus: 'PENDING', reviewStatus: 'PENDING', createdAt: detail.createdAt };
+    vi.mocked(livePlatformEvidence).mockResolvedValueOnce({ data: { items: [item], previewAvailable: true, unscannedExceptionAvailable: false } })
+      .mockResolvedValue({ data: { items: [{ ...item, scanStatus: 'CLEAN' }], previewAvailable: true, unscannedExceptionAvailable: false } });
+    render(<LiveApplicationsPage canApprove/>);
+    fireEvent.click(screen.getByRole('button', { name: 'UNDER REVIEW' }));
+    fireEvent.click(await screen.findByRole('button', { name: /SABI-APP-TEST/ }));
+    expect(await screen.findByText(/Queued for background screening/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Request 60-second private preview' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh scan status' }));
+    expect(await screen.findByRole('button', { name: 'Request 60-second private preview' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Approve for EMR' })).toBeDisabled();
+    expect(liveApproveEmr).not.toHaveBeenCalled();
+  });
+  it('requeues an operational failure and refreshes the server-owned result', async () => {
+    vi.mocked(livePlatformApplications).mockResolvedValue({ data: { items: [{ ...summary, status: 'UNDER_REVIEW' }], nextPage: null } });
+    vi.mocked(livePlatformApplicationDetail).mockResolvedValue({ data: { ...detail, status: 'UNDER_REVIEW' } } as never);
+    vi.mocked(liveReviewNotes).mockResolvedValue({ data: { items: [] } });
+    vi.mocked(liveApprovalReadiness).mockResolvedValue({ data: { ready: false, requiredEvidence: [], blockers: ['SCAN_PENDING'] } });
+    const item = { id: 'doc-1', requirementKey: 'OFFICER_LICENCE', fileName: 'credential.pdf', contentType: 'application/pdf', sizeBytes: 60, sha256: 'a'.repeat(64), scanStatus: 'FAILED', scanErrorCode: 'CLOUDMERSIVE_RATE_LIMITED', reviewStatus: 'PENDING', createdAt: detail.createdAt };
+    vi.mocked(livePlatformEvidence).mockResolvedValueOnce({ data: { items: [item], previewAvailable: true, unscannedExceptionAvailable: false } })
+      .mockResolvedValue({ data: { items: [{ ...item, scanStatus: 'PENDING' }], previewAvailable: true, unscannedExceptionAvailable: false } });
+    vi.mocked(liveRetryEvidenceScan).mockResolvedValue({ data: { id: 'doc-1', scanStatus: 'PENDING' } });
+    render(<LiveApplicationsPage canApprove/>);
+    fireEvent.click(screen.getByRole('button', { name: 'UNDER REVIEW' }));
+    fireEvent.click(await screen.findByRole('button', { name: /SABI-APP-TEST/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Retry operational scan failure' }));
+    expect(await screen.findByText(/Queued for background screening/)).toBeInTheDocument();
+    expect(liveRetryEvidenceScan).toHaveBeenCalledWith('app-1', 'doc-1');
+  });
   it('loads server-owned details but does not expose approval or provisioning actions', async () => {
     vi.mocked(liveReviewNotes).mockResolvedValue({ data: { items: [] } });
     vi.mocked(livePlatformApplications).mockResolvedValue({ data: { items: [summary], nextPage: null } });
