@@ -4,6 +4,7 @@ import { Mail, ShieldCheck } from "lucide-react";
 import AuthLayout from "./AuthLayout";
 import { AUTH_CONFIGURED, doctorOnboardingRequest, resendVerification, verifyEmail } from "../../services/doctorAuth";
 import { documentError } from "./registrationModel";
+import CredentialUpload from "./CredentialUpload";
 
 const kinds = [["licence", "Practising licence"], ["registrationCertificate", "MDCN registration certificate"]];
 export default function RegistrationStatusPage({ verification = false }) {
@@ -70,14 +71,9 @@ export default function RegistrationStatusPage({ verification = false }) {
         <p>PDF, PNG or JPEG · up to {(application.maxUploadBytes / 1000000).toFixed(1)} MB each. Upload clear copies; no patient records. Replacing a document resets submission and that document’s review.</p>
         {kinds.map(([kind, label]) => {
           const document = application.credentials.find((item) => item.kind === kind);
-          return <section className="sh-review-section" key={kind}><h3>{label}</h3>
-            <p>{document ? `Screening: ${document.scanStatus} · Authenticity: ${document.reviewStatus}` : "Not uploaded"}</p>
-            {document?.scanErrorCode && <p className="sh-form-notice">Screening needs attention ({document.scanErrorCode}). Contact operations for a retry, or replace an unsafe file.</p>}
-            {document?.reviewStatus === "REJECTED" && <p className="sh-form-notice">{document.note || "Replace this document with corrected evidence."}</p>}
-            <div className="sh-auth-field"><label htmlFor={kind}>{document ? "Replace document" : "Choose document"}</label><input id={kind} type="file" accept="application/pdf,image/png,image/jpeg" disabled={!!busy} onChange={(event) => { setFiles((current) => ({ ...current, [kind]: event.target.files?.[0] || null })); event.target.value = ""; }} /></div>
-            {files[kind] && <p>{files[kind].name} · {(files[kind].size / 1024).toFixed(0)} KB</p>}
-            <button className="sh-secondary-button" disabled={!!busy || !files[kind]} onClick={() => action(kind, () => upload(kind))}>{busy === kind ? "Uploading…" : document ? "Upload replacement" : "Upload privately"}</button>
-          </section>;
+          return <CredentialUpload key={kind} kind={kind} label={label} document={document} file={files[kind]} maxBytes={application.maxUploadBytes} busy={busy}
+            onSelect={(selectedKind, file) => { setFiles((current) => ({ ...current, [selectedKind]: file })); setNotice(""); }}
+            onUpload={(selectedKind) => action(selectedKind, () => upload(selectedKind))} />;
         })}
         <button className="sh-primary-button" disabled={!!busy || !!application.submittedAt || application.credentials.length !== 2} onClick={() => action("submit", async () => { await doctorOnboardingRequest(`/doctors/applications/${application.applicationId}/submit`, { method: "POST", body: "{}" }); await refresh(); setNotice("Submitted to Sabi operations. Screening and independent authenticity review must complete before approval."); })}>{busy === "submit" ? "Submitting…" : application.submittedAt ? "Submitted for review" : "Submit credentials for review"}</button>
         <div className="sh-status-timeline">{application.blockers.map((blocker) => <p key={blocker}>{blocker}</p>)}</div>

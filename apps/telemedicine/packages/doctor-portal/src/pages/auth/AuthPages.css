@@ -126,3 +126,7 @@
 
 .sh-auth-field label { font-size: 12px; }
 .sh-auth-field input, .sh-auth-field select { font-size: 14px; }
+.sh-credential-upload > .sh-auth-field { align-items: stretch; }
+.sh-credential-upload input[type="file"] { height: auto; min-height: 43px; padding: 10px; }
+.sh-credential-upload > .sh-secondary-button { color: #576d5c; background: #fff; border: 1px solid #dce4dd; }
+.sh-credential-upload > .sh-secondary-button:disabled { cursor: not-allowed; }
