@@ -43,4 +43,24 @@ describe('live doctor verification screen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close preview' })); expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Accept document' })).toBeEnabled();
   });
+  it('uses the browser PDF viewer with an explicit new-tab fallback for clean PDFs', async () => {
+    const clean = { ...profile, credentials: [{ ...profile.credentials[0], scanStatus: 'CLEAN', contentType: 'application/pdf' }] };
+    api.mockImplementation(async (path: string) => ({ data: path.endsWith('/preview') ? { url: 'https://test.supabase.co/storage/v1/object/sign/bucket/file.pdf?token=synthetic' } : clean }));
+    mount(); await screen.findByText('Synthetic Doctor');
+    fireEvent.click(screen.getByRole('button', { name: 'Preview document' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog.querySelector('iframe')).toHaveAttribute('referrerpolicy', 'no-referrer');
+    // A sandbox disables Chromium's built-in PDF viewer. The screened PDF stays on the separate storage origin.
+    expect(dialog.querySelector('iframe')).not.toHaveAttribute('sandbox');
+    expect(screen.getByRole('link', { name: 'Open document in a new tab' })).toHaveAttribute('rel', 'noopener noreferrer');
+    fireEvent.keyDown(dialog, { key: 'Escape' }); expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+  it('does not embed unsupported content even when the supplied URL is private', async () => {
+    const clean = { ...profile, credentials: [{ ...profile.credentials[0], scanStatus: 'CLEAN', contentType: 'text/html' }] };
+    api.mockImplementation(async (path: string) => ({ data: path.endsWith('/preview') ? { url: 'https://test.supabase.co/storage/v1/object/sign/bucket/file?token=synthetic' } : clean }));
+    mount(); await screen.findByText('Synthetic Doctor');
+    fireEvent.click(screen.getByRole('button', { name: 'Preview document' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('This document format cannot be previewed.');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
 });
