@@ -1,7 +1,7 @@
 export type DeploymentSurface = "all" | "health" | "emr" | "pharmacy" | "command-center" | "telemedicine";
 
 const publicPrefixes = ["/products/", "/solutions/", "/resources", "/register", "/signup/organisation", "/signup/organization"];
-const publicPaths = new Set(["/", "/access", "/ai", "/roadmap", "/security", "/about", "/pricing", "/book-demo"]);
+const publicPaths = new Set(["/", "/access", "/ai", "/roadmap", "/security", "/about", "/pricing", "/book-demo", "/solutions"]);
 const sharedAuthPaths = new Set(["/login", "/mfa", "/choose-organization", "/forgot-password", "/sso", "/account/sessions", "/accept-invite", "/identity/account", "/identity/mfa"]);
 
 export function deploymentSurface(value: string | undefined): DeploymentSurface {

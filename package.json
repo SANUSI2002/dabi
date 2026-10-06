@@ -26,6 +26,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "framer-motion": "^13.2.0",
+    "gsap": "^3.15.0",
     "lucide-react": "^1.40.0",
     "qrcode": "^1.5.4",
     "react": "^19.2.8",

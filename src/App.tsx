@@ -184,13 +184,13 @@ const ProductReleases = lazy(() => import("@/command-center/pages/ProductRelease
 const PublicShell = lazy(() => import("@/public/PublicShell"));
 const RoadmapPage = lazy(() => import("@/public/pages/RoadmapPage"));
 const HomePage = lazy(() => import("@/public/pages/HomePage"));
-const SabiOsPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.SabiOsPage })));
-const SabiHealthPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.SabiHealthPage })));
+const EmrProductPage = lazy(() => import("@/public/pages/ProductPages").then((m) => ({ default: m.EmrPage })));
+const TelemedicineProductPage = lazy(() => import("@/public/pages/ProductPages").then((m) => ({ default: m.TelemedicinePage })));
 const AIPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.AIPage })));
-const SecurityPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.SecurityPage })));
+const SecurityPage = lazy(() => import("@/public/pages/ProductPages").then((m) => ({ default: m.SecurityPage })));
 const AboutPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.AboutPage })));
-const PricingPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.PricingPage })));
-const SolutionsPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.SolutionsPage })));
+const PricingPage = lazy(() => import("@/public/pages/ProductPages").then((m) => ({ default: m.PricingPage })));
+const SolutionsPage = lazy(() => import("@/public/pages/ProductPages").then((m) => ({ default: m.SolutionsPage })));
 const ResourcesPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.ResourcesPage })));
 const RegisterEntryPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.RegisterEntryPage })));
 const BookDemoPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.BookDemoPage })));
@@ -259,13 +259,16 @@ export default function App() {
       <Routes location={loc}>
         <Route element={<PublicShell />}>
           <Route index element={<HomePage />} />
-          <Route path="products/sabi-os" element={<SabiOsPage />} />
-          <Route path="products/sabi-health" element={<SabiHealthPage />} />
+          <Route path="products/emr" element={<EmrProductPage />} />
+          <Route path="products/telemedicine" element={<TelemedicineProductPage />} />
+          <Route path="products/sabi-os" element={<Navigate to="/products/emr" replace />} />
+          <Route path="products/sabi-health" element={<Navigate to="/products/telemedicine" replace />} />
           <Route path="ai" element={<AIPage />} />
           <Route path="roadmap" element={<RoadmapPage />} />
           <Route path="security" element={<SecurityPage />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="pricing" element={<PricingPage />} />
+          <Route path="solutions" element={<SolutionsPage />} />
           <Route path="solutions/:type" element={<SolutionsPage />} />
           <Route path="resources" element={<ResourcesPage />} />
           <Route path="register" element={<RegisterEntryPage />} />
