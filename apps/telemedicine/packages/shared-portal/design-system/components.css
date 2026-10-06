@@ -252,23 +252,3 @@ p.dp-topbar-title { margin: 0; }
   }
   .sabi-main :is(.sabi-rx-stats-grid, .sabi-apt-stats, .sabi-stats-row, .sabi-fam-stats, .sabi-hospitals-stats, .sabi-vitalhist-stats) > * svg { width: 18px; height: 18px; }
 }
-
-/* Patient "Care & meal plans" page (pages/prescriptions/DieticianTablePage.jsx). */
-.care-plan .care-muted, .care-workspace.sx-page .care-muted { color: var(--sx-text-muted); font-size: var(--sx-text-md); }
-.care-plan { display: grid; gap: var(--sx-space-5); }
-.care-plan-head { margin-bottom: 0; align-items: flex-start; }
-.care-plan-body { display: grid; gap: var(--sx-space-5); }
-.care-plan-body h3, .care-plan-feedback h3 { margin: 0 0 var(--sx-space-2); font-size: var(--sx-text-sm); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--sx-text-muted); }
-.care-plan-body p { margin: 0; font-size: var(--sx-text-base); line-height: var(--sx-leading-normal); color: var(--sx-text); white-space: pre-wrap; max-width: var(--sx-reading-max); }
-.care-targets { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sx-space-2); }
-.care-targets li { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sx-space-2); }
-.care-plan-updates { padding: var(--sx-space-3) var(--sx-space-4); border: 1px solid var(--sx-line); border-radius: var(--sx-radius-md); }
-.care-plan-updates summary { cursor: pointer; font-weight: 650; min-height: 32px; display: flex; align-items: center; }
-.care-plan-updates ul { margin: var(--sx-space-2) 0 0; padding-left: var(--sx-space-5); color: var(--sx-text-muted); font-size: var(--sx-text-md); }
-.care-plan-feedback { padding-top: var(--sx-space-5); border-top: 1px solid var(--sx-line); }
-.care-feedback-list { list-style: none; margin: 0 0 var(--sx-space-4); padding: 0; display: grid; gap: var(--sx-space-3); }
-.care-feedback-list li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sx-space-2); }
-.care-feedback-list p { flex-basis: 100%; margin: 0; }
-.care-feedback-form { display: grid; gap: var(--sx-space-4); max-width: 640px; }
-.care-progress-choice { border: 0; padding: 0; margin: 0; display: grid; gap: var(--sx-space-2); }
-.care-plan .care-plan-body h3, .care-plan .care-plan-feedback h3, .care-day h4 { letter-spacing: .06em; font-family: var(--sx-font-body); }

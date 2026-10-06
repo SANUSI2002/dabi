@@ -4,8 +4,8 @@
 // calendar interactions, and modal workflows for booking,
 // viewing, and joining consultations.
 
-import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import React, { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "design-system";
 import { Plus } from "lucide-react";
 
@@ -85,27 +85,41 @@ export function Appointments() {
     ---------------------------------------------------------
     Applies filtering logic based on active tab selection.
   */
-  const TAB_MATCH = {
-    Upcoming: (a) => a.status === "active" || a.status === "pending-review",
-    "Awaiting confirmation": (a) => a.status === "pending-review",
-    Completed: (a) => a.status === "completed",
-    Missed: (a) => a.status === "missed",
-    Cancelled: (a) => a.status === "cancelled",
-  };
-  const tabCounts = Object.fromEntries(Object.entries(TAB_MATCH).map(([tab, match]) => [tab, appointments.filter(match).length]));
   const filteredAppointments = showAllAppointments
     ? appointments
-    : appointments.filter(TAB_MATCH[activeTab] || (() => true)).sort((a, b) => activeTab === "Upcoming" || activeTab === "Awaiting confirmation" ? new Date(a.startsAt) - new Date(b.startsAt) : new Date(b.startsAt) - new Date(a.startsAt));
+    : appointments.filter((appointment) => {
+        const appointmentDate = new Date(appointment.date);
+        const today = new Date();
 
-  // "Join" on the dashboard links here as /appointments?join=<id>; open that call once it has loaded.
-  const [searchParams, setSearchParams] = useSearchParams();
-  const joinId = searchParams.get("join");
-  useEffect(() => {
-    if (!joinId || !data) return;
-    const target = appointments.find((a) => a.id === joinId);
-    if (target?.joinOpen) setJoinApt(target);
-    setSearchParams((params) => { params.delete("join"); return params; }, { replace: true });
-  }, [joinId, data]); // eslint-disable-line react-hooks/exhaustive-deps
+        switch (activeTab) {
+          case "Today":
+            return appointmentDate.toDateString() === today.toDateString();
+
+          case "Upcoming":
+            return (
+              appointment.status === "active" ||
+              appointment.status === "pending" ||
+              appointment.status === "pending-review" ||
+              appointment.status === "awaiting-acceptance" ||
+              appointment.status === "declined-by-member"
+            );
+
+          case "Request":
+            return appointment.status === "pending-review";
+
+          case "Completed":
+            return appointment.status === "completed";
+
+          case "Cancelled":
+            return appointment.status === "cancelled";
+
+          case "Follow-ups":
+            return appointment.status === "follow-up";
+
+          default:
+            return true;
+        }
+      });
 
   // Handle filter tab change
   const handleFilterChange = (tab) => {
@@ -136,6 +150,7 @@ export function Appointments() {
     await cancelDoctorAppointment(id).catch(() => {});
     reload();
   };
+  const respondToBookingRequest = () => {};
 
   return (
     <div
@@ -160,7 +175,8 @@ export function Appointments() {
           <div>
             <h1>Appointments</h1>
             <p>
-              Book, join and manage your consultations in one place.
+              Schedule, manage, and attend your healthcare appointments in one
+              place with empathetic precision.
             </p>
           </div>
 
@@ -185,7 +201,7 @@ export function Appointments() {
         <StatsRow values={statValues} />
 
         {/* Filter Tabs */}
-        <FilterTabs active={showAllAppointments ? "" : activeTab} onChange={handleFilterChange} counts={data ? tabCounts : {}} />
+        <FilterTabs active={activeTab} onChange={handleFilterChange} />
 
         {/* Main Grid Layout */}
         <div className="sabi-grid sabi-apt-grid">
@@ -216,6 +232,7 @@ export function Appointments() {
 
               onViewDetails={(appointment) => setDetailApt(appointment)}
               onCancel={handleCancel}
+              onRespondToRequest={(id, accepted) => respondToBookingRequest(id, accepted)}
             />
             <HospitalAppointmentsCard />
           </div>

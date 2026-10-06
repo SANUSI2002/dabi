@@ -8,5 +8,4 @@ export const APPOINTMENT_STATS = [
   { icon: CalendarClock, label: "Pending" },
 ];
 
-// Each tab maps to a state the live API produces (see byDoctor in api/doctorsApi.js).
-export const FILTER_TABS = ["Upcoming", "Awaiting confirmation", "Completed", "Missed", "Cancelled"];
+export const FILTER_TABS = ["Upcoming",  "Completed", "Cancelled", "Request", "Follow-ups"];

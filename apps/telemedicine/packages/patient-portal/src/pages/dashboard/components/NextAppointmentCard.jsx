@@ -32,17 +32,18 @@ export function NextAppointmentCard() {
     <div className="sx-actions"><Link className="sx-btn sx-btn-primary" to="/doctor"><CalendarPlus size={16} aria-hidden="true" /> Find a doctor</Link></div>
   </section>;
   const pending = next.status === "REQUESTED";
-  return <section className={`sx-card sabi-next-card${next.joinOpen ? " is-live" : ""}`} aria-labelledby="next-apt-heading">
+  const canJoin = next.status === "CONFIRMED" && next.consultationType === "VIRTUAL";
+  return <section className={`sx-card sabi-next-card`} aria-labelledby="next-apt-heading">
     <span className="sx-avatar" aria-hidden="true">{next.initials}</span>
     <div className="sabi-next-main">
       <span className="sx-eyebrow">Next appointment</span>
       <h2 id="next-apt-heading" className="sx-card-title">{next.typeLabel} with {next.doctor.name}</h2>
       <p className="sx-card-subtitle">{whenLabel(next)}{next.forName ? ` · for ${next.forName}` : ""}</p>
-      <p className="sabi-next-hint">{pending ? `${next.doctor.name} hasn't confirmed yet. We'll let you know when they do.` : next.joinOpen ? "Your private video room is open." : next.consultationType === "VIRTUAL" ? `Your video room opens at ${clock(next.joinOpensAt)}.` : "See you at the practice."}</p>
+      <p className="sabi-next-hint">{pending ? `${next.doctor.name} hasn't confirmed yet. We'll let you know when they do.` : canJoin ? "Join from your appointments when it is time." : "See you at the practice."}</p>
     </div>
     <div className="sabi-next-side">
       <StatusBadge status={next.status} />
-      {next.joinOpen ? <Link className="sx-btn sx-btn-primary" to={`/appointments?join=${encodeURIComponent(next.id)}`}><Video size={16} aria-hidden="true" /> Join video consultation</Link>
+      {canJoin ? <Link className="sx-btn sx-btn-primary" to="/appointments"><Video size={16} aria-hidden="true" /> Join video consultation</Link>
         : <Link className="sx-btn sx-btn-secondary" to="/appointments">View appointment</Link>}
     </div>
   </section>;

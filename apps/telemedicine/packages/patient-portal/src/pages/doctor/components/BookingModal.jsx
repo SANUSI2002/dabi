@@ -230,8 +230,8 @@ export function BookingModal({ doctor, bookingFor, onClose, onBooked }) {
               <strong>{advanceDateLabel}</strong> at <strong>{booked?.time}</strong>.
             </p>
             <p className="sabi-booking-success-note">
-              Your request is <strong>awaiting confirmation</strong>. {doctor.name} will accept or decline it, and
-              you'll see the update in Appointments.
+              This appointment is now <strong>Pending Doctor Review</strong>. {doctor.name} will accept, decline, or
+              suggest another time — you'll see the update in My Appointments.
             </p>
             <button type="button" className="sabi-doctor-primary sabi-booking-done" onClick={onClose}>
               Done

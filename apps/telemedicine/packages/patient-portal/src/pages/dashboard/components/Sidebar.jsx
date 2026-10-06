@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, Menu, X } from "lucide-react";
+import { ChevronLeft, Menu, X, Salad, ClipboardList } from "lucide-react";
 import { NavRow } from "../share";
-import { FOOTER_ITEMS, NAV_GROUPS } from "../data";
+import { FOOTER_ITEMS, NAV_ITEMS } from "../data";
 import logo from "../../../assets/logo.jpeg";
 import { signOut } from "../../../utils/sabiIdentity";
 
@@ -125,22 +125,24 @@ export function Sidebar() {
         {/* =================================================
             Main Navigation
             ================================================= */}
-        <nav className="sabi-nav" aria-label="Patient portal">
-          {NAV_GROUPS.map((group) => (
-            <div className="sabi-nav-group" key={group.label} role="group" aria-labelledby={`nav-${group.label.toLowerCase().replace(/[^a-z]+/g, "-")}`}>
-              <div className="sabi-nav-caption" id={`nav-${group.label.toLowerCase().replace(/[^a-z]+/g, "-")}`}>{group.label}</div>
-              {group.items.map((item) => (
-                <NavRow
-                  key={item.key}
-                  icon={item.icon}
-                  label={item.label}
-                  to={item.to}
-                  active={(isActive(item.to) || (item.also || []).some(isActive)) && !(item.except || []).some(isActive)}
-                  title={collapsed ? item.label : undefined}
-                />
-              ))}
-            </div>
+        <div className="sabi-nav-caption">YOUR CARE</div>
+        <nav className="sabi-nav">
+
+          {NAV_ITEMS.map((item) => (
+            <React.Fragment key={item.key}>
+            <NavRow
+              key={item.key}
+              icon={item.icon}
+              label={item.label}
+              to={item.to}
+              active={isActive(item.to) && !(item.to === "/prescriptions" && isActive("/prescriptions/dietician-table"))}
+              title={collapsed ? item.label : undefined}
+            />
+            {item.to === '/prescriptions' && <div style={{paddingLeft:collapsed?0:20}}><NavRow icon={Salad} label="Dietician Table" to="/prescriptions/dietician-table" active={isActive('/prescriptions/dietician-table')} title="Dietician Table" /></div>}
+            {item.to === '/wellness-hub' && <NavRow icon={ClipboardList} label="My Care Plans" to="/care-plans" active={isActive('/care-plans')} />}
+            </React.Fragment>
           ))}
+
         </nav>
       </div>
 
@@ -148,7 +150,7 @@ export function Sidebar() {
       {/* =====================================================
           Footer Navigation
           ===================================================== */}
-      <div className="sabi-sidebar-footer"><div className="sabi-nav-caption">Account</div>
+      <div className="sabi-sidebar-footer"><div className="sabi-nav-caption">YOUR ACCOUNT</div>
 
         {FOOTER_ITEMS.map((item) => (
           <NavRow

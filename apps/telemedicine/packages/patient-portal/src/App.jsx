@@ -193,7 +193,7 @@ export default function App() {
               <Route path="/records" element={<Records />} />
               <Route path="/prescriptions" element={<PrescriptionsPage />} />
               <Route path="/prescriptions/dietician-table" element={<DieticianTablePage />} />
-              <Route path="/care-plans" element={<DieticianTablePage />} />
+              <Route path="/care-plans" element={<DieticianTablePage support />} />
               <Route path="/prescriptions/:id" element={<PrescriptionDetailPage />} />
               <Route path="/prescriptions/:id/select-pharmacy" element={<SelectPharmacyPage />} />
               <Route path="/prescriptions/:id/quotes" element={<PharmacyQuotesPage />} />
