@@ -5,6 +5,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { EmergencyCardModal } from "./EmergencyCardModal";
 import { NotificationsBell } from "../../../notifications/NotificationsBell";
 import { getCurrentUser, signOut } from "../../../utils/sabiIdentity";
+import PageBanner from "../../../../../shared-portal/PageBanner";
 
 export function Topbar({
   userName,
@@ -46,7 +47,7 @@ export function Topbar({
   }
 
   return (
-    <div className="sabi-topbar">
+    <><div className="sabi-topbar">
       <div className="sabi-topbar-context"><small>Your personal care space</small><strong>{pageTitle}</strong></div>
       <div className="sabi-topbar-actions">
         <Link to="/wallet" className="sabi-wallet-shortcut" aria-label="Open Sabi Wallet. Current balance unavailable.">
@@ -107,7 +108,7 @@ export function Topbar({
       </div>
 
       {showEmergencyCard && <EmergencyCardModal onClose={() => setShowEmergencyCard(false)} />}
-    </div>
+    </div><PageBanner /></>
   );
 }
 

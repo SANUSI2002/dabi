@@ -70,6 +70,7 @@ import ResetPassword from "./pages/Onboarding/ResetPassword";
 import { HOSPITAL_ONBOARDING_URL, DOCTOR_PORTAL_URL } from "./ecosystemLinks";
 
 import "../../shared-portal/portal-revamp.css";
+import "../../shared-portal/premium-pages.css";
 
 function ProfessionalRegistrationRedirect() {
   useEffect(() => { window.location.replace(`${DOCTOR_PORTAL_URL}/register`); }, []);

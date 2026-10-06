@@ -5,6 +5,7 @@ import Topbar from "./Topbar";
 import "./PortalLayout.css";
 import "./PatientAlignedTheme.css";
 import { getCurrentDoctor } from "../store/doctorSession";
+import PageBanner from "../../../shared-portal/PageBanner";
 
 /** Read the saved collapsed preference from localStorage (returns false if unavailable). */
 function readCollapsedPref() {
@@ -58,7 +59,7 @@ export function PortalLayout({ topbarProps = {}, assistantContext = null, childr
       <div className="dp-shell-main">
         <Topbar {...topbarProps} onMenuOpen={openSidebar} />
         {getCurrentDoctor()?.isDemo && <div className="dp-preview-banner" role="status">Doctor portal preview · Sample patients and appointments</div>}
-        <div className="dp-shell-content">{children}</div>
+        <div className="dp-shell-content"><PageBanner audience="doctor" professionType={getCurrentDoctor()?.professionType}/>{children}</div>
         {getCurrentDoctor()?.isDemo && <PortalAssistant scope={assistantContext} />}
       </div>
     </div>

@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { PageTransition, StaggerGroup, StaggerItem } from "design-system";
 import PortalLayout from "../../components/PortalLayout";
-import CareBanner from "../../../../shared-portal/CareBanner";
 import { useDoctorAppointments } from "../../hooks/useDoctorAppointments";
 import { acceptAppointment, declineAppointment } from "../../store/doctorAppointmentStore";
 import { getActivity, subscribeToActivity, addActivity, timeAgo } from "../../store/activityStore";
@@ -86,7 +85,7 @@ export function Dashboard() {
         showAlert: true,
       }}
     >
-      <PageTransition className="dp-dashboard"><CareBanner />
+      <PageTransition className="dp-dashboard">
         <div className="dp-dashboard-heading">
           <h1>Good morning, {DOCTOR_PROFILE.firstNameGreeting}</h1>
           <p>{fullDateLabel(today)}</p>

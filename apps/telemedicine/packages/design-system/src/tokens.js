@@ -30,7 +30,7 @@ export const radius = {
 };
 
 export const font = {
-  family: "'Inter', system-ui, sans-serif",
+  family: "'Sabi Inter', system-ui, sans-serif",
   sizeBody: "1rem",
   sizeHeading: "1.25rem",
   sizeLarge: "2rem",

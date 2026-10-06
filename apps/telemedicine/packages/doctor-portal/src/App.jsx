@@ -29,6 +29,7 @@ import ProfilePage from "./pages/profile/ProfilePage";
 import SettingsPage from "./pages/settings/SettingsPage";
 
 import "../../shared-portal/portal-revamp.css";
+import "../../shared-portal/premium-pages.css";
 
 export default function App() {
   const doctor = useSyncExternalStore(subscribeToDoctorSession, getCurrentDoctor, getCurrentDoctor);

@@ -7,7 +7,6 @@ import "../../styles/share.css";
 import {
   Sidebar,
   Topbar,
-  HeroCard,
   QuickActions,
   VitalHistory,
   RecentConsultations,
@@ -29,7 +28,6 @@ export function Dashboard() {
 
         <div className="sabi-grid">
           <div className="sabi-col">
-            <HeroCard />
             <QuickActions />
             <VitalHistory />
             <RecentConsultations />
