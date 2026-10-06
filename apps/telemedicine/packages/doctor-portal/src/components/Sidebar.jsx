@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import "./Sidebar.css";
 import logo from '../../../patient-portal/src/assets/logo.jpeg';
+import {getCurrentDoctor} from '../store/doctorSession';
 
 /* ─── Navigation items ───────────────────────────────────────── */
 const NAV_ITEMS = [
@@ -44,6 +45,10 @@ const NAV_ITEMS = [
 /* ─── Sidebar component ─────────────────────────────────────── */
 export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
   const location = useLocation();
+  const professional = getCurrentDoctor();
+  const doctor = professional?.isDemo || professional?.professionType === 'DOCTOR';
+  const common = ['/dashboard','/calendar','/availability','/appointments','/consultations','/notifications'];
+  const navigation = doctor ? NAV_ITEMS : [...NAV_ITEMS.filter(item=>common.includes(item.to)),{to:'/care-workspace',label:professional?.capabilities?.nutrition?'Dietician Table':professional?.professionType==='COUNSELLOR'?'Counselling care':professional?.professionType==='PSYCHOLOGIST'?'Psychology care':'Care plans',icon:ClipboardEdit}];
 
   /**
    * Active-state helper for main nav items.
@@ -112,7 +117,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
 
       {/* ── Main navigation ──────────────────────────────────── */}
       <nav className="dp-sidebar-nav" aria-label="Main navigation">
-        {NAV_ITEMS.map(({ to, label, icon: Icon }) => {
+        {navigation.map(({ to, label, icon: Icon }) => {
           const active = isRouteActive(to);
           return (
             <NavLink

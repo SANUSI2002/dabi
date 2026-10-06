@@ -41,6 +41,7 @@ export function WellnessHubPage() {
       </button>
 
       <h2 className="sabi-wellness-section-title">Browse by Category</h2>
+      <button className="sabi-wellness-my-engagements-btn" onClick={()=>navigate('/wellness-hub/professionals')}>Browse approved professionals and book published slots <ChevronRight size={18}/></button>
       {offerings.error && <p className="sabi-form-error" role="alert">Couldn&apos;t load wellness services: {offerings.error.message}</p>}
       <div className="sabi-wellness-category-grid">
         {CATEGORIES.map((cat) => {

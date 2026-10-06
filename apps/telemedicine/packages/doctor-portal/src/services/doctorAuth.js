@@ -21,5 +21,8 @@ async function registrationRequest(path, options) {
 export async function registerDoctor(payload) {
   return (await registrationRequest("/doctors/register", { method: "POST", body: JSON.stringify(payload) })).data;
 }
+export async function registerProfessional(payload) {
+  return (await registrationRequest('/doctors/register-professional', { method: 'POST', body: JSON.stringify(payload) })).data;
+}
 export const resendVerification = (email) => registrationRequest("/doctors/resend-verification", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
 export const verifyEmail = (uid, token) => registrationRequest("/doctors/verify-email", { method: "POST", body: JSON.stringify({ uid, token }) });

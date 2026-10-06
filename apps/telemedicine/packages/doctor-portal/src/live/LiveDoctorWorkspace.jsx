@@ -9,6 +9,7 @@ import { groupPatients, localDay, statusLabel } from "./doctorData";
 import "./LiveDoctorWorkspace.css";
 import DailyConsultation from '../../../shared-video/DailyConsultation';
 import ProfessionalAvailability from './ProfessionalAvailability';
+import ProfessionalCareWorkspace from './ProfessionalCareWorkspace';
 
 function useResource(loader, key = "") {
   const [state, setState] = useState({ loading: true, data: null, error: "" });
@@ -34,7 +35,7 @@ function ResourceStatus({ resource }) {
   return null;
 }
 function Page({ title, description, resource, actions, children }) {
-  return <PortalLayout topbarProps={{ title: "Sabi Health · Doctor Portal" }}><div className="dl-page">
+  return <PortalLayout topbarProps={{ title: "Sabi Health · Professional Portal" }}><div className="dl-page">
     <header className="dl-heading"><div><span className="dl-eyebrow">YOUR PRACTICE, CONNECTED</span><h1>{title}</h1><p>{description}</p></div><div className="dl-actions">{actions}{resource && <button className="dp-btn dp-btn-outline dp-btn-sm" disabled={resource.loading} onClick={resource.reload}><RefreshCw size={15} /> Refresh</button>}</div></header>
     {resource && <ResourceStatus resource={resource} />}{(!resource || !resource.loading && !resource.error) && children}
   </div></PortalLayout>;
@@ -220,6 +221,8 @@ function Settings() {
 }
 function PendingFeature({ title, text }) { return <Page title={title} description={text}><section className="dp-panel"><Empty title={`${title} is being connected`} text="You can manage appointments, publish availability, and update your practice profile now." /><div className="dl-actions"><Link to="/appointments" className="dp-btn dp-btn-primary">Open appointments</Link><Link to="/dashboard" className="dp-btn dp-btn-outline">Back to dashboard</Link></div></section></Page>; }
 export default function LiveDoctorWorkspace() {
+  const professional=getCurrentDoctor();
+  const clinical=professional?.isDemo || professional?.professionType==='DOCTOR';
   return <Routes>
     <Route path="/" element={<Navigate to="/dashboard" replace />} />
     <Route path="/dashboard" element={<Dashboard />} />
@@ -228,11 +231,12 @@ export default function LiveDoctorWorkspace() {
     <Route path="/consultations" element={<Appointments consultations />} />
     <Route path="/calendar" element={<Calendar />} />
     <Route path="/availability" element={<PortalLayout topbarProps={{title:'Sabi Health · Professional Portal'}}><ProfessionalAvailability /></PortalLayout>} />
-    <Route path="/patients" element={<Patients />} />
+    <Route path="/patients" element={clinical ? <Patients /> : <Navigate to="/care-workspace" replace />} />
+    <Route path="/care-workspace" element={!clinical ? <PortalLayout topbarProps={{title:'Sabi Health · Professional Portal'}}><ProfessionalCareWorkspace /></PortalLayout> : <Navigate to="/patients" replace />} />
     <Route path="/profile" element={<Profile />} />
     <Route path="/settings" element={<Settings />} />
     <Route path="/notifications" element={<Notifications />} />
-    <Route path="/prescriptions" element={<Prescriptions />} />
+    <Route path="/prescriptions" element={clinical ? <Prescriptions /> : <Navigate to="/care-workspace" replace />} />
     {[{ path: "reports", title: "Reports", text: "Consultation reports and lab orders." }, { path: "messages", title: "Messages", text: "Patient conversations and care updates." }, { path: "hospital-workspace", title: "Hospital workspace", text: "Your hospital affiliations and assigned patient queues." }, { path: "earnings", title: "Earnings", text: "Consultation earnings and payout history." }, { path: "reviews", title: "Reviews", text: "Patient feedback on your care." }].map((feature) => <Route key={feature.path} path={`/${feature.path}`} element={<PendingFeature {...feature} />} />)}
     <Route path="*" element={<Navigate to="/dashboard" replace />} />
   </Routes>;

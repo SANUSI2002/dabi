@@ -5,6 +5,7 @@ import AuthLayout from "./AuthLayout";
 import { AUTH_CONFIGURED, doctorOnboardingRequest, resendVerification, verifyEmail } from "../../services/doctorAuth";
 import { documentError } from "./registrationModel";
 import CredentialUpload from "./CredentialUpload";
+import ApplicationDetailsEditor from './ApplicationDetailsEditor';
 
 const kinds = [["licence", "Practising licence"], ["registrationCertificate", "MDCN registration certificate"]];
 export default function RegistrationStatusPage({ verification = false }) {
@@ -25,6 +26,7 @@ export default function RegistrationStatusPage({ verification = false }) {
   const refreshing = useRef(null);
   const revision = useRef(0);
   const preview = result.mode === "preview";
+  const required = application?.requiredCredentials?.map(({kind,label}) => [kind,label]) || kinds;
   useEffect(() => {
     if (verification && location.hash) window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
   }, [verification, location.hash]);
@@ -79,9 +81,9 @@ export default function RegistrationStatusPage({ verification = false }) {
   }
   return <AuthLayout compact><div className="sh-login-content sh-status-content">
     <div className="sh-status-icon">{application ? <ShieldCheck size={30} /> : <Mail size={30} />}</div>
-    <span className="sh-auth-kicker">{preview ? "REGISTRATION PREVIEW" : "DOCTOR APPLICATION"}</span>
+    <span className="sh-auth-kicker">{preview ? "REGISTRATION PREVIEW" : "PROFESSIONAL APPLICATION"}</span>
     <h1>{preview ? "Your application is ready" : application?.status === "VERIFIED" ? "Your credentials are approved" : application?.submittedAt ? "Application submitted successfully" : application ? "Upload your credentials" : verified ? "Email verified" : verification ? "Verify your email" : "Verify email, then upload credentials"}</h1>
-    <p>{preview ? "No account has been created, no documents uploaded and no email sent in this local preview." : verified ? "Your email is verified. Sign in with the password you chose to upload your credentials." : application?.status === "VERIFIED" ? "Sabi operations has approved your credentials. Sign in again to open your clinical workspace." : "Choose both documents below. They upload automatically and are checked for malware in the background. Sabi operations will preview and review them in Command Center."}</p>
+    <p>{preview ? "No account has been created, no documents uploaded and no email sent in this local preview." : verified ? "Your email is verified. Sign in with the password you chose to upload your credentials." : application?.status === "VERIFIED" ? "Sabi operations has approved your credentials. Sign in again to open your professional workspace." : "Choose the required documents below. They upload automatically and are checked for malware in the background. Sabi operations will preview and review them in Command Center."}</p>
     {application?.submittedAt && application.status === "PENDING" && <section className="sh-submission-success" role="status"><h2>Thank you — we have received your application</h2><p>Your documents have been sent to Sabi operations for review. You do not need to upload them again. We will email you when your doctor workspace is approved.</p><p>Submitted: {new Date(application.submittedAt).toLocaleString()}<br />Reference: {application.applicationId}</p></section>}
     {notice && <div className="sh-form-notice" role="status">{notice}</div>}
     {!preview && !application && <>
@@ -97,20 +99,21 @@ export default function RegistrationStatusPage({ verification = false }) {
     {sessionNotice && <p className="sh-form-notice" role="status">{sessionNotice}</p>}
     {application && <>
       <div className="sh-reference">Application reference <strong>{application.applicationId || "Legacy profile — contact operations"}</strong></div>
-      <p><strong>{application.status}</strong> · {application.email}</p>
+      <p><strong>{application.stage || application.status}</strong> · {application.email}</p>
       {application.decisionReason && <p className="sh-form-notice">Staff review: {application.decisionReason}</p>}
       {application.applicationId && ["PENDING", "REJECTED"].includes(application.status) && <>
+        <ApplicationDetailsEditor key={application.applicationId} application={application} busy={!!busy} onSave={patch=>action('details',async()=>{await doctorOnboardingRequest(`/doctors/applications/${application.applicationId}/details`,{method:'PATCH',body:JSON.stringify(patch)});revision.current+=1;await refresh();setNotice('Corrections saved. Review your documents and submit the application again.');})}/>
         <p>PDF, PNG or JPEG · up to {(application.maxUploadBytes / 1000000).toFixed(1)} MB each. Upload clear copies; no patient records. Replacing a document resets submission and that document’s review.</p>
-        {kinds.map(([kind, label]) => {
+        {required.map(([kind, label]) => {
           const document = application.credentials.find((item) => item.kind === kind);
           return <CredentialUpload key={kind} kind={kind} label={label} document={document} file={files[kind]} maxBytes={application.maxUploadBytes} busy={busy}
             uploadError={uploadErrors[kind]} onSelect={selectFile}
             onRetry={(selectedKind, file) => action(selectedKind, () => upload(selectedKind, file))} />;
         })}
-        {!application.submittedAt && <button className="sh-primary-button" disabled={!!busy || Object.values(uploadErrors).some(Boolean) || Object.values(files).some((file) => documentError(file, application.maxUploadBytes)) || application.credentials.length !== 2} onClick={() => action("submit", async () => { const response = await doctorOnboardingRequest(`/doctors/applications/${application.applicationId}/submit`, { method: "POST", body: "{}" }); revision.current += 1; setApplication((current) => ({ ...current, submittedAt: response.data?.submittedAt || new Date().toISOString() })); await refresh(); setNotice("Your application was submitted successfully. Sabi operations will review your documents."); window.scrollTo({ top: 0, behavior: "smooth" }); })}>{busy === "submit" ? "Submitting…" : "Submit application"}</button>}
+        {!application.submittedAt && <button className="sh-primary-button" disabled={!!busy || Object.values(uploadErrors).some(Boolean) || Object.values(files).some((file) => documentError(file, application.maxUploadBytes)) || required.some(([kind]) => !application.credentials.some(doc => doc.kind === kind))} onClick={() => action("submit", async () => { const response = await doctorOnboardingRequest(`/doctors/applications/${application.applicationId}/submit`, { method: "POST", body: "{}" }); revision.current += 1; setApplication((current) => ({ ...current, submittedAt: response.data?.submittedAt || new Date().toISOString() })); await refresh(); setNotice("Your application was submitted successfully. Sabi operations will review your documents."); window.scrollTo({ top: 0, behavior: "smooth" }); })}>{busy === "submit" ? "Submitting…" : "Submit application"}</button>}
       </>}
       <button className="sh-inline-link" disabled={loading || !!busy} onClick={() => refresh()}>Refresh application status</button>
     </>}
-    <div className="sh-status-links"><Link to={preview ? "/register" : "/login"}>{preview ? "Start a new application" : "Sign in"}</Link><Link to="/register">Doctor registration</Link>{preview && <Link to="/preview">Explore local preview</Link>}</div>
+    <div className="sh-status-links"><Link to={preview ? "/register" : "/login"}>{preview ? "Start a new application" : "Sign in"}</Link><Link to="/register">Professional registration</Link>{preview && <Link to="/preview">Explore local preview</Link>}</div>
   </div></AuthLayout>;
 }

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, BadgeCheck, Check, Info } from "lucide-react";
 
 import "../../styles/share.css";
@@ -37,6 +37,7 @@ export function BookPractitionerPage() {
   const trimmed = context.trim();
   const contextOk = trimmed.length === 0 || trimmed.length >= 2;
   const requestedAt = new Date(`${date}T${time}:00`).toISOString();
+  if (offering.data?.professionalId && ['DOCTOR','NUTRITIONIST_DIETITIAN','PSYCHOLOGIST','COUNSELLOR','CAREGIVER','FITNESS_COACH','HEALTH_EDUCATOR'].includes(offering.data.professionType)) return <Navigate to={offering.data.professionType==='DOCTOR'?'/doctor':`/wellness-hub/professionals/${offering.data.professionalId}`} replace />;
 
   const submit = async () => {
     setSubmitting(true);

@@ -38,7 +38,7 @@ export const COMMAND_NAV: CommandNavGroup[] = [
     { to: "/command-center/sabi-health/orders", label: "Pharmacy operations", icon: Boxes, permission: "platform.view" },
     { to: "/command-center/sabi-health/payments", label: "Payments", icon: WalletCards, permission: "platform.view" },
     { to: "/command-center/sabi-health/patients", label: "Patients", icon: Users, permission: "platform.view" },
-    { to: "/command-center/sabi-health/doctors", label: "Doctors", icon: Stethoscope, permission: "platform.view" },
+    { to: "/command-center/sabi-health/doctors", label: "Healthcare professionals", icon: Stethoscope, permission: "platform.view" },
     { to: "/command-center/sabi-health/pharmacies", label: "Pharmacies", icon: Pill, permission: "platform.view" },
     { to: "/command-center/sabi-health/laboratories", label: "Laboratories", icon: FlaskConical, permission: "platform.view" },
   ] },

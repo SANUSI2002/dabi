@@ -18,7 +18,7 @@ export function createDoctorAuthClient({ base, fetcher = (...args) => fetch(...a
     let professional;
     try { professional = (await request("/professionals/me")).data; }
     catch (error) { if (error.status !== 404) throw error; }
-    if (professional?.professionType !== "DOCTOR") throw Object.assign(new Error("This Sabi ID does not have a doctor profile. Use patient sign-in or complete doctor registration."), { code: "DOCTOR_ACCESS_REQUIRED", status: 403 });
+    if (!["DOCTOR", "NUTRITIONIST_DIETITIAN", "PSYCHOLOGIST", "COUNSELLOR", "CAREGIVER", "FITNESS_COACH", "HEALTH_EDUCATOR"].includes(professional?.professionType)) throw Object.assign(new Error("This Sabi ID does not have a supported professional profile. Use patient sign-in or complete professional registration."), { code: "DOCTOR_ACCESS_REQUIRED", status: 403 });
     const user = me.user;
     return {
       id: professional.id, userId: user.id, name: user.fullName || "Doctor", email: user.email,
@@ -26,6 +26,7 @@ export function createDoctorAuthClient({ base, fetcher = (...args) => fetch(...a
       accountStatus: user.accountStatus === "ACTIVE" ? "active" : "inactive",
       emailVerified: Boolean(user.emailVerifiedAt), licenceVerified: professional.verificationStatus === "VERIFIED",
       verificationStatus: professional.verificationStatus, specialty: professional.specialty,
+      professionType: professional.professionType, discipline: professional.discipline, capabilities: professional.capabilities || { clinicalRecords: professional.professionType === 'DOCTOR', prescribe: professional.professionType === 'DOCTOR' },
       hospital: professional.practiceName || "Independent practice", hospitalId: null, memberships: me.organizations || [],
     };
   }
@@ -71,7 +72,7 @@ export function createDoctorAuthClient({ base, fetcher = (...args) => fetch(...a
     restore, authenticated,
     publicRequest: request,
     onboarding: async (path, options = {}) => {
-      if (!/^\/doctors\/(me|applications\/[0-9a-f-]{36}\/(submit|credentials\/(licence|registrationCertificate)))$/.test(path)) throw new Error("Invalid onboarding request.");
+      if (!/^\/doctors\/(me|applications\/[0-9a-f-]{36}\/(submit|details|credentials\/(licence|registrationCertificate|qualification|competence)))$/.test(path)) throw new Error("Invalid onboarding request.");
       if (!accessToken) await restore();
       if (!accessToken || sessionDoctor?.accountStatus !== "active" || !sessionDoctor.emailVerified || sessionDoctor.verificationStatus === "SUSPENDED") throw Object.assign(new Error("Verify your email, then sign in to complete your application."), { status: 401 });
       const used = accessToken;

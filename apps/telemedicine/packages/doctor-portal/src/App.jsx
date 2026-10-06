@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { getCurrentDoctor, subscribeToDoctorSession, activateDoctorSession, signOutDoctor } from "./store/doctorSession";
 import SaveNotice from "./components/SaveNotice";
 import DoctorRegistrationPage from "./pages/auth/DoctorRegistrationPage";
+import ProfessionalRegistrationPage from "./pages/auth/ProfessionalRegistrationPage";
 import SignInPage from "./pages/auth/SignInPage";
 import RegistrationStatusPage from "./pages/auth/RegistrationStatusPage";
 import PortalPreviewPage from "./pages/auth/PortalPreviewPage";
@@ -45,7 +46,7 @@ export default function App() {
       <SaveNotice key={`notice:${doctor?.id || "signed-out"}`} />
       <PortalErrorBoundary key={`boundary:${doctor?.id || "signed-out"}`}>
       <Routes key={doctor?.id || "signed-out"}>
-        <Route path="/register" element={<DoctorRegistrationPage />} />
+        <Route path="/register" element={<ProfessionalRegistrationPage />} />
         <Route path="/login" element={<SignInPage />} />
         <Route path="/forgot-password" element={<SignInPage key="recovery" recovery />} />
         <Route path="/registration/status" element={<RegistrationStatusPage />} />

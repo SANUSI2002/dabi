@@ -5,8 +5,8 @@
 export const CATEGORIES = [
   { id: "caregiver", label: "Caregivers", description: "Home and elderly care" },
   { id: "nutritionist", label: "Nutritionists & Dieticians", description: "Meal plans and nutrition advice" },
-  { id: "fitness_coach", label: "Fitness Coaches", description: "Exercise and rehabilitation" },
-  { id: "therapist", label: "Therapists", description: "Mental health and counseling" },
+  { id: "fitness_coach", label: "Fitness Coaches", description: "Exercise and fitness support · not clinical rehabilitation" },
+  { id: "therapist", label: "Psychologists & Counsellors", description: "Separate mental-health and counselling disciplines" },
   { id: "health_educator", label: "Health Educators", description: "Lifestyle and disease education" },
 ];
 
@@ -24,6 +24,8 @@ export const toOffering = (o) => {
     id: o.id,
     name: o.name,
     category: o.category,
+    professionalId: pro?.id,
+    professionType: pro?.professionType,
     description: o.description || "",
     price: (o.priceMinor ?? 0) / 100,
     providerName: org?.name || pro?.practiceName || "Verified provider",

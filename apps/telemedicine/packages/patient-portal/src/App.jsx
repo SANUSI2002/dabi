@@ -24,6 +24,7 @@ import AnimatedAuth from "./pages/Onboarding/AnimatedAuth";
 import IdentityVerificationPage from "./pages/Onboarding/IdentityVerification";
 import SuccessPage from "./pages/Onboarding/SuccessPage";
 import { PrescriptionsPage } from "./pages/prescriptions/PrescriptionsPage";
+import { DieticianTablePage } from './pages/prescriptions/DieticianTablePage';
 import { PrescriptionDetailPage } from "./pages/prescriptions/PrescriptionDetailPage";
 import { SelectPharmacyPage } from "./pages/prescriptions/SelectPharmacyPage";
 import { PharmacyMarketPage } from "./pages/pharmacy-market/PharmacyMarketPage";
@@ -33,6 +34,7 @@ import { DeliveryListPage } from "./pages/delivery-tracking/DeliveryListPage";
 import { DeliveryTrackingPage } from "./pages/delivery-tracking/DeliveryTrackingPage";
 import FindYourDoctor from "./pages/doctor/Doctor";
 import { WellnessHubPage } from "./pages/wellness/WellnessHubPage";
+import ProfessionalBookingPage from './pages/wellness/ProfessionalBookingPage';
 import { PractitionerListPage } from "./pages/wellness/PractitionerListPage";
 import { PractitionerDetailPage } from "./pages/wellness/PractitionerDetailPage";
 import { BookPractitionerPage } from "./pages/wellness/BookPractitionerPage";
@@ -173,6 +175,8 @@ export default function App() {
               <Route path="/profile" element={<Profile />} />
               <Route path="/records" element={<Records />} />
               <Route path="/prescriptions" element={<PrescriptionsPage />} />
+              <Route path="/prescriptions/dietician-table" element={<DieticianTablePage />} />
+              <Route path="/care-plans" element={<DieticianTablePage support />} />
               <Route path="/prescriptions/:id" element={<PrescriptionDetailPage />} />
               <Route path="/prescriptions/:id/select-pharmacy" element={<SelectPharmacyPage />} />
               <Route path="/prescriptions/:id/quotes" element={<PharmacyQuotesPage />} />
@@ -215,6 +219,8 @@ export default function App() {
               <Route path="/vitals/history/:type" element={<VitalHistoryPage />} />
 
                <Route path="/wellness-hub" element={<WellnessHubPage />} />
+              <Route path="/wellness-hub/professionals" element={<ProfessionalBookingPage />} />
+              <Route path="/wellness-hub/professionals/:id" element={<ProfessionalBookingPage />} />
               <Route path="/wellness-hub/engagements" element={<EngagementsPage />} />
               <Route path="/wellness-hub/engagements/:engagementId" element={<EngagementDetailPage />} />
               <Route path="/wellness-hub/:categoryId" element={<PractitionerListPage />} />

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, Menu, X } from "lucide-react";
+import { ChevronLeft, Menu, X, Salad, ClipboardList } from "lucide-react";
 import { NavRow } from "../share";
 import { FOOTER_ITEMS, NAV_ITEMS } from "../data";
 import logo from "../../../assets/logo.jpeg";
@@ -128,6 +128,7 @@ export function Sidebar() {
         <nav className="sabi-nav">
 
           {NAV_ITEMS.map((item) => (
+            <React.Fragment key={item.key}>
             <NavRow
               key={item.key}
               icon={item.icon}
@@ -136,6 +137,9 @@ export function Sidebar() {
               active={isActive(item.to)}
               title={collapsed ? item.label : undefined}
             />
+            {item.to === '/prescriptions' && <div style={{paddingLeft:collapsed?0:20}}><NavRow icon={Salad} label="Dietician Table" to="/prescriptions/dietician-table" active={isActive('/prescriptions/dietician-table')} title="Dietician Table" /></div>}
+            {item.to === '/wellness-hub' && <NavRow icon={ClipboardList} label="My Care Plans" to="/care-plans" active={isActive('/care-plans')} />}
+            </React.Fragment>
           ))}
 
         </nav>

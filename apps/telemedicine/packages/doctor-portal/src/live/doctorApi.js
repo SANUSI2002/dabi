@@ -13,6 +13,7 @@ export const cancelSlot = (id) => doctorRequest(`${ROOT}/slots/${encodeURICompon
 export const loadSchedule = (signal) => doctorRequest('/professional-schedule', {signal}).then(r => r.data);
 export const saveSchedule = (settings) => doctorRequest('/professional-schedule',json('PUT',settings)).then(r => r.data);
 export const publishSchedule = (range) => doctorRequest('/professional-schedule/publish',json('POST',range)).then(r => r.data);
+export const publishException = (body) => doctorRequest('/professional-schedule/exceptions',json('POST',body)).then(r=>r.data);
 export const addTimeBlock = (block) => doctorRequest('/professional-schedule/blocks',json('POST',block)).then(r => r.data);
 export const removeTimeBlock = (id) => doctorRequest(`/professional-schedule/blocks/${encodeURIComponent(id)}`,json('DELETE')).then(r => r.data);
 export const loadPractice = (signal) => doctorRequest(`${ROOT}/profile`, { signal }).then((r) => r.data);

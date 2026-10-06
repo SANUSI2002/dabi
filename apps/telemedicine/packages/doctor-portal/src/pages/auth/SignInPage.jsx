@@ -42,7 +42,7 @@ export default function SignInPage({ recovery = false }) {
     finally { setBusy(false); }
   }
   return <AuthLayout compact>
-    <div className="sh-auth-topline"><span>DOCTOR PORTAL</span><div>New to Sabi Health? <Link to="/register">Register</Link></div></div>
+    <div className="sh-auth-topline"><span>PROFESSIONAL PORTAL</span><div>New to Sabi Health? <Link to="/register">Register</Link></div></div>
     <div className="sh-login-content">
       <span className="sh-auth-kicker">{recovery ? "ACCOUNT RECOVERY" : "WELCOME BACK"}</span>
       <h1>{recovery ? "Reset your password" : challenge ? "Verify your sign-in" : "Sign in to your workspace"}</h1>
