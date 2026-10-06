@@ -1,0 +1,196 @@
+/* Shared visual system for patient and professional portals. No permission or
+   data changes belong in this stylesheet. Keep modal/video overlays untouched. */
+:root{--portal-page-bg:#f6f7f2;--portal-sidebar-bg:#113c30;--portal-sidebar-text:#d5e3d8;--portal-sidebar-active:#e0eddb;--portal-ink:#173d30;--portal-muted:#65736b;--portal-line:#dfe6dd;--portal-accent:#e5c48b;--portal-shadow:0 4px 20px #173d3005;}
+.sabi-dashboard,.dp-shell{background:var(--portal-page-bg);color:var(--portal-ink);font-family:'Inter',system-ui,sans-serif;line-height:1.55;}
+.sabi-main{background:var(--portal-page-bg);padding:24px 30px 36px;}
+.sabi-sidebar,.dp-sidebar{background:var(--portal-sidebar-bg);border-right:0;padding:24px 14px 18px;}
+.sabi-sidebar-brand .tagline,.dp-sidebar-brand-sub{color:#b9cec1;font-size:8px;letter-spacing:.12em;line-height:1.6;}
+.sabi-sidebar-brand-icon,.dp-sidebar-brand-icon{border-radius:14px;}
+.sabi-nav,.dp-sidebar-nav{gap:5px;}
+.sabi-nav-row,.dp-sidebar-link,.dp-sidebar-profile{color:var(--portal-sidebar-text);font-size:13px;min-height:42px;padding:10px 14px;border-radius:11px;gap:12px;font-weight:500;}
+.sabi-nav-row.active,.dp-sidebar-link-active,.dp-sidebar-profile-active{background:var(--portal-sidebar-active);color:#173d30;font-weight:700;box-shadow:none;}
+.sabi-nav-row.active:hover,.dp-sidebar-link-active:hover,.dp-sidebar-profile-active:hover{background:#e0eddb;color:#173d30;}
+.sabi-sidebar-footer,.dp-sidebar-footer{border-color:#ffffff1c;}
+.sabi-nav-caption,.dp-nav-caption{font-size:9px;letter-spacing:.16em;font-weight:700;color:#a6bfb0;padding:8px 14px;margin:14px 0 4px;}
+.sabi-sidebar.collapsed .sabi-nav-caption,.dp-sidebar-collapsed .dp-nav-caption{display:none;}
+.sabi-topbar,.dp-topbar{background:#ffffffd9;border:1px solid var(--portal-line);border-radius:16px;box-shadow:none;min-height:76px;padding:14px 20px;margin-bottom:26px;gap:16px;}
+.dp-topbar{margin:24px 28px;}
+.sabi-topbar{justify-content:space-between;}
+.sabi-topbar-context{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.sabi-topbar-context small{font-size:10px;color:var(--portal-muted);letter-spacing:.1em;text-transform:uppercase;}
+.sabi-topbar-context strong,.dp-topbar-title{font-size:16px;font-weight:650;color:var(--portal-ink);letter-spacing:-.02em;}
+.sabi-topbar-actions{gap:12px;}
+.sabi-wallet-shortcut{background:#edf3e8;border:1px solid #d9e5d3;border-radius:12px;}
+.sabi-profile .avatar,.dp-topbar-avatar{background:#e8edde;color:#214934;border:1px solid #d4dfca;}
+.sabi-card,.dp-panel,.care-card{border:1px solid var(--portal-line);border-radius:20px;background:#fff;box-shadow:var(--portal-shadow);}
+.sabi-card{padding:24px;}
+.sabi-section-title,.dl-section-heading h2{font-size:16px;font-weight:650;letter-spacing:-.025em;color:var(--portal-ink);}
+.sabi-section-title .action,.dl-section-heading a{color:#275e46;font-size:12px;font-weight:600;}
+.dp-shell-content{padding:0 28px 36px;}
+.dl-page{max-width:1480px;padding-top:0;}
+.dl-heading{margin-bottom:26px;}
+.dl-heading h1{font-size:clamp(26px,3vw,34px);font-weight:650;letter-spacing:-.04em;color:var(--portal-ink);}
+.dl-heading p{font-size:14px;color:var(--portal-muted);line-height:1.65;}
+.dl-eyebrow{font-size:10px;letter-spacing:.14em;color:#486c50;}
+.dl-stat{border:1px solid var(--portal-line);border-radius:18px;box-shadow:var(--portal-shadow);padding:24px;}
+.dl-stat strong{color:var(--portal-ink);font-weight:650;}
+.dl-appointment-card{border-color:var(--portal-line);border-radius:14px;background:#fafbf7;}
+.dl-appointment-card:hover{border-color:#a9c1a5;background:#f2f6ed;}
+.dl-appointment-card h3{font-size:14px;font-weight:650;}
+.dl-empty{background:#f9fbf6;border:1px dashed #d9e3d3;border-radius:16px;margin:10px 0;padding:40px 22px;}
+.dl-empty svg{color:#6f8b6a;}
+.dl-error,.dl-notice,.care-alert{border-radius:14px;line-height:1.65;}
+.dp-btn,.sabi-dashboard .sabi-btn{border-radius:11px;min-height:42px;font-size:13px;font-weight:600;}
+.dp-btn-primary{background:#245b43;border-color:#245b43;}
+.dp-btn-primary:hover{background:#173d30;}
+.dp-btn-outline{border-color:#d9e3d3;background:#fff;color:#345740;}
+.dl-form input,.dl-form textarea,.dl-form select,.care-workspace input,.care-workspace textarea,.care-workspace select{border-radius:10px;background:#fcfdf9;border-color:#dce5d8;}
+.care-card{padding:24px;}
+.care-table-scroll{border-radius:14px;border:1px solid var(--portal-line);}
+.care-card h2,.care-card h3{letter-spacing:-.025em;}
+.sabi-dashboard :focus-visible,.dp-shell :focus-visible,.sabi-patient-login :focus-visible,.sabi-patient-signup :focus-visible{outline:3px solid #6a9b73;outline-offset:3px;}
+.sabi-hero{min-height:250px;border-radius:22px;isolation:isolate;background:#e5eddd!important;color:var(--portal-ink)!important;border:1px solid #d5e0cc;padding:30px;}
+.sabi-hero-copy{z-index:2;max-width:65%;}
+.sabi-hero-copy h2{font-size:clamp(25px,2.8vw,34px);font-weight:650;letter-spacing:-.04em;color:var(--portal-ink);}
+.sabi-hero-copy p{color:#4b6652;font-size:14px;}
+.sabi-hero-rings{display:none;}
+.sabi-hero-art{position:absolute;right:0;top:0;width:40%;height:100%;opacity:.95;border-radius:0;}
+.sabi-hero-art img{width:100%;height:100%;object-fit:cover;object-position:70% center;mask-image:linear-gradient(90deg,transparent,#000 28%);}
+.sabi-hero-cta{background:#245b43!important;color:#fff!important;border:0!important;border-radius:10px!important;font-size:12px!important;padding:12px 16px!important;}
+.sabi-care-banner{display:flex;justify-content:space-between;align-items:center;overflow:hidden;position:relative;border:1px solid #d5e0cc;background:#e5eddd;border-radius:22px;min-height:210px;margin-bottom:24px;padding:28px 32px;gap:24px;}
+.sabi-care-banner>div{position:relative;z-index:1;max-width:62%;}
+.sabi-care-banner h2{font-size:clamp(23px,2.8vw,32px);font-weight:650;letter-spacing:-.04em;color:#173d30;margin:8px 0;line-height:1.2;}
+.sabi-care-banner p{font-size:13px;color:#4c6853;max-width:430px;margin:10px 0 18px;}
+.sabi-care-banner>img{position:absolute;right:0;top:0;height:100%;width:40%;object-fit:cover;object-position:70% center;mask-image:linear-gradient(90deg,transparent,#000 25%);}
+.sabi-care-eyebrow{font-size:10px;letter-spacing:.18em;font-weight:700;}
+.sabi-care-story{position:relative;isolation:isolate;overflow:hidden;min-height:680px;background:#113c30;border-radius:26px;display:flex;flex-direction:column;padding:34px;color:#fff;}
+.sabi-care-story-image{position:absolute;left:0;right:0;bottom:0;width:100%;height:65%;object-fit:cover;object-position:center 40%;z-index:-2;}
+.sabi-care-story-shade{position:absolute;inset:0;background:linear-gradient(180deg,#113c30 0%,#113c30 32%,#113c30b0 45%,transparent 70%,#123c3066 100%);z-index:-1;}
+.sabi-care-story-brand{display:flex;align-items:center;gap:10px;font-size:23px;font-weight:650;letter-spacing:-.04em;}
+.sabi-care-story-brand>svg{box-sizing:content-box;padding:8px;background:#ffffff18;border:1px solid #ffffff3b;border-radius:12px;}
+.sabi-care-story-brand small{display:block;font-size:8px;letter-spacing:.16em;color:#dae4d2;margin-top:3px;}
+.sabi-care-story-copy{margin-top:52px;max-width:360px;}
+.sabi-care-story-copy h2{font-size:clamp(32px,3vw,46px);font-weight:550;letter-spacing:-.055em;line-height:1.08;margin:16px 0;}
+.sabi-care-story-copy>p{font-size:13px;line-height:1.8;color:#e4eddd;max-width:310px;}
+.sabi-care-story-caption{margin-top:auto;display:flex;align-items:center;gap:10px;background:#143e32df;border:1px solid #ffffff29;border-radius:12px;padding:14px;font-size:11px;line-height:1.5;}
+.sabi-care-story-caption svg{flex-shrink:0;color:#e5d4ad;}
+.sh-auth{background:#f6f7f2;grid-template-columns:minmax(340px,44%) minmax(0,1fr);padding:18px;gap:18px;}
+.sh-auth>.sabi-care-story{position:sticky;top:18px;height:calc(100dvh - 36px);min-height:650px;}
+.sh-auth-main{padding:22px 34px 18px;}
+.sh-register-content{max-width:650px;margin-top:30px;}
+.sh-login-content{margin-top:70px;max-width:460px;}
+.sh-register-intro h1,.sh-login-content h1{font-size:32px;font-weight:650;color:#173d30;letter-spacing:-.045em;}
+.sh-register-intro>p,.sh-login-content>p{font-size:14px;color:#65736b;}
+.sh-register-form{border-radius:20px;padding:28px;border-color:#dfe6dd;box-shadow:var(--portal-shadow);}
+.sh-auth-field label{font-size:12px;}
+.sh-auth-field input,.sh-auth-field select{font-size:14px;height:46px;background:#fcfdf9;border-radius:10px;border-color:#dce5d8;}
+.sh-auth-field small,.sh-small-note,.sh-consent,.sh-next-note p,.sh-verification-note p,.sh-form-notice,.sh-review-section dl{font-size:12px;}
+.sh-auth-field>label,.sh-auth-field>span:first-child{font-weight:600;}
+.sh-register-steps li>span{width:34px;height:34px;}
+.sh-register-steps small{font-size:11px;}
+.sh-form-heading h2{font-size:20px;font-weight:650;}
+.sh-form-heading>div>span{font-size:10px;}
+.sh-primary-button,.sh-secondary-button{font-size:13px!important;border-radius:10px;min-height:46px;}
+.sh-primary-button{background:#245b43;border-color:#245b43;}
+.sh-review-section{border-radius:12px;background:#fcfdf9;}
+.sh-review-section h3{font-size:14px;}
+.sh-credential-list{display:grid;gap:12px;margin:20px 0;}
+.sh-credential-list>div{display:flex;align-items:center;gap:12px;padding:16px;border:1px solid #dfe6dd;border-radius:12px;background:#fafcf6;}
+.sh-credential-list svg{color:#46704c;flex-shrink:0;}
+.sh-credential-list strong{font-size:13px;display:block;}
+.sh-credential-list small{font-size:12px;color:#687a67;display:block;margin-top:4px;}
+.sh-profession-picker{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:24px;padding:18px;border-radius:14px;background:#eaf0e1;border:1px solid #d8e4ce;}
+.sh-profession-picker .sh-auth-field{margin:0;}
+.sabi-patient-login{background:#f6f7f2!important;padding:18px;gap:18px;align-items:stretch;}
+.sabi-patient-login>.sabi-patient-login-form{width:56%;padding:42px;}
+.sabi-patient-login-form>div{max-width:430px;}
+.sabi-patient-login-form h2{font-size:32px;letter-spacing:-.04em;font-weight:650;color:#173d30;}
+.sabi-patient-login-form input:not([type=checkbox]){min-height:48px;background:#fcfdf9;border-color:#dce5d8;border-radius:11px;font-size:14px;}
+.sabi-patient-login>.sabi-care-story{width:44%;min-height:calc(100dvh - 36px);}
+.sabi-patient-login>div.pointer-events-none{display:none;}
+.sabi-patient-signup{background:#f6f7f2;padding:18px;}
+.sabi-patient-signup-layout{max-width:1380px;margin:auto;display:grid;grid-template-columns:minmax(340px,.9fr) minmax(0,1.1fr);gap:28px;align-items:start;}
+.sabi-patient-signup-layout>.sabi-care-story{position:sticky;top:18px;height:calc(100dvh - 36px);}
+.sabi-patient-signup-card{background:#fff;border:1px solid #dfe6dd;border-radius:22px;box-shadow:var(--portal-shadow);padding:32px;width:100%;margin:12px 0;}
+.sabi-patient-signup-card h2{font-size:30px;letter-spacing:-.04em;color:#173d30;}
+.sabi-patient-signup-card input{font-size:14px;min-width:0;}
+.sabi-patient-signup-card label,.sabi-patient-signup-card .text-sm{font-size:13px;}
+.sabi-patient-signup-card input::placeholder{font-size:13px;}
+@media(min-width:901px){.sabi-sidebar:not(.collapsed),.dp-sidebar:not(.dp-sidebar-collapsed){width:252px;min-width:252px;}}
+@media(max-width:1100px){.sabi-main{padding:20px;}.sabi-topbar-context{display:none;}.sabi-topbar{justify-content:flex-end;}.sabi-care-story{padding:26px;}.sabi-care-story-copy h2{font-size:34px;}.sh-auth-main{padding:20px 14px;}.sabi-patient-login>.sabi-patient-login-form{padding:32px;}}
+@media(max-width:900px){.sabi-main{padding:12px 16px 24px;}.dp-topbar{margin:12px 16px 22px;padding:12px 16px;border-radius:14px;}.dp-shell-content{padding:0 16px 28px;}.sabi-topbar{padding:12px 14px;min-height:68px;margin-bottom:20px;}.sabi-patient-login>.sabi-care-story,.sh-auth>.sabi-care-story,.sabi-patient-signup-layout>.sabi-care-story{display:none;}.sh-auth{display:block;padding:0;}.sh-auth-main{padding:24px;}.sabi-patient-login{padding:0;}.sabi-patient-login>.sabi-patient-login-form{width:100%;padding:40px 24px;}.sabi-patient-signup-layout{display:block;max-width:650px;}.sabi-patient-signup-card{margin:0;padding:26px;}.sabi-patient-signup{padding:20px 16px;}.sabi-sidebar .sabi-nav-caption{display:block;}.sabi-sidebar.collapsed:not(.mobile-open) .sabi-nav-caption{display:none;}}
+@media(max-width:600px){.sabi-main{padding:12px;}.sabi-card,.care-card{padding:18px;border-radius:16px;}.sabi-topbar-actions{gap:8px;}.sabi-hero{padding:22px;min-height:240px;}.sabi-hero-copy{max-width:80%;}.sabi-hero-art{width:38%;opacity:.28;}.sabi-hero-copy h2{font-size:28px;}.sabi-care-banner{padding:24px;min-height:220px;}.sabi-care-banner>div{max-width:85%;}.sabi-care-banner>img{opacity:.3;}.sh-auth-main{padding:22px 16px;}.sh-register-form{padding:20px;}.sh-login-content{margin-top:34px;}.sh-form-grid{grid-template-columns:1fr;gap:0;}.sh-profession-picker{grid-template-columns:1fr;}.sh-register-intro h1,.sh-login-content h1{font-size:28px;}.sh-register-steps small{font-size:10px;}.sabi-patient-login-form input:not([type=checkbox]),.sabi-patient-signup-card input,.sh-auth-field input,.sh-auth-field select{font-size:16px;}.sabi-patient-signup-card{padding:22px;}.sabi-patient-signup-card h2{font-size:26px;}.sabi-topbar .sabi-emergency-badge{font-size:0;width:38px;height:38px;padding:8px;}.sabi-topbar .sabi-emergency-badge svg{width:20px;height:20px;}.dp-topbar-title{font-size:13px;}.sh-register-bottom{align-items:flex-start;}.sh-review-section dl{grid-template-columns:1fr;gap:4px;}.sh-review-section dd{margin-bottom:8px;}}
+@media(prefers-reduced-motion:reduce){.sabi-dashboard *,.dp-shell *,.sh-auth *{scroll-behavior:auto!important;transition:none!important;animation:none!important;}}
+/* Wizard layout and shared controls. Existing doctor form and new professions share sizing. */
+.sh-auth-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.sh-login-content.sh-register-content{max-width:650px;margin-top:28px;}
+.sh-registration-steps{list-style:none;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:26px 0;padding:0;}
+.sh-registration-steps li{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;color:#65736b;}
+.sh-registration-steps li>span{width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:#edf0e8;border:1px solid #d6dfce;font-size:13px;font-weight:650;}
+.sh-registration-steps small{font-size:11px;}
+.sh-registration-steps li.active>span,.sh-registration-steps li.complete>span{background:#245b43;color:#fff;border-color:#245b43;}
+.sh-register-form>h2{margin:0;font-size:21px;letter-spacing:-.03em;color:#173d30;}
+.sh-register-form>p{font-size:12px;color:#65736b;}
+.sh-register-form .sh-field-help{font-size:12px;line-height:1.7;color:#65736b;}
+.sh-register-actions{display:flex;justify-content:space-between;gap:12px;margin-top:24px;}
+.sh-register-actions .sh-primary-button{margin-left:auto;display:flex;align-items:center;justify-content:center;gap:8px;min-width:150px;}
+.sh-secondary-button{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border:1px solid #dce5d8;color:#245b43;background:#fff;}
+.sh-review-card{border:1px solid #dfe6dd;background:#fafcf6;border-radius:14px;padding:20px;margin:16px 0;}
+.sh-review-card h3{font-size:15px;margin:0 0 14px;}
+.sh-review-card dl{font-size:13px;display:grid;grid-template-columns:90px 1fr;gap:12px;}
+.sh-review-card dt{color:#65736b;}.sh-review-card dd{margin:0;overflow-wrap:anywhere;}
+.sh-review-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:18px;}
+.sh-review-actions button{background:none;border:0;padding:0;color:#245b43;text-decoration:underline;font-size:12px;}
+.sh-checkbox-row{display:flex;align-items:flex-start;gap:10px;font-size:12px;line-height:1.6;margin:16px 0;}
+.sh-checkbox-row input{margin-top:3px;accent-color:#245b43;}
+.sh-auth-topline{flex-wrap:wrap;gap:10px;}
+.dp-sidebar-active-indicator{background:#e0eddb!important;border:0;box-shadow:none;}
+.dp-stat-card{background:#fff;border:1px solid #dfe6dd;box-shadow:var(--portal-shadow);border-radius:18px;}
+.dp-topbar,.sabi-topbar{position:relative;z-index:30;}
+.dp-session-page{min-height:100dvh;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;padding:24px;background:#f6f7f2;color:#173d30;}
+@media(max-width:600px){.sh-auth-grid{grid-template-columns:1fr;gap:0;}.sh-registration-steps small{font-size:10px;}.sh-review-card dl{grid-template-columns:1fr;gap:4px;}.sh-review-card dd{margin-bottom:10px;}}
+
+/* Inner-page rhythm: retain each module's useful layout and status colours. */
+.sh-auth{font-family:'Inter',system-ui,sans-serif;}
+.sabi-main h1,.dp-shell-content h1{font-size:clamp(26px,3vw,34px);font-weight:650;letter-spacing:-.04em;color:#173d30;line-height:1.25;}
+.sabi-dashboard :is(.sabi-records-header,.sabi-apt-header,.sabi-wallet-heading){margin-bottom:26px;}
+.sabi-dashboard :is(.sabi-record-card,.sabi-stat-card,.sabi-apt-stat-card,.sabi-doctor-card,.sabi-wellness-category-card,.sabi-fam-card,.sabi-vitaltype-card,.sabi-hospital-card,.sabi-quote-card,.sabi-rx-stat-card){border-color:#dfe6dd;border-radius:18px;box-shadow:var(--portal-shadow);}
+.sabi-dashboard :is(.sabi-record-card,.sabi-doctor-card,.sabi-wellness-category-card,.sabi-hospital-card):hover{border-color:#a7c1a4;box-shadow:0 8px 24px #173d300b;}
+.sabi-dashboard :is(.sabi-quick-card,.sabi-med-card,.sabi-profile-side-card,.sabi-fam-detail-card){border-radius:14px;border-color:#dfe6dd;}
+.sabi-main table th,.dp-shell-content table th{background:#f4f7ef;color:#52664e;font-size:11px;font-weight:650;letter-spacing:.025em;}
+.sabi-main table td,.dp-shell-content table td{border-color:#e7ece1;font-size:13px;}
+.sabi-main :is(input[type=text],input[type=email],input[type=tel],input[type=date],input[type=time],input[type=number],select,textarea),.dp-shell-content :is(input[type=text],input[type=email],input[type=tel],input[type=date],input[type=time],input[type=number],select,textarea){border-color:#dce5d8;border-radius:10px;accent-color:#245b43;}
+.sabi-dashboard .sabi-btn-primary{background:#245b43;border-color:#245b43;}
+.dp-panel-header{border-bottom-color:#e4eadc;}
+.sabi-patient-login-form button[type=submit]{background:#245b43;box-shadow:none;border-radius:11px;min-height:46px;}
+.sabi-patient-login-form button[type=submit]:hover{background:#173d30;}
+.sabi-patient-signup-card button[type=submit]{border-radius:11px;min-height:46px;background:#245b43;}
+@media(max-width:600px){.sabi-main h1,.dp-shell-content h1{font-size:26px;}.sabi-main :is(input,select,textarea),.dp-shell-content :is(input,select,textarea){font-size:16px;}}
+.sabi-signup-mobile-brand{display:none;align-items:center;gap:9px;font-weight:700;color:#173d30;margin-bottom:24px;}
+.sabi-dashboard-home .sabi-hero{min-height:250px;padding:30px;}
+.sabi-dashboard-home .sabi-hero-copy h2{font-size:clamp(25px,2.8vw,34px);}
+.sabi-hero-art{aspect-ratio:auto;background:transparent;z-index:0;pointer-events:none;}
+@media(max-width:900px){.sabi-signup-mobile-brand{display:flex;}.sabi-dashboard-home .sabi-hero{min-height:240px;}}
+@media(max-width:600px){.sabi-dashboard-home .sabi-hero{padding:22px;}.sabi-dashboard-home .sabi-hero-copy h2{font-size:28px;}}
+@media(max-width:600px){.sabi-patient-signup-card .flex:has(>h2){align-items:flex-start;flex-direction:column;gap:8px;margin-bottom:10px;}}
+.sabi-account-layout{display:grid;grid-template-columns:minmax(340px,44%) minmax(0,1fr);gap:18px;padding:18px;min-height:100dvh;background:#f6f7f2;color:#173d30;font-family:'Inter',system-ui,sans-serif;}
+.sabi-account-layout>.sabi-care-story{position:sticky;top:18px;height:calc(100dvh - 36px);min-height:650px;}
+.sabi-account-content{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;}
+.sabi-account-content>div:not(.sabi-signup-mobile-brand){border-radius:22px;border-color:#dfe6dd;box-shadow:var(--portal-shadow);}
+.sabi-account-content h1{font-size:30px;font-weight:650;letter-spacing:-.04em;color:#173d30;}
+.sabi-account-content :is(input,select,textarea){border-radius:11px;background:#fcfdf9;font-size:14px;}
+.sabi-account-content button[type=submit]{background:#245b43;border-radius:11px;min-height:46px;color:#fff;}
+.sabi-account-content :focus-visible{outline:3px solid #6a9b73;outline-offset:3px;}
+@media(max-width:900px){.sabi-account-layout{display:block;padding:20px 16px;}.sabi-account-layout>.sabi-care-story{display:none;}.sabi-account-content{padding:0;gap:12px;align-items:stretch;}.sabi-account-content .sabi-signup-mobile-brand{display:flex;}.sabi-account-content>div{margin:auto;width:100%;}.sabi-account-content input{font-size:16px;}}
+.sabi-account-selector{width:100%;max-width:600px;padding:32px;background:#fff;border:1px solid #dfe6dd;border-radius:22px;}
+.sabi-account-selector>p{font-size:14px;color:#65736b;line-height:1.7;}
+.sabi-account-selector h1{margin:12px 0;}
+.sabi-account-choices{display:grid;gap:12px;margin:28px 0;}
+.sabi-account-choices>a{display:flex;align-items:center;gap:14px;padding:18px;border:1px solid #dfe6dd;border-radius:14px;background:#fcfdf9;color:#173d30;text-decoration:none;transition:background .15s,border-color .15s;}
+.sabi-account-choices>a:hover{background:#edf3e8;border-color:#91b18b;}
+.sabi-account-choices>a>span:nth-child(2){flex:1;min-width:0;}
+.sabi-account-choices strong{display:block;font-size:14px;font-weight:650;}
+.sabi-account-choices small{display:block;font-size:12px;line-height:1.6;color:#65736b;margin-top:4px;}
+.sabi-account-choice-icon{display:grid;place-items:center;background:#e5eddd;border-radius:12px;min-width:44px;height:44px;color:#245b43;}
+.sabi-account-signin a{color:#245b43;font-weight:650;}
+@media(max-width:600px){.sabi-account-selector{padding:24px;}.sabi-account-choices>a{padding:14px;gap:10px;}}

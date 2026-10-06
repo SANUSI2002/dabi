@@ -1,3 +1,4 @@
+import PatientAccountLayout from "../../../../shared-portal/PatientAccountLayout";
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { CheckCircle2, MailCheck, ShieldCheck } from 'lucide-react';
@@ -47,7 +48,7 @@ export default function VerifyEmail() {
     } finally { setBusy(false); }
   }
 
-  return <main className="grid min-h-screen place-items-center bg-gradient-to-br from-emerald-50 via-white to-teal-50 px-5 py-12">
+  return <PatientAccountLayout>
     <div className="w-full max-w-md rounded-3xl border border-emerald-100 bg-white p-8 shadow-xl shadow-emerald-950/5">
       <div className="mb-6 grid h-14 w-14 place-items-center rounded-2xl bg-emerald-100 text-emerald-800">{uid && token ? <ShieldCheck size={28} /> : <MailCheck size={28} />}</div>
       <p className="text-xs font-extrabold uppercase tracking-[.2em] text-emerald-700">Sabi Health identity</p>
@@ -66,5 +67,5 @@ export default function VerifyEmail() {
       </div>
       <Link to="/login" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-emerald-800"><CheckCircle2 size={16} /> Already verified? Sign in</Link>
     </div>
-  </main>;
+  </PatientAccountLayout>;
 }

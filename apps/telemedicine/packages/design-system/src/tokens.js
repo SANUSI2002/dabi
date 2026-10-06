@@ -2,15 +2,15 @@
 // Update these in ONE place and every portal stays visually consistent.
 
 export const colors = {
-  primaryDark: "#1F4E42",   // deep teal (hero banner, emergency card)
-  primary: "#2E6B5A",       // main teal accent
-  primaryLight: "#D9F2E6",  // light mint background (active sidebar item)
-  background: "#F5F7FA",    // page background
+  primaryDark: "#173D30",   // deep teal (hero banner, emergency card)
+  primary: "#245B43",       // main teal accent
+  primaryLight: "#E5EDDD",  // light mint background (active sidebar item)
+  background: "#F6F7F2",    // page background
   surface: "#FFFFFF",       // card background
-  textPrimary: "#1A1A1A",
-  textSecondary: "#6B7280",
-  border: "#E5E7EB",
-  success: "#2E6B5A",
+  textPrimary: "#173D30",
+  textSecondary: "#65736B",
+  border: "#DFE6DD",
+  success: "#245B43",
   warning: "#D97706",
   danger: "#DC2626",
 };

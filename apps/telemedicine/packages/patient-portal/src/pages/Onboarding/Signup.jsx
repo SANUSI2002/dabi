@@ -1,10 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import CareStory from "../../../../shared-portal/CareStory";
+import { Children, cloneElement, isValidElement, useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, TrendingUp, Phone, Mail, Lock, Eye, EyeOff, ArrowRight, IdCard, X } from "lucide-react";
+import { HeartPulse, Phone, Mail, Lock, Eye, EyeOff, ArrowRight, IdCard, X } from "lucide-react";
 import { registerPatient } from "../../utils/sabiIdentity";
-// If you want a local video, create `packages/patient-portal/public/signup-bg-video.mp4`.
-// Otherwise this fallback uses a hosted video URL that works immediately.
-const VIDEO_SRC = "https://assets.mixkit.co/videos/29933/29933-720.mp4";
 
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -91,36 +89,7 @@ export default function SignupPage() {
     }
   };
 
-  // --- OAuth handlers ---
-  // Replace GOOGLE_CLIENT_ID / APPLE_CLIENT_ID / redirect URIs with your own
-  // values (from Google Cloud Console and Apple Developer > Sign in with Apple config).
-  const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
-  const APPLE_CLIENT_ID = "com.yourcompany.sabihealth";
-  const REDIRECT_URI = `${window.location.origin}/auth/callback`;
-
-  const handleGoogleAuth = () => {
-    const params = new URLSearchParams({
-      client_id: GOOGLE_CLIENT_ID,
-      redirect_uri: REDIRECT_URI,
-      response_type: "code",
-      scope: "openid email profile",
-      access_type: "offline",
-      prompt: "consent",
-    });
-    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-  };
-
-  const handleAppleAuth = () => {
-    const params = new URLSearchParams({
-      client_id: APPLE_CLIENT_ID,
-      redirect_uri: REDIRECT_URI,
-      response_type: "code id_token",
-      scope: "name email",
-      response_mode: "form_post",
-    });
-    window.location.href = `https://appleid.apple.com/auth/authorize?${params.toString()}`;
-  };
-
+  // Social account creation stays unavailable until server OIDC is configured.
   const passwordRule = /^(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
   const validateDependentForm = () => {
@@ -257,60 +226,16 @@ export default function SignupPage() {
   }, [showDependentModal]);
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden">
-      {/* Full-page video background */}
-      <video
-        className="fixed inset-0 w-full h-full object-cover z-0"
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload="auto"
-        crossOrigin="anonymous"
-        onError={(e) => console.error("Background video failed to load:", e.currentTarget.error)}
-      >
-        <source src={VIDEO_SRC} type="video/mp4" />
-        Your browser does not support the video tag.
-      </video>
-      {/* Darkening overlay for legibility */}
-      <div className="fixed inset-0 bg-gradient-to-br from-teal-950/80 via-teal-950/60 to-slate-950/70 z-[1]" />
-
+    <div className="sabi-patient-signup relative min-h-screen w-full">
       {/* Content */}
-      <div className="relative z-10 min-h-screen w-full flex items-center justify-center p-2 sm:p-2.5 md:p-3 lg:p-4">
-        <div className="w-full max-w-5xl grid md:grid-cols-2 gap-3 md:gap-4 lg:gap-5">
-          {/* LEFT: copy over video */}
-          <div className="flex flex-col justify-center gap-3 py-1 sm:py-2">
-            <div>
-              <h1 className="text-2xl sm:text-3xl md:text-4xl leading-[1.05] font-semibold text-white tracking-tight drop-shadow-sm">
-                Start your journey to
-                <br />
-                precision health.
-              </h1>
-              <p className="mt-2 text-base text-teal-50/90 max-w-md">
-                Join SabiHealth today and gain access to secure records,
-                personalized insights, and professional care coordination.
-              </p>
-            </div>
+      <div className="relative z-10 w-full">
+        <div className="sabi-patient-signup-layout">
+          <CareStory />
 
-            <div className="space-y-2">
-              <FeatureCard
-                icon={<Shield className="w-5 h-5 text-white" />}
-                iconBg="bg-teal-600"
-                title="Secure & Private"
-                body="Your medical data is encrypted with enterprise-grade security protocols."
-              />
-              <FeatureCard
-                icon={<TrendingUp className="w-5 h-5 text-teal-800" />}
-                iconBg="bg-teal-100"
-                title="Health Insights"
-                body="Track your vitals and receive proactive recommendations from our AI engine."
-              />
-            </div>
-          </div>
-
-          {/* RIGHT: signup card, glassy over the video */}
+          {/* Patient registration form */}
           <div className="flex items-center">
-            <div className="w-full bg-white/95 backdrop-blur-md rounded-3xl border border-white/40 shadow-2xl shadow-black/30 p-3 sm:p-4 md:p-5 lg:p-5">
+            <div className="sabi-patient-signup-card">
+            <div className="sabi-signup-mobile-brand"><HeartPulse size={22}/> Sabi Health</div>
             {/* progress */}
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-semibold text-teal-800">Patient account details</span>
@@ -359,7 +284,7 @@ export default function SignupPage() {
                 <Phone className="w-5 h-5 text-slate-400" />
                 <input
                   type="tel"
-                  placeholder="+1 (555) 000-0000"
+                  placeholder="+2348012345678"
                   value={form.phone}
                   onChange={update("phone")}
                   className="flex-1 bg-transparent outline-none text-base text-slate-800 placeholder:text-slate-400"
@@ -407,7 +332,7 @@ export default function SignupPage() {
                   />
                 </Field>
                 <p className="mt-2 text-sm text-slate-400">
-                  Must be at least 8 characters with a symbol and number.
+                  Use a unique password of at least 8 characters.
                 </p>
               </div>
 
@@ -454,10 +379,10 @@ export default function SignupPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
-              <SocialButton label="Google" onClick={handleGoogleAuth}>
+              <SocialButton label="Google" disabled>
                 <GoogleIcon />
               </SocialButton>
-              <SocialButton label="Apple" onClick={handleAppleAuth}>
+              <SocialButton label="Apple" disabled>
                 <AppleIcon />
               </SocialButton>
               <SocialButton label="Dependent ID" onClick={handleDependentIdCard}>
@@ -620,24 +545,12 @@ export default function SignupPage() {
   );
 }
 
-function FeatureCard({ icon, iconBg, title, body }) {
-  return (
-    <div className="rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md p-5 flex gap-4">
-      <div className={`w-10 h-10 rounded-full ${iconBg} flex items-center justify-center shrink-0`}>
-        {icon}
-      </div>
-      <div>
-        <div className="font-semibold text-lg text-white">{title}</div>
-        <p className="text-teal-50/80 text-base mt-0.5">{body}</p>
-      </div>
-    </div>
-  );
-}
-
 function Field({ label, children, className = "", error }) {
+  const id=useId();
+  const fields=Children.map(children, child => isValidElement(child) && child.type === "input" ? cloneElement(child,{id, "aria-invalid":!!error, "aria-describedby":error ? id+"-error" : undefined}) : child);
   return (
     <div className={className}>
-      <label className="block text-sm font-medium text-slate-700 mb-1.5">{label}</label>
+      <label htmlFor={id} className="block text-sm font-medium text-slate-700 mb-1.5">{label}</label>
       <div
         className={`flex items-center gap-3 rounded-xl border px-3.5 py-3 transition ${
           error
@@ -645,19 +558,21 @@ function Field({ label, children, className = "", error }) {
             : "border-slate-200 focus-within:border-teal-700 focus-within:ring-1 focus-within:ring-teal-700"
         }`}
       >
-        {children}
+        {fields}
       </div>
-      {error ? <p className="mt-1.5 text-sm text-rose-600">{error}</p> : null}
+      {error ? <p id={id+"-error"} className="mt-1.5 text-sm text-rose-600">{error}</p> : null}
     </div>
   );
 }
 
-function SocialButton({ label, children, onClick }) {
+function SocialButton({ label, children, onClick, disabled=false }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+      disabled={disabled}
+      title={disabled ? "Available when Sabi Identity OIDC is configured" : undefined}
+      className="disabled:opacity-50 disabled:cursor-not-allowed flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
     >
       {children}
       {label}

@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, Button } from "design-system";
-import { Stethoscope } from "lucide-react";
+import artwork from "../../../../../shared-portal/assets/wellness-at-home-v1.png";
 import { getCurrentUser } from "../../../utils/sabiIdentity";
 
 export function HeroCard() {
@@ -18,20 +18,16 @@ export function HeroCard() {
 
       <div className="sabi-hero-copy">
         <div>
-          <h2>Hello, {firstName} 👋</h2>
+          <span className="sabi-care-eyebrow">YOUR HEALTH, IN ONE PLACE</span>
+          <h2>Good to see you, {firstName}.</h2>
           <p>Welcome back to Sabi Health.</p>
         </div>
         <Button variant="secondary" className="sabi-hero-cta" onClick={() => navigate("/vitals")}>
-          View Full Health Report
+          View my vitals
         </Button>
       </div>
 
-      {/* Swap this for a real <img src="..." alt="..." /> once you have the asset */}
-      <div className="sabi-hero-art" role="img" aria-label="Wellness illustration">
-        <span className="sabi-hero-art-glyph">
-          <Stethoscope />
-        </span>
-      </div>
+      <div className="sabi-hero-art" aria-hidden="true"><img src={artwork} alt="" width="1536" height="1024" decoding="async" /></div>
     </Card>
   );
 }

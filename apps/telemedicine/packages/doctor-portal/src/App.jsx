@@ -28,6 +28,8 @@ import NotificationsPage from "./pages/notifications/NotificationsPage";
 import ProfilePage from "./pages/profile/ProfilePage";
 import SettingsPage from "./pages/settings/SettingsPage";
 
+import "../../shared-portal/portal-revamp.css";
+
 export default function App() {
   const doctor = useSyncExternalStore(subscribeToDoctorSession, getCurrentDoctor, getCurrentDoctor);
   const [ready, setReady] = useState(!AUTH_CONFIGURED);

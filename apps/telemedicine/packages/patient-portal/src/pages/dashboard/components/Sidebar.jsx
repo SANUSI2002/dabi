@@ -95,7 +95,7 @@ export function Sidebar() {
             </div>
 
             <div className="tagline">
-              YOUR TRUSTED DIGITAL HEALTH PARTNER
+              YOUR PERSONAL CARE SPACE
             </div>
           </div>
           <button
@@ -125,6 +125,7 @@ export function Sidebar() {
         {/* =================================================
             Main Navigation
             ================================================= */}
+        <div className="sabi-nav-caption">YOUR CARE</div>
         <nav className="sabi-nav">
 
           {NAV_ITEMS.map((item) => (
@@ -134,7 +135,7 @@ export function Sidebar() {
               icon={item.icon}
               label={item.label}
               to={item.to}
-              active={isActive(item.to)}
+              active={isActive(item.to) && !(item.to === "/prescriptions" && isActive("/prescriptions/dietician-table"))}
               title={collapsed ? item.label : undefined}
             />
             {item.to === '/prescriptions' && <div style={{paddingLeft:collapsed?0:20}}><NavRow icon={Salad} label="Dietician Table" to="/prescriptions/dietician-table" active={isActive('/prescriptions/dietician-table')} title="Dietician Table" /></div>}
@@ -149,7 +150,7 @@ export function Sidebar() {
       {/* =====================================================
           Footer Navigation
           ===================================================== */}
-      <div className="sabi-sidebar-footer">
+      <div className="sabi-sidebar-footer"><div className="sabi-nav-caption">YOUR ACCOUNT</div>
 
         {FOOTER_ITEMS.map((item) => (
           <NavRow

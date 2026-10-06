@@ -1,3 +1,4 @@
+import CareStory from "../../../../shared-portal/CareStory";
 import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import {
@@ -5,10 +6,7 @@ import {
   Lock,
   Eye,
   EyeOff,
-  ShieldPlus,
   ShieldCheck,
-  Sparkles,
-  Activity,
   HeartPulse,
 } from "lucide-react";
 import { restoreSession, signIn, verifyMfaLogin } from "../../utils/sabiIdentity";
@@ -22,7 +20,6 @@ export default function SabiHealthLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
-  const [videoFailed, setVideoFailed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [verificationRequired, setVerificationRequired] = useState(false);
@@ -47,13 +44,13 @@ export default function SabiHealthLogin() {
   };
 
   return (
-    <div className="min-h-screen w-full flex bg-white relative overflow-hidden">
+    <div className="sabi-patient-login min-h-screen w-full flex bg-white relative overflow-hidden">
       {/* Ambient decorative blobs */}
       <div className="pointer-events-none absolute -top-40 -left-40 w-[32rem] h-[32rem] rounded-full bg-emerald-100/50 blur-3xl" />
       <div className="pointer-events-none absolute bottom-0 left-1/3 w-96 h-96 rounded-full bg-teal-50 blur-3xl" />
 
       {/* Left panel - form */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center px-6 sm:px-10 lg:px-14 py-6 relative z-10">
+      <div className="sabi-patient-login-form w-full lg:w-1/2 flex flex-col justify-center px-6 sm:px-10 lg:px-14 py-6 relative z-10">
         <div className="w-full max-w-sm mx-auto">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-500 flex items-center justify-center shadow-md shadow-emerald-900/20">
@@ -74,12 +71,14 @@ export default function SabiHealthLogin() {
 
           <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+              <label htmlFor="patient-login-email" className="block text-sm font-semibold text-gray-700 mb-1.5">
                 Email Address
               </label>
               <div className="relative group">
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500 group-focus-within:text-emerald-700 transition-colors" />
                 <input
+                  id="patient-login-email"
+                  autoComplete="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -90,12 +89,14 @@ export default function SabiHealthLogin() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+              <label htmlFor="patient-login-password" className="block text-sm font-semibold text-gray-700 mb-1.5">
                 Password
               </label>
               <div className="relative group">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500 group-focus-within:text-emerald-700 transition-colors" />
                 <input
+                  id="patient-login-password"
+                  autoComplete="current-password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -131,7 +132,7 @@ export default function SabiHealthLogin() {
           </Link>
             </div>
 
-            {mfaRequired && <div><label className="block text-sm font-semibold text-gray-700 mb-1.5">{useRecovery ? 'Recovery code' : 'Six-digit authenticator code'}</label><input className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm" autoComplete="one-time-code" required value={mfaValue} onChange={(event) => setMfaValue(useRecovery ? event.target.value : event.target.value.replace(/\D/g, '').slice(0, 6))} /><button type="button" className="mt-2 text-xs font-semibold text-emerald-700" onClick={() => { setUseRecovery(!useRecovery); setMfaValue(''); setError(''); }}>{useRecovery ? 'Use authenticator app' : 'Use a recovery code'}</button></div>}
+            {mfaRequired && <div><label htmlFor="patient-login-mfa" className="block text-sm font-semibold text-gray-700 mb-1.5">{useRecovery ? 'Recovery code' : 'Six-digit authenticator code'}</label><input id="patient-login-mfa" className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm" autoComplete="one-time-code" required value={mfaValue} onChange={(event) => setMfaValue(useRecovery ? event.target.value : event.target.value.replace(/\D/g, '').slice(0, 6))} /><button type="button" className="mt-2 text-xs font-semibold text-emerald-700" onClick={() => { setUseRecovery(!useRecovery); setMfaValue(''); setError(''); }}>{useRecovery ? 'Use authenticator app' : 'Use a recovery code'}</button></div>}
 
             {location.state?.verified && <p role="status" className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">Your email is verified. Sign in to continue.</p>}
             {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
@@ -185,7 +186,7 @@ export default function SabiHealthLogin() {
             </button>
           </p>
 
-          <p className="mt-4 text-center text-sm text-gray-500">Are you a doctor? <a href={`${DOCTOR_PORTAL_URL}/login`} className="font-semibold text-emerald-700 hover:underline">Open Doctor Portal</a></p>
+          <p className="mt-4 text-center text-sm text-gray-500">Healthcare professional? <a href={`${DOCTOR_PORTAL_URL}/login`} className="font-semibold text-emerald-700 hover:underline">Open Professional Portal</a></p>
           <div className="flex items-center justify-center gap-1.5 mt-4 text-gray-400">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
             <span className="text-[11px] font-medium tracking-wide">SECURE SABI IDENTITY SIGN-IN</span>
@@ -193,117 +194,7 @@ export default function SabiHealthLogin() {
         </div>
       </div>
 
-      {/* Right panel - promo with video background */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-emerald-950 px-8 py-8 flex-col justify-center">
-        {/* Background video */}
-        {!videoFailed && (
-          <video
-            className="absolute inset-0 w-full h-full object-cover z-0"
-            src={`${import.meta.env.BASE_URL}assets/doctor-patient-bg.mp4`}
-            autoPlay
-            loop
-            muted
-            playsInline
-            onError={() => {
-              console.warn(
-                "Background video failed to load — confirm doctor-patient-bg.mp4 is in your public/assets folder and the path matches."
-              );
-              setVideoFailed(true);
-            }}
-          />
-        )}
-
-        {/* Fallback gradient shown only if the video fails to load, so the panel never looks broken */}
-        {videoFailed && (
-          <div className="absolute inset-0 z-0 bg-gradient-to-br from-emerald-900 via-emerald-950 to-teal-950" />
-        )}
-
-        {/* Darkening / brand-tint overlay so text stays legible over the video          */}
-        <div className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-br from-emerald-950/50 via-emerald-900/35 to-teal-950/50" />
-        <div className="pointer-events-none absolute inset-0 z-[1] bg-black/10" />
-
-        {/* Decorative glows sit above the video/overlay, below the text */}
-        <div className="pointer-events-none absolute -top-24 -right-24 w-96 h-96 rounded-full bg-teal-400/20 blur-3xl z-[1]" />
-        <div className="pointer-events-none absolute bottom-10 -left-16 w-72 h-72 rounded-full bg-emerald-300/10 blur-3xl z-[1]" />
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.07] z-[1]"
-          style={{
-            backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)",
-            backgroundSize: "28px 28px",
-          }}
-        />
-
-        {/* Foreground content - rendered above the video */}
-        <div className="max-w-lg relative z-10">
-          {/* Floating card */}
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 mb-6 shadow-xl shadow-black/20 hover:-translate-y-1 transition-transform">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400/30 to-teal-300/30 flex items-center justify-center ring-1 ring-white/20">
-                <ShieldPlus className="w-4 h-4 text-emerald-200" />
-              </div>
-              <div className="text-right">
-                <div className="flex items-center justify-end gap-1.5 text-xs tracking-widest text-emerald-200/80 font-semibold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
-                  LIVE MONITOR
-                </div>
-                <div className="text-white text-base font-semibold">Active Care</div>
-              </div>
-            </div>
-            <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden mb-2">
-              <div className="h-full w-[88%] rounded-full bg-gradient-to-r from-emerald-300 via-teal-300 to-cyan-200 shadow-[0_0_12px_rgba(110,231,183,0.6)]" />
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-emerald-100/90 font-medium flex items-center gap-1.5">
-                <Activity className="w-4 h-4" />
-                Health Score Optimization
-              </span>
-              <span className="text-white font-bold">88% Complete</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 mb-2.5">
-            <Sparkles className="w-4 h-4 text-emerald-300" />
-            <span className="text-emerald-300 text-sm font-semibold tracking-wide uppercase">
-              Powered by real-time data
-            </span>
-          </div>
-
-          <h2 className="text-4xl font-extrabold text-white leading-[1.1] tracking-tight">
-            Advanced analytics
-            <br />
-            <span className="bg-gradient-to-r from-emerald-200 via-teal-200 to-cyan-100 bg-clip-text text-transparent">
-              for your wellbeing.
-            </span>
-          </h2>
-          <p className="mt-4 text-emerald-100/80 leading-relaxed text-sm">
-            Sabi Health utilizes next-generation diagnostic tools to provide
-            real-time insights into your physiological data.
-          </p>
-
-          <div className="flex items-center gap-3 mt-6">
-            <div className="flex -space-x-3">
-              <img
-                src="https://i.pravatar.cc/64?img=47"
-                alt=""
-                className="w-10 h-10 rounded-full border-2 border-emerald-900 object-cover ring-2 ring-white/10"
-              />
-              <img
-                src="https://i.pravatar.cc/64?img=12"
-                alt=""
-                className="w-10 h-10 rounded-full border-2 border-emerald-900 object-cover ring-2 ring-white/10"
-              />
-              <div className="w-10 h-10 rounded-full border-2 border-emerald-900 bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center text-xs font-bold text-white ring-2 ring-white/10">
-                +12k
-              </div>
-            </div>
-            <p className="text-emerald-100/80 text-sm leading-snug">
-              Trusted by over 12,000 healthcare
-              <br />
-              professionals worldwide.
-            </p>
-          </div>
-        </div>
-      </div>
+      <CareStory />
     </div>
   );
 }

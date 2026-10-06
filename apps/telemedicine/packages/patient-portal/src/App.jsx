@@ -16,7 +16,6 @@ import { VitalHistoryPage } from "./pages/vitals/VitalHistoryPage";
 import SabiHealthLogin from "./pages/Onboarding/login";
 import AccountTypeSelection from "./pages/Onboarding/AccountTypeSelection";
 import CaregiverOnboarding from "./pages/Onboarding/CaregiverOnboarding";
-import ProfessionalOnboarding from "./pages/Onboarding/ProfessionalOnboarding";
 import OnboardingSubmitted from "./pages/Onboarding/OnboardingSubmitted";
 import SignupPage from "./pages/Onboarding/Signup";
 import VerifyEmail from "./pages/Onboarding/VerifyEmail";
@@ -70,9 +69,11 @@ import ForgotPassword from "./pages/Onboarding/ForgotPassword";
 import ResetPassword from "./pages/Onboarding/ResetPassword";
 import { HOSPITAL_ONBOARDING_URL, DOCTOR_PORTAL_URL } from "./ecosystemLinks";
 
-function DoctorRegistrationRedirect() {
+import "../../shared-portal/portal-revamp.css";
+
+function ProfessionalRegistrationRedirect() {
   useEffect(() => { window.location.replace(`${DOCTOR_PORTAL_URL}/register`); }, []);
-  return <div className="grid min-h-screen place-items-center"><a href={`${DOCTOR_PORTAL_URL}/register`}>Continue to doctor registration</a></div>;
+  return <div className="grid min-h-screen place-items-center"><a href={`${DOCTOR_PORTAL_URL}/register`}>Continue to professional registration</a></div>;
 }
 
 function HospitalOnboardingRedirect() {
@@ -126,6 +127,9 @@ function Logo() {
   const isSignupFlow = location.pathname.startsWith("/signup");
   const publicRoutes = ["/verify", "/success", "/submitted"];
 
+  // Redesigned patient registration has its own responsive brand.
+  if (location.pathname === "/signup/patient" || location.pathname === "/signup") return null;
+
   // Hide the logo on every other page
   if (!isSignupFlow && !publicRoutes.includes(location.pathname)) {
     return null;
@@ -162,8 +166,8 @@ export default function App() {
               <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/verify-email/:uid" element={<VerifyEmail />} />
               <Route path="/signup/caregiver" element={<CaregiverOnboarding />} />
-              <Route path="/signup/professional/doctor" element={<DoctorRegistrationRedirect />} />
-              <Route path="/signup/professional/:type" element={<ProfessionalOnboarding />} />
+              <Route path="/signup/professional/doctor" element={<ProfessionalRegistrationRedirect />} />
+              <Route path="/signup/professional/:type" element={<ProfessionalRegistrationRedirect />} />
               <Route path="/signup/organisation/:type" element={<HospitalOnboardingRedirect />} />
               <Route path="/signup/organization/:type" element={<HospitalOnboardingRedirect />} />
               <Route path="/submitted" element={<OnboardingSubmitted />} />

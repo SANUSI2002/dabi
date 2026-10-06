@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Eye, EyeOff, FileCheck2, LockKeyhole, Save, Upload, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Eye, EyeOff, FileCheck2, LockKeyhole, Save, Upload, X } from "lucide-react";
 import AuthLayout from "./AuthLayout";
 import { EMPTY_REGISTRATION, DRAFT_KEY, SPECIALTIES, STATES, draftValues, loadRegistrationDraft, documentError, validateRegistrationStep, registrationPayload } from "./registrationModel";
 import { AUTH_CONFIGURED, PREVIEW_ENABLED, REGISTRATION_CONFIGURED, TERMS_URL, PRIVACY_URL, getRegistrationConfig, registerDoctor } from "../../services/doctorAuth";
 import { toISO } from "../../utils/dateFormat";
 
-const STEPS = ["Your account", "Professional details", "Verification", "Review & submit"];
+import RegistrationProgress, {REGISTRATION_STEPS as STEPS} from "./RegistrationProgress";
 function Field({ name, label, errors, children, hint }) {
   return <div className="sh-auth-field"><label htmlFor={name}>{label}</label>{children}{hint && <small id={`${name}-hint`}>{hint}</small>}{errors[name] && <span className="sh-field-error" id={`${name}-error`}>{errors[name]}</span>}</div>;
 }
@@ -37,7 +37,7 @@ function DocumentUpload({ name, title, description, file, error, onChange }) {
   return <div className={`sh-upload${error ? " sh-upload-error" : ""}`}><div className="sh-upload-icon">{file ? <FileCheck2 size={24} /> : <Upload size={24} />}</div><div className="sh-upload-content"><strong>{title}</strong><p>{description}</p>{file ? <div className="sh-file-selected"><CheckCircle2 size={15} /><span>{file.name} · {(file.size / 1024).toFixed(0)} KB</span><button type="button" onClick={() => onChange(name, null)} aria-label={`Remove ${title}`}><X size={15} /></button></div> : <small>PDF, JPG or PNG · up to 5 MB</small>}<label className="sh-upload-button" htmlFor={name}>{file ? "Replace file" : "Choose file"}<input id={name} type="file" accept="application/pdf,image/jpeg,image/png" aria-label={title} onChange={(e) => { onChange(name, e.target.files?.[0] || null); e.target.value = ""; }} /></label>{error && <span className="sh-field-error" id={`${name}-error`}>{error}</span>}</div></div>;
 }
 
-export default function DoctorRegistrationPage() {
+export default function DoctorRegistrationPage({ onChooseProfession } = {}) {
   const navigate = useNavigate();
   const [values, setValues] = useState(loadRegistrationDraft);
   const [documents, setDocuments] = useState({ licence: null, registrationCertificate: null });
@@ -73,10 +73,10 @@ export default function DoctorRegistrationPage() {
     } catch (error) { setNotice(error.name === "TimeoutError" ? "This request took too long. Please try again." : error.message); } finally { setBusy(false); }
   }
   function policy(kind) { const url = kind === "terms" ? TERMS_URL : PRIVACY_URL; return url ? <a href={url} target="_blank" rel="noreferrer">{kind === "terms" ? "Doctor Terms" : "Privacy Notice"}</a> : <button type="button" className="sh-inline-link" onClick={() => setLegal(kind)}>{kind === "terms" ? "Doctor Terms" : "Privacy Notice"}</button>; }
-  return <AuthLayout><div className="sh-auth-topline"><span>DOCTOR REGISTRATION</span><div>Already registered? <Link to="/login">Sign in</Link></div></div>
+  return <AuthLayout><div className="sh-auth-topline"><span>DOCTOR REGISTRATION</span>{onChooseProfession && <button type="button" className="sh-inline-link" onClick={onChooseProfession}>Choose another profession</button>}<div>Already registered? <Link to="/login">Sign in</Link></div></div>
     <div className="sh-register-content"><div className="sh-register-intro"><span className="sh-auth-kicker">WELCOME TO SABI HEALTH</span><h1>Create your doctor account</h1><p>Tell us about your practice. We'll review your credentials before activating your clinical workspace.</p></div>
       {!PREVIEW_ENABLED && !intake.enabled && <div className="sh-form-notice" role="status">{intake.loaded ? "Doctor registration is temporarily unavailable." : "Checking registration availability…"} Existing approved doctors can <Link to="/login">sign in</Link>. You can review the application form below.</div>}
-      <ol className="sh-register-steps" aria-label="Registration progress">{STEPS.map((label, i) => <li key={label} className={i === step ? "is-current" : i < step ? "is-complete" : ""} aria-current={i === step ? "step" : undefined}><span>{i < step ? <Check size={15} /> : i + 1}</span><small>{label}</small></li>)}</ol>
+      <RegistrationProgress step={step}/>
       <form className="sh-register-form" onSubmit={submit} noValidate><div className="sh-form-heading"><div><span>STEP {step + 1} OF 4</span><h2 ref={heading} tabIndex={-1}>{STEPS[step]}</h2></div>{!AUTH_CONFIGURED && <span className="sh-preview-pill">Preview</span>}</div>
         {notice && <div className="sh-form-notice" role={Object.values(errors).some(Boolean) ? "alert" : "status"}>{notice}</div>}
         {step === 0 && <><div className="sh-form-grid"><Field name="firstName" label="First name" errors={errors}><input {...input("firstName", { autoComplete: "given-name", maxLength: 80, placeholder: "First name" })} /></Field><Field name="lastName" label="Last name" errors={errors}><input {...input("lastName", { autoComplete: "family-name", maxLength: 80, placeholder: "Last name" })} /></Field></div><Field name="email" label="Email address" hint="Use an email you can access. You'll need to verify it." errors={errors}><input {...input("email", { type: "email", autoComplete: "email", maxLength: 254, placeholder: "you@example.com" })} /></Field><Field name="phone" label="Phone number" errors={errors}><input {...input("phone", { type: "tel", autoComplete: "tel", maxLength: 22, placeholder: "+234 801 234 5678" })} /></Field><Field name="password" label="Create password" errors={errors} hint="At least 15 characters. Spaces and passphrases are welcome."><div className="sh-password-input"><input {...input("password", { type: showPassword ? "text" : "password", autoComplete: "new-password", maxLength: 128 })} /><button type="button" aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword} onClick={() => setShowPassword((v) => !v)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></Field><Field name="confirmPassword" label="Confirm password" errors={errors}><input {...input("confirmPassword", { type: showPassword ? "text" : "password", autoComplete: "new-password", maxLength: 128 })} /></Field></>}

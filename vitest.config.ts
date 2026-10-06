@@ -12,6 +12,7 @@ export default defineConfig({
       // Cross-workspace component tests share one router/React context.
       "react-router-dom": fileURLToPath(new URL("./node_modules/react-router-dom", import.meta.url)),
       "lucide-react": fileURLToPath(new URL("./node_modules/lucide-react", import.meta.url)),
+      "framer-motion": fileURLToPath(new URL("./node_modules/framer-motion", import.meta.url)),
       "@daily-co/daily-js": fileURLToPath(new URL("./apps/telemedicine/node_modules/@daily-co/daily-js/dist/daily-esm.js", import.meta.url)),
     },
   },

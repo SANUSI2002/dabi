@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ShieldAlert, CircleHelp, LogOut, User, Wallet } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 
 import { EmergencyCardModal } from "./EmergencyCardModal";
 import { NotificationsBell } from "../../../notifications/NotificationsBell";
@@ -20,6 +20,9 @@ export function Topbar({
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const pageTitles = {dashboard:"Overview",appointments:"Appointments",vitals:"My vitals",records:"Health records",prescriptions:"Prescriptions",wallet:"Sabi Wallet",profile:"My profile",family:"Family care","wellness-hub":"Wellness Hub","care-plans":"My care plans","pharmacy-market":"Pharmacy marketplace",hospitals:"Hospitals",insurance:"Insurance"};
+  const pageTitle = pageTitles[location.pathname.split("/")[1]] || "Your care space";
 
   // Close dropdown when clicking outside of it
   useEffect(() => {
@@ -44,6 +47,7 @@ export function Topbar({
 
   return (
     <div className="sabi-topbar">
+      <div className="sabi-topbar-context"><small>Your personal care space</small><strong>{pageTitle}</strong></div>
       <div className="sabi-topbar-actions">
         <Link to="/wallet" className="sabi-wallet-shortcut" aria-label="Open Sabi Wallet. Current balance unavailable.">
           <span className="sabi-wallet-shortcut-icon"><Wallet size={17} /></span>

@@ -1,3 +1,4 @@
+import PatientAccountLayout from "../../../../shared-portal/PatientAccountLayout";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Lock, Eye, EyeOff, ArrowLeft, CheckCircle2 } from "lucide-react";
@@ -72,7 +73,7 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 flex items-center justify-center p-6">
+    <PatientAccountLayout>
       <div className="w-full max-w-xl rounded-[2rem] bg-white shadow-2xl border border-gray-100 p-8 sm:p-10">
         <div className="flex items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
@@ -194,6 +195,6 @@ export default function ResetPassword() {
           </>
         )}
       </div>
-    </div>
+    </PatientAccountLayout>
   );
 }

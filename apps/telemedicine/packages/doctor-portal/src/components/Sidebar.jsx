@@ -98,7 +98,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
 
         <div className="dp-sidebar-brand-text">
           <div className="dp-sidebar-brand-name">Sabi Health</div>
-          <div className="dp-sidebar-brand-sub">YOUR TRUSTED DIGITAL HEALTH PARTNER</div>
+          <div className="dp-sidebar-brand-sub">YOUR PROFESSIONAL WORKSPACE</div>
         </div>
 
         {/* Collapse/expand toggle — hidden on mobile (≤900px) via CSS */}
@@ -116,6 +116,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
       </div>
 
       {/* ── Main navigation ──────────────────────────────────── */}
+      <div className="dp-nav-caption">YOUR PRACTICE</div>
       <nav className="dp-sidebar-nav" aria-label="Main navigation">
         {navigation.map(({ to, label, icon: Icon }) => {
           const active = isRouteActive(to);
@@ -149,7 +150,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
       </nav>
 
       {/* ── Footer: Profile + Settings ───────────────────────── */}
-      <div className="dp-sidebar-footer">
+      <div className="dp-sidebar-footer"><div className="dp-nav-caption">YOUR ACCOUNT</div>
         {/*
           Profile link.
           BUG FIX: the base class (dp-sidebar-profile) must NOT carry

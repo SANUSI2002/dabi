@@ -1,6 +1,7 @@
+import PatientAccountLayout from "../../../../shared-portal/PatientAccountLayout";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Mail, HeartPulse, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { isValidEmail, requestPasswordReset } from "../../utils/authApi";
 
 export default function ForgotPassword() {
@@ -35,19 +36,9 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 flex items-center justify-center p-6">
+    <PatientAccountLayout>
 
       <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl border border-gray-100 p-8">
-
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-500 flex items-center justify-center">
-            <HeartPulse className="text-white w-6 h-6" />
-          </div>
-
-          <span className="text-xl font-bold bg-gradient-to-r from-emerald-900 to-emerald-600 bg-clip-text text-transparent">
-            Sabi Health
-          </span>
-        </div>
 
         {!sent ? (
           <>
@@ -149,6 +140,6 @@ export default function ForgotPassword() {
         )}
 
       </div>
-    </div>
+    </PatientAccountLayout>
   );
 }

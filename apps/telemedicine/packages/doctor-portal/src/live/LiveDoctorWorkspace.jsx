@@ -8,6 +8,7 @@ import * as api from "./doctorApi";
 import { groupPatients, localDay, statusLabel } from "./doctorData";
 import "./LiveDoctorWorkspace.css";
 import DailyConsultation from '../../../shared-video/DailyConsultation';
+import CareBanner from '../../../shared-portal/CareBanner';
 import ProfessionalAvailability from './ProfessionalAvailability';
 import ProfessionalCareWorkspace from './ProfessionalCareWorkspace';
 
@@ -56,7 +57,7 @@ function Dashboard() {
   ]).then(([upcoming, requests, slots]) => ({ upcoming, requests, slots })));
   const data = resource.data;
   return <Page title={`Welcome, ${doctor.name}`} description={new Date().toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" })} resource={resource} actions={<Link className="dp-btn dp-btn-primary" to="/availability"><CalendarDays size={16} /> Publish availability</Link>}>
-    {data && <><div className="dl-stats">
+    {data && <><CareBanner /><div className="dl-stats">
       {[{ icon: CalendarCheck, label: "Upcoming appointments", value: data.upcoming.total }, { icon: Clock, label: "Awaiting your response", value: data.requests.total }, { icon: CalendarDays, label: "Open slots · next 30 days", value: data.slots.items.filter((s) => s.state === "OPEN" && new Date(s.startsAt) > new Date()).length }].map(({ icon: Icon, label, value }) => <div className="dl-stat" key={label}><Icon size={21} /><strong>{value}</strong><span>{label}</span></div>)}
     </div><div className="dl-columns"><section className="dp-panel"><div className="dl-section-heading"><h2>Needs your response</h2><Link to="/appointments?status=REQUESTED">View requests</Link></div>{data.requests.items.length ? <AppointmentCards items={data.requests.items} /> : <Empty title="You're all caught up" text="New patient booking requests will appear here." />}</section><section className="dp-panel"><div className="dl-section-heading"><h2>Next consultations</h2><Link to="/calendar">Open calendar</Link></div>{data.upcoming.items.length ? <AppointmentCards items={data.upcoming.items.slice(0, 5)} /> : <Empty title="Your schedule is clear" text="Publish availability so patients can request a consultation." />}</section></div></>}
   </Page>;
