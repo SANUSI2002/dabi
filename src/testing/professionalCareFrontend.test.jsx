@@ -1,6 +1,6 @@
 import React from 'react';
 import {afterEach,beforeEach,describe,it,expect,vi} from 'vitest';
-import {render,screen,fireEvent,cleanup,waitFor} from '@testing-library/react';
+import {act,render,screen,fireEvent,cleanup,waitFor} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import ProfessionalCareWorkspace from '../../apps/telemedicine/packages/doctor-portal/src/live/ProfessionalCareWorkspace';
 import {DieticianTablePage} from '../../apps/telemedicine/packages/patient-portal/src/pages/prescriptions/DieticianTablePage';
@@ -15,6 +15,20 @@ const plan={id:'plan',patientId:'patient',title:content.title,draft:content,revi
 beforeEach(()=>{vi.clearAllMocks();mocks.doctorRequest.mockImplementation(async(path,options={})=>({data:path.endsWith('/workspace')?{kind:'NUTRITION',professionType:'NUTRITIONIST_DIETITIAN',patients:[{id:'patient',name:'Synthetic patient',reference:'TEST'}],plans:[plan],templates:[]}:path.endsWith('/publish')?{...plan,revision:2,publishedVersion:1}:plan}));mocks.authorizedRequest.mockImplementation(async path=>({data:path.endsWith('/providers')?[]:[{id:'plan',kind:'NUTRITION',professionalId:'pro',professional:'Verified dietitian',publishedVersion:1,content:{...content,history:undefined},versions:[{number:1,publishedAt:'2026-10-06T10:00:00Z'}],feedback:[]}]}));mocks.getRegistrationConfig.mockResolvedValue({enabled:true,professions:[{type:'COUNSELLOR',label:'Counsellor',disciplines:['COUNSELLOR'],regulator:'Professional standing',regulated:false},{type:'PSYCHOLOGIST',label:'Clinical psychologist',disciplines:['CLINICAL_PSYCHOLOGIST'],regulator:'Clinical qualification',regulated:false},{type:'CAREGIVER',label:'Caregiver',disciplines:['NON_CLINICAL_CAREGIVER','REGISTERED_NURSE'],regulator:'NMCN for nurses',regulated:false}]});});
 afterEach(cleanup);
 describe('connected professional and patient UI',()=>{
+  it('ignores repeated draft submission while the first save is pending',async()=>{
+    let finish;
+    const original=mocks.doctorRequest.getMockImplementation();
+    mocks.doctorRequest.mockImplementation((path,options)=>path==='/professional-care/plans'&&options?.method==='POST'?new Promise(resolve=>{finish=resolve;}):original(path,options));
+    render(<ProfessionalCareWorkspace/>);await screen.findByText('Dietician Table');
+    fireEvent.click(screen.getByRole('button',{name:'New nutrition plan'}));
+    fireEvent.change(screen.getByLabelText('Authorised patient'),{target:{value:'patient'}});
+    fireEvent.change(screen.getByLabelText('Plan name'),{target:{value:'Synthetic plan'}});
+    const save=screen.getByRole('button',{name:'Save draft'});
+    act(()=>{save.dispatchEvent(new MouseEvent('click',{bubbles:true}));save.dispatchEvent(new MouseEvent('click',{bubbles:true}));});
+    expect(mocks.doctorRequest.mock.calls.filter(([path])=>path==='/professional-care/plans')).toHaveLength(1);
+    await act(async()=>{finish({data:plan});});
+    await screen.findByText(/Draft saved/);
+  });
   it('opens the same stored nutrition plan, saves private draft and publishes by revision',async()=>{render(<ProfessionalCareWorkspace/>);await screen.findByText('Dietician Table');fireEvent.click(screen.getByRole('button',{name:/Published meal plan/}));await screen.findByDisplayValue(content.title);fireEvent.change(screen.getByLabelText('Patient goals'),{target:{value:'Revised goals'}});fireEvent.click(screen.getByRole('button',{name:'Save draft'}));await screen.findByText(/Draft saved/);expect(mocks.doctorRequest).toHaveBeenCalledWith('/professional-care/plans/plan',expect.objectContaining({method:'PUT',body:expect.stringContaining('Revised goals')}));fireEvent.click(screen.getByRole('button',{name:'Publish version'}));await screen.findByText(/Plan published/);expect(mocks.doctorRequest).toHaveBeenCalledWith('/professional-care/plans/plan/publish',expect.objectContaining({method:'POST',body:'{"revision":1}'}));});
   it('patient receives only published nutrition and sends version-specific progress',async()=>{render(<DieticianTablePage/>);await screen.findByText('Published meal plan');expect(screen.queryByText('Private assessment')).not.toBeInTheDocument();expect(screen.getByText('Oats')).toBeInTheDocument();fireEvent.change(screen.getByLabelText('Progress / questions'),{target:{value:'Following the plan'}});fireEvent.click(screen.getByRole('button',{name:'Send feedback'}));await screen.findByText(/feedback was sent/);expect(mocks.authorizedRequest).toHaveBeenCalledWith('/api/v1/professional-care/patient/plans/plan/feedback',{method:'POST',body:{version:1,message:'Following the plan',progress:'ON_TRACK'}});});
   it('therapist workspace does not show medication or meal-plan tools',async()=>{mocks.doctorRequest.mockResolvedValue({data:{kind:'SUPPORT',professionType:'COUNSELLOR',patients:[{id:'patient',name:'Patient'}],plans:[],templates:[]}});render(<ProfessionalCareWorkspace/>);await screen.findByText('Counselling workspace');fireEvent.click(screen.getByRole('button',{name:'New support plan'}));expect(screen.getByLabelText('Activities / care goals and agreed next steps')).toBeInTheDocument();expect(screen.queryByText('Add meal')).not.toBeInTheDocument();expect(screen.queryByText('Prescriptions')).not.toBeInTheDocument();});

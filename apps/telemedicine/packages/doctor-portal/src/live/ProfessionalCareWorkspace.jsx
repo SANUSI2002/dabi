@@ -1,4 +1,4 @@
-import React,{useEffect,useState} from 'react';
+import React,{useEffect,useRef,useState} from 'react';
 import {doctorRequest} from '../services/doctorAuth';
 import {MealPlanTable,blankMeal} from '../../../shared-care/MealPlanTable';
 const ROOT='/professional-care';
@@ -8,9 +8,10 @@ const TITLES={PSYCHOLOGIST:'Psychology care workspace',COUNSELLOR:'Counselling w
 export default function ProfessionalCareWorkspace(){
   const [workspace,setWorkspace]=useState(null),[selected,setSelected]=useState(null),[content,setContent]=useState(null),[patientId,setPatientId]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[note,setNote]=useState(''),[followUp,setFollowUp]=useState(''),[templateName,setTemplateName]=useState('');
   const nutrition=workspace?.kind==='NUTRITION';
+  const actionLock=useRef(false);
   async function load(){setWorkspace(await request('/workspace'));}
   useEffect(()=>{load().catch(e=>setError(e.message));},[]);
-  async function action(work){if(busy)return;setBusy(true);setError('');setNotice('');try{await work();await load();}catch(e){setError(e.message);}finally{setBusy(false);}}
+  async function action(work){if(actionLock.current)return;actionLock.current=true;setBusy(true);setError('');setNotice('');try{await work();await load();}catch(e){setError(e.message);}finally{actionLock.current=false;setBusy(false);}}
   async function open(id){const plan=await request(`/plans/${id}`);setSelected(plan);setContent(plan.draft);setPatientId(plan.patientId);setNote('');setFollowUp('');}
   const update=(key,value)=>setContent(c=>({...c,[key]:value}));
   const input=(key,label,type='textarea')=><label key={key}>{label}{type==='textarea'?<textarea value={content[key]} maxLength={key==='history'||key==='activities'||key==='instructions'?4000:key==='budget'?300:2000} onChange={e=>update(key,e.target.value)}/>:<input type={type} value={content[key]||''} required={key!=='followUpOn'} onChange={e=>update(key,e.target.value||null)}/>}</label>;
