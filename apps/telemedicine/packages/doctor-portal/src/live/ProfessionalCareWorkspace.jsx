@@ -19,7 +19,7 @@ export default function ProfessionalCareWorkspace(){
   async function action(work){if(actionLock.current)return;actionLock.current=true;setBusy(true);setError('');setNotice('');try{await work();await load();}catch(e){setError(e.message);}finally{actionLock.current=false;setBusy(false);}}
   async function open(id){const plan=await request(`/plans/${id}`);setSelected(plan);setContent(plan.draft);setPatientId(plan.patientId);setNote('');setFollowUp('');}
   // Bring the editor into view when a plan is opened or started, so the next step is obvious.
-  useEffect(()=>{if(content)editorRef.current?.scrollIntoView({block:'start',behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});},[selected?.id,!!content]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{if(content)editorRef.current?.scrollIntoView?.({block:'start',behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});},[selected?.id,!!content]); // eslint-disable-line react-hooks/exhaustive-deps
   const update=(key,value)=>setContent(c=>({...c,[key]:value}));
   const field=(key,label,type='textarea',hint)=><div className="sx-field" key={key}><label htmlFor={`care-${key}`}>{label}</label>{type==='textarea'
     ?<textarea id={`care-${key}`} className="sx-textarea" value={content[key]} maxLength={LONG.has(key)?4000:key==='budget'?300:2000} onChange={e=>update(key,e.target.value)}/>
