@@ -3,6 +3,7 @@ import PortalAssistant from "./PortalAssistant";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import "./PortalLayout.css";
+import "./PatientAlignedTheme.css";
 import { getCurrentDoctor } from "../store/doctorSession";
 
 /** Read the saved collapsed preference from localStorage (returns false if unavailable). */

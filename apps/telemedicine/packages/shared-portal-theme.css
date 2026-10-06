@@ -1,0 +1,7 @@
+/* Shared patient/professional portal visual tokens, derived from the existing patient UI. */
+:root {
+  --portal-sidebar-bg: linear-gradient(180deg, #07594f 0%, #043f3a 58%, #032f2c 100%);
+  --portal-sidebar-text: rgba(242, 255, 252, .78);
+  --portal-sidebar-active: rgba(220, 255, 244, .18);
+  --portal-page-bg: #f4f5fc;
+}

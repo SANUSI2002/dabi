@@ -22,11 +22,13 @@ import {
   ChevronsRight,
 } from "lucide-react";
 import "./Sidebar.css";
+import logo from '../../../patient-portal/src/assets/logo.jpeg';
 
 /* ─── Navigation items ───────────────────────────────────────── */
 const NAV_ITEMS = [
   { to: "/dashboard",          label: "Dashboard",          icon: LayoutGrid    },
   { to: "/calendar",           label: "Calendar",           icon: Calendar      },
+  { to: "/availability",       label: "Manage Availability", icon: CalendarCheck },
   { to: "/appointments",       label: "Appointments",       icon: CalendarCheck },
   { to: "/patients",           label: "Patients",           icon: Users         },
   { to: "/consultations",      label: "Consultations",      icon: Video         },
@@ -87,13 +89,11 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
 
       {/* ── Brand + desktop collapse toggle ─────────────────── */}
       <div className="dp-sidebar-brand">
-        <span className="dp-sidebar-brand-icon" aria-hidden="true">
-          <Stethoscope size={18} />
-        </span>
+        <img className="dp-sidebar-brand-icon" src={logo} alt="Sabi Health" />
 
         <div className="dp-sidebar-brand-text">
           <div className="dp-sidebar-brand-name">Sabi Health</div>
-          <div className="dp-sidebar-brand-sub">Clinical OS</div>
+          <div className="dp-sidebar-brand-sub">YOUR TRUSTED DIGITAL HEALTH PARTNER</div>
         </div>
 
         {/* Collapse/expand toggle — hidden on mobile (≤900px) via CSS */}

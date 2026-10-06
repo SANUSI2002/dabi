@@ -10,6 +10,11 @@ export const appointmentAction = (id, action, body = {}) => doctorRequest(`${ROO
 export const loadSlots = (signal) => doctorRequest(`${ROOT}/slots`, { signal }).then((r) => r.data);
 export const publishSlots = (slots) => doctorRequest(`${ROOT}/slots`, json("POST", { slots }));
 export const cancelSlot = (id) => doctorRequest(`${ROOT}/slots/${encodeURIComponent(id)}`, json("DELETE"));
+export const loadSchedule = (signal) => doctorRequest('/professional-schedule', {signal}).then(r => r.data);
+export const saveSchedule = (settings) => doctorRequest('/professional-schedule',json('PUT',settings)).then(r => r.data);
+export const publishSchedule = (range) => doctorRequest('/professional-schedule/publish',json('POST',range)).then(r => r.data);
+export const addTimeBlock = (block) => doctorRequest('/professional-schedule/blocks',json('POST',block)).then(r => r.data);
+export const removeTimeBlock = (id) => doctorRequest(`/professional-schedule/blocks/${encodeURIComponent(id)}`,json('DELETE')).then(r => r.data);
 export const loadPractice = (signal) => doctorRequest(`${ROOT}/profile`, { signal }).then((r) => r.data);
 export const savePractice = (body) => doctorRequest(`${ROOT}/profile`, json("PATCH", body)).then((r) => r.data);
 export const loadRelationships = (signal) => doctorRequest("/doctor-care/relationships/doctor", { signal }).then((r) => r.data);

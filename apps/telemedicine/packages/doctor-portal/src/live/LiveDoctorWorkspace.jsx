@@ -8,6 +8,7 @@ import * as api from "./doctorApi";
 import { groupPatients, localDay, statusLabel } from "./doctorData";
 import "./LiveDoctorWorkspace.css";
 import DailyConsultation from '../../../shared-video/DailyConsultation';
+import ProfessionalAvailability from './ProfessionalAvailability';
 
 function useResource(loader, key = "") {
   const [state, setState] = useState({ loading: true, data: null, error: "" });
@@ -226,7 +227,7 @@ export default function LiveDoctorWorkspace() {
     <Route path="/appointments/:id" element={<Appointments />} />
     <Route path="/consultations" element={<Appointments consultations />} />
     <Route path="/calendar" element={<Calendar />} />
-    <Route path="/availability" element={<Availability />} />
+    <Route path="/availability" element={<PortalLayout topbarProps={{title:'Sabi Health · Professional Portal'}}><ProfessionalAvailability /></PortalLayout>} />
     <Route path="/patients" element={<Patients />} />
     <Route path="/profile" element={<Profile />} />
     <Route path="/settings" element={<Settings />} />

@@ -1,0 +1,13 @@
+import React from 'react';
+import {render,screen,fireEvent,waitFor,cleanup} from '@testing-library/react';
+import {afterEach,beforeEach,describe,it,expect,vi} from 'vitest';
+import ProfessionalAvailability from '../../apps/telemedicine/packages/doctor-portal/src/live/ProfessionalAvailability';
+const api=vi.hoisted(()=>({loadSchedule:vi.fn(),loadSlots:vi.fn(),saveSchedule:vi.fn(),publishSchedule:vi.fn(),addTimeBlock:vi.fn(),removeTimeBlock:vi.fn(),cancelSlot:vi.fn()}));
+vi.mock('../../apps/telemedicine/packages/doctor-portal/src/live/doctorApi',()=>api);
+beforeEach(()=>{vi.clearAllMocks();api.loadSchedule.mockResolvedValue({settings:{timezone:'Africa/Lagos',durationMinutes:30,bufferMinutes:5,weeklyHours:[]},blocks:[]});api.loadSlots.mockResolvedValue({items:[]});api.publishSchedule.mockResolvedValue({created:8,existing:1});});
+afterEach(cleanup);
+describe('connected professional availability',()=>{
+  it('saves recurring hours then publishes generated slots with a confirmation',async()=>{render(<ProfessionalAvailability/>);await screen.findByText('Standing weekly hours');fireEvent.click(screen.getByRole('button',{name:'Publish availability'}));await screen.findByText(/8 new slots published/);expect(api.saveSchedule).toHaveBeenCalledWith(expect.objectContaining({timezone:'Africa/Lagos',durationMinutes:30,weeklyHours:expect.arrayContaining([expect.objectContaining({day:1,breaks:[{start:'12:00',end:'13:00'}]})])}));expect(api.publishSchedule).toHaveBeenCalledTimes(1);});
+  it('sends real blocks to the backend in UTC and surfaces booked-appointment conflicts',async()=>{api.addTimeBlock.mockRejectedValue(new Error('This block overlaps an existing appointment.'));render(<ProfessionalAvailability/>);await screen.findByText('Standing weekly hours');fireEvent.change(screen.getByLabelText('Reason (private)'),{target:{value:'Conference'}});fireEvent.click(screen.getByRole('button',{name:'Add time block'}));await screen.findByRole('alert');expect(api.addTimeBlock).toHaveBeenCalledWith(expect.objectContaining({reason:'Conference',startsAt:expect.stringContaining('T11:00:00.000Z'),endsAt:expect.stringContaining('T12:00:00.000Z')}));});
+  it('does not publish reversed working hours',async()=>{render(<ProfessionalAvailability/>);await screen.findByText('Standing weekly hours');fireEvent.change(screen.getByLabelText('Monday ends at'),{target:{value:'08:00'}});fireEvent.click(screen.getByRole('button',{name:'Publish availability'}));await waitFor(()=>expect(screen.getByRole('alert')).toHaveTextContent(/valid start\/end/));expect(api.publishSchedule).not.toHaveBeenCalled();});
+});

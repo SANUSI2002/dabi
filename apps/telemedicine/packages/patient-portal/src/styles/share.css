@@ -1,3 +1,4 @@
+@import '../../../shared-portal-theme.css';
 /* ==========================================================
    share.css  (was shell.css)
    Every selector here is rendered by shared components
@@ -63,7 +64,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  background: linear-gradient(180deg, #07594f 0%, #043f3a 58%, #032f2c 100%);
+  background: var(--portal-sidebar-bg);
   border-right: 1px solid rgba(255, 255, 255, .1);
   transition: width 280ms ease-in-out, min-width 280ms ease-in-out, padding 280ms ease-in-out;
   z-index: 30;
