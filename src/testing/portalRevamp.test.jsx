@@ -9,7 +9,7 @@ import Sidebar from '../../apps/telemedicine/packages/doctor-portal/src/componen
 const session=vi.hoisted(() => ({current:{professionType:'DOCTOR'}}));
 vi.mock('../../apps/telemedicine/packages/doctor-portal/src/store/doctorSession',() => ({getCurrentDoctor:() => session.current}));
 // Cross-workspace tests use the root React renderer; animation does not affect these navigation assertions.
-vi.mock('framer-motion',() => ({motion:{span:({layoutId,transition,...props}) => <span {...props}/>}}));
+vi.mock('framer-motion',() => ({motion:{span:({layoutId:_layoutId,transition:_transition,...props}) => <span {...props}/>}}));
 afterEach(cleanup);
 describe('shared portal redesign',() => {
   it('uses decorative artwork and audience-specific copy without invented statistics',() => {

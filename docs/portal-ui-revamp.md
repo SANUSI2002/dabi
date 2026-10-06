@@ -63,4 +63,15 @@ Prompt:
 - No real registration, document approval, clinical consultation or payment was created during UI QA.
 - Authenticated live module checks require a user-owned session; local doctor checks use the existing explicit preview rather than bypassing live authentication.
 
-Release checks and live confirmation are recorded after the isolated release checkout is built and pushed. Unrelated EMR changes in the original workspace are excluded.
+## Isolated release and live confirmation
+
+- Published frontend commit: `8ef6ded`, pushed to `SANUSI2002/dabi` master. The release was cherry-picked onto the existing clean production history; unrelated local EMR changes were excluded.
+- Exact release: 32 frontend test files / 166 tests passed, plus 33 doctor-portal Node tests. Both `build:health` (including embedded portals) and `build:telemedicine` passed. Root lint completed without errors; existing warnings remain.
+- Vercel's `sabi-telemedicine` production deployment `7b7ARXn3JCpmqmG6eZNbnXZi4Cs5` reached Ready for `8ef6ded`. Its initial queue was a concurrent-build limit, not a build failure.
+- Verified the new patient signup on both `https://telemedicine.sabihealth.org/signup/patient` and `https://sabihealth.org/telemedicine/signup/patient`.
+- Verified the live professional selector, counsellor four-step wizard, empty-step validation and doctor registration variant at `https://telemedicine.sabihealth.org/doctor-portal/register`. No account was submitted.
+- Live mobile patient signup at 390 x 844 had no horizontal overflow. The hidden decorative illustration used the inline placeholder source rather than downloading the desktop artwork.
+- A live professional session check initially timed out; retry and subsequent reload recovered. The API's documented public `/api/health` endpoint returned HTTP 200. This release does not claim to eliminate free-host cold-start delays.
+- The computer-use skill guided desktop/mobile browser verification. Saved proof: `patient-signup-live.png`, `professional-register-live.png`, `patient-signup-mobile-live.png` and the explicitly local `doctor-dashboard-preview.png`, in `C:/Users/Damilare/.codex/visualizations/2026/09/14/01a09f7a-2768-7e23-b42e-ecd0556dd8ad/portal-ui-revamp/`.
+
+Authenticated live workflows were not exercised with another person's session. Backend code, cloud secrets, roles, MFA and approval rules were not modified.
