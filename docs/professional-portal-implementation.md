@@ -50,7 +50,21 @@ Sources below are primary regulator/professional-body/WHO sources, consulted 6 O
 
 ## Tests and release checklist
 
-Release evidence on 6 October: backend commit `006a1bd` is Live on Render; its deployment log confirms both professional application-stage and care-plan migrations applied successfully. The live registration configuration returns all seven profession categories, and the public professional directory returns HTTP 200. Frontend release `fe3f358` is pushed and the shared professional registration page is visible on the custom Telemedicine domain. The exact release checkout passed 158 frontend tests and the backend passed 700 tests plus lint. Subsequent UI copy/action-lock changes receive their own checks. These checks do **not** stand in for completing every profession's email-to-human-review journey.
+Release evidence on 6 October: backend implementation commit `006a1bd` is Live on Render; its deployment log confirms both professional application-stage and care-plan migrations applied successfully. The live registration configuration returns all seven profession categories, and the public professional directory returns HTTP 200. Frontend release `17e1453` is pushed and its revised shared registration copy is visible on the custom Telemedicine domain. The exact release checkout passed **159 frontend tests**, and backend test increment `ab17f96` passed **709 tests** plus lint. Nine table-driven, mocked HTTP journeys cover every new discipline through registration, verified email, private evidence, submission, manual review and scoped approval. Scanner transports are tested separately; no real credentials were approved by the agent. Desktop and 390px mobile registration were visually checked; mobile document width equals viewport width. The previous approved professional session expired, so authenticated availability/care-workspace visual checks await a fresh sign-in. These checks do **not** stand in for completing every profession's real email-to-human-review journey.
+
+### Module locations
+
+| Module | Frontend | Backend |
+|---|---|---|
+| Profession selection and onboarding | `apps/telemedicine/packages/doctor-portal/src/pages/auth/ProfessionalRegistrationPage.jsx`, `RegistrationStatusPage.jsx`, `ApplicationDetailsEditor.jsx` | `src/modules/doctors/onboarding.*`, `src/modules/professionals/professionCatalog.js` |
+| Staff review / changes requested | `src/command-center/LiveDoctorsPage.tsx` (existing doctors route now includes healthcare professionals) | `src/modules/doctors/onboarding.routes.js` and `professionals.model.js` |
+| Shared availability and time blocks | `apps/telemedicine/packages/doctor-portal/src/live/ProfessionalAvailability.jsx` | `src/modules/doctor-appointments/schedule.*` |
+| Actual-slot professional booking | `apps/telemedicine/packages/patient-portal/src/pages/wellness/ProfessionalBookingPage.jsx` | Existing `doctor-appointments` module, shared approved-professional gates |
+| Dietician Table / support workspaces | `apps/telemedicine/packages/doctor-portal/src/live/ProfessionalCareWorkspace.jsx` | `src/modules/professional-care/care.*` |
+| Patient published plans and progress | `apps/telemedicine/packages/patient-portal/src/pages/prescriptions/DieticianTablePage.jsx` | Same care records; patient-only projections and feedback endpoints |
+| Shared meals / theme | `apps/telemedicine/packages/shared-care/MealPlanTable.jsx`, `shared-care/care.css`, `shared-portal-theme.css` | No disconnected local care-plan store |
+
+Backend paths above are relative to the separately deployed backend repository (`backend/doctor-portal-release`); the changes are also synchronized into the original local backend checkout. Frontend paths are relative to the existing workspace. The new migrations are `20261006000100_professional_schedules`, `20261006000200_professional_application_stages` and `20261006000300_professional_care_plans`.
 
 Automated checks cover role/discipline validation, different required evidence, email/approval gates, doctor prescribing regression, breaks/buffers/time conversion, overlapping slots/blocks, booked conflicts, authorised ownership, publication/revision history, stale updates, revoked consent, private-note/draft separation, patient progress and UI interactions. Database schema is validated and generated. Run the backend `npm test` and `npm run lint`; run frontend `npm test` and `npm run build:telemedicine`. Validate Command Center/Health production builds on the release checkout too.
 
