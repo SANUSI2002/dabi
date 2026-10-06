@@ -8,6 +8,7 @@ import { hasPharmacyPortalAccess } from "@/pharmacy/access";
 import { deploymentSurface, otherSurfaceUrl } from "@/deployment/surface";
 import { apiConfigured } from "@/config/runtime";
 import { LiveWorkspaceGate } from "@/emr-live/shell";
+import { IdleSessionGuard } from "@/identity/IdleSessionGuard";
 
 const AppShell = lazy(() => import("@/components/layout/AppShell").then((m) => ({ default: m.AppShell })));
 const WorkforceLayout = lazy(() => import("@/components/layout/WorkforceLayout").then((m) => ({ default: m.WorkforceLayout })));
@@ -255,6 +256,8 @@ export default function App() {
   if (loc.pathname === "/" && surface === "pharmacy") return <Navigate to="/pharmacy/login" replace />;
   if (loc.pathname === "/" && surface === "command-center") return <Navigate to="/command-center" replace />;
   return (
+    <>
+    <IdleSessionGuard />
     <Suspense fallback={<AppLoadingScreen pathname={loc.pathname} />}>
       <Routes location={loc}>
         <Route element={<PublicShell />}>
@@ -489,5 +492,6 @@ export default function App() {
         </Route>
       </Routes>
     </Suspense>
+    </>
   );
 }

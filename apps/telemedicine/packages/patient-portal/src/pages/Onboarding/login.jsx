@@ -12,6 +12,7 @@ import {
 import { restoreSession, signIn, verifyMfaLogin } from "../../utils/sabiIdentity";
 import { useEffect } from "react";
 import { DOCTOR_PORTAL_URL } from "../../ecosystemLinks";
+import { signedOutForInactivity } from "../../../../shared-portal/idleTimeout.js";
 
 export default function SabiHealthLogin() {
   const navigate = useNavigate();
@@ -135,6 +136,7 @@ export default function SabiHealthLogin() {
             {mfaRequired && <div><label htmlFor="patient-login-mfa" className="block text-sm font-semibold text-gray-700 mb-1.5">{useRecovery ? 'Recovery code' : 'Six-digit authenticator code'}</label><input id="patient-login-mfa" className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm" autoComplete="one-time-code" required value={mfaValue} onChange={(event) => setMfaValue(useRecovery ? event.target.value : event.target.value.replace(/\D/g, '').slice(0, 6))} /><button type="button" className="mt-2 text-xs font-semibold text-emerald-700" onClick={() => { setUseRecovery(!useRecovery); setMfaValue(''); setError(''); }}>{useRecovery ? 'Use authenticator app' : 'Use a recovery code'}</button></div>}
 
             {location.state?.verified && <p role="status" className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">Your email is verified. Sign in to continue.</p>}
+            {signedOutForInactivity(location.search) && <p role="status" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">For your security, you were signed out after 5 minutes of inactivity. Please sign in again.</p>}
             {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
             {verificationRequired && <Link to="/verify-email" state={{ email }} className="inline-block text-sm font-semibold text-emerald-700 underline">Request a new verification email</Link>}
             <button

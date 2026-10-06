@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import './DailyConsultation.css';
+import { ACTIVITY_EVENT } from '../shared-portal/idleTimeout.js';
 let previousTeardown = Promise.resolve();
 export function validVideoSession(session) {
   try {
@@ -44,7 +45,11 @@ export default function DailyConsultation({ appointmentId, title, getConfig, joi
       } catch { fail('The call could not connect. Check your connection and try again.'); }
     };
     void create();
-    const poll = setInterval(() => { checkSession(appointmentId, controller.signal).catch(() => fail('Your consultation access changed or could not be verified. Reconnect to check your access again.')); }, 30000);
+    // Clicks and speech inside Daily's iframe are invisible to the page, so a live call counts as activity
+    // for the idle sign-out; otherwise a five-minute stretch of talking would end the consultation.
+    const stillHere = () => window.dispatchEvent(new Event(ACTIVITY_EVENT));
+    stillHere();
+    const poll = setInterval(() => { stillHere(); checkSession(appointmentId, controller.signal).catch(() => fail('Your consultation access changed or could not be verified. Reconnect to check your access again.')); }, 30000);
     const expiry = setTimeout(() => fail('The consultation window has ended.'), Math.max(0, Math.min(2147483647, Date.parse(session.expiresAt) - Date.now())));
     return () => { disposed = true; controller.abort(); clearInterval(poll); clearTimeout(expiry); if (frame) previousTeardown = previousTeardown.then(() => frame.destroy()).catch(() => {}); };
   }, [session, appointmentId, checkSession]);

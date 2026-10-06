@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { restoreSession } from "./utils/sabiIdentity";
+import { getCurrentUser, restoreSession, signOut } from "./utils/sabiIdentity";
+import { idleSignInUrl, startIdleTimeout } from "../../shared-portal/idleTimeout.js";
 import "./index.css";
 import { ZoomProvider } from "./context/ZoomContext";
 import { Dashboard } from "./pages/dashboard/Dashboard";
@@ -151,7 +152,15 @@ function Logo() {
   );
 }
 
+// Five minutes without input ends the session: revoke it on the server, clear it here, and reload
+// at the sign-in page so nothing from the signed-in account stays in memory.
+async function signOutForInactivity() {
+  await signOut();
+  window.location.assign(idleSignInUrl(import.meta.env.BASE_URL));
+}
+
 export default function App() {
+  useEffect(() => startIdleTimeout({ isSignedIn: () => getCurrentUser() !== null, onIdle: () => { void signOutForInactivity(); } }), []);
   return (
     <ZoomProvider>
       <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "") || "/"}>

@@ -7,7 +7,8 @@ import ProfessionalRegistrationPage from "./pages/auth/ProfessionalRegistrationP
 import SignInPage from "./pages/auth/SignInPage";
 import RegistrationStatusPage from "./pages/auth/RegistrationStatusPage";
 import PortalPreviewPage from "./pages/auth/PortalPreviewPage";
-import { AUTH_CONFIGURED, PREVIEW_ENABLED, getAuthenticatedSession } from "./services/doctorAuth";
+import { AUTH_CONFIGURED, PREVIEW_ENABLED, getAuthenticatedSession, signOutAccount } from "./services/doctorAuth";
+import { idleSignInUrl, startIdleTimeout } from "../../shared-portal/idleTimeout.js";
 import LiveDoctorWorkspace from "./live/LiveDoctorWorkspace";
 import PortalErrorBoundary from "./components/PortalErrorBoundary";
 import Dashboard from "./pages/dashboard/Dashboard";
@@ -31,6 +32,14 @@ import SettingsPage from "./pages/settings/SettingsPage";
 import "../../shared-portal/portal-revamp.css";
 import "../../shared-portal/premium-pages.css";
 
+// Five minutes without input ends the session: revoke it on the server, clear it here, and reload
+// at the sign-in page so nothing from the signed-in workspace stays in memory.
+async function signOutForInactivity() {
+  if (AUTH_CONFIGURED) await signOutAccount().catch(() => {}); // local state is cleared regardless
+  signOutDoctor();
+  window.location.assign(idleSignInUrl(import.meta.env.BASE_URL));
+}
+
 export default function App() {
   const doctor = useSyncExternalStore(subscribeToDoctorSession, getCurrentDoctor, getCurrentDoctor);
   const [ready, setReady] = useState(!AUTH_CONFIGURED);
@@ -43,6 +52,7 @@ export default function App() {
     getAuthenticatedSession().then((result) => { if (!cancelled) { if (result.doctor) activateDoctorSession(result.doctor); else signOutDoctor(); setReady(true); } }).catch((error) => { if (!cancelled) setSessionError(error.message); });
     return () => { cancelled = true; };
   }, [attempt]);
+  useEffect(() => startIdleTimeout({ isSignedIn: () => getCurrentDoctor() !== null, onIdle: () => { void signOutForInactivity(); } }), []);
   if (!ready) return <main className="dp-session-page" role="status">{sessionError ? <><h1>We couldn't check your session</h1><p>{sessionError}</p><button className="dp-btn dp-btn-primary" onClick={() => setAttempt((n) => n + 1)}>Try again</button></> : "Loading your account…"}</main>;
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "") || "/"}>

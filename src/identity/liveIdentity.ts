@@ -74,6 +74,8 @@ export async function liveSignIn(email: string, password: string): Promise<{ kin
 }
 
 export const hasPendingLiveMfa = () => !!pendingChallenge;
+/** True while this tab holds a live Sabi ID access token. */
+export const hasLiveSession = () => accessToken !== null;
 
 export async function liveVerifyMfa(value: string, recovery = false) {
   if (!pendingChallenge) throw new Error('Verification expired. Please sign in again.');
