@@ -1,82 +1,291 @@
+import { useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import type { ReactNode } from "react";
-import { ArrowDown, ArrowRight, BrainCircuit, Building2, CheckCircle2, CircleUserRound, DatabaseZap, FileHeart, Globe2, Hospital, LockKeyhole, Network, Pill, ShieldCheck, Sparkles, Workflow } from "lucide-react";
+import { ArrowRight, Building2, CalendarCheck, ChevronDown, FlaskConical, HeartHandshake, HeartPulse, LockKeyhole, Mic, Minus, Network, PhoneOff, Pill, Plus, Salad, Search, ShieldCheck, Smile, Stethoscope, UserRound, Video } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
-import { PublicCta, ProductWindow, SectionHeading, Status, JourneyMap } from "@/public/components";
-import { categoryCards } from "@/public/content";
-import { DOCTOR_SIGN_IN_URL, EMR_SIGN_IN_URL, PHARMACY_SIGN_IN_URL, TELEMEDICINE_SIGN_IN_URL } from "@/public/ecosystemLinks";
-import { MobileSlider } from "@/public/MobileSlider";
+import { cn } from "@/lib/cn";
+import { DOCTOR_REGISTER_URL, DOCTOR_SIGN_IN_URL, EMR_SIGN_IN_URL, PHARMACY_SIGN_IN_URL, TELEMEDICINE_SIGN_IN_URL } from "@/public/ecosystemLinks";
+import heroArt from "@/assets/landing/hero-care-conversation.webp";
+import storyUnwell from "@/assets/landing/story-unwell.webp";
+import storyDoctor from "@/assets/landing/story-doctor.webp";
+import storyTests from "@/assets/landing/story-tests.webp";
+import storyMedication from "@/assets/landing/story-medication.webp";
+import storyMeal from "@/assets/landing/story-meal.webp";
+import teamGp from "@/assets/landing/team-gp.webp";
+import teamNutrition from "@/assets/landing/team-nutrition.webp";
+import teamPharmacist from "@/assets/landing/team-pharmacist.webp";
+import teamNursing from "@/assets/landing/team-nursing.webp";
+import teamWellbeing from "@/assets/landing/team-wellbeing.webp";
+import teamFamily from "@/assets/landing/team-family.webp";
+import providerHospital from "@/assets/landing/provider-hospital.webp";
+import providerPharmacy from "@/assets/landing/provider-pharmacy.webp";
+import providerProfessional from "@/assets/landing/provider-professional.webp";
+import ctaWellness from "@/assets/landing/cta-wellness.webp";
 
-const flow = ["Registration", "Consultation", "Laboratory", "Pharmacy", "Billing", "Follow-up"];
-const facilities = ["Hospitals", "Clinics", "Diagnostic Centres", "Laboratories", "Maternity Centres", "Dental Clinics", "Multi-Branch Hospital Groups", "Healthcare Networks"];
+// Palette taken from the portal artwork: forest ink, sage surfaces, terracotta accent.
+const INK = "text-[#0b2b20]";
+const MUTED = "text-[#55685f]";
+
+const careAreas = [
+  { icon: Stethoscope, tone: "bg-brand-50 text-brand-700", title: "General consultations", copy: "Everyday symptoms, check-ins and routine questions with a qualified clinician." },
+  { icon: HeartPulse, tone: "bg-[#fbece4] text-[#a4532c]", title: "Women's health", copy: "Reproductive, maternal and wellness care with privacy built in." },
+  { icon: Smile, tone: "bg-[#eef3fb] text-[#41608a]", title: "Child & family care", copy: "Book for dependants and keep the whole family's care in one account." },
+  { icon: FlaskConical, tone: "bg-[#f3eefa] text-[#6d5a91]", title: "Long-term conditions", copy: "Track vitals, care plans and follow-ups between appointments." },
+  { icon: HeartHandshake, tone: "bg-[#fdf5e6] text-[#8d6a2c]", title: "Mental wellbeing", copy: "Confidential conversations with verified professionals." },
+  { icon: Salad, tone: "bg-[#ecf6ee] text-[#3f7350]", title: "Nutrition & lifestyle", copy: "Guidance from nutrition professionals for healthier daily habits." },
+];
+
+const story = [
+  { image: storyUnwell, alt: "A woman at home checking how she feels on her tablet", title: "“I haven't been feeling well.”", copy: "Start from your phone, wherever you are.", place: "lg:col-start-1 lg:row-start-1" },
+  { image: storyDoctor, alt: "A doctor reviewing notes at her desk before a video consultation", title: "“Let's look at your symptoms.”", copy: "Consult a verified clinician by video.", place: "lg:col-start-2 lg:row-start-1 lg:mt-24" },
+  { image: storyTests, alt: "A patient taking a blood-pressure reading at home", title: "Tests and readings", copy: "Results and vitals stay with your record.", place: "lg:col-start-3 lg:row-start-1" },
+  { image: storyMedication, alt: "A patient organising her prescribed medication", title: "Get your medication", copy: "Send prescriptions to a partner pharmacy.", place: "lg:col-start-1 lg:row-start-2 lg:col-span-1 lg:ml-[18%]" },
+  { image: storyMeal, alt: "A woman preparing a colourful, healthy meal", title: "Live a little healthier", copy: "Wellness and nutrition support between visits.", place: "lg:col-start-2 lg:row-start-2 lg:col-span-1 lg:mt-14 lg:ml-[18%]" },
+];
+
+const team = [
+  { image: teamGp, role: "General practitioners", detail: "Consultations, referrals and follow-up" },
+  { image: teamNutrition, role: "Nutrition professionals", detail: "Meal plans and lifestyle coaching" },
+  { image: teamPharmacist, role: "Pharmacists", detail: "Prescription review and dispensing" },
+  { image: teamNursing, role: "Hospital care teams", detail: "Check-in, admission and in-patient care" },
+  { image: teamWellbeing, role: "Wellbeing professionals", detail: "Counselling and ongoing support" },
+  { image: teamFamily, role: "Family care", detail: "Dependants managed from one account" },
+];
+
+const faqs = [
+  { q: "What can I do with Sabi Health?", a: "Book video or in-person consultations with verified professionals, keep your health records and vitals in one place, manage prescriptions with partner pharmacies, and look after family members from the same account." },
+  { q: "How do I book a consultation?", a: "Create a free patient account, choose a professional by specialty and availability, pick an open time and send your request. You'll see it confirmed in your appointments once the professional accepts." },
+  { q: "Are video consultations private?", a: "Calls run in private rooms that open only for the patient and professional on that appointment, shortly before it starts. Recording and transcription are switched off." },
+  { q: "How do professionals join?", a: "Doctors and other health professionals register, upload their credentials and are reviewed by the Sabi operations team. Only verified professionals can accept patients." },
+  { q: "How does a hospital or pharmacy join?", a: "Organizations register through the shared onboarding workflow. Hospitals get Sabi OS (EMR, laboratory, pharmacy, billing and more); pharmacies get their own operator workspace." },
+  { q: "What should I do in an emergency?", a: "Sabi Health is not an emergency service. If you or someone near you is in danger, call your local emergency number or go to the nearest emergency department immediately." },
+];
+
+function Reveal({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
+  const reduceMotion = useReducedMotion();
+  return <motion.div className={className} initial={reduceMotion ? false : { opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-60px" }} transition={{ duration: .55, delay }}>{children}</motion.div>;
+}
+
+function Eyebrow({ children, light = false }: { children: ReactNode; light?: boolean }) {
+  return <p className={cn("mb-4 flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-[0.18em]", light ? "text-brand-100" : "text-[#55685f]")}><span aria-hidden className={cn("h-1.5 w-1.5 rounded-full", light ? "bg-brand-200" : "bg-brand-600")} />{children}</p>;
+}
 
 export default function HomePage() {
   const reduceMotion = useReducedMotion();
   return (
-    <>
-      <section className="relative overflow-hidden bg-[#061d15] text-white">
-        <div className="public-grid absolute inset-0 opacity-30" />
-        <div className="absolute -left-24 top-28 h-72 w-72 rounded-full bg-brand-500/20 blur-[100px]" /><div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-cyan-400/10 blur-[120px]" />
-        <div className="relative mx-auto grid max-w-[1500px] items-center gap-8 px-5 py-14 lg:min-h-[calc(100vh-72px)] lg:grid-cols-[.82fr_1.18fr] lg:gap-12 lg:px-8 lg:py-24">
-          <motion.div initial={reduceMotion ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .65 }}>
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-brand-300/20 bg-brand-300/10 px-3 py-1.5 text-xs font-bold text-brand-200"><Sparkles size={13} /> Intelligent Healthcare. Connected.</div>
-            <h1 className="text-balance font-display text-[clamp(2.65rem,11vw,3.75rem)] font-extrabold leading-[.98] tracking-[-0.055em] sm:text-6xl xl:text-7xl">Healthcare,<br /><span className="text-brand-300">intelligently</span> connected.</h1>
-            <p className="mt-7 max-w-xl text-lg leading-8 text-emerald-50/70">Book online care as a patient, or run your healthcare organization with Sabi OS—all within one connected healthcare ecosystem.</p>
-            <a href={DOCTOR_SIGN_IN_URL} className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-brand-200 hover:text-white">For doctors: open your workspace <ArrowRight size={14} /></a>
-            <div className="mt-9 flex flex-wrap gap-3"><a href={TELEMEDICINE_SIGN_IN_URL} className="public-button-primary">Book a Consultation <ArrowRight size={16}/></a><PublicCta to="/register/organization" secondary>Register Healthcare Organization</PublicCta></div>
-            <div className="mt-10 flex flex-wrap items-center gap-x-7 gap-y-3 border-t border-white/10 pt-6 text-xs font-semibold text-white/50"><span className="inline-flex items-center gap-2"><ShieldCheck size={15} className="text-brand-300" /> Tenant-aware architecture</span><span className="inline-flex items-center gap-2"><Workflow size={15} className="text-brand-300" /> Connected workflows</span><span className="inline-flex items-center gap-2"><CircleUserRound size={15} className="text-brand-300" /> Human-centred care</span></div>
+    <div className={INK}>
+      {/* Hero */}
+      <section aria-labelledby="hero-heading" className="relative isolate overflow-hidden border-b border-[#0b2b20]/5 bg-[#f6f9f5]">
+        <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 -z-10 w-full bg-[radial-gradient(ellipse_at_78%_45%,#dff0e5_0%,transparent_62%)] lg:w-3/4" />
+        <div className="mx-auto grid max-w-[1440px] items-center gap-10 px-5 pb-16 pt-14 sm:px-8 lg:min-h-[760px] lg:grid-cols-2 lg:gap-4 lg:px-10 lg:pb-20 lg:pt-16 xl:px-16">
+          <motion.div initial={reduceMotion ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .6 }} className="relative z-20 max-w-2xl">
+            <Eyebrow>One connected healthcare ecosystem</Eyebrow>
+            <h1 id="hero-heading" className="font-display text-[clamp(2.7rem,7.6vw,4.6rem)] font-semibold leading-[1.04] tracking-[-0.05em]">Healthcare,<br />intelligently<br /><span className="text-brand-600">connected.</span></h1>
+            <p className={cn("mt-6 max-w-[500px] text-base leading-[1.8] sm:text-lg", MUTED)}>See a verified doctor by video, keep your records and prescriptions together, and reach hospitals and pharmacies that run on the same connected platform.</p>
+            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
+              <a href={TELEMEDICINE_SIGN_IN_URL} className="inline-flex min-h-[52px] items-center gap-5 rounded-xl bg-[#0b2b20] px-6 text-sm font-bold text-white shadow-[0_10px_24px_-12px_rgba(11,43,32,.55)] transition hover:bg-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-4">Book a consultation <ArrowRight size={16} /></a>
+              <a href="#how-it-works" className="inline-flex min-h-12 items-center gap-2 text-sm font-semibold underline decoration-[#0b2b20]/20 underline-offset-[6px] hover:text-brand-700">Explore how it works <ChevronDown size={15} /></a>
+            </div>
+            <div className={cn("mt-9 flex flex-wrap gap-x-6 gap-y-2 border-t border-[#0b2b20]/10 pt-6 text-sm font-medium", MUTED)}>
+              <a href={DOCTOR_SIGN_IN_URL} className="inline-flex items-center gap-1.5 hover:text-brand-700">For professionals <ArrowRight size={13} /></a>
+              <Link to="/register/organization" className="inline-flex items-center gap-1.5 hover:text-brand-700">For hospitals <ArrowRight size={13} /></Link>
+              <a href={PHARMACY_SIGN_IN_URL} className="inline-flex items-center gap-1.5 hover:text-brand-700">For pharmacies <ArrowRight size={13} /></a>
+            </div>
           </motion.div>
-          <motion.div initial={reduceMotion ? false : { opacity: 0, scale: .97, x: 18 }} animate={{ opacity: 1, scale: 1, x: 0 }} transition={{ delay: .15, duration: .7 }}><ProductWindow /></motion.div>
-          <a href="#fragmentation" className="absolute bottom-6 left-1/2 hidden -translate-x-1/2 animate-bounce text-white/35 lg:block" aria-label="Scroll to next section"><ArrowDown size={20} /></a>
+          <HeroFigure />
         </div>
       </section>
 
-      <section id="choose-sabi" className="relative -mt-px border-b border-slate-200 bg-[#f8fbf9] px-5 py-12 lg:px-8 lg:py-16">
-        <div className="mx-auto max-w-[1350px]">
-          <div className="mb-8 text-center"><p className="text-xs font-extrabold uppercase tracking-[.18em] text-brand-700">Choose your Sabi experience</p><h2 className="mt-3 font-display text-3xl font-extrabold tracking-[-.035em] text-slate-950 sm:text-4xl">Care for people. Infrastructure for providers.</h2></div>
-          <MobileSlider label="Sabi experiences" desktopColumns="md:grid-cols-2 xl:grid-cols-3">
-            <AudienceCard eyebrow="For patients" title="Sabi Health Telemedicine" copy="Find care, book online doctor consultations, manage prescriptions and keep your health journey connected." items={["Online doctor consultations", "Hospital appointment booking", "Prescriptions, pharmacy and laboratory services", "Health records, reminders and family care"]} icon={<CircleUserRound size={24}/>} primary="Open Telemedicine" href={TELEMEDICINE_SIGN_IN_URL} secondary="Patient Sign In" secondaryHref={TELEMEDICINE_SIGN_IN_URL}/>
-            <AudienceCard eyebrow="For healthcare organizations" title="Sabi OS Hospital Platform" copy="Register your hospital or healthcare facility through the shared onboarding, compliance and provisioning workflow." items={["EMR and clinical workflows", "Billing, pharmacy and laboratory", "Inventory, HR and accounting", "Multi-tenant organization administration"]} icon={<Hospital size={24}/>} primary="Register Healthcare Organization" to="/register/organization" secondary="Hospital Login" secondaryHref={EMR_SIGN_IN_URL}/>
-            <AudienceCard eyebrow="For pharmacy organizations" title="Sabi Pharmacy Portal" copy="Run your pharmacy as its own organization with a dedicated operator workspace, separate from the hospital EMR." items={["Prescription review and quotes", "Orders and dispensing queue", "Inventory, branches and fulfilment", "Finance, settlements and auditability"]} icon={<Pill size={24}/>} primary="Pharmacy Organization Login" href={PHARMACY_SIGN_IN_URL} secondary="Explore pharmacy workflow" secondaryTo="/solutions/pharmacies"/>
-          </MobileSlider>
+      {/* Areas of care */}
+      <section id="care" aria-labelledby="care-heading" className="bg-white px-5 py-16 sm:px-8 lg:px-10 lg:py-24">
+        <div className="mx-auto max-w-[1160px]">
+          <Reveal className="mb-10 max-w-[720px]"><Eyebrow>Specialist care, made accessible</Eyebrow><h2 id="care-heading" className="font-display text-[32px] font-bold leading-[1.12] tracking-[-0.04em] sm:text-[44px]">The right care for different moments of life.</h2><p className={cn("mt-4 text-[15px] leading-relaxed", MUTED)}>Areas of care available from verified professionals on Sabi Health.</p></Reveal>
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
+            {careAreas.map(({ icon: Icon, tone, title, copy }, i) => <li key={title}><Reveal delay={i * .04} className="h-full"><article className="group h-full rounded-2xl border border-[#e3ebe5] bg-[#fcfefc] p-6 transition hover:border-brand-200 hover:shadow-[0_10px_28px_-18px_rgba(5,154,87,.45)]">
+              <div className="mb-4 flex items-center justify-between"><span aria-hidden className={cn("grid h-10 w-10 place-items-center rounded-xl transition group-hover:-translate-y-0.5", tone)}><Icon size={19} strokeWidth={1.6} /></span><span aria-hidden className="text-[11px] tabular-nums tracking-[0.12em] text-[#8a9a92]">{String(i + 1).padStart(2, "0")}</span></div>
+              <h3 className="text-xl font-bold leading-tight tracking-[-0.02em]">{title}</h3><p className={cn("mt-2 text-sm leading-[1.65]", MUTED)}>{copy}</p>
+            </article></Reveal></li>)}
+          </ul>
         </div>
       </section>
 
-      <section className="border-b border-slate-200 bg-white py-7"><p className="mx-auto max-w-[1500px] px-5 text-center text-sm font-semibold text-slate-500 lg:px-8">Built for modern healthcare organizations — without invented customer counts, logos or certification claims.</p></section>
-
-      <section id="fragmentation" className="px-5 py-16 lg:px-8 lg:py-32">
-        <div className="mx-auto max-w-[1350px]"><SectionHeading eyebrow="The connected record" title="Patient records should not live in silos." copy="Care becomes harder when every department sees only one fragment of the patient's journey. Sabi OS is designed to connect the operational handoffs around care into structured, longitudinal information." centered />
-          <div className="mt-10"><MobileSlider label="Connected care workflow" desktopColumns="md:grid-cols-3 lg:grid-cols-6">{flow.map((item, i) => <div key={item} className="relative rounded-2xl border border-slate-200 bg-white px-4 py-5 text-center shadow-sm"><span className="mx-auto grid h-8 w-8 place-items-center rounded-full bg-brand-50 text-xs font-extrabold text-brand-700">{i + 1}</span><b className="mt-3 block text-sm text-slate-800">{item}</b>{i < flow.length - 1 && <ArrowRight className="absolute -right-3 top-1/2 z-10 hidden -translate-y-1/2 text-brand-400 lg:block" size={18} />}</div>)}</MobileSlider></div>
-          <div className="mt-7 rounded-2xl border border-brand-200 bg-brand-50/70 p-5 text-center text-sm font-semibold text-brand-900"><FileHeart className="mr-2 inline" size={18} /> One connected health journey, with the right information available to authorized care teams.</div>
+      {/* Care story */}
+      <section aria-labelledby="story-heading" className="overflow-hidden bg-[#f6f9f5] px-5 py-16 sm:px-8 lg:px-10 lg:py-24">
+        <div className="mx-auto max-w-[1200px]">
+          <Reveal className="mx-auto mb-12 max-w-[680px] text-center"><Eyebrow>Your healthcare, connected</Eyebrow><h2 id="story-heading" className="font-display text-[32px] font-bold leading-[1.12] tracking-[-0.04em] sm:text-[44px]">Care for every <span className="text-brand-600">stage of the journey.</span></h2><p className={cn("mt-4 text-[15px] leading-relaxed", MUTED)}>From the first consultation to tests, medication and healthier habits, each step builds on the last.</p></Reveal>
+          <div className="relative grid gap-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-x-10 lg:gap-y-4">
+            {story.map((moment, i) => <Reveal key={moment.title} delay={i * .06} className={moment.place}><figure>
+              <div className="relative"><div aria-hidden className="absolute -inset-2 -z-0 rotate-[-2deg] rounded-[30px] bg-[#e4efe7]" /><img src={moment.image} alt={moment.alt} loading="lazy" width={820} height={547} className="relative aspect-[3/2] w-full rounded-[26px] object-cover shadow-[0_18px_40px_-26px_rgba(11,43,32,.45)]" /><span aria-hidden className="absolute -left-2 -top-2 grid h-9 w-9 place-items-center rounded-full bg-white text-xs font-bold text-brand-700 shadow-md">{i + 1}</span></div>
+              <figcaption className="mt-4 px-1"><h3 className="text-lg font-bold tracking-[-0.02em]">{moment.title}</h3><p className={cn("mt-1 text-sm", MUTED)}>{moment.copy}</p></figcaption>
+            </figure></Reveal>)}
+            <Reveal className="flex flex-col justify-center rounded-[26px] bg-[#0b2b20] p-8 text-white sm:col-span-2 lg:col-span-1 lg:col-start-3 lg:row-start-2 lg:mt-14"><p className="font-display text-2xl font-bold leading-snug tracking-[-0.03em]">Accessible <span className="text-brand-300">·</span> Connected <span className="text-brand-300">·</span> Verified</p><p className="mt-3 text-sm leading-6 text-white/65">One account follows you between your doctor, pharmacy and hospital.</p><a href={TELEMEDICINE_SIGN_IN_URL} className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-brand-200 hover:text-white">Start your care journey <ArrowRight size={15} /></a></Reveal>
+          </div>
         </div>
       </section>
 
-      <section className="bg-white px-5 py-16 lg:px-8 lg:py-32">
-        <div className="mx-auto max-w-[1350px]"><div className="flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between"><SectionHeading eyebrow="Sabi OS" title="The operating system for modern healthcare organizations." copy="Clinical care, people, operations and finance share one modular platform instead of becoming separate islands." /><div className="shrink-0"><Status>Available</Status></div></div>
-          <div className="mt-10"><MobileSlider label="Sabi OS modules" desktopColumns="md:grid-cols-2 xl:grid-cols-5">{categoryCards.map(({ icon: Icon, title, items }, i) => <motion.article key={title} initial={reduceMotion ? false : { opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * .05 }} className="group rounded-[22px] border border-slate-200 bg-[#f8fbf9] p-5 transition hover:-translate-y-1 hover:border-brand-300 hover:bg-white hover:shadow-xl"><span className="grid h-11 w-11 place-items-center rounded-xl bg-slate-950 text-brand-300"><Icon size={20} /></span><h3 className="mt-5 font-display text-lg font-extrabold">{title}</h3><p className="mt-3 text-sm leading-6 text-slate-550">{items}</p></motion.article>)}</MobileSlider></div>
-          <div className="mt-10"><PublicCta to="/products/sabi-os">Explore the product</PublicCta></div>
+      {/* How it works */}
+      <section id="how-it-works" aria-labelledby="how-heading" className="scroll-mt-20 bg-white px-5 py-16 sm:px-8 lg:px-10 lg:py-24">
+        <div className="mx-auto max-w-[1160px]">
+          <Reveal className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between"><div className="max-w-[640px]"><Eyebrow>How Sabi Health works</Eyebrow><h2 id="how-heading" className="font-display text-[32px] font-bold leading-[1.12] tracking-[-0.04em] sm:text-[44px]">Healthcare in three simple steps.</h2><p className={cn("mt-4 text-[15px] leading-relaxed", MUTED)}>Choose a professional, book a time, and connect through Sabi Health.</p></div><a href={TELEMEDICINE_SIGN_IN_URL} className="inline-flex shrink-0 items-center gap-2 text-sm font-bold text-brand-700 hover:text-brand-900">Get started <ArrowRight size={15} /></a></Reveal>
+          <ol className="grid gap-5 md:grid-cols-3">
+            <Step n={1} title="Find the right professional" copy="Browse verified professionals by specialty, availability and whether they offer video or in-person care."><FindVisual /></Step>
+            <Step n={2} title="Book now or for later" copy="Pick an open slot that suits you. Your request is confirmed by the professional, and you're reminded before it starts."><CalendarVisual /></Step>
+            <Step n={3} title="Meet by video" copy="Join a private video room from the browser a few minutes before your appointment — chat included, nothing to install."><VideoVisual /></Step>
+          </ol>
         </div>
       </section>
 
-      <section className="overflow-hidden bg-[#0b221a] px-5 py-24 text-white lg:px-8 lg:py-32"><div className="mx-auto grid max-w-[1350px] gap-14 lg:grid-cols-[.85fr_1.15fr] lg:items-center"><div><Status tone="pilot">Controlled pilot</Status><div className="mt-5"><SectionHeading eyebrow="Sabi Intelligence" title="Intelligence embedded into healthcare workflows." copy="Sabi is designed to assist with documentation, workflow monitoring, anomaly signals and structured summaries — with people firmly in control." /></div><p className="mt-6 rounded-xl border border-brand-300/20 bg-brand-300/10 p-4 text-sm leading-6 text-brand-100">AI supports healthcare professionals. Clinical decisions remain with qualified healthcare professionals.</p><div className="mt-7"><PublicCta to="/ai" secondary>Explore responsible AI</PublicCta></div></div><div className="grid gap-3 sm:grid-cols-2">{[[BrainCircuit,"Clinical assistance","Structured summaries and documentation support."],[Building2,"Hospital intelligence","Operational trends and capacity signals."],[Workflow,"Administrative automation","Workflow monitoring and task prioritization."],[DatabaseZap,"Data intelligence","Completeness checks, search and analytics."]].map(([Icon,title,copy]) => { const C = Icon as typeof BrainCircuit; return <div key={String(title)} className="rounded-2xl border border-white/10 bg-white/[.06] p-6"><C size={21} className="text-brand-300" /><h3 className="mt-4 font-display font-bold">{String(title)}</h3><p className="mt-2 text-sm leading-6 text-white/55">{String(copy)}</p></div>; })}</div></div></section>
+      {/* Care team */}
+      <CareTeam />
 
-      <section className="px-5 py-24 lg:px-8 lg:py-32"><div className="mx-auto grid max-w-[1350px] gap-14 lg:grid-cols-2 lg:items-center"><div><Status tone="pilot">Patient platform</Status><div className="mt-5"><SectionHeading eyebrow="Sabi Health for patients" title="Healthcare that follows the patient." copy="The patient-facing experience is distinct from the hospital EMR: one place for personal records, prescriptions, pharmacy journeys and virtual care as each backend service becomes available." /></div><div className="mt-7 flex flex-wrap gap-2">{["Health records", "Prescriptions", "Medication reminders", "Virtual consultation", "Pharmacy fulfilment"].map((item) => <span key={item} className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600">{item}</span>)}</div><div className="mt-8"><PublicCta to="/products/sabi-health">Explore Sabi Health</PublicCta></div></div><PhonePair /></div></section>
+      {/* Providers */}
+      <section id="providers" aria-labelledby="providers-heading" className="bg-white px-5 py-16 sm:px-8 lg:px-10 lg:py-24">
+        <div className="mx-auto max-w-[1200px]">
+          <Reveal className="mx-auto mb-8 max-w-[700px] text-center"><Eyebrow>Who we work with</Eyebrow><h2 id="providers-heading" className="font-display text-[32px] font-bold leading-[1.12] tracking-[-0.04em] sm:text-[44px]">One platform for every provider.</h2></Reveal>
+          <ul className="mb-10 flex flex-wrap justify-center gap-2.5">{["Hospitals", "Clinics", "Doctors", "Health professionals", "Pharmacies", "Laboratories"].map((p) => <li key={p} className="inline-flex items-center gap-2 rounded-full border border-[#e3ebe5] bg-[#f6f9f5] px-4 py-2 text-sm font-semibold"><span aria-hidden className="h-1.5 w-1.5 rounded-full bg-brand-500" />{p}</li>)}</ul>
+          <div className="grid gap-5 lg:grid-cols-3">
+            <ProviderCard image={providerHospital} alt="A hospital care team reviewing a patient chart together" label="Sabi OS for hospitals" title="Run your whole facility on one system." copy="EMR, queue, laboratory, pharmacy, in-patient care, billing, HR and accounting — isolated per organization." primary={{ label: "Register organization", to: "/register/organization" }} secondary={{ label: "Hospital sign in", href: EMR_SIGN_IN_URL }} />
+            <ProviderCard image={providerProfessional} alt="A doctor working on her tablet in a bright consulting room" label="Professional portal" title="Practise online, verified." copy="Publish availability, accept bookings, consult by video and manage care plans after credential review." primary={{ label: "Join as a professional", href: DOCTOR_REGISTER_URL }} secondary={{ label: "Professional sign in", href: DOCTOR_SIGN_IN_URL }} />
+            <ProviderCard image={providerPharmacy} alt="A pharmacist preparing an order at the pharmacy counter" label="Pharmacy portal" title="Fulfil prescriptions with confidence." copy="Review prescriptions, send quotes, dispense and manage stock across branches in your own workspace." primary={{ label: "Pharmacy sign in", href: PHARMACY_SIGN_IN_URL }} secondary={{ label: "How it works", to: "/solutions/pharmacies" }} />
+          </div>
+        </div>
+      </section>
 
-      <section className="bg-white px-5 py-24 lg:px-8 lg:py-32"><div className="mx-auto max-w-[1350px]"><SectionHeading eyebrow="Connected ecosystem" title="One patient. One connected health journey." copy="Sabi Identity is the architectural bridge between people, their organization memberships and the products they are authorized to use." centered /><div className="mt-14"><JourneyMap /></div></div></section>
+      {/* Get started band */}
+      <section aria-labelledby="start-heading" className="relative overflow-hidden bg-brand-800 text-white">
+        <div aria-hidden className="absolute -left-16 -top-16 h-40 w-40 rounded-full bg-white/10" /><div aria-hidden className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/5" />
+        <div className="relative mx-auto grid max-w-[1200px] items-center gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[1fr_1.05fr] lg:px-10 lg:py-20">
+          <Reveal><Eyebrow light>Get started with Sabi Health</Eyebrow><h2 id="start-heading" className="font-display text-4xl font-bold leading-tight tracking-[-0.04em] sm:text-5xl">Your care,<br />on your terms.</h2><p className="mt-5 max-w-[420px] text-base leading-7 text-brand-50/80 sm:text-lg">Consultations, records, prescriptions and family care — together in one account.</p>
+            <div className="mt-8 flex flex-wrap gap-3"><a href={TELEMEDICINE_SIGN_IN_URL} className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-white px-5 text-sm font-bold text-[#0b2b20] transition hover:bg-brand-50">Create a free account <ArrowRight size={16} /></a><a href={TELEMEDICINE_SIGN_IN_URL} className="inline-flex min-h-12 items-center rounded-xl border border-white/30 px-5 text-sm font-bold text-white transition hover:bg-white/10">Patient sign in</a></div></Reveal>
+          <Reveal delay={.1}><img src={ctaWellness} alt="A woman relaxing at home with her tablet, surrounded by plants" loading="lazy" width={1100} height={733} className="w-full rounded-[28px] border-4 border-white/15 object-cover shadow-[0_30px_60px_-30px_rgba(0,0,0,.6)]" /></Reveal>
+        </div>
+      </section>
 
-      <section className="px-5 py-16 lg:px-8 lg:py-32"><div className="mx-auto max-w-[1350px]"><SectionHeading eyebrow="Solutions by facility" title="Different facilities. One adaptable foundation." copy="The architecture is designed for configurable workflows, terminology and entitlements across many types of healthcare organizations." /><div className="mt-10 grid grid-cols-2 gap-3 lg:grid-cols-4">{facilities.map((item) => <Link key={item} to={`/solutions/${item.toLowerCase().replaceAll(" ", "-")}`} className="group flex min-h-28 flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-brand-300 hover:shadow-lg sm:min-h-32 sm:p-5"><Hospital size={20} className="text-brand-700" /><span className="flex items-end justify-between gap-2 font-display text-sm font-bold text-slate-800 sm:text-base">{item}<ArrowRight size={16} className="shrink-0 transition group-hover:translate-x-1" /></span></Link>)}</div></div></section>
+      {/* Trust */}
+      <section aria-labelledby="trust-heading" className="bg-[#f6f9f5] px-5 py-16 sm:px-8 lg:px-10 lg:py-20">
+        <div className="mx-auto grid max-w-[1160px] gap-10 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
+          <Reveal><Eyebrow>Security & privacy</Eyebrow><h2 id="trust-heading" className="font-display text-[32px] font-bold leading-[1.12] tracking-[-0.04em] sm:text-[40px]">Trust is part of the architecture.</h2><p className={cn("mt-4 text-[15px] leading-relaxed", MUTED)}>Role-based access, tenant isolation, audit trails and verified professionals guide how the platform is built.</p><Link to="/security" className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-brand-700 hover:text-brand-900">Review our principles <ArrowRight size={15} /></Link></Reveal>
+          <div className="grid grid-cols-2 gap-3">{[[LockKeyhole, "Access control", "Each person sees only what their role allows."], [ShieldCheck, "Auditability", "Sensitive actions leave a reviewable trail."], [Network, "Tenant isolation", "Every organization's records are kept separate."], [UserRound, "Verified professionals", "Credentials are reviewed before patients are seen."]].map(([Icon, label, copy], i) => { const C = Icon as typeof LockKeyhole; return <Reveal key={String(label)} delay={i * .05} className="h-full"><div className="h-full rounded-2xl border border-[#e3ebe5] bg-white p-5"><span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-700"><C size={18} /></span><h3 className="mt-4 font-bold">{String(label)}</h3><p className={cn("mt-1 text-sm leading-6", MUTED)}>{String(copy)}</p></div></Reveal>; })}</div>
+          <p className="text-xs leading-5 text-[#7a8a82] lg:col-span-2">Compliance depends on configuration, hosting, organizational procedures and applicable regulatory requirements. No certification is implied.</p>
+        </div>
+      </section>
 
-      <section className="bg-[#eaf8f0] px-5 py-16 lg:px-8 lg:py-24"><div className="mx-auto grid max-w-[1350px] gap-10 lg:grid-cols-2"><div><SectionHeading eyebrow="Security & privacy" title="Trust is part of the architecture." copy="Role-based access, tenant isolation, audit trails, secure session design and least privilege guide the platform's implementation." /><div className="mt-8"><PublicCta to="/security">Review our principles</PublicCta></div></div><div className="grid grid-cols-2 gap-3">{[[LockKeyhole,"Access control"],[ShieldCheck,"Auditability"],[Network,"Tenant isolation"],[Globe2,"Interoperability-ready"]].map(([Icon,label]) => { const C = Icon as typeof LockKeyhole; return <div key={String(label)} className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:p-5"><span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-700"><C size={19} /></span><b className="text-sm sm:text-base">{String(label)}</b></div>; })}</div><p className="lg:col-span-2 text-xs leading-5 text-slate-500">Compliance depends on configuration, hosting, organizational procedures and applicable regulatory requirements. No certification is implied.</p></div></section>
-
-      <section className="px-5 py-24 lg:px-8 lg:py-32"><div className="mx-auto max-w-[1100px] text-center"><SectionHeading eyebrow="Our mission" title="Building healthcare infrastructure for the next generation." copy="We want authorized healthcare professionals to have the right information at the right time, while patients no longer have to rebuild their medical story from scratch." centered /><div className="mt-9"><PublicCta to="/about">Meet Sabi Health</PublicCta></div></div></section>
-
-      <section className="bg-slate-950 px-5 py-20 text-white lg:px-8"><div className="mx-auto grid max-w-[1350px] gap-5 lg:grid-cols-2"><PersonaCta title="Bring your organization to Sabi." copy="Start the path toward a connected healthcare workspace." primary="Register Organization" to="/register/organization" secondary="Book a Demo" secondaryTo="/book-demo" /><PersonaCta title="Your healthcare journey, connected." copy="Access the existing Sabi Health patient and telemedicine experience." primary="Open Telemedicine" href={TELEMEDICINE_SIGN_IN_URL} secondary="Patient Sign In" secondaryHref={TELEMEDICINE_SIGN_IN_URL} /></div></section>
-    </>
+      <Faq />
+    </div>
   );
 }
 
-function PhonePair() { return <div className="relative mx-auto h-[430px] max-w-lg"><div className="absolute left-[8%] top-10 h-[370px] w-[210px] -rotate-6 rounded-[35px] border-[7px] border-slate-900 bg-white p-4 shadow-2xl"><div className="mx-auto h-1.5 w-16 rounded-full bg-slate-200" /><p className="mt-7 text-[10px] font-bold text-brand-700">GOOD MORNING</p><h3 className="mt-1 font-display text-lg font-extrabold">Your health, together.</h3><div className="mt-5 rounded-2xl bg-brand-gradient p-4 text-white"><p className="text-[9px] text-white/70">Health snapshot</p><p className="mt-2 text-2xl font-bold">Connected</p></div><div className="mt-3 grid grid-cols-2 gap-2">{["Records","Medicines","Visits","Profile"].map(x=><div key={x} className="rounded-xl bg-slate-50 p-3 text-[9px] font-bold">{x}</div>)}</div></div><div className="absolute right-[8%] top-0 h-[390px] w-[220px] rotate-6 rounded-[38px] border-[7px] border-slate-900 bg-[#effaf4] p-4 shadow-2xl"><div className="mx-auto h-1.5 w-16 rounded-full bg-slate-300" /><div className="mt-8 flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-full bg-white"><CircleUserRound className="text-brand-700" /></span><div><p className="text-[9px] text-slate-400">Sabi ID</p><b className="text-xs">Patient profile</b></div></div><div className="mt-6 space-y-3">{["Latest consultation","Prescription history","Laboratory results","Care reminders"].map((x,i)=><div key={x} className="rounded-xl bg-white p-3 shadow-sm"><div className="flex items-center gap-2"><CheckCircle2 size={13} className={i<2?"text-brand-600":"text-slate-300"}/><span className="text-[10px] font-semibold">{x}</span></div></div>)}</div><p className="mt-5 text-center text-[9px] font-bold uppercase tracking-widest text-slate-400">Patient experience concept</p></div></div>; }
+function HeroFigure() {
+  const reduceMotion = useReducedMotion();
+  const cards = [
+    { icon: Video, tone: "bg-brand-50 text-brand-700", title: "Doctor consultation", sub: "General practitioner", status: "Video appointment", place: "left-0 top-[10%] sm:left-[1%]" },
+    { icon: FlaskConical, tone: "bg-[#f3eefa] text-[#6d5a91]", title: "Test results", sub: "Shared with your doctor", status: "Added to your record", place: "right-0 top-[26%] sm:right-[1%]" },
+    { icon: Pill, tone: "bg-[#fbece4] text-[#a4532c]", title: "Pharmacy", sub: "Your prescription", status: "Quote received", place: "left-0 top-[58%] sm:top-[62%]" },
+    { icon: Building2, tone: "bg-[#fdf5e6] text-[#8d6a2c]", title: "Hospital care", sub: "Follow-up visit", status: "Checked in", place: "right-0 top-[72%] sm:right-[1%]" },
+  ];
+  return (
+    <motion.figure initial={reduceMotion ? false : { opacity: 0, scale: .97 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: .12, duration: .7 }} aria-label="Illustration of Sabi Health connecting consultations, test results, pharmacy and hospital care" className="relative mx-auto mb-6 aspect-[0.92] w-full max-w-[590px]">
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-[15%] rounded-full bg-[#d6eadc]/70 blur-3xl" />
+        <div className="absolute inset-x-[4%] inset-y-[12%] rounded-full border border-brand-700/10" />
+        <div className="absolute inset-x-[15%] inset-y-[22%] rounded-full border border-brand-700/10" />
+        <svg viewBox="0 0 590 640" fill="none" preserveAspectRatio="none" className="absolute inset-0 h-full w-full"><g stroke="#9cc3ab" strokeDasharray="3 5"><path d="M125 120H200Q225 120 225 145V245H295" /><path d="M470 225H395Q370 225 370 250V310H295" /><path d="M120 430H205Q230 430 230 405V370H295" /><path d="M470 520H390Q365 520 365 495V430H295" /></g><g fill="#f6f9f5" stroke="#9cc3ab"><circle cx="125" cy="120" r="4" /><circle cx="470" cy="225" r="4" /><circle cx="120" cy="430" r="4" /><circle cx="470" cy="520" r="4" /></g></svg>
+      </div>
+      <div className="absolute left-[24%] top-[3%] z-10 w-[52%] overflow-hidden rounded-[36px] border-[6px] border-white bg-white shadow-[0_28px_50px_-24px_rgba(11,43,32,.45)]"><img src={heroArt} alt="A doctor and patient talking together during a consultation" width={760} height={1140} className="aspect-[2/3] h-full w-full object-cover" /></div>
+      {cards.map(({ icon: Icon, tone, title, sub, status, place }, i) => <motion.div key={title} initial={reduceMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .35 + i * .1 }} className={cn("absolute z-20 w-[43%] max-w-[220px]", place)}>
+        <div className="rounded-xl border border-[#dfe8e2] bg-white/95 p-2.5 shadow-[0_12px_32px_-16px_rgba(11,43,32,.28)] sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-2.5"><span className={cn("grid h-7 w-7 shrink-0 place-items-center rounded-md sm:h-8 sm:w-8", tone)}><Icon size={15} strokeWidth={1.6} /></span><p className="text-[10px] font-bold leading-tight sm:text-xs">{title}</p></div>
+          <p className={cn("mt-3 hidden text-xs sm:block", MUTED)}>{sub}</p>
+          <div className="mt-2 flex items-center gap-1.5 border-t border-[#0b2b20]/[.06] pt-2 sm:mt-3 sm:pt-3"><span aria-hidden className="h-1 w-1 rounded-full bg-brand-500" /><p className={cn("text-[9px] font-medium sm:text-[11px]", MUTED)}>{status}</p></div>
+        </div>
+      </motion.div>)}
+      <figcaption className="absolute inset-x-0 -bottom-7 text-center text-[10px] tracking-wide text-[#7a8a82] sm:text-xs">Connected care, in one place <span aria-hidden className="px-1">·</span> Illustrative experience</figcaption>
+    </motion.figure>
+  );
+}
 
-function AudienceCard({ eyebrow, title, copy, items, icon, primary, to, href, secondary, secondaryTo, secondaryHref }: { eyebrow: string; title: string; copy: string; items: string[]; icon: ReactNode; primary: string; to?: string; href?: string; secondary: string; secondaryTo?: string; secondaryHref?: string }) { return <article className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm sm:p-8"><div className="flex items-start gap-4"><span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-slate-950 text-brand-300">{icon}</span><div><p className="text-[10px] font-extrabold uppercase tracking-[.18em] text-brand-700">{eyebrow}</p><h3 className="mt-2 font-display text-2xl font-extrabold text-slate-950">{title}</h3></div></div><p className="mt-5 text-sm leading-6 text-slate-500">{copy}</p><ul className="mt-5 grid gap-3 sm:grid-cols-2">{items.map((item)=><li key={item} className="flex items-start gap-2 text-sm font-semibold text-slate-700"><CheckCircle2 size={16} className="mt-0.5 shrink-0 text-brand-600"/>{item}</li>)}</ul><div className="mt-7 flex flex-wrap gap-3">{href ? <a href={href} className="public-button-primary">{primary}<ArrowRight size={16}/></a> : <PublicCta to={to!}>{primary}</PublicCta>}{secondaryHref ? <a href={secondaryHref} className="public-button-secondary">{secondary}</a> : <PublicCta to={secondaryTo!} secondary>{secondary}</PublicCta>}</div></article>; }
+function Step({ n, title, copy, children }: { n: number; title: string; copy: string; children: ReactNode }) {
+  return <li><Reveal delay={(n - 1) * .08} className="h-full"><div className="flex h-full flex-col rounded-[24px] border border-[#e3ebe5] bg-[#fcfefc] p-4">
+    <div aria-hidden className="relative grid h-56 place-items-center overflow-hidden rounded-[18px] bg-[#eef5f0]"><span className="absolute left-4 top-3 font-display text-4xl font-bold text-brand-700/15">{String(n).padStart(2, "0")}</span>{children}</div>
+    <div className="px-2 pb-2 pt-5"><h3 className="text-xl font-bold tracking-[-0.02em]">{title}</h3><p className={cn("mt-2 text-sm leading-6", MUTED)}>{copy}</p></div>
+  </div></Reveal></li>;
+}
 
-function PersonaCta({ title, copy, primary, to, href, secondary, secondaryTo, secondaryHref }: { title: string; copy: string; primary: string; to?: string; href?: string; secondary?: string; secondaryTo?: string; secondaryHref?: string }) { return <div className="rounded-[26px] border border-white/10 bg-white/[.05] p-7 sm:p-10"><h2 className="font-display text-2xl font-extrabold tracking-tight">{title}</h2><p className="mt-3 text-sm text-white/55">{copy}</p><div className="mt-7 flex flex-wrap gap-3">{href ? <a href={href} className="public-button-primary">{primary}<ArrowRight size={16}/></a> : <PublicCta to={to!}>{primary}</PublicCta>}{secondary && (secondaryHref ? <a href={secondaryHref} className="public-button-secondary">{secondary}</a> : secondaryTo && <PublicCta to={secondaryTo} secondary>{secondary}</PublicCta>)}</div></div>; }
+function FindVisual() {
+  return <div className="w-[78%] space-y-2.5">
+    <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-2.5 text-xs text-[#7a8a82] shadow-sm"><Search size={14} /> Find a professional</div>
+    {[["General practice", true], ["Nutrition", false]].map(([label, live]) => <div key={String(label)} className="flex items-center gap-3 rounded-xl bg-white p-2.5 shadow-sm"><span className="grid h-9 w-9 place-items-center rounded-full bg-brand-100 text-brand-700"><UserRound size={16} /></span><div className="flex-1"><span className="block h-2 w-20 rounded bg-[#dfe8e2]" /><span className="mt-1.5 block text-[10px] font-semibold text-[#55685f]">{String(label)}</span></div>{live && <span className="h-2 w-2 rounded-full bg-brand-500 ring-4 ring-brand-100" />}</div>)}
+  </div>;
+}
+
+function CalendarVisual() {
+  return <div className="w-[80%] rounded-xl bg-white p-3 shadow-sm">
+    <div className="mb-2 flex items-center justify-between text-[11px] font-bold"><span>Your appointment</span><CalendarCheck size={14} className="text-brand-600" /></div>
+    <div className="grid grid-cols-7 gap-1 text-center text-[9px]">{["M", "T", "W", "T", "F", "S", "S"].map((d, i) => <span key={i} className="font-bold text-[#8a9a92]">{d}</span>)}{Array.from({ length: 14 }, (_, i) => <span key={i} className={cn("rounded-md py-1", i === 9 ? "bg-brand-600 font-bold text-white" : "text-[#55685f]")}>{i + 1}</span>)}</div>
+    <div className="mt-2.5 flex gap-1.5 text-[10px] font-semibold">{["09:00", "10:30", "14:00"].map((t) => <span key={t} className={cn("flex-1 rounded-md border py-1 text-center", t === "10:30" ? "border-brand-500 bg-brand-50 text-brand-800" : "border-[#e3ebe5] text-[#55685f]")}>{t}</span>)}</div>
+  </div>;
+}
+
+function VideoVisual() {
+  return <div className="relative h-[78%] w-[80%] overflow-hidden rounded-xl bg-[#0b2b20]">
+    <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2 py-1 text-[9px] font-bold text-white"><span className="h-1.5 w-1.5 rounded-full bg-brand-400" /> Connected</span>
+    <div className="grid h-full place-items-center text-brand-200/60"><UserRound size={56} strokeWidth={1.2} /></div>
+    <div className="absolute bottom-10 right-3 grid h-12 w-10 place-items-center rounded-md bg-[#174536] text-brand-200/60"><UserRound size={18} /></div>
+    <div className="absolute inset-x-0 bottom-2.5 flex justify-center gap-2">{[Mic, PhoneOff, Video].map((Icon, i) => <span key={i} className={cn("grid h-6 w-6 place-items-center rounded-full", i === 1 ? "bg-[#d6553b] text-white" : "bg-white/15 text-white")}><Icon size={11} /></span>)}</div>
+  </div>;
+}
+
+function CareTeam() {
+  const row = useRef<HTMLUListElement>(null);
+  const scroll = () => {
+    const el = row.current;
+    if (!el) return;
+    const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 8;
+    el.scrollTo({ left: atEnd ? 0 : el.scrollLeft + el.clientWidth * .8, behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  };
+  return <section aria-labelledby="team-heading" className="overflow-hidden bg-[#f6f9f5] px-5 py-16 sm:px-8 lg:px-10 lg:py-24">
+    <div className="mx-auto max-w-[1200px]">
+      <Reveal className="mb-8 max-w-[640px]"><Eyebrow>Your care team</Eyebrow><h2 id="team-heading" className="font-display text-[32px] font-bold leading-[1.12] tracking-[-0.04em] sm:text-[44px]">Qualified professionals, verified first.</h2><p className={cn("mt-4 text-[15px] leading-relaxed", MUTED)}>Every professional on Sabi Health has their credentials reviewed before they can accept patients.</p></Reveal>
+      <div className="relative">
+        <ul ref={row} tabIndex={0} aria-label="Care team roles. Scroll to see more." className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 [scrollbar-width:none] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 [&::-webkit-scrollbar]:hidden">
+          {team.map(({ image, role, detail }) => <li key={role} className="relative aspect-[4/5] w-[78vw] max-w-[280px] shrink-0 snap-start overflow-hidden rounded-[24px] bg-[#e4efe7] sm:w-[270px]">
+            <img src={image} alt="" loading="lazy" width={720} height={480} className="absolute inset-0 h-full w-full object-cover object-[68%_center]" />
+            <div className="absolute inset-x-3 bottom-3 rounded-2xl bg-white/95 p-4 backdrop-blur"><h3 className="font-bold leading-tight">{role}</h3><p className={cn("mt-1 text-xs", MUTED)}>{detail}</p></div>
+          </li>)}
+        </ul>
+        <button type="button" onClick={scroll} aria-label="Show more care team roles" className="absolute -right-1 top-1/2 hidden h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-[#0b2b20] text-white shadow-lg transition hover:bg-brand-800 sm:grid"><ArrowRight size={18} /></button>
+      </div>
+      <a href={TELEMEDICINE_SIGN_IN_URL} className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-brand-700 hover:text-brand-900">Find a professional <ArrowRight size={15} /></a>
+    </div>
+  </section>;
+}
+
+type CardLink = { label: string; to?: string; href?: string };
+function CardAction({ link, primary }: { link: CardLink; primary?: boolean }) {
+  const cls = primary ? "inline-flex items-center gap-2 rounded-xl bg-[#0b2b20] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-brand-800" : "inline-flex items-center rounded-xl px-2 py-2.5 text-sm font-bold text-brand-700 hover:text-brand-900";
+  const body = <>{link.label}{primary && <ArrowRight size={15} />}</>;
+  return link.href ? <a href={link.href} className={cls}>{body}</a> : <Link to={link.to!} className={cls}>{body}</Link>;
+}
+
+function ProviderCard({ image, alt, label, title, copy, primary, secondary }: { image: string; alt: string; label: string; title: string; copy: string; primary: CardLink; secondary: CardLink }) {
+  return <Reveal className="h-full"><article className="flex h-full flex-col overflow-hidden rounded-[26px] border border-[#e3ebe5] bg-[#fcfefc]">
+    <img src={image} alt={alt} loading="lazy" width={820} height={547} className="aspect-[16/10] w-full object-cover" />
+    <div className="flex flex-1 flex-col p-6"><p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-brand-700"><Building2 size={13} />{label}</p><h3 className="mt-3 font-display text-2xl font-bold leading-tight tracking-[-0.03em]">{title}</h3><p className={cn("mt-3 flex-1 text-sm leading-6", MUTED)}>{copy}</p><div className="mt-6 flex flex-wrap items-center gap-2"><CardAction link={primary} primary /><CardAction link={secondary} /></div></div>
+  </article></Reveal>;
+}
+
+function Faq() {
+  const [open, setOpen] = useState(0);
+  return <section id="faq" aria-labelledby="faq-heading" className="scroll-mt-20 bg-white px-5 py-16 sm:px-8 lg:px-10 lg:py-24">
+    <div className="mx-auto grid max-w-[1200px] gap-10 md:grid-cols-[.8fr_1.2fr] lg:gap-16">
+      <div className="md:sticky md:top-28 md:self-start"><Eyebrow>FAQ</Eyebrow><h2 id="faq-heading" className="font-display text-[34px] font-bold leading-[1.1] tracking-[-0.04em] sm:text-[42px]">Questions about Sabi Health?<br />Start here.</h2><p className={cn("mt-4 max-w-[360px] text-sm leading-[1.7]", MUTED)}>Consultations, accounts, privacy and how providers join.</p>
+        <div className="mt-6 max-w-[360px] rounded-2xl bg-[#0b2b20] p-6 text-white"><h3 className="text-lg font-bold">Still need help?</h3><p className="mt-1 text-sm text-white/70">Talk to the Sabi team about your organization.</p><Link to="/book-demo" className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-brand-200 hover:text-white">Contact us <ArrowRight size={15} /></Link></div>
+      </div>
+      <div className="self-start overflow-hidden rounded-[24px] bg-[#f6f9f5]">
+        {faqs.map(({ q, a }, i) => { const expanded = open === i; return <article key={q} className={cn("border-b border-[#e3ebe5] last:border-b-0 transition-colors", expanded && "bg-[#eaf4ed]")}>
+          <h3><button id={`faq-q-${i}`} type="button" aria-expanded={expanded} aria-controls={`faq-a-${i}`} onClick={() => setOpen(expanded ? -1 : i)} className="flex w-full items-center gap-3 px-5 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white text-[10px] font-bold text-brand-700">{String(i + 1).padStart(2, "0")}</span><span className="flex-1 text-[15px] font-bold leading-snug lg:text-[17px]">{q}</span><span aria-hidden className="text-brand-700">{expanded ? <Minus size={16} /> : <Plus size={16} />}</span></button></h3>
+          <div id={`faq-a-${i}`} role="region" aria-labelledby={`faq-q-${i}`} hidden={!expanded}><p className={cn("max-w-[520px] pb-5 pl-[60px] pr-5 text-sm leading-[1.7]", MUTED)}>{a}</p></div>
+        </article>; })}
+      </div>
+    </div>
+  </section>;
+}
