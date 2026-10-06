@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   LayoutGrid,
   Calendar,
@@ -47,17 +47,8 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
   const location = useLocation();
   const professional = getCurrentDoctor();
   const doctor = professional?.isDemo || professional?.professionType === 'DOCTOR';
-  const reduceMotion = useReducedMotion();
-  // Live portals group by task and keep features that are not connected yet in an honest
-  // "Coming soon" group. The preview build keeps every page, since each one has sample screens.
-  const careLink = { to: '/care-workspace', label: professional?.capabilities?.nutrition ? 'Meal plans' : professional?.professionType === 'COUNSELLOR' ? 'Counselling care' : professional?.professionType === 'PSYCHOLOGIST' ? 'Psychology care' : 'Care plans', icon: ClipboardEdit };
-  const pick = (paths) => paths.map((to) => NAV_ITEMS.find((item) => item.to === to));
-  const groups = professional?.isDemo ? [{ label: 'Your practice', items: NAV_ITEMS }] : [
-    { label: 'Your day', items: pick(['/dashboard', '/appointments', '/notifications']) },
-    { label: 'Schedule', items: pick(['/calendar', '/availability']) },
-    { label: 'Patients & care', items: doctor ? pick(['/patients', '/prescriptions']) : [careLink] },
-    ...(doctor ? [{ label: 'Coming soon', soon: true, items: pick(['/messages', '/reports', '/hospital-workspace', '/earnings', '/reviews']) }] : []),
-  ];
+  const common = ['/dashboard','/calendar','/availability','/appointments','/consultations','/notifications'];
+  const navigation = doctor ? NAV_ITEMS : [...NAV_ITEMS.filter(item=>common.includes(item.to)),{to:'/care-workspace',label:professional?.capabilities?.nutrition?'Dietician Table':professional?.professionType==='COUNSELLOR'?'Counselling care':professional?.professionType==='PSYCHOLOGIST'?'Psychology care':'Care plans',icon:ClipboardEdit}];
 
   /**
    * Active-state helper for main nav items.
@@ -125,40 +116,41 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
       </div>
 
       {/* ── Main navigation ──────────────────────────────────── */}
+      <div className="dp-nav-caption">YOUR PRACTICE</div>
       <nav className="dp-sidebar-nav" aria-label="Main navigation">
-        {groups.map((group) => <div className="dp-nav-group" key={group.label}>
-          <div className="dp-nav-caption">{group.label}</div>
-          {group.items.map(({ to, label, icon: Icon }) => {
-            const active = isRouteActive(to);
-            return (
-              <NavLink
-                key={to}
-                to={to}
-                onClick={onClose}
-                /* title shows native tooltip when sidebar is collapsed */
-                title={group.soon ? `${label} (coming soon)` : label}
-                aria-label={group.soon ? `${label}, coming soon` : label}
-                data-label={label}
-                className={`dp-sidebar-link${active ? " dp-sidebar-link-active" : ""}${group.soon ? " dp-sidebar-link-soon" : ""}`}
-              >
-                {active && (
-                  <motion.span
-                    layoutId="dp-sidebar-active-indicator"
-                    className="dp-sidebar-active-indicator"
-                    transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
-                  />
-                )}
-                <Icon size={18} aria-hidden="true" style={{ position: "relative", zIndex: 1, flexShrink: 0 }} />
-                <span style={{ position: "relative", zIndex: 1 }}>{label}</span>
-                {group.soon && <span className="dp-soon-tag" aria-hidden="true">Soon</span>}
-              </NavLink>
-            );
-          })}
-        </div>)}
+        {navigation.map(({ to, label, icon: Icon }) => {
+          const active = isRouteActive(to);
+          return (
+            <NavLink
+              key={to}
+              to={to}
+              onClick={onClose}
+              /* title shows native tooltip when sidebar is collapsed */
+              title={label}
+              aria-label={label}
+              data-label={label}
+              className={`dp-sidebar-link${active ? " dp-sidebar-link-active" : ""}`}
+            >
+              {/* Framer-motion animated active indicator (shared layoutId) */}
+              {active && (
+                <motion.span
+                  layoutId="dp-sidebar-active-indicator"
+                  className="dp-sidebar-active-indicator"
+                  transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                />
+              )}
+              <Icon
+                size={18}
+                style={{ position: "relative", zIndex: 1, flexShrink: 0 }}
+              />
+              <span style={{ position: "relative", zIndex: 1 }}>{label}</span>
+            </NavLink>
+          );
+        })}
       </nav>
 
       {/* ── Footer: Profile + Settings ───────────────────────── */}
-      <div className="dp-sidebar-footer"><div className="dp-nav-caption">Account</div>
+      <div className="dp-sidebar-footer"><div className="dp-nav-caption">YOUR ACCOUNT</div>
         {/*
           Profile link.
           BUG FIX: the base class (dp-sidebar-profile) must NOT carry
@@ -198,7 +190,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
             <motion.span
               layoutId="dp-sidebar-active-indicator"
               className="dp-sidebar-active-indicator"
-              transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
+              transition={{ type: "spring", stiffness: 420, damping: 34 }}
             />
           )}
           <SettingsIcon

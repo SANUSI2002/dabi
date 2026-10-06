@@ -35,11 +35,13 @@ describe('shared portal redesign',() => {
     session.current={professionType:'DOCTOR'};
     const onClose=vi.fn(), {rerender}=render(<MemoryRouter><Sidebar onClose={onClose}/></MemoryRouter>);
     expect(screen.getByRole('link',{name:'Prescriptions'})).toBeInTheDocument();
+    expect(screen.getByRole('link',{name:'Consultations'})).toHaveAttribute('href','/consultations');
     fireEvent.click(screen.getByRole('link',{name:'Manage Availability'}));
     expect(onClose).toHaveBeenCalled();
     session.current={professionType:'COUNSELLOR'};
     rerender(<MemoryRouter><Sidebar onClose={onClose}/></MemoryRouter>);
     expect(screen.getByRole('link',{name:'Counselling care'})).toBeInTheDocument();
+    expect(screen.getByRole('link',{name:'Consultations'})).toHaveAttribute('href','/consultations');
     expect(screen.queryByRole('link',{name:'Prescriptions'})).not.toBeInTheDocument();
   });
 });

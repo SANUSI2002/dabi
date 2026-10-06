@@ -1,61 +1,21 @@
-/* Care plans (nutrition and other disciplines), shared by the professional workspace and the patient
-   portal. Values come from shared-portal/design-system/tokens.css. */
-.care-muted { color: var(--sx-text-muted); font-size: var(--sx-text-md); line-height: var(--sx-leading-normal); }
-
-/* Professional editor */
-.care-meal-editor { display: grid; gap: var(--sx-space-3); justify-items: start; }
-.care-table-wrap { overflow-x: auto; width: 100%; max-width: 100%; border: 1px solid var(--sx-line); border-radius: var(--sx-radius-md); background: var(--sx-surface); }
-.care-meal-table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: var(--sx-text-md); }
-.care-meal-table caption { text-align: left; padding: var(--sx-space-3) var(--sx-space-4); color: var(--sx-text-muted); font-size: var(--sx-text-sm); }
-.care-meal-table th { background: var(--sx-surface-sunken); color: var(--sx-text-muted); font-size: var(--sx-text-xs); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; text-align: left; padding: 10px var(--sx-space-3); white-space: nowrap; }
-.care-meal-table td { padding: var(--sx-space-2); border-top: 1px solid var(--sx-line); vertical-align: top; }
-.care-meal-table .sx-textarea { min-height: 72px; min-width: 110px; padding: 8px 10px; }
-.care-meal-table .sx-select { min-width: 120px; }
-
-/* Patient view: one card per day */
-.care-days { display: grid; gap: var(--sx-space-4); }
-.care-day { border: 1px solid var(--sx-line); border-radius: var(--sx-radius-md); background: var(--sx-surface); overflow: hidden; }
-.care-day h4 { margin: 0; padding: var(--sx-space-3) var(--sx-space-4); background: var(--sx-surface-sunken); font-size: var(--sx-text-sm); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--sx-brand-800); }
-.care-day ul { list-style: none; margin: 0; padding: 0; }
-.care-meal { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: var(--sx-space-4); padding: var(--sx-space-4); }
-.care-meal + .care-meal { border-top: 1px solid var(--sx-line); }
-.care-meal-time { font-weight: 700; color: var(--sx-brand-600); font-size: var(--sx-text-md); }
-.care-meal-body { display: grid; gap: 4px; min-width: 0; }
-.care-meal-body strong { font-size: var(--sx-text-base); color: var(--sx-text); overflow-wrap: anywhere; }
-.care-meal-portion { font-size: var(--sx-text-sm); color: var(--sx-text-muted); }
-.care-meal-body p { margin: 0; font-size: var(--sx-text-md); color: var(--sx-text); line-height: var(--sx-leading-normal); }
-.care-meal-body p span { color: var(--sx-text-muted); font-weight: 600; }
-@media (max-width: 520px) { .care-meal { grid-template-columns: 1fr; gap: var(--sx-space-1); } }
-
-/* Workspace scaffolding still used by the care screens */
-.care-workspace .care-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sx-space-4); }
-.care-workspace .care-grid > label { display: grid; gap: 6px; font-size: var(--sx-text-sm); font-weight: 600; color: var(--sx-text); }
-.care-workspace .care-grid input, .care-workspace .care-grid textarea, .care-workspace .care-grid select { min-height: var(--sx-touch); padding: 10px 12px; border-radius: var(--sx-radius-sm); border: 1px solid var(--sx-line-strong); background: var(--sx-surface); font: 400 var(--sx-text-md)/1.45 var(--sx-font-body); color: var(--sx-text); }
-.care-workspace .care-grid textarea { min-height: 96px; resize: vertical; }
-.care-workspace .care-toolbar { display: flex; flex-wrap: wrap; gap: var(--sx-space-3); align-items: center; }
-.care-workspace .care-card p { line-height: var(--sx-leading-normal); }
-.care-workspace .care-alert { padding: var(--sx-space-3) var(--sx-space-4); border-radius: var(--sx-radius-md); background: var(--sx-info-bg); color: var(--sx-info-fg); border: 1px solid var(--sx-info-line); margin: 0; }
-.care-workspace .care-error { background: var(--sx-danger-bg); color: var(--sx-danger-fg); border-color: var(--sx-danger-line); }
-.care-workspace details { padding: var(--sx-space-3) var(--sx-space-4); border: 1px solid var(--sx-line); border-radius: var(--sx-radius-md); background: var(--sx-surface); }
-.care-workspace details + details { margin-top: var(--sx-space-2); }
-.care-workspace summary { cursor: pointer; font-weight: 650; min-height: 32px; display: flex; align-items: center; }
-@media (max-width: 650px) { .care-workspace .care-grid { grid-template-columns: 1fr; } }
-
-/* Patient plan view */
-.care-plan { display: grid; gap: var(--sx-space-5); }
-.care-plan-head { margin-bottom: 0; align-items: flex-start; }
-.care-plan-body { display: grid; gap: var(--sx-space-5); }
-.care-plan-body h3, .care-plan-feedback h3 { margin: 0 0 var(--sx-space-2); font-size: var(--sx-text-sm); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--sx-text-muted); }
-.care-plan-body p { margin: 0; font-size: var(--sx-text-base); line-height: var(--sx-leading-normal); color: var(--sx-text); white-space: pre-wrap; max-width: var(--sx-reading-max); }
-.care-targets { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sx-space-2); }
-.care-targets li { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sx-space-2); }
-.care-plan-updates { padding: var(--sx-space-3) var(--sx-space-4); border: 1px solid var(--sx-line); border-radius: var(--sx-radius-md); }
-.care-plan-updates summary { cursor: pointer; font-weight: 650; min-height: 32px; display: flex; align-items: center; }
-.care-plan-updates ul { margin: var(--sx-space-2) 0 0; padding-left: var(--sx-space-5); color: var(--sx-text-muted); font-size: var(--sx-text-md); }
-.care-plan-feedback { padding-top: var(--sx-space-5); border-top: 1px solid var(--sx-line); }
-.care-feedback-list { list-style: none; margin: 0 0 var(--sx-space-4); padding: 0; display: grid; gap: var(--sx-space-3); }
-.care-feedback-list li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sx-space-2); }
-.care-feedback-list p { flex-basis: 100%; margin: 0; }
-.care-feedback-form { display: grid; gap: var(--sx-space-4); max-width: 640px; }
-.care-progress-choice { border: 0; padding: 0; margin: 0; display: grid; gap: var(--sx-space-2); }
-.care-plan .care-plan-body h3, .care-plan .care-plan-feedback h3, .care-day h4 { letter-spacing: .06em; font-family: var(--sx-font-body); }
+.care-table-wrap { overflow-x:auto; max-width:100%; margin:16px 0; }
+.care-meal-table { border-collapse:collapse; width:100%; min-width:680px; font-size:.85rem; }
+.care-meal-table caption { text-align:left; padding:12px 0; color:#57776d; }
+.care-meal-table th,.care-meal-table td { padding:10px; border:1px solid #e0eae6; text-align:left; vertical-align:top; }
+.care-meal-table th { background:#f0faf5; font-weight:600; }
+.care-meal-table textarea,.care-meal-table select { width:100%; min-width:100px; padding:7px; border:1px solid #dce8e2; border-radius:7px; background:white; font:inherit; }
+.care-meal-table textarea { min-height:65px; resize:vertical; }
+.care-workspace button { cursor:pointer; }
+.care-workspace input,.care-workspace select,.care-workspace textarea { max-width:100%; }
+.care-workspace .care-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.care-workspace .care-grid label { display:flex; flex-direction:column; gap:7px; font-size:.88rem; }
+.care-workspace .care-grid input,.care-workspace .care-grid textarea,.care-workspace .care-grid select { padding:10px; border-radius:10px; border:1px solid #dce5e2; font:inherit; }
+.care-workspace .care-grid textarea { min-height:90px; resize:vertical; }
+.care-workspace .care-toolbar { display:flex; flex-wrap:wrap; gap:10px; margin:16px 0; align-items:center; }
+.care-workspace .care-card { padding:20px; background:white; border:1px solid #e1e9e5; border-radius:16px; margin:16px 0; }
+.care-workspace .care-card h2 { margin:0 0 12px; font-size:1.1rem; }
+.care-workspace .care-card p { line-height:1.6; }
+.care-workspace .care-alert { padding:12px 16px; border-radius:12px; background:#eaf7f0; margin:12px 0; }
+.care-workspace .care-error { background:#fff1f1; color:#a92323; }
+.care-workspace details { margin:12px 0; padding:10px; border:1px solid #e1e9e5; border-radius:10px; }
+@media(max-width:650px) { .care-workspace .care-grid { grid-template-columns:1fr; } .care-workspace .care-card { padding:16px; } }

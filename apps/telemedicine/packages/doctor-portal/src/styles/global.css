@@ -9,10 +9,10 @@
    ────────────────────────────────────────────────────────── */
 :root {
   /* ── Colors ── */
-  --sabi-primary:         var(--sx-brand-600);        /* deep emerald */
-  --sabi-primary-dark:    var(--sx-brand-700);
-  --sabi-primary-light:   var(--sx-brand-100);        /* mint tint */
-  --sabi-primary-soft:    var(--sx-brand-200);
+  --sabi-primary:         #0E7C66;        /* deep emerald */
+  --sabi-primary-dark:    #0A5C4C;
+  --sabi-primary-light:   #E6F5F1;        /* mint tint */
+  --sabi-primary-soft:    #CFEFE6;
 
   --sabi-accent:          #F59E0B;        /* warm amber accent */
   --sabi-accent-dark:     #B45309;
@@ -23,24 +23,24 @@
   --sabi-warning:         #f59e0b;        /* amber 500 */
 
   /* ── Surfaces ── */
-  --sabi-page-bg:         var(--sx-page);
+  --sabi-page-bg:         #F4F6FA;
   --sabi-background:      #F8FAF9;
   --sabi-surface:         #ffffff;
   --sabi-surface-muted:   #F1F5F3;
 
   /* ── Text ── */
-  --sabi-text-primary:    var(--sx-text);
+  --sabi-text-primary:    #0F172A;
   --sabi-text-secondary:  #5B6B7A;
 
   /* ── Border ── */
-  --sabi-border:          var(--sx-line);
-  --sabi-border-strong:   var(--sx-line-strong);
+  --sabi-border:          #e2e8f0;
+  --sabi-border-strong:   #cbd5e1;
 
   /* ── Gradients ── */
-  --sabi-gradient-primary: linear-gradient(135deg, var(--sx-brand-500) 0%, var(--sx-brand-700) 100%);
-  --sabi-gradient-dark:    linear-gradient(160deg, var(--sx-brand-700) 0%, #052E26 100%);
+  --sabi-gradient-primary: linear-gradient(135deg, #14B8A6 0%, #0A5C4C 100%);
+  --sabi-gradient-dark:    linear-gradient(160deg, #0A5C4C 0%, #052E26 100%);
   --sabi-gradient-warm:    linear-gradient(135deg, #F59E0B 0%, #EA580C 100%);
-  --sabi-gradient-mesh:    radial-gradient(120% 120% at 0% 0%, var(--sx-brand-500) 0%, var(--sx-brand-700) 55%, #052E26 100%);
+  --sabi-gradient-mesh:    radial-gradient(120% 120% at 0% 0%, #14B8A6 0%, #0A5C4C 55%, #052E26 100%);
 
   /* ── Shadows ── */
   --sabi-shadow-sm:  0 1px 2px rgba(15, 23, 42, 0.06);
@@ -149,7 +149,7 @@
   color: #065f46;
 }
 .dp-tag-neutral {
-  background: var(--sx-line);
+  background: #e2e8f0;
   color: var(--sabi-text-secondary);
 }
 .dp-tag-danger {

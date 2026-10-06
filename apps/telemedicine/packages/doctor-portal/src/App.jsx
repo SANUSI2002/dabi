@@ -31,9 +31,6 @@ import SettingsPage from "./pages/settings/SettingsPage";
 
 import "../../shared-portal/portal-revamp.css";
 import "../../shared-portal/premium-pages.css";
-// Telemedicine design system: tokens first, then shared components. Loaded last so they win.
-import "../../shared-portal/design-system/tokens.css";
-import "../../shared-portal/design-system/components.css";
 
 // Five minutes without input ends the session: revoke it on the server, clear it here, and reload
 // at the sign-in page so nothing from the signed-in workspace stays in memory.
