@@ -106,7 +106,7 @@
   padding: var(--sabi-space-md);
   border: 1px solid var(--sabi-border);
   border-radius: var(--sabi-radius-md);
-  background: var(--sabi-surface-muted, #f6faf8);
+  background: var(--sabi-surface-muted, var(--sx-surface-subtle));
   color: var(--sabi-text-secondary);
   font-size: .86rem;
 }
@@ -141,7 +141,7 @@
     gap: var(--sabi-space-sm);
     padding: 4px;
     border-radius: var(--sabi-radius-md);
-    background: var(--sabi-surface-muted, #f6faf8);
+    background: var(--sabi-surface-muted, var(--sx-surface-subtle));
 }
 .sabi-select-pharmacy-prefs .sabi-booking-mode-row button {
     display: flex;
@@ -740,7 +740,7 @@
 }
 
 .sabi-storefront-promo.alt {
-    background: #EAFBF3;
+    background: var(--sx-brand-50);
 }
 
 .sabi-storefront-promo h3 {
@@ -902,7 +902,7 @@
 .sabi-store-insurance-list span {
     padding: 8px;
     border-radius: var(--sabi-radius-sm);
-    background: var(--sabi-surface-muted, #F6FAF8);
+    background: var(--sabi-surface-muted, var(--sx-surface-subtle));
     border: 1px solid var(--sabi-border);
     text-align: center;
     font-size: .74rem;
@@ -1146,7 +1146,7 @@
     position: relative;
 }
 
-.sabi-address-card.selected { border-color: var(--sabi-primary-dark); background: #F4F8F7; }
+.sabi-address-card.selected { border-color: var(--sabi-primary-dark); background: var(--sx-surface-subtle); }
 .sabi-address-card .check { position: absolute; top: 14px; right: 14px; color: var(--sabi-primary-dark); }
 .sabi-address-card h4 { margin: 0 0 4px; display: flex; align-items: center; gap: 8px; font-size: 0.92rem; }
 .sabi-address-card p { margin: 2px 0 0; color: var(--sabi-text-secondary); font-size: 0.82rem; line-height: 1.5; }
@@ -1181,7 +1181,7 @@
     background: var(--sabi-surface);
 }
 
-.sabi-payment-card.selected { border-color: var(--sabi-primary-dark); background: #F4F8F7; }
+.sabi-payment-card.selected { border-color: var(--sabi-primary-dark); background: var(--sx-surface-subtle); }
 .sabi-payment-card .icon { width: 40px; height: 40px; margin: 0 auto 8px; border-radius: 10px; background: var(--sabi-page-bg); color: var(--sabi-primary-dark); display: flex; align-items: center; justify-content: center; }
 .sabi-payment-card strong { display: block; font-size: 0.88rem; }
 
@@ -1193,7 +1193,7 @@
    ========================================================== */
 
 .sabi-order-success { max-width: 620px; margin: var(--sabi-space-lg) auto 0; text-align: center; }
-.sabi-order-success-check { width: 84px; height: 84px; margin: 0 auto var(--sabi-space-md); border-radius: 50%; background: #EAFBF3; color: var(--sabi-primary-dark); display: flex; align-items: center; justify-content: center; }
+.sabi-order-success-check { width: 84px; height: 84px; margin: 0 auto var(--sabi-space-md); border-radius: 50%; background: var(--sx-brand-50); color: var(--sabi-primary-dark); display: flex; align-items: center; justify-content: center; }
 .sabi-order-success h1 { color: var(--sabi-primary-dark); margin: 0 0 8px; }
 .sabi-order-success > p { color: var(--sabi-text-secondary); margin: 0 auto var(--sabi-space-lg); max-width: 460px; line-height: 1.6; }
 .sabi-order-id-box { display: inline-block; background: var(--sabi-page-bg); border-radius: var(--sabi-radius-md); padding: 10px 20px; font-weight: 800; color: var(--sabi-primary-dark); margin-bottom: var(--sabi-space-lg); letter-spacing: 0.03em; }

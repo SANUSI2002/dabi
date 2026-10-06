@@ -15,6 +15,7 @@ import {
   MedicationsCard,
   FamilyHealthCard,
   InsightCard,
+  NextAppointmentCard,
 } from "./components";
 
 export function Dashboard() {
@@ -25,6 +26,9 @@ export function Dashboard() {
       <Sidebar />
       <div className="sabi-main">
         <Topbar />
+        <h1 className="sx-sr-only">Overview</h1>
+
+        <NextAppointmentCard />
 
         <div className="sabi-grid">
           <div className="sabi-col">
@@ -34,10 +38,10 @@ export function Dashboard() {
           </div>
 
           <div className="sabi-col">
-            <HealthScoreCard />
             <TodaysSchedule />
             <MedicationsCard />
             <FamilyHealthCard />
+            <HealthScoreCard />
             <InsightCard />
           </div>
         </div>

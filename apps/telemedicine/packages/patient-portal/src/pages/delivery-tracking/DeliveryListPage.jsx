@@ -24,7 +24,8 @@ export function DeliveryListPage() {
       <main className="sabi-main sabi-delivery-main">
         <Topbar placeholder="Search orders, meds..." />
 
-        <header className="sabi-delivery-header">
+        <h1 className="sx-sr-only">Delivery tracking</h1>
+        <header className="sabi-delivery-header" aria-hidden="true">
           <span>◎</span>
           Delivery Tracking
         </header>

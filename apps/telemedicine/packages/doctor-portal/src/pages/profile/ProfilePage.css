@@ -64,7 +64,7 @@
 }
 
 .dpm-visibility-info em.is-off {
-  color: #64748b;
+  color: var(--sx-text-muted);
   background: #edf1f5;
 }
 
@@ -400,7 +400,7 @@
   position: absolute;
   right: 20px;
   bottom: 14px;
-  color: #64748b;
+  color: var(--sx-text-muted);
   font-size: 13px;
   pointer-events: none;
 }
@@ -410,7 +410,7 @@
    ───────────────────────────────────────────────────────────── */
 .dpm-label {
   margin: 0 0 12px;
-  color: #64748b;
+  color: var(--sx-text-muted);
   font-size: 13.5px;
   font-weight: 500;
 }
@@ -608,7 +608,7 @@
 
 .dpm-fee-info small {
   display: block;
-  color: #64748b;
+  color: var(--sx-text-muted);
   font-size: 13px;
   margin-top: 2px;
 }
@@ -649,7 +649,7 @@
 .dpm-credential p {
   margin: 3px 0 0;
   font-size: 13.5px;
-  color: #64748b;
+  color: var(--sx-text-muted);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -706,7 +706,7 @@
 .dpm-location p {
   margin: 0 0 12px;
   font-size: 13.5px;
-  color: #64748b;
+  color: var(--sx-text-muted);
 }
 
 /* Day/hour badge row */
@@ -732,7 +732,7 @@
   right: 14px;
   border: 0;
   background: none;
-  color: #64748b;
+  color: var(--sx-text-muted);
   cursor: pointer;
   padding: 4px;
   border-radius: 6px;
@@ -777,7 +777,7 @@
 }
 
 .dpm-location-menu button:hover {
-  background: #f1f5f9;
+  background: var(--sx-surface-sunken);
 }
 
 .dpm-location-menu button.danger {
@@ -858,7 +858,7 @@
   border: 0;
   background: none;
   cursor: pointer;
-  color: #64748b;
+  color: var(--sx-text-muted);
   border-radius: 6px;
   padding: 4px;
   display: flex;
@@ -866,7 +866,7 @@
 }
 
 .dpm-dialog-head > button:hover {
-  background: #f1f5f9;
+  background: var(--sx-surface-sunken);
   color: #10213a;
 }
 
@@ -898,7 +898,7 @@
 }
 
 .dpm-dialog-copy {
-  color: #475569;
+  color: var(--sx-text-muted);
   margin: 0;
   line-height: 1.6;
 }
@@ -927,7 +927,7 @@
 .dpm-preview p,
 .dpm-preview small {
   margin: 3px 0 0;
-  color: #475569;
+  color: var(--sx-text-muted);
   font-size: 14px;
   display: block;
 }

@@ -91,6 +91,9 @@ export function toDoctorAppointment(a) {
     canChange: ACTIVE.has(a.status) && future,
     // The link is shown from confirmation until the consultation window has passed.
     canJoin: a.status === "CONFIRMED" && a.consultationType === "VIRTUAL" && new Date(a.endsAt).getTime() + 15 * 60000 > now,
+    // The server opens the private video room 10 minutes before the start; joining earlier is refused.
+    joinOpensAt: new Date(new Date(a.startsAt).getTime() - 10 * 60000).toISOString(),
+    joinOpen: a.status === "CONFIRMED" && a.consultationType === "VIRTUAL" && now >= new Date(a.startsAt).getTime() - 10 * 60000 && new Date(a.endsAt).getTime() + 15 * 60000 > now,
   };
 }
 

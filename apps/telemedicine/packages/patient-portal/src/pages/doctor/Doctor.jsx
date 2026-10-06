@@ -36,13 +36,15 @@ function SpecialtyGrid({ activeSpecialty, onSelect, doctors }) {
             </div>
 
             <SwipeRow className="sabi-doctor-specialty-grid" label="Featured specialties">
-                {SPECIALTIES.map(({ label, icon: Icon }) => (
+                {/* Only specialties someone on Sabi practises, unless none are listed yet. */}
+                {(SPECIALTIES.some(({ label }) => doctors.some((d) => inSpecialty(d, label))) ? SPECIALTIES.filter(({ label }) => doctors.some((d) => inSpecialty(d, label)) || activeSpecialty === label) : SPECIALTIES).map(({ label, icon: Icon }) => (
                     <button
                         key={label}
                         type="button"
                         onClick={() =>
                             onSelect(activeSpecialty === label ? "" : label)
                         }
+                        aria-pressed={activeSpecialty === label}
                         className={`sabi-doctor-specialty ${
                             activeSpecialty === label ? "active" : ""
                         }`}
@@ -51,7 +53,7 @@ function SpecialtyGrid({ activeSpecialty, onSelect, doctors }) {
                             <Icon />
                         </span>
                         <strong>{label}</strong>
-                        <small>{doctors.filter((d) => inSpecialty(d, label)).length} Doctors</small>
+                        <small>{(n => `${n} ${n === 1 ? "doctor" : "doctors"}`)(doctors.filter((d) => inSpecialty(d, label)).length)}</small>
                     </button>
                 ))}
             </SwipeRow>
@@ -214,25 +216,13 @@ export default function FindYourDoctor() {
                         <button
                             type="button"
                             className="sabi-doctor-primary"
-                            onClick={() =>
-                                document
-                                    .getElementById("doctor-results")
-                                    ?.scrollIntoView({ behavior: "smooth" })
-                            }
-                        >
-                            Find a Doctor
-                        </button>
-
-                        <button
-                            type="button"
-                            className="sabi-doctor-outline"
                             onClick={() => {
                                 const next = doctors.find((d) => d.nextAvailableAt) || (allDoctors || []).find((d) => d.nextAvailableAt);
                                 if (next) setBookingDoctor(next);
                                 else notify("No doctor has open times yet");
                             }}
                         >
-                            Book Appointment
+                            Book earliest available
                         </button>
                     </div>
 
@@ -240,6 +230,7 @@ export default function FindYourDoctor() {
                         <Search size={20} />
 
                         <input
+                            aria-label="Search doctors by name or specialty"
                             value={query}
                             onChange={(event) =>
                                 setQuery(event.target.value)
@@ -247,17 +238,12 @@ export default function FindYourDoctor() {
                             placeholder="Search by name or specialty..."
                         />
 
+                        {/* Results filter as you type; the button takes you to them. */}
                         <button
                             type="button"
-                            onClick={() =>
-                                notify(
-                                    query
-                                        ? `Searching for ${query}`
-                                        : "Showing all doctors"
-                                )
-                            }
+                            onClick={() => document.getElementById("doctor-results")?.scrollIntoView({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" })}
                         >
-                            Search
+                            See results
                         </button>
                     </label>
                 </header>

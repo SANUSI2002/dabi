@@ -5,7 +5,7 @@
 
 .sabi-vitals-crumb {
   background-color: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--sx-line);
   border-radius: 16px;
   padding: 20px 16px;
   display: inline-flex;
@@ -34,7 +34,7 @@
 .sabi-vitals-add-header p { margin: 0; max-width: 560px; color: var(--sabi-text-secondary); font-size: calc(0.9rem * var(--sabi-font-scale)); line-height: 1.5; }
 .sabi-vitals-cancel { 
   background-color: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--sx-line);
   border-radius: 16px;
   padding: 20px 16px;
   display: inline-flex;
@@ -57,7 +57,7 @@
 .sabi-vitaltype-card { 
   
   background-color: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--sx-line);
   border-radius: 16px;
   padding: 20px 16px;
   display: flex;
@@ -377,7 +377,7 @@
 }
 .sabi-vitalshub-card{
   background-color: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--sx-line);
   border-radius: 12px;
   padding: 20px 16px;
 
@@ -499,7 +499,7 @@
 
 .sabi-confirm-modal p {
   margin: 1rem 0 2rem;
-  color: #64748B;
+  color: var(--sx-text-muted);
   line-height: 1.6;
 }
 

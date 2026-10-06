@@ -35,7 +35,7 @@
 
 .sabi-stat-card {
   background-color: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--sx-line);
   border-radius: 16px;
   padding: 20px 16px;
   display: flex;
@@ -403,7 +403,7 @@
 
 .sabi-category-card {
 background-color: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--sx-line);
   border-radius: 16px;
  
   display: flex;

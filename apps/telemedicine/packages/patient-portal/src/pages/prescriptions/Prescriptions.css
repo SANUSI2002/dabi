@@ -124,6 +124,7 @@
   font-size: calc(0.72rem * var(--sabi-font-scale));
   font-weight: 700;
   letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--sabi-text-secondary);
   margin-bottom: 4px;
 }
@@ -165,6 +166,11 @@
   .sabi-rx-grid {
     grid-template-columns: 1fr;
   }
+  /* Without this the 4/8 spans create implicit columns and squeeze the cards on phones. */
+  .sabi-rx-grid > .sabi-col:first-child,
+  .sabi-rx-main-col {
+    grid-column: auto;
+  }
 }
 
 /* ---------------- Recent prescriptions ---------------- */
@@ -177,7 +183,7 @@
   padding: 24px 20px 32px 20px;
   background-color: #ffffff;
   border-radius: 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--sx-line);
   box-sizing: border-box;
 }
 
@@ -186,7 +192,7 @@
   flex-direction: column;
   gap: 16px;
   padding-top: 8px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--sx-line);
 }
 
 .sabi-rx-med-groups {
@@ -206,7 +212,7 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #005c53;
+  color: var(--sx-brand-800);
 }
 
 .sabi-rx-med-card {
@@ -214,7 +220,7 @@
   flex-direction: column;
   gap: 12px;
   padding: 14px 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--sx-line);
   border-radius: 14px;
   background: linear-gradient(135deg, #f8fffe 0%, #f3fbfa 100%);
   transition: transform 180ms ease, box-shadow 180ms ease;
@@ -235,13 +241,13 @@
 .sabi-rx-med-name {
   font-size: 1rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--sx-text);
 }
 
 .sabi-rx-med-meta {
   margin-top: 4px;
   font-size: 0.9rem;
-  color: #64748b;
+  color: var(--sx-text-muted);
 }
 
 .sabi-rx-med-status {
@@ -253,13 +259,13 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--sx-surface-sunken);
+  color: var(--sx-text-muted);
 }
 
 .sabi-rx-med-status.due {
   background: rgba(0, 92, 83, 0.12);
-  color: #005c53;
+  color: var(--sx-brand-800);
 }
 
 .sabi-rx-med-status.upcoming {
@@ -288,7 +294,7 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: var(--sx-text-subtle);
 }
 
 .sabi-rx-med-detail-value {
@@ -302,7 +308,7 @@
   border: none;
   border-radius: 999px;
   padding: 9px 14px;
-  background: #005c53;
+  background: var(--sx-brand-800);
   color: #fff;
   font-weight: 700;
   cursor: pointer;
@@ -318,7 +324,7 @@
 .sabi-rx-med-completed {
   font-size: 0.92rem;
   font-weight: 600;
-  color: #0f766e;
+  color: var(--sx-brand-600);
 }
 
 @media (max-width: 640px) {
@@ -341,13 +347,13 @@
 .sabi-rx-schedule-title {
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  color: var(--sx-text);
 }
 
 .sabi-rx-schedule-date {
   font-size: 13px;
   font-weight: 500;
-  color: #005c53;
+  color: var(--sx-brand-800);
 }
 
 .sabi-timeline {
@@ -375,19 +381,19 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background-color: #cbd5e1;
+  background-color: var(--sx-line-strong);
   border: 2px solid #ffffff;
 }
 
 .sabi-timeline-item.active .sabi-timeline-dot {
-  background-color: #005c53;
+  background-color: var(--sx-brand-800);
   box-shadow: 0 0 0 3px rgba(0, 92, 83, 0.15);
 }
 
 .sabi-timeline-line {
   flex: 1;
   width: 2px;
-  background-color: #f1f5f9;
+  background-color: var(--sx-surface-sunken);
   margin-top: 4px;
 }
 
@@ -407,14 +413,14 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #94a3b8;
+  color: var(--sx-text-subtle);
 }
 
 .sabi-rx-slot-card {
   padding: 14px;
-  background: #f8fafc;
+  background: var(--sx-surface-subtle);
   border-radius: 12px;
-  border: 1px solid #f1f5f9;
+  border: 1px solid var(--sx-surface-sunken);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -422,7 +428,7 @@
 
 .sabi-timeline-item.active .sabi-rx-slot-card {
   background: #ffffff;
-  border-color: #e2e8f0;
+  border-color: var(--sx-line);
   box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.04);
 }
 
@@ -434,7 +440,7 @@
 
 .sabi-rx-slot-detail {
   font-size: 12px;
-  color: #64748b;
+  color: var(--sx-text-muted);
   margin-bottom: 6px;
 }
 
@@ -448,7 +454,7 @@
 .sabi-rx-mark-taken {
   flex: 1;
   padding: 8px 12px;
-  background-color: #005c53;
+  background-color: var(--sx-brand-800);
   color: #ffffff;
   border: none;
   border-radius: 8px;
@@ -469,22 +475,22 @@
   padding: 6px;
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: var(--sx-text-subtle);
   cursor: pointer;
   border-radius: 6px;
   transition: color 0.15s ease, background-color 0.15s ease;
 }
 
 .sabi-rx-dismiss:hover {
-  color: #0f172a;
-  background-color: #f1f5f9;
+  color: var(--sx-text);
+  background-color: var(--sx-surface-sunken);
 }
 
 .sabi-rx-pending-btn {
   width: 100%;
   padding: 8px 12px;
-  background-color: #f1f5f9;
-  color: #94a3b8;
+  background-color: var(--sx-surface-sunken);
+  color: var(--sx-text-subtle);
   border: none;
   border-radius: 8px;
   font-size: 12px;
@@ -760,7 +766,7 @@ display: grid;
   width: 100%;
   padding: 24px;
   border-radius: 24px;
-  background-color: #005c55;
+  background-color: var(--sx-brand-800);
   color: #ffffff;
   box-sizing: border-box;
 }
@@ -862,7 +868,7 @@ display: grid;
     padding: var(--sabi-space-lg);
     border: 2px dashed var(--sabi-border);
     border-radius: var(--sabi-radius-lg);
-    background: var(--sabi-surface-muted, #F6FAF8);
+    background: var(--sabi-surface-muted, var(--sx-surface-subtle));
     color: var(--sabi-primary-dark);
     text-align: center;
     cursor: pointer;
@@ -1006,7 +1012,7 @@ display: grid;
     padding: var(--sabi-space-md);
     margin-bottom: var(--sabi-space-md);
     border-radius: var(--sabi-radius-md);
-    background: var(--sabi-surface-muted, #F6FAF8);
+    background: var(--sabi-surface-muted, var(--sx-surface-subtle));
     border: 1px solid var(--sabi-border);
 }
 

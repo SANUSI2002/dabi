@@ -15,7 +15,7 @@
      wants a touch more lavender. If you'd rather this come from
      tokens.js directly, replace the var() below with
      var(--sabi-background) and adjust the token instead. */
-  --sabi-page-bg: #F4F5FC;
+  --sabi-page-bg: var(--sx-page);
 }
 
 @media (min-width: 1280px) { :root { --sabi-font-scale: 1.15; } }

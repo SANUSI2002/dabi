@@ -80,7 +80,7 @@
   height: 22px;
   border-radius: 999px;
   border: none;
-  background: #e2e8f0;
+  background: var(--sx-line);
   cursor: pointer;
   position: relative;
   padding: 2px;

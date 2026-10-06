@@ -5,7 +5,7 @@
   width: 200%;
   transform: translateX(0);
   transition: transform 0.6s ease-in-out;
-  background: linear-gradient(135deg, #065f46 0%, #047857 45%, #0d9488 100%);
+  background: linear-gradient(135deg, #065f46 0%, #047857 45%, var(--sx-brand-600) 100%);
   color: #fff;
 }
 

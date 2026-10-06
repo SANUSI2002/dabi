@@ -10,7 +10,7 @@
     padding: calc(var(--sabi-space-lg) * 1.4) var(--sabi-space-lg);
     margin-top: var(--sabi-space-md);
     border-radius: var(--sabi-radius-lg);
-    background: var(--sabi-gradient-dark, linear-gradient(160deg, #0B5E48 0%, #073D30 100%));
+    background: var(--sabi-gradient-dark, linear-gradient(160deg, var(--sx-brand-700) 0%, var(--sx-brand-800) 100%));
     box-shadow: 0 16px 40px rgba(11, 94, 72, 0.22);
 }
 
@@ -61,7 +61,7 @@
 
 .sabi-doctor-hero-actions .sabi-doctor-primary {
     border: none;
-    background: var(--sabi-gradient-primary, linear-gradient(135deg, #14B586 0%, #0B5E48 100%));
+    background: var(--sabi-gradient-primary, linear-gradient(135deg, var(--sx-brand-500) 0%, var(--sx-brand-700) 100%));
     box-shadow: 0 8px 20px rgba(20, 181, 134, 0.35);
 }
 
@@ -197,7 +197,7 @@
 
 .sabi-doctor-specialty.active {
     border-color: transparent;
-    background: var(--sabi-gradient-primary, linear-gradient(135deg, #14B586 0%, #0B5E48 100%));
+    background: var(--sabi-gradient-primary, linear-gradient(135deg, var(--sx-brand-500) 0%, var(--sx-brand-700) 100%));
     color: #fff;
     box-shadow: 0 12px 28px rgba(11, 94, 72, 0.28);
 }
@@ -412,7 +412,7 @@
 
 .sabi-doctor-photo span {
     left: var(--sabi-space-sm);
-    background: #d5fae9;
+    background: var(--sx-brand-100);
     color: var(--sabi-primary-dark);
 }
 
@@ -620,7 +620,7 @@
     padding: var(--sabi-space-md);
     margin-bottom: var(--sabi-space-md);
     border-radius: var(--sabi-radius-md);
-    background: var(--sabi-surface-muted, #f6faf8);
+    background: var(--sabi-surface-muted, var(--sx-surface-subtle));
 }
 
 .sabi-booking-doctor img {
@@ -785,7 +785,7 @@
     margin-bottom: var(--sabi-space-md);
     padding: 4px;
     border-radius: var(--sabi-radius-md);
-    background: var(--sabi-surface-muted, #f6faf8);
+    background: var(--sabi-surface-muted, var(--sx-surface-subtle));
 }
 
 .sabi-booking-mode-row button {
@@ -944,7 +944,7 @@
 .sabi-profile-affiliations span { color: var(--sabi-text-secondary); font-size: .8rem; }
 
 .sabi-profile-side { display: grid; align-content: start; gap: var(--sabi-space-md); }
-.sabi-profile-side-card { display: grid; gap: 6px; padding: var(--sabi-space-md); border: 1px solid var(--sabi-border); border-radius: var(--sabi-radius-md); background: var(--sabi-surface-muted, #f6faf8); }
+.sabi-profile-side-card { display: grid; gap: 6px; padding: var(--sabi-space-md); border: 1px solid var(--sabi-border); border-radius: var(--sabi-radius-md); background: var(--sabi-surface-muted, var(--sx-surface-subtle)); }
 .sabi-profile-side-fee { color: var(--sabi-primary-dark); font-size: 1.5rem; }
 .sabi-profile-side-next { margin-bottom: 6px; color: var(--sabi-text-secondary); font-size: .82rem; }
 

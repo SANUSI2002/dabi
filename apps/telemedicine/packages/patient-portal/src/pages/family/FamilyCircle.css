@@ -165,7 +165,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #EAFBF3;
+  background: var(--sx-brand-50);
   border-radius: var(--sabi-radius-sm);
   padding: 8px 12px;
   font-size: 0.78rem;
@@ -387,7 +387,7 @@
   font-size: 0.82rem;
   font-weight: 700;
 }
-.sabi-fam-chip.checked { background: #EAFBF3; border-color: #b8ecd6; color: var(--sabi-primary-dark); }
+.sabi-fam-chip.checked { background: var(--sx-brand-50); border-color: #b8ecd6; color: var(--sabi-primary-dark); }
 .sabi-fam-chip.missed { background: #FEF2F2; border-color: #fecaca; color: var(--sabi-danger); }
 .sabi-fam-chip small { display: block; font-weight: 600; font-size: 0.66rem; opacity: 0.75; }
 
@@ -556,7 +556,7 @@
   height: 84px;
   margin: 0 auto var(--sabi-space-md);
   border-radius: 50%;
-  background: #EAFBF3;
+  background: var(--sx-brand-50);
   color: var(--sabi-primary-dark);
   display: flex;
   align-items: center;
@@ -592,7 +592,7 @@
 
 .sabi-fam-success-banner {
   margin-top: var(--sabi-space-lg);
-  background: #EAFBF3;
+  background: var(--sx-brand-50);
   color: var(--sabi-primary-dark);
   border-radius: var(--sabi-radius-md);
   padding: var(--sabi-space-md);

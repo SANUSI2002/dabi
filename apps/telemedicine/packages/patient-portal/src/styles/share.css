@@ -12,7 +12,7 @@
      This was previously found hardcoded to 1.5 in Dashboard.css
      and escalating to 1.15/1.3 in Profile.css; both are wrong. */
   --sabi-font-scale: 1;
-  --sabi-page-bg:    #f4f5fc;
+  --sabi-page-bg:    var(--sx-page);
 }
 
 /* ── Global box-sizing (safety net — also set in global.css) ── */
@@ -34,7 +34,7 @@
 .sabi-main {
   flex: 1;
   min-width: 0;           /* critical: prevents flex child from overflowing */
-  background: #f8f9ff;
+  background: var(--sx-page);
   padding: var(--sabi-space-md);
   /* Allow the main area to scroll independently without the sidebar */
   overflow-x: hidden;
@@ -641,7 +641,7 @@
   height: 30px;
   flex-shrink: 0;
   border-radius: 50%;
-  background: var(--sabi-surface-muted, #f6faf8);
+  background: var(--sabi-surface-muted, var(--sx-surface-subtle));
   color: var(--sabi-primary-dark);
 }
 
@@ -804,7 +804,7 @@
   right: 0;
   min-width: 170px;
   background: var(--sabi-surface);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--sx-line);
   border-radius: var(--sabi-radius-md);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   padding: 6px;
@@ -1163,11 +1163,11 @@
 /* ---- Live (backend-connected) page states ---- */
 .sabi-live-state {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
-  text-align: center; padding: 40px 24px; color: #475569;
+  text-align: center; padding: 40px 24px; color: var(--sx-text-muted);
 }
-.sabi-live-state h3 { margin: 0; color: #0f172a; font-size: 1.05rem; }
+.sabi-live-state h3 { margin: 0; color: var(--sx-text); font-size: 1.05rem; }
 .sabi-live-state p { margin: 0; max-width: 460px; font-size: .9rem; line-height: 1.5; }
-.sabi-live-state svg { color: #0f766e; }
+.sabi-live-state svg { color: var(--sx-brand-600); }
 .sabi-live-state.error svg { color: #b91c1c; }
 .sabi-spin { animation: sabi-spin 0.9s linear infinite; }
 @keyframes sabi-spin { to { transform: rotate(360deg); } }
@@ -1180,7 +1180,7 @@
 .sabi-status-pill.pending { background: #fef3c7; color: #92400e; }
 .sabi-status-pill.good { background: #dcfce7; color: #166534; }
 .sabi-status-pill.bad { background: #fee2e2; color: #991b1b; }
-.sabi-status-pill.neutral { background: #e2e8f0; color: #334155; }
+.sabi-status-pill.neutral { background: var(--sx-line); color: #334155; }
 
 .sabi-form-error {
   margin: 12px 0 0; padding: 10px 12px; border-radius: 10px; background: #fef2f2; color: #991b1b;
@@ -1188,10 +1188,10 @@
 }
 .sabi-subject-picker { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; }
 .sabi-subject-picker button {
-  border: 1.5px solid #cbd5e1; background: #fff; border-radius: 999px; padding: 7px 14px;
+  border: 1.5px solid var(--sx-line-strong); background: #fff; border-radius: 999px; padding: 7px 14px;
   font-weight: 600; font-size: .85rem; color: #334155; cursor: pointer;
 }
-.sabi-subject-picker button[aria-pressed="true"] { border-color: #0f766e; background: #f0fdfa; color: #0f766e; }
+.sabi-subject-picker button[aria-pressed="true"] { border-color: var(--sx-brand-600); background: #f0fdfa; color: var(--sx-brand-600); }
 .sabi-subject-picker button:disabled { opacity: .5; cursor: not-allowed; }
 .sabi-hospital-card-sub:has(svg) { display: flex; align-items: center; gap: 6px; }
 .sabi-hospital-card-sub svg { flex-shrink: 0; }

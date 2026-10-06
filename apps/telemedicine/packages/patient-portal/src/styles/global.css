@@ -9,30 +9,30 @@
    ────────────────────────────────────────────────────────── */
 :root {
   /* ── Colors ── */
-  --sabi-primary:         #0d9488;        /* teal 600 */
-  --sabi-primary-dark:    #005c55;        /* deep teal */
-  --sabi-primary-light:   #e6f4f1;        /* mint tint */
+  --sabi-primary:         var(--sx-brand-600);        /* teal 600 */
+  --sabi-primary-dark:    var(--sx-brand-800);        /* deep teal */
+  --sabi-primary-light:   var(--sx-brand-100);        /* mint tint */
 
   --sabi-success:         #10b981;        /* emerald 500 */
   --sabi-danger:          #ef4444;        /* red 500 */
   --sabi-warning:         #f59e0b;        /* amber 500 */
 
   /* ── Surfaces ── */
-  --sabi-page-bg:         #f4f5fc;
+  --sabi-page-bg:         var(--sx-page);
   --sabi-background:      #f7faf9;
   --sabi-surface:         #ffffff;
-  --sabi-surface-muted:   #f6faf8;
+  --sabi-surface-muted:   var(--sx-surface-subtle);
 
   /* ── Text ── */
-  --sabi-text-primary:    #111827;
-  --sabi-text-secondary:  #64748b;
+  --sabi-text-primary:    var(--sx-text);
+  --sabi-text-secondary:  var(--sx-text-muted);
 
   /* ── Border ── */
-  --sabi-border:          #e2e8f0;
+  --sabi-border:          var(--sx-line);
 
   /* ── Gradients ── */
-  --sabi-gradient-primary: linear-gradient(135deg, #14b586 0%, #0b5e48 100%);
-  --sabi-gradient-dark:    linear-gradient(160deg, #0b5e48 0%, #073d30 100%);
+  --sabi-gradient-primary: linear-gradient(135deg, var(--sx-brand-500) 0%, var(--sx-brand-700) 100%);
+  --sabi-gradient-dark:    linear-gradient(160deg, var(--sx-brand-700) 0%, var(--sx-brand-800) 100%);
 
   /* ── Typography ── */
   --sabi-font-family:     'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;

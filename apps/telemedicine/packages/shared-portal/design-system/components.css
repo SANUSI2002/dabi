@@ -1,0 +1,254 @@
+/* ==========================================================================
+   Sabi Health telemedicine components. Built only from tokens.css; shared by
+   the patient portal and every professional portal. Class prefix: .sx-
+   ========================================================================== */
+
+/* ── Base behaviour inside every portal surface ─────────────────────────── */
+:where(.sabi-dashboard, .dp-shell, .sh-auth, .sabi-patient-login, .sabi-patient-signup, .sabi-account-layout, .sx-root) {
+  font-family: var(--sx-font-body);
+  color: var(--sx-text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+:where(.sabi-dashboard, .dp-shell, .sh-auth, .sabi-patient-login, .sabi-patient-signup, .sabi-account-layout, .sx-root) :is(a, button, [role="button"], [role="tab"], input, select, textarea, summary):focus-visible {
+  outline: 3px solid var(--sx-brand-500);
+  outline-offset: 2px;
+}
+:where(.sabi-dashboard, .dp-shell, .sx-root) :is(button, a, [role="button"], summary, label:has(> input[type="checkbox"]), label:has(> input[type="radio"])) { cursor: pointer; }
+:where(.sabi-dashboard, .dp-shell, .sx-root) :is(button, input, select, textarea):disabled { cursor: not-allowed; }
+.sx-sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ── Page structure ─────────────────────────────────────────────────────── */
+.sx-page { width: 100%; max-width: var(--sx-content-max); margin-inline: auto; display: grid; gap: var(--sx-space-6); }
+.sx-page-header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--sx-space-4); }
+.sx-page-header h1 { margin: 0; font-family: var(--sx-font-display); font-size: clamp(26px, 2.4vw, 32px); font-weight: 700; letter-spacing: -.035em; line-height: var(--sx-leading-tight); color: var(--sx-text); }
+.sx-page-header p { margin: var(--sx-space-2) 0 0; max-width: var(--sx-reading-max); color: var(--sx-text-muted); font-size: var(--sx-text-base); line-height: var(--sx-leading-normal); }
+.sx-eyebrow { display: block; margin-bottom: var(--sx-space-2); font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--sx-brand-500); }
+.sx-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sx-space-3); }
+.sx-grid { display: grid; gap: var(--sx-space-5); }
+.sx-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sx-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.sx-split { display: grid; gap: var(--sx-space-5); grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); align-items: start; }
+@media (max-width: 1080px) { .sx-split { grid-template-columns: 1fr; } .sx-grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .sx-grid-2, .sx-grid-3 { grid-template-columns: 1fr; } }
+
+/* ── Cards and sections ─────────────────────────────────────────────────── */
+.sx-card { background: var(--sx-surface); border: 1px solid var(--sx-line); border-radius: var(--sx-radius-lg); box-shadow: var(--sx-shadow-xs); padding: var(--sx-space-6); min-width: 0; }
+.sx-card-flush { padding: 0; overflow: hidden; }
+.sx-card-header { display: flex; align-items: center; justify-content: space-between; gap: var(--sx-space-3); margin-bottom: var(--sx-space-4); }
+.sx-card-title { margin: 0; font-family: var(--sx-font-display); font-size: var(--sx-text-xl); font-weight: 700; letter-spacing: -.02em; color: var(--sx-text); }
+.sx-card-subtitle { margin: 2px 0 0; font-size: var(--sx-text-sm); color: var(--sx-text-muted); }
+.sx-link { color: var(--sx-brand-600); font-weight: 600; font-size: var(--sx-text-sm); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; min-height: 32px; border-radius: var(--sx-radius-xs); }
+.sx-link:hover { color: var(--sx-brand-800); text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 600px) { .sx-card { padding: var(--sx-space-5); border-radius: var(--sx-radius-md); } }
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+.sx-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--sx-space-2);
+  min-height: var(--sx-touch); padding: 0 var(--sx-space-4); border: 1px solid transparent; border-radius: var(--sx-radius-md);
+  font: 600 var(--sx-text-md)/1 var(--sx-font-body); text-decoration: none; white-space: nowrap;
+  transition: background-color var(--sx-duration) var(--sx-ease), border-color var(--sx-duration) var(--sx-ease), color var(--sx-duration) var(--sx-ease), box-shadow var(--sx-duration) var(--sx-ease);
+}
+.sx-btn svg { flex-shrink: 0; }
+.sx-btn-primary { background: var(--sx-brand-600); color: var(--sx-text-inverse); box-shadow: var(--sx-shadow-xs); }
+.sx-btn-primary:hover:not(:disabled) { background: var(--sx-brand-800); }
+.sx-btn-secondary { background: var(--sx-surface); border-color: var(--sx-line-strong); color: var(--sx-brand-800); }
+.sx-btn-secondary:hover:not(:disabled) { background: var(--sx-brand-50); border-color: var(--sx-brand-300); }
+.sx-btn-ghost { background: transparent; color: var(--sx-brand-700); }
+.sx-btn-ghost:hover:not(:disabled) { background: var(--sx-brand-50); }
+.sx-btn-danger { background: var(--sx-surface); border-color: var(--sx-danger-line); color: var(--sx-danger-fg); }
+.sx-btn-danger:hover:not(:disabled) { background: var(--sx-danger-bg); }
+.sx-btn-sm { min-height: 36px; padding: 0 var(--sx-space-3); font-size: var(--sx-text-sm); border-radius: var(--sx-radius-sm); }
+.sx-btn-block { width: 100%; }
+.sx-btn:disabled, .sx-btn[aria-disabled="true"] { opacity: .55; box-shadow: none; }
+.sx-btn[aria-busy="true"]::before { content: ""; width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: sx-spin .7s linear infinite; }
+@media (pointer: coarse) { .sx-btn-sm { min-height: var(--sx-touch); } }
+
+/* ── Form fields ────────────────────────────────────────────────────────── */
+.sx-field { display: grid; gap: 6px; min-width: 0; }
+.sx-field > label, .sx-label { font-size: var(--sx-text-sm); font-weight: 600; color: var(--sx-text); }
+.sx-hint { font-size: var(--sx-text-xs); color: var(--sx-text-muted); line-height: var(--sx-leading-snug); }
+.sx-error-text { font-size: var(--sx-text-xs); color: var(--sx-danger-fg); font-weight: 600; }
+.sx-input, .sx-select, .sx-textarea {
+  width: 100%; min-height: var(--sx-touch); padding: 10px 12px; border: 1px solid var(--sx-line-strong); border-radius: var(--sx-radius-sm);
+  background: var(--sx-surface); color: var(--sx-text); font: 400 var(--sx-text-md)/1.4 var(--sx-font-body);
+  transition: border-color var(--sx-duration) var(--sx-ease), box-shadow var(--sx-duration) var(--sx-ease);
+}
+.sx-textarea { min-height: 112px; resize: vertical; line-height: var(--sx-leading-normal); }
+.sx-input::placeholder, .sx-textarea::placeholder { color: var(--sx-text-subtle); }
+.sx-input:hover, .sx-select:hover, .sx-textarea:hover { border-color: var(--sx-brand-300); }
+.sx-input:focus, .sx-select:focus, .sx-textarea:focus { outline: none; border-color: var(--sx-brand-500); box-shadow: 0 0 0 3px rgb(63 122 88 / 18%); }
+.sx-input[aria-invalid="true"], .sx-select[aria-invalid="true"], .sx-textarea[aria-invalid="true"] { border-color: var(--sx-danger-solid); }
+@media (max-width: 600px) { .sx-input, .sx-select, .sx-textarea { font-size: 16px; } }
+
+/* ── Tabs / segmented filters ───────────────────────────────────────────── */
+.sx-tabs { display: flex; gap: 4px; padding: 4px; background: var(--sx-surface-sunken); border: 1px solid var(--sx-line); border-radius: var(--sx-radius-md); overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+.sx-tabs::-webkit-scrollbar { display: none; }
+.sx-tab { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 14px; border: 0; border-radius: var(--sx-radius-sm); background: transparent; color: var(--sx-text-muted); font: 600 var(--sx-text-sm)/1 var(--sx-font-body); white-space: nowrap; transition: background-color var(--sx-duration) var(--sx-ease), color var(--sx-duration) var(--sx-ease); }
+.sx-tab:hover { color: var(--sx-text); }
+.sx-tab[aria-selected="true"] { background: var(--sx-surface); color: var(--sx-brand-800); box-shadow: var(--sx-shadow-xs); }
+.sx-tab-count { min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--sx-radius-pill); background: var(--sx-brand-100); color: var(--sx-brand-800); font-size: 11px; display: inline-grid; place-items: center; }
+.sx-tab[aria-selected="true"] .sx-tab-count { background: var(--sx-brand-600); color: var(--sx-text-inverse); }
+
+/* ── Badges / status pills ──────────────────────────────────────────────── */
+.sx-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: var(--sx-radius-pill); border: 1px solid transparent; font-size: var(--sx-text-xs); font-weight: 650; line-height: 1.5; white-space: nowrap; }
+.sx-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.sx-badge-success { color: var(--sx-success-fg); background: var(--sx-success-bg); border-color: var(--sx-success-line); }
+.sx-badge-warning { color: var(--sx-warning-fg); background: var(--sx-warning-bg); border-color: var(--sx-warning-line); }
+.sx-badge-danger { color: var(--sx-danger-fg); background: var(--sx-danger-bg); border-color: var(--sx-danger-line); }
+.sx-badge-info { color: var(--sx-info-fg); background: var(--sx-info-bg); border-color: var(--sx-info-line); }
+.sx-badge-neutral { color: var(--sx-neutral-fg); background: var(--sx-neutral-bg); border-color: var(--sx-neutral-line); }
+
+/* ── Notices (inline alerts) ────────────────────────────────────────────── */
+.sx-notice { display: flex; gap: var(--sx-space-3); align-items: flex-start; padding: var(--sx-space-3) var(--sx-space-4); border: 1px solid; border-radius: var(--sx-radius-md); font-size: var(--sx-text-md); line-height: var(--sx-leading-snug); }
+.sx-notice svg { flex-shrink: 0; margin-top: 2px; }
+.sx-notice-info { color: var(--sx-info-fg); background: var(--sx-info-bg); border-color: var(--sx-info-line); }
+.sx-notice-success { color: var(--sx-success-fg); background: var(--sx-success-bg); border-color: var(--sx-success-line); }
+.sx-notice-warning { color: var(--sx-warning-fg); background: var(--sx-warning-bg); border-color: var(--sx-warning-line); }
+.sx-notice-danger { color: var(--sx-danger-fg); background: var(--sx-danger-bg); border-color: var(--sx-danger-line); }
+.sx-notice > div { flex: 1; min-width: 0; }
+.sx-notice strong { display: block; font-weight: 700; }
+
+/* ── State panels: loading, empty, error ────────────────────────────────── */
+.sx-state { display: grid; justify-items: center; gap: var(--sx-space-3); padding: var(--sx-space-10) var(--sx-space-6); text-align: center; border: 1px dashed var(--sx-line-strong); border-radius: var(--sx-radius-lg); background: var(--sx-surface-subtle); }
+.sx-state-icon { width: 48px; height: 48px; display: grid; place-items: center; border-radius: var(--sx-radius-md); background: var(--sx-brand-100); color: var(--sx-brand-600); }
+.sx-state-error .sx-state-icon { background: var(--sx-danger-bg); color: var(--sx-danger-fg); }
+.sx-state h3 { margin: 0; font-family: var(--sx-font-display); font-size: var(--sx-text-lg); font-weight: 700; color: var(--sx-text); }
+.sx-state p { margin: 0; max-width: 46ch; color: var(--sx-text-muted); font-size: var(--sx-text-md); line-height: var(--sx-leading-normal); }
+.sx-spinner { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid var(--sx-brand-200); border-top-color: var(--sx-brand-600); animation: sx-spin .8s linear infinite; }
+.sx-skeleton { border-radius: var(--sx-radius-sm); background: linear-gradient(90deg, var(--sx-surface-sunken) 25%, var(--sx-brand-50) 50%, var(--sx-surface-sunken) 75%); background-size: 200% 100%; animation: sx-shimmer 1.4s ease-in-out infinite; }
+@keyframes sx-spin { to { transform: rotate(360deg); } }
+@keyframes sx-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* ── Lists of items (appointments, prescriptions, patients) ─────────────── */
+.sx-list { display: grid; gap: var(--sx-space-3); }
+.sx-row { display: flex; align-items: center; gap: var(--sx-space-4); padding: var(--sx-space-4); border: 1px solid var(--sx-line); border-radius: var(--sx-radius-md); background: var(--sx-surface); text-align: left; color: inherit; text-decoration: none; width: 100%; min-width: 0; transition: border-color var(--sx-duration) var(--sx-ease), background-color var(--sx-duration) var(--sx-ease); }
+a.sx-row:hover, button.sx-row:hover { border-color: var(--sx-brand-300); background: var(--sx-brand-50); }
+.sx-row[aria-current="true"], .sx-row.is-selected { border-color: var(--sx-brand-500); background: var(--sx-brand-50); box-shadow: inset 3px 0 0 var(--sx-brand-600); }
+.sx-row-main { flex: 1; min-width: 0; }
+.sx-row-title { margin: 0; font-size: var(--sx-text-base); font-weight: 650; color: var(--sx-text); overflow-wrap: anywhere; }
+.sx-row-meta { margin: 2px 0 0; font-size: var(--sx-text-sm); color: var(--sx-text-muted); }
+.sx-date-tile { flex-shrink: 0; width: 52px; display: grid; place-items: center; padding: 6px 0; border-radius: var(--sx-radius-sm); background: var(--sx-brand-50); border: 1px solid var(--sx-brand-100); color: var(--sx-brand-800); line-height: 1.1; }
+.sx-date-tile small { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--sx-brand-500); }
+.sx-date-tile strong { font-family: var(--sx-font-display); font-size: 20px; font-weight: 750; }
+.sx-avatar { flex-shrink: 0; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: var(--sx-brand-100); color: var(--sx-brand-800); font-weight: 700; font-size: var(--sx-text-sm); }
+@media (max-width: 600px) { .sx-row { flex-wrap: wrap; gap: var(--sx-space-3); } .sx-row > .sx-actions { width: 100%; } .sx-row > .sx-actions .sx-btn { flex: 1; } }
+
+/* ── Key facts (definition lists) ───────────────────────────────────────── */
+.sx-facts { display: grid; grid-template-columns: max-content 1fr; gap: var(--sx-space-2) var(--sx-space-5); margin: 0; font-size: var(--sx-text-md); }
+.sx-facts dt { color: var(--sx-text-muted); }
+.sx-facts dd { margin: 0; color: var(--sx-text); font-weight: 550; overflow-wrap: anywhere; }
+@media (max-width: 520px) { .sx-facts { grid-template-columns: 1fr; gap: 2px; } .sx-facts dd { margin-bottom: var(--sx-space-2); } }
+
+/* ── Tables (stack into cards on small screens via data-label) ──────────── */
+.sx-table-wrap { overflow-x: auto; border: 1px solid var(--sx-line); border-radius: var(--sx-radius-md); background: var(--sx-surface); }
+.sx-table { width: 100%; border-collapse: collapse; font-size: var(--sx-text-md); }
+.sx-table th { position: sticky; top: 0; background: var(--sx-surface-sunken); color: var(--sx-text-muted); font-size: var(--sx-text-xs); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; text-align: left; padding: 10px 14px; white-space: nowrap; }
+.sx-table td { padding: 12px 14px; border-top: 1px solid var(--sx-line); vertical-align: top; color: var(--sx-text); }
+@media (max-width: 640px) {
+  .sx-table-stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .sx-table-stack tr { display: block; padding: var(--sx-space-3) var(--sx-space-4); border-top: 1px solid var(--sx-line); }
+  .sx-table-stack td { display: grid; grid-template-columns: 9.5em 1fr; gap: var(--sx-space-2); padding: 4px 0; border: 0; }
+  .sx-table-stack td::before { content: attr(data-label); color: var(--sx-text-muted); font-size: var(--sx-text-xs); font-weight: 650; }
+}
+
+/* ── Dialog surface (pair with role="dialog" + aria-modal) ──────────────── */
+.sx-overlay { position: fixed; inset: 0; z-index: var(--sx-z-overlay); display: grid; place-items: center; padding: var(--sx-space-4); background: rgb(17 60 48 / 45%); }
+.sx-dialog { width: min(560px, 100%); max-height: calc(100dvh - 32px); overflow: auto; background: var(--sx-surface); border-radius: var(--sx-radius-xl); box-shadow: var(--sx-shadow-lg); padding: var(--sx-space-6); }
+@media (max-width: 600px) { .sx-overlay { place-items: end center; padding: 0; } .sx-dialog { width: 100%; border-radius: var(--sx-radius-xl) var(--sx-radius-xl) 0 0; padding: var(--sx-space-5); } }
+
+/* ── Choice chips (booking days, time slots, filters) ───────────────────── */
+.sx-chips { display: flex; flex-wrap: wrap; gap: var(--sx-space-2); }
+.sx-chip { min-height: var(--sx-touch); padding: 0 var(--sx-space-4); display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 1px solid var(--sx-line-strong); border-radius: var(--sx-radius-md); background: var(--sx-surface); color: var(--sx-text); font: 600 var(--sx-text-md)/1.2 var(--sx-font-body); transition: border-color var(--sx-duration) var(--sx-ease), background-color var(--sx-duration) var(--sx-ease); }
+.sx-chip small { font-size: 11px; font-weight: 600; color: var(--sx-text-muted); }
+.sx-chip:hover:not(:disabled) { border-color: var(--sx-brand-400); background: var(--sx-brand-50); }
+.sx-chip[aria-pressed="true"], .sx-chip[aria-checked="true"] { border-color: var(--sx-brand-600); background: var(--sx-brand-600); color: var(--sx-text-inverse); }
+.sx-chip[aria-pressed="true"] small, .sx-chip[aria-checked="true"] small { color: rgb(255 255 255 / 82%); }
+
+/* ── Motion preferences ─────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  :where(.sabi-dashboard, .dp-shell, .sh-auth, .sabi-patient-login, .sabi-patient-signup, .sabi-account-layout, .sx-root) *,
+  :where(.sabi-dashboard, .dp-shell, .sh-auth, .sabi-patient-login, .sabi-patient-signup, .sabi-account-layout, .sx-root) *::before,
+  :where(.sabi-dashboard, .dp-shell, .sh-auth, .sabi-patient-login, .sabi-patient-signup, .sabi-account-layout, .sx-root) *::after {
+    animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ── Bridge for the professional portal's original classes ──────────────
+   Screens not yet rebuilt on .sx-* still use .dp-btn / .dp-panel / .care-card.
+   These rules give them the same buttons and surfaces as the new components. */
+.dp-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--sx-space-2); min-height: var(--sx-touch); padding: 0 var(--sx-space-4); border: 1px solid transparent; border-radius: var(--sx-radius-md); font: 600 var(--sx-text-md)/1 var(--sx-font-body); text-decoration: none; white-space: nowrap; transition: background-color var(--sx-duration) var(--sx-ease), border-color var(--sx-duration) var(--sx-ease); }
+.dp-btn-primary { background: var(--sx-brand-600); border-color: var(--sx-brand-600); color: var(--sx-text-inverse); }
+.dp-btn-primary:hover:not(:disabled) { background: var(--sx-brand-800); border-color: var(--sx-brand-800); }
+.dp-btn-outline { background: var(--sx-surface); border-color: var(--sx-line-strong); color: var(--sx-brand-800); }
+.dp-btn-outline:hover:not(:disabled) { background: var(--sx-brand-50); border-color: var(--sx-brand-300); }
+.dp-btn-danger { background: var(--sx-surface); border-color: var(--sx-danger-line); color: var(--sx-danger-fg); }
+.dp-btn-danger:hover:not(:disabled) { background: var(--sx-danger-bg); }
+.dp-btn-sm { min-height: 36px; padding: 0 var(--sx-space-3); font-size: var(--sx-text-sm); border-radius: var(--sx-radius-sm); }
+@media (pointer: coarse) { .dp-btn-sm { min-height: var(--sx-touch); } }
+.dp-panel, .care-card { background: var(--sx-surface); border: 1px solid var(--sx-line); border-radius: var(--sx-radius-lg); box-shadow: var(--sx-shadow-xs); padding: var(--sx-space-6); }
+@media (max-width: 600px) { .dp-panel, .care-card { padding: var(--sx-space-5); border-radius: var(--sx-radius-md); } }
+
+/* ── Portal navigation (patient sidebar groups and professional sidebar) ── */
+.sabi-nav-caption, .dp-nav-caption { text-transform: uppercase; }
+.sabi-nav-group + .sabi-nav-group { margin-top: var(--sx-space-2); }
+.sabi-nav-group .sabi-nav-caption { margin-top: var(--sx-space-3); }
+.sabi-sidebar.collapsed:not(.mobile-open) .sabi-nav-group + .sabi-nav-group { border-top: 1px solid rgb(255 255 255 / 12%); padding-top: var(--sx-space-2); }
+.dp-nav-group + .dp-nav-group { margin-top: var(--sx-space-1); }
+.dp-sidebar-link-soon { opacity: .72; }
+.dp-soon-tag { margin-left: auto; position: relative; z-index: 1; padding: 1px 7px; border-radius: var(--sx-radius-pill); background: rgb(255 255 255 / 12%); color: #d5e3d8; font-size: 10px; font-weight: 700; letter-spacing: .04em; }
+.dp-sidebar-collapsed .dp-soon-tag { display: none; }
+p.dp-topbar-title { margin: 0; }
+
+/* Rows respond to the width of their card, not the window: in a narrow column the status
+   badge drops under the text instead of squeezing the patient's name. */
+.sx-card, .dp-panel { container-type: inline-size; }
+@container (max-width: 460px) {
+  .sx-row { flex-wrap: wrap; row-gap: var(--sx-space-2); }
+  .sx-row > .sx-row-main { flex-basis: calc(100% - 72px); }
+  .sx-row > .sx-badge { margin-left: 68px; }
+}
+
+/* ── Patient appointments ──────────────────────────────────────────────── */
+.sabi-apt-item-when { display: grid; justify-items: end; gap: 4px; }
+.sabi-apt-info-note { display: flex; align-items: center; gap: var(--sx-space-2); margin-top: var(--sx-space-3); padding: var(--sx-space-2) var(--sx-space-3); border-radius: var(--sx-radius-sm); background: var(--sx-info-bg); color: var(--sx-info-fg); font-size: var(--sx-text-sm); }
+.sabi-apt-item-actions .sabi-apt-cancel-btn { color: var(--sx-danger-fg); }
+.sabi-apt-filter { margin-bottom: var(--sx-space-5); }
+@media (max-width: 600px) { .sabi-apt-item-when { justify-items: start; } }
+
+/* ── Patient dashboard: next appointment ───────────────────────────────── */
+.sabi-next-card { display: flex; align-items: center; gap: var(--sx-space-5); margin-bottom: var(--sx-space-6); }
+.sabi-next-main { flex: 1; min-width: 0; }
+.sabi-next-main .sx-eyebrow { margin-bottom: var(--sx-space-1); }
+.sabi-next-hint { margin: var(--sx-space-2) 0 0; font-size: var(--sx-text-sm); color: var(--sx-text-muted); }
+.sabi-next-side { display: grid; justify-items: end; gap: var(--sx-space-3); }
+.sabi-next-card.is-live { border-color: var(--sx-brand-400); box-shadow: inset 4px 0 0 var(--sx-brand-600), var(--sx-shadow-sm); }
+.sabi-next-card .sx-avatar { width: 52px; height: 52px; font-size: var(--sx-text-md); }
+@media (max-width: 700px) {
+  .sabi-next-card { flex-wrap: wrap; align-items: flex-start; }
+  .sabi-next-main { flex-basis: calc(100% - 72px); }
+  .sabi-next-side { width: 100%; justify-items: stretch; grid-template-columns: auto 1fr; align-items: center; }
+  .sabi-next-side .sx-badge { justify-self: start; }
+}
+/* Dark hero banners: the generic `.sabi-main h1` colour loads later and would otherwise win. */
+.sabi-main :is(.sabi-doctor-hero, .sabi-wellness-hero, .sabi-hospitals-hero, .sabi-storefront-hero) h1 { color: #fff; }
+/* The generic dashboard primary (dark green) also overrode the white button on the dark hospitals hero. */
+.sabi-main .sabi-hospitals-hero-actions .sabi-btn-primary { background: #fff; border-color: #fff; color: var(--sx-brand-800); }
+/* Red-600 on the dark sidebar is 2.5:1; a light red keeps the danger cue and reads at 6:1. */
+.sabi-sidebar .sabi-nav-row.danger { color: #fca5a5; }
+.sabi-storefront-pharmacy-tags span.danger { color: var(--sx-danger-fg); }
+.sabi-storefront-promo p { color: var(--sx-text-muted); }
+.sabi-main .sabi-doctor-hero { box-shadow: var(--sx-shadow-sm); } .sabi-main .sabi-doctor-hero .sabi-doctor-primary { box-shadow: none; }
+
+/* ── Patient summary stats on phones ──────────────────────────────────────
+   Stacked one per row they pushed the real content (prescriptions, appointments,
+   family) several screens down. Two compact columns keep them glanceable. */
+@media (max-width: 600px) {
+  .sabi-main :is(.sabi-rx-stats-grid, .sabi-apt-stats, .sabi-stats-row, .sabi-fam-stats, .sabi-hospitals-stats, .sabi-vitalhist-stats) {
+    display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: var(--sx-space-3) !important; overflow: visible !important;
+  }
+  .sabi-main :is(.sabi-rx-stats-grid, .sabi-apt-stats, .sabi-stats-row, .sabi-fam-stats, .sabi-hospitals-stats, .sabi-vitalhist-stats) > * {
+    min-width: 0 !important; width: auto !important; padding: var(--sx-space-4) !important; margin: 0 !important;
+  }
+  .sabi-main :is(.sabi-rx-stats-grid, .sabi-apt-stats, .sabi-stats-row, .sabi-fam-stats, .sabi-hospitals-stats, .sabi-vitalhist-stats) > * svg { width: 18px; height: 18px; }
+}

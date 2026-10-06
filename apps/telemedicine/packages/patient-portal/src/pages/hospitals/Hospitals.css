@@ -10,7 +10,7 @@
     overflow: hidden;
     padding: clamp(28px, 5vw, 48px);
     border-radius: var(--sabi-radius-lg);
-    background: var(--sabi-gradient-dark, linear-gradient(160deg, #0B5E48 0%, #073D30 100%));
+    background: var(--sabi-gradient-dark, linear-gradient(160deg, var(--sx-brand-700) 0%, var(--sx-brand-800) 100%));
     color: #fff;
 }
 
@@ -196,7 +196,7 @@
 
 .sabi-hospital-badges { display: flex; flex-wrap: wrap; gap: 12px; }
 .sabi-hospital-badge { display: inline-flex; align-items: center; gap: 5px; font-size: .76rem; font-weight: 700; }
-.sabi-hospital-badge.good { color: #087451; }
+.sabi-hospital-badge.good { color: var(--sx-brand-600); }
 .sabi-hospital-badge.danger { color: var(--sabi-primary-dark); }
 .sabi-hospital-badge.muted { color: var(--sabi-text-secondary); }
 
@@ -275,7 +275,7 @@
 }
 .sabi-hospitals-membership-row .name { margin: 0; font-size: .82rem; font-weight: 700; }
 .sabi-hospitals-membership-row .plan { margin: 0; font-size: .72rem; color: var(--sabi-text-secondary); }
-.sabi-hospitals-membership-row .verified { margin-left: auto; color: #087451; flex-shrink: 0; }
+.sabi-hospitals-membership-row .verified { margin-left: auto; color: var(--sx-brand-600); flex-shrink: 0; }
 
 .sabi-hospitals-manage-btn {
     padding: 10px;
@@ -803,7 +803,7 @@
 
 .sabi-family-hosp-status-row { display: flex; justify-content: space-between; align-items: center; font-size: .8rem; color: var(--sabi-text-secondary); font-weight: 600; }
 .sabi-family-hosp-status-row .pill { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; font-size: .74rem; font-weight: 700; }
-.sabi-family-hosp-status-row .pill.enrolled { background: #d5fae9; color: #087451; }
+.sabi-family-hosp-status-row .pill.enrolled { background: var(--sx-brand-100); color: var(--sx-brand-600); }
 .sabi-family-hosp-status-row .pill.pending { background: #FEF3C7; color: #92400E; }
 .sabi-family-hosp-status-row .pill.not-enrolled { background: var(--sabi-page-bg); color: var(--sabi-text-secondary); }
 

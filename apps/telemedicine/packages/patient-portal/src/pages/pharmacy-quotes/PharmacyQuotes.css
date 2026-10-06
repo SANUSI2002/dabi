@@ -26,7 +26,7 @@
 
 .sabi-quotes-header p strong, 
 .sabi-quotes-header h1 { 
-    color: #005C55; 
+    color: var(--sx-brand-800); 
     
 }
 
@@ -117,8 +117,8 @@
     align-items: center;
     padding: 3px 10px;
     border-radius: 999px;
-    background: #d5fae9;
-    color: #087451;
+    background: var(--sx-brand-100);
+    color: var(--sx-brand-600);
     font-size: .68rem;
     font-weight: 800;
     letter-spacing: .03em;
@@ -154,8 +154,8 @@
 }
 
 .sabi-quote-store-head .available { 
-    background: #d5fae9; 
-    color: #087451; 
+    background: var(--sx-brand-100); 
+    color: var(--sx-brand-600); 
 }
 
 .sabi-quote-store-head .out { 
@@ -301,7 +301,7 @@
 .sabi-invoice-parties strong { font-size: .86rem; }
 
 .sabi-invoice-items { margin-top: var(--sabi-space-md); border: 1px solid var(--sabi-border); border-radius: var(--sabi-radius-md); overflow: hidden; }
-.sabi-invoice-items-head { display: flex; justify-content: space-between; padding: 9px 14px; background: var(--sabi-surface-muted, #f6faf8); color: var(--sabi-text-secondary); font-size: .68rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.sabi-invoice-items-head { display: flex; justify-content: space-between; padding: 9px 14px; background: var(--sabi-surface-muted, var(--sx-surface-subtle)); color: var(--sabi-text-secondary); font-size: .68rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
 .sabi-invoice-item-row { display: flex; justify-content: space-between; align-items: center; gap: var(--sabi-space-md); padding: 12px 14px; border-top: 1px solid var(--sabi-border); }
 .sabi-invoice-item-row-selectable { cursor: pointer; }
 .sabi-invoice-item-row-selectable input[type="checkbox"] { width: 17px; height: 17px; flex-shrink: 0; accent-color: var(--sabi-primary-dark); }
@@ -330,8 +330,8 @@
   gap: 3px;
   padding: 2px 8px;
   border-radius: 999px;
-  background: #d5fae9;
-  color: #087451;
+  background: var(--sx-brand-100);
+  color: var(--sx-brand-600);
   font-size: .64rem;
   font-weight: 800;
   letter-spacing: .02em;
@@ -443,8 +443,8 @@
 }
 
 .sabi-quote-prescription em { 
-    color: #087451; 
-    background: #d5fae9; 
+    color: var(--sx-brand-600); 
+    background: var(--sx-brand-100); 
     padding: 6px 12px; 
     font-style: normal; 
     border-radius: 999px; 
@@ -560,7 +560,7 @@
 
 .sabi-chat-bubble.theirs {
     align-self: flex-start;
-    background: var(--sabi-surface-muted, #f6faf8);
+    background: var(--sabi-surface-muted, var(--sx-surface-subtle));
     color: var(--sabi-text-primary);
     border-bottom-left-radius: 4px;
 }

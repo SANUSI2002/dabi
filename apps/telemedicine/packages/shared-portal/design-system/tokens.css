@@ -1,0 +1,123 @@
+/* ==========================================================================
+   Sabi Health telemedicine design tokens — the single source of truth for the
+   patient portal and every professional portal (doctor, dietitian, therapist…).
+
+   The palette starts from the patient portal's forest-green identity. Older
+   token generations (--sabi-* teal/emerald and --portal-*) are mapped onto this
+   scale below, so every existing page re-themes consistently from one place.
+
+   `:root:root` raises specificity above the per-page `:root` blocks that some
+   page stylesheets still declare, so these values win regardless of CSS order.
+   ========================================================================== */
+
+@font-face { font-family: "Sabi Manrope"; src: url("../assets/fonts/Manrope-Variable.ttf") format("truetype"); font-style: normal; font-weight: 200 800; font-display: swap; }
+@font-face { font-family: "Sabi Inter"; src: url("../assets/fonts/Inter-Variable.ttf") format("truetype"); font-style: normal; font-weight: 100 900; font-display: swap; }
+
+:root:root {
+  /* ── Brand scale (forest green) ─────────────────────────────────────── */
+  --sx-brand-50: #f2f6ef;
+  --sx-brand-100: #e5eddd;
+  --sx-brand-200: #ccdcc4;
+  --sx-brand-300: #a7c1a4;
+  --sx-brand-400: #6f9a72;
+  --sx-brand-500: #3f7a58;
+  --sx-brand-600: #245b43;   /* primary actions — 7.9:1 on white */
+  --sx-brand-700: #1c4b37;
+  --sx-brand-800: #173d30;   /* ink, sidebar active text — 12:1 on white */
+  --sx-brand-900: #113c30;   /* navigation surface */
+  --sx-sand-100: #f7efe0;
+  --sx-sand-300: #e5c48b;    /* sparing warm accent */
+
+  /* ── Neutrals (warm, slightly green) ───────────────────────────────── */
+  --sx-page: #f6f7f2;
+  --sx-surface: #ffffff;
+  --sx-surface-subtle: #fafbf7;
+  --sx-surface-sunken: #f0f3ec;
+  --sx-line: #dfe6dd;
+  --sx-line-strong: #c9d5c6;
+  --sx-text: #173d30;
+  --sx-text-muted: #5b6b62;  /* 5.6:1 on white, 5.2:1 on page */
+  --sx-text-subtle: #66756c; /* 4.85:1 on white, 4.5:1 on page — the lightest text colour allowed */
+  --sx-text-inverse: #ffffff;
+
+  /* ── Semantic colours: fg on bg ≥ 5.6:1; white on each *-solid ≥ 5:1 ── */
+  --sx-success-fg: #1f6b45;  --sx-success-bg: #e6f2ea;  --sx-success-line: #b9dcc5;  --sx-success-solid: #2f7d55;
+  --sx-warning-fg: #8a5300;  --sx-warning-bg: #fdf3e1;  --sx-warning-line: #f1d7a4;  --sx-warning-solid: #946010;
+  --sx-danger-fg:  #a8261b;  --sx-danger-bg:  #fdecea;  --sx-danger-line:  #f5c2bd;  --sx-danger-solid:  #c0352b;
+  --sx-info-fg:    #1f5a85;  --sx-info-bg:    #e8f1f8;  --sx-info-line:    #bcd5ea;  --sx-info-solid:    #2c6fa3;
+  --sx-neutral-fg: #4c5a52;  --sx-neutral-bg: #eef1ec;  --sx-neutral-line: #d6ddd3;
+
+  /* ── Typography ─────────────────────────────────────────────────────── */
+  --sx-font-body: "Sabi Inter", Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --sx-font-display: "Sabi Manrope", "Sabi Inter", system-ui, sans-serif;
+  --sx-text-xs: 12px; --sx-text-sm: 13px; --sx-text-md: 14px; --sx-text-base: 15px; --sx-text-lg: 16px;
+  --sx-text-xl: 18px; --sx-text-2xl: 20px; --sx-text-3xl: 24px; --sx-text-4xl: 30px; --sx-text-5xl: 36px;
+  --sx-leading-tight: 1.25; --sx-leading-snug: 1.45; --sx-leading-normal: 1.6;
+
+  /* ── Spacing (4-point) and layout ───────────────────────────────────── */
+  --sx-space-1: 4px; --sx-space-2: 8px; --sx-space-3: 12px; --sx-space-4: 16px; --sx-space-5: 20px;
+  --sx-space-6: 24px; --sx-space-8: 32px; --sx-space-10: 40px; --sx-space-12: 48px; --sx-space-16: 64px;
+  --sx-content-max: 1320px;
+  --sx-reading-max: 72ch;
+  --sx-sidebar-width: 256px;
+  --sx-touch: 44px;
+
+  /* ── Shape, depth and motion ────────────────────────────────────────── */
+  --sx-radius-xs: 6px; --sx-radius-sm: 8px; --sx-radius-md: 12px; --sx-radius-lg: 16px; --sx-radius-xl: 20px; --sx-radius-pill: 999px;
+  --sx-shadow-xs: 0 1px 2px rgb(23 61 48 / 5%);
+  --sx-shadow-sm: 0 2px 8px rgb(23 61 48 / 6%);
+  --sx-shadow-md: 0 8px 24px rgb(23 61 48 / 8%);
+  --sx-shadow-lg: 0 18px 48px rgb(23 61 48 / 16%);
+  --sx-focus-ring: 0 0 0 3px #ffffff, 0 0 0 5px var(--sx-brand-500);
+  --sx-ease: cubic-bezier(.2, .7, .2, 1);
+  --sx-duration-fast: 120ms; --sx-duration: 180ms; --sx-duration-slow: 260ms;
+  --sx-z-sticky: 30; --sx-z-overlay: 70; --sx-z-dialog: 80; --sx-z-toast: 90;
+
+  /* ── Legacy token generations, mapped onto the scale above ──────────── */
+  --sabi-primary: var(--sx-brand-600);
+  --sabi-primary-dark: var(--sx-brand-800);
+  --sabi-primary-light: var(--sx-brand-100);
+  --sabi-primary-soft: var(--sx-brand-200);
+  --sabi-accent: var(--sx-sand-300);
+  --sabi-accent-dark: var(--sx-warning-fg);
+  --sabi-accent-light: var(--sx-sand-100);
+  --sabi-success: var(--sx-success-solid);
+  --sabi-danger: var(--sx-danger-solid);
+  --sabi-warning: var(--sx-warning-solid);
+  --sabi-page-bg: var(--sx-page);
+  --sabi-background: var(--sx-page);
+  --sabi-surface: var(--sx-surface);
+  --sabi-surface-muted: var(--sx-surface-subtle);
+  --sabi-text-primary: var(--sx-text);
+  --sabi-text: var(--sx-text);
+  --sabi-text-secondary: var(--sx-text-muted);
+  --sabi-text-muted: var(--sx-text-subtle);
+  --sabi-border: var(--sx-line);
+  --sabi-border-strong: var(--sx-line-strong);
+  /* Gradients are retired: each resolves to a flat surface so existing rules keep working. */
+  --sabi-gradient-primary: linear-gradient(var(--sx-brand-600), var(--sx-brand-600));
+  --sabi-gradient-dark: linear-gradient(var(--sx-brand-900), var(--sx-brand-900));
+  --sabi-gradient-warm: linear-gradient(var(--sx-warning-solid), var(--sx-warning-solid));
+  --sabi-gradient-mesh: linear-gradient(var(--sx-brand-900), var(--sx-brand-900));
+  --sabi-shadow-sm: var(--sx-shadow-xs);
+  --sabi-shadow-md: var(--sx-shadow-sm);
+  --sabi-shadow-lg: var(--sx-shadow-md);
+  --sabi-shadow-xl: var(--sx-shadow-lg);
+  --sabi-shadow-glow: var(--sx-shadow-sm);
+  --sabi-font-family: var(--sx-font-body);
+  --sabi-font-heading-family: var(--sx-font-display);
+  --sabi-radius-sm: var(--sx-radius-sm);
+  --sabi-radius-md: var(--sx-radius-md);
+  --sabi-radius-lg: var(--sx-radius-lg);
+  --portal-page-bg: var(--sx-page);
+  --portal-sidebar-bg: var(--sx-brand-900);
+  --portal-sidebar-text: #d5e3d8;
+  --portal-sidebar-active: var(--sx-brand-100);
+  --portal-ink: var(--sx-text);
+  --portal-muted: var(--sx-text-muted);
+  --portal-line: var(--sx-line);
+  --portal-accent: var(--sx-sand-300);
+  --portal-shadow: var(--sx-shadow-xs);
+  --portal-font-body: var(--sx-font-body);
+  --portal-font-display: var(--sx-font-display);
+}

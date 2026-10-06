@@ -161,7 +161,8 @@ export default function SabiHealthLogin() {
               type="button"
               disabled
               title="Available when Sabi Identity OIDC is configured"
-              className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 bg-white hover:border-emerald-300 hover:shadow-sm hover:-translate-y-0.5 transition-all"
+              aria-describedby="patient-login-social-note"
+              className="flex items-center justify-center gap-2 min-h-[44px] rounded-xl border border-gray-200 bg-white opacity-60 cursor-not-allowed"
             >
               <GoogleIcon />
               <span className="font-semibold text-sm text-gray-800">Google</span>
@@ -170,12 +171,15 @@ export default function SabiHealthLogin() {
               type="button"
               disabled
               title="Available when Sabi Identity OIDC is configured"
-              className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 bg-white hover:border-emerald-300 hover:shadow-sm hover:-translate-y-0.5 transition-all"
+              aria-describedby="patient-login-social-note"
+              className="flex items-center justify-center gap-2 min-h-[44px] rounded-xl border border-gray-200 bg-white opacity-60 cursor-not-allowed"
             >
               <AppleIcon />
               <span className="font-semibold text-sm text-gray-800">Apple</span>
             </button>
           </div>
+
+          <p id="patient-login-social-note" className="text-center text-xs text-gray-500 mt-2">Google and Apple sign-in are coming soon. Use your email and password for now.</p>
 
           <p className="text-center text-sm text-gray-500 mt-4">
             Don&apos;t have an account?{" "}

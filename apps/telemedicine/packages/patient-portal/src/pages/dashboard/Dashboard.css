@@ -165,7 +165,7 @@ display: grid;
 }
 .sabi-quick-card { 
 background-color: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--sx-line);
   border-radius: 16px;
   padding: 20px 16px;
   display: flex;
@@ -182,8 +182,8 @@ background-color: #ffffff;
  width: 38px;
   height: 38px;
   border-radius: 10px;
-  background-color: #e6f4f1; /* Soft mint/teal tint */
-  color: #0f766e;           /* Accent teal color */
+  background-color: var(--sx-brand-100); /* Soft mint/teal tint */
+  color: var(--sx-brand-600);           /* Accent teal color */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -202,18 +202,18 @@ display: block;
 
 .sabi-quick-sub {
  font-size: 0.775rem;
-  color: #64748b;
+  color: var(--sx-text-muted);
   margin: 0;
   line-height: 1.35;
 }
 .sabi-quick-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
-  border-color: #cbd5e1;
+  border-color: var(--sx-line-strong);
 }
 
 .sabi-quick-card:focus-visible {
-  outline: 2px solid #0f766e;
+  outline: 2px solid var(--sx-brand-600);
   outline-offset: 2px;
 }
 /* ---------------- Vitals ---------------- */
@@ -229,8 +229,8 @@ display: block;
 
 /* Individual Vital Card */
 .sabi-vital {
-  background-color: #f8fafc; /* Subtle light background */
-  border: 1px solid #f1f5f9;
+  background-color: var(--sx-surface-subtle); /* Subtle light background */
+  border: 1px solid var(--sx-surface-sunken);
   border-radius: 14px;
   padding: 16px;
   display: grid;
@@ -247,7 +247,7 @@ display: block;
   grid-row: 1;
   font-size: 0.775rem;
   font-weight: 500;
-  color: #64748b; /* Slate gray */
+  color: var(--sx-text-muted); /* Slate gray */
 }
 
 /* Vital Value (e.g. "118/72 mmHg") */
@@ -256,7 +256,7 @@ display: block;
   grid-row: 2;
   font-size: 1.125rem;
   font-weight: 700;
-  color: #0f172a; /* Dark charcoal */
+  color: var(--sx-text); /* Dark charcoal */
   display: flex;
   align-items: baseline;
   gap: 4px;
@@ -266,7 +266,7 @@ display: block;
 .sabi-vital-value small {
   font-size: 0.725rem;
   font-weight: 500;
-  color: #64748b;
+  color: var(--sx-text-muted);
 }
 
 /* Vital Status Indicator (e.g. "Optimal Range", "Steady") */
@@ -275,7 +275,7 @@ display: block;
   grid-row: 3;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #0d9488; /* Sabi teal accent */
+  color: var(--sx-brand-600); /* Sabi teal accent */
   margin-top: 6px;
   display: flex;
   align-items: center;
@@ -297,16 +297,16 @@ display: block;
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px;
-  background-color: #f8fafc; /* Subtle light background tint */
-  border: 1px solid #f1f5f9;
+  background-color: var(--sx-surface-subtle); /* Subtle light background tint */
+  border: 1px solid var(--sx-surface-sunken);
   border-radius: 14px;
   gap: 14px;
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .sabi-list-item:hover {
-  background-color: #f1f5f9;
-  border-color: #e2e8f0;
+  background-color: var(--sx-surface-sunken);
+  border-color: var(--sx-line);
 }
 
 /* Icon Box */
@@ -314,8 +314,8 @@ display: block;
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  background-color: #e6f4f1; /* Mint/teal background tint */
-  color: #0f766e;           /* Accent teal color */
+  background-color: var(--sx-brand-100); /* Mint/teal background tint */
+  color: var(--sx-brand-600);           /* Accent teal color */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -342,7 +342,7 @@ display: block;
 
 .sabi-list-sub {
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--sx-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -358,8 +358,8 @@ display: block;
 
 /* "view" Button Pill */
 .sabi-view-pill {
-  background-color: #e6f4f1;
-  color: #0d9488;
+  background-color: var(--sx-brand-100);
+  color: var(--sx-brand-600);
   border: none;
   padding: 4px 14px;
   border-radius: 20px;
@@ -379,8 +379,8 @@ display: block;
 
 /* Status / Custom Badge Pill */
 .sabi-pill {
-  background-color: #f1f5f9;
-  color: #475569;
+  background-color: var(--sx-surface-sunken);
+  color: var(--sx-text-muted);
   padding: 3px 10px;
   border-radius: 12px;
   font-size: 0.725rem;
@@ -389,7 +389,7 @@ display: block;
 
 /* Chevron Icon (›) */
 .sabi-list-chevron {
-  color: #94a3b8;
+  color: var(--sx-text-subtle);
   font-size: 1.1rem;
   line-height: 1;
   user-select: none;
@@ -466,7 +466,7 @@ display: block;
 
 .sabi-score-trend-label {
  font-size: 0.75rem;
-  color: #64748b;
+  color: var(--sx-text-muted);
   font-weight: 500;
   line-height: 1.4;
 }
@@ -474,7 +474,7 @@ display: block;
 .sabi-score-trend-value {
   font-size: 0.875rem;
     font-weight: 700;
-    color: #0d9488;
+    color: var(--sx-brand-600);
 }
 
 /* ---------------- Mini charts ---------------- */
@@ -485,7 +485,7 @@ display: block;
 /* ---------------- Emergency ID card ---------------- */
 /* Card Container */
 .sabi-emergency-card {
-  background-color: #005c55;
+  background-color: var(--sx-brand-800);
   border-radius: 20px;
   padding: 24px;
   display: flex;
@@ -706,7 +706,7 @@ display: block;
 
 /* Featured (Active) Medication Box */
 .sabi-med-featured {
-  background-color: #f4f8f7;                /* Soft light green tint */
+  background-color: var(--sx-surface-subtle);                /* Soft light green tint */
   border-radius: 14px;
   padding: 16px;
   display: flex;
@@ -725,7 +725,7 @@ display: block;
   height: 28px;
   border-radius: 6px;
   background-color: rgba(0, 92, 85, 0.1);
-  color: #005c55;
+  color: var(--sx-brand-800);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -746,7 +746,7 @@ display: block;
 
 /* Primary "Mark as Taken" Button */
 .sabi-med-btn {
-  background-color: #005c55 !important;
+  background-color: var(--sx-brand-800) !important;
   color: #ffffff !important;
   border: none !important;
   border-radius: 10px !important;
@@ -774,7 +774,7 @@ display: block;
 }
 
 .sabi-med-taken-icon {
-  color: #005c55;
+  color: var(--sx-brand-800);
   display: flex;
   align-items: center;
   justify-content: center;

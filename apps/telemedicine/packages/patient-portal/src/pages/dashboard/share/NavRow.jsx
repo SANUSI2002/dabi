@@ -25,7 +25,7 @@ export function NavRow({ icon: Icon, label, active, danger, to, onClick, title }
   }
 
   return (
-    <Link to={to} className={classes} title={title} data-tooltip={label}>
+    <Link to={to} className={classes} title={title} data-tooltip={label} aria-current={active ? "page" : undefined}>
       {content}
     </Link>
   );

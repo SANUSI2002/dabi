@@ -53,7 +53,7 @@
 .sabi-apt-stat-card{
  
   background-color: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--sx-line);
   border-radius: 16px;
   padding: 20px 16px;
 
@@ -317,7 +317,7 @@
   font-size: calc(0.86rem * var(--sabi-font-scale));
   cursor: pointer;
 }
-.sabi-apt-accept-btn { background: var(--sabi-gradient-primary, linear-gradient(135deg, #14B586 0%, #0B5E48 100%)); color: #fff; }
+.sabi-apt-accept-btn { background: var(--sabi-gradient-primary, linear-gradient(135deg, var(--sx-brand-500) 0%, var(--sx-brand-700) 100%)); color: #fff; }
 .sabi-apt-decline-btn { background: transparent; border: 1px solid var(--sabi-danger); color: var(--sabi-danger); }
 .sabi-apt-decline-btn:hover { background: color-mix(in srgb, var(--sabi-danger) 8%, transparent); }
 
@@ -381,7 +381,7 @@
 .sabi-apt-join-btn:hover { filter: brightness(1.05); }
 
 .sabi-apt-checkin-btn {
-  background: var(--sabi-gradient-primary, linear-gradient(135deg, #14B586 0%, #0B5E48 100%));
+  background: var(--sabi-gradient-primary, linear-gradient(135deg, var(--sx-brand-500) 0%, var(--sx-brand-700) 100%));
   box-shadow: 0 6px 16px rgba(11, 94, 72, .22);
 }
 .sabi-apt-checkin-btn:hover { filter: brightness(1.05); }
@@ -423,7 +423,7 @@ button.sabi-emcard-contact:hover {
 }
 .sabi-nearby-card{
   background-color: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--sx-line);
   border-radius: 16px;
   padding: 20px 16px;
  
@@ -668,7 +668,7 @@ button.sabi-emcard-contact:hover {
     gap: var(--sabi-space-sm);
     padding: 4px;
     border-radius: var(--sabi-radius-md);
-    background: var(--sabi-surface-muted, #f6faf8);
+    background: var(--sabi-surface-muted, var(--sx-surface-subtle));
 }
 .sabi-booking-mode-row button {
     display: flex;

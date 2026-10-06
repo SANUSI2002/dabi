@@ -53,7 +53,7 @@ export function Topbar({
       </button>
 
       {title || !onSearch ? (
-        <h1 className="dp-topbar-title">{title || "Doctor workspace"}</h1>
+        <p className="dp-topbar-title">{title || "Doctor workspace"}</p>
       ) : (
         <form className="dp-topbar-search" onSubmit={submitSearch}>
           <Search size={16} className="dp-topbar-search-icon" />

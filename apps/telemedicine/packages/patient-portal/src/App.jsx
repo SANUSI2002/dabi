@@ -72,6 +72,9 @@ import { HOSPITAL_ONBOARDING_URL, DOCTOR_PORTAL_URL } from "./ecosystemLinks";
 
 import "../../shared-portal/portal-revamp.css";
 import "../../shared-portal/premium-pages.css";
+// Telemedicine design system: tokens first, then shared components. Loaded last so they win.
+import "../../shared-portal/design-system/tokens.css";
+import "../../shared-portal/design-system/components.css";
 
 function ProfessionalRegistrationRedirect() {
   useEffect(() => { window.location.replace(`${DOCTOR_PORTAL_URL}/register`); }, []);
@@ -190,7 +193,7 @@ export default function App() {
               <Route path="/records" element={<Records />} />
               <Route path="/prescriptions" element={<PrescriptionsPage />} />
               <Route path="/prescriptions/dietician-table" element={<DieticianTablePage />} />
-              <Route path="/care-plans" element={<DieticianTablePage support />} />
+              <Route path="/care-plans" element={<DieticianTablePage />} />
               <Route path="/prescriptions/:id" element={<PrescriptionDetailPage />} />
               <Route path="/prescriptions/:id/select-pharmacy" element={<SelectPharmacyPage />} />
               <Route path="/prescriptions/:id/quotes" element={<PharmacyQuotesPage />} />

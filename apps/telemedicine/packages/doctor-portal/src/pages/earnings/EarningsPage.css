@@ -166,7 +166,7 @@
   background: #16a34a;
 }
 .dp-dot-neutral {
-  background: #94a3b8;
+  background: var(--sx-text-subtle);
 }
 .dp-dot-warning {
   background: #f59e0b;

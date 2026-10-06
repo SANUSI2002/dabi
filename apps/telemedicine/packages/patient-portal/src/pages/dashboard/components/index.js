@@ -12,3 +12,4 @@ export { FamilyHealthCard } from "./FamilyHealthCard";
 export { InsightCard } from "./InsightCard";
 export { EmergencyCardModal } from "./EmergencyCardModal";
 export { ZoomControl } from "./ZoomControl";
+export { NextAppointmentCard } from "./NextAppointmentCard";

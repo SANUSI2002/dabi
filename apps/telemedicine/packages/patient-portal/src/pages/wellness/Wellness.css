@@ -7,7 +7,7 @@
     overflow: hidden;
     padding: clamp(28px, 5vw, 48px);
     border-radius: var(--sabi-radius-lg);
-    background: var(--sabi-gradient-dark, linear-gradient(160deg, #0B5E48 0%, #073D30 100%));
+    background: var(--sabi-gradient-dark, linear-gradient(160deg, var(--sx-brand-700) 0%, var(--sx-brand-800) 100%));
     color: #fff;
 }
 .sabi-wellness-hero h1 { margin: 0 0 10px; font-size: clamp(1.7rem, 3vw, 2.2rem); font-weight: 800; }
@@ -195,7 +195,7 @@
 }
 .sabi-wellness-status-pill.pending { background: #FEF3C7; color: #92400E; }
 .sabi-wellness-status-pill.review { background: var(--sabi-primary-light); color: var(--sabi-primary-dark); }
-.sabi-wellness-status-pill.active { background: #d5fae9; color: #087451; }
+.sabi-wellness-status-pill.active { background: var(--sx-brand-100); color: var(--sx-brand-600); }
 
 .sabi-wellness-proposal-sessions { display: flex; flex-wrap: wrap; gap: 8px; }
 .sabi-wellness-proposal-chip {
@@ -250,7 +250,7 @@
 
 .sabi-wellness-session-list { display: grid; gap: 8px; }
 .sabi-wellness-session-row .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; background: var(--sabi-border); }
-.sabi-wellness-session-row .dot.completed { background: #087451; }
+.sabi-wellness-session-row .dot.completed { background: var(--sx-brand-600); }
 .sabi-wellness-session-row .dot.upcoming { background: #92400E; }
 .sabi-wellness-checkin-times { display: block; font-size: .72rem; color: var(--sabi-primary-dark); margin-top: 2px; }
 .sabi-wellness-session-actions { margin-left: auto; flex-shrink: 0; }

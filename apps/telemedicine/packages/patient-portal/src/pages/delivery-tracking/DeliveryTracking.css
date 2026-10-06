@@ -171,8 +171,8 @@
 .sabi-delivery-rider h2 em {
     padding: 5px 9px;
     border-radius: 999px;
-    background: #d5fae9;
-    color: #087451;
+    background: var(--sx-brand-100);
+    color: var(--sx-brand-600);
     font-size: .78rem;
     font-style: normal;
 }
@@ -337,8 +337,8 @@
     border: 0;
     border-radius: 12px;
     padding: 13px;
-    background: #d5fae9;
-    color: #087451;
+    background: var(--sx-brand-100);
+    color: var(--sx-brand-600);
     font: inherit;
     font-weight: 700;
 }

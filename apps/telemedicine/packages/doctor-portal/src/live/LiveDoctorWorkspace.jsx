@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, Route, Routes, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { CalendarDays, CalendarCheck, ClipboardList, Clock, FileText, RefreshCw, ShieldCheck, Stethoscope, Users, Video } from "lucide-react";
 import PortalLayout from "../components/PortalLayout";
 import { getCurrentDoctor, signOutDoctor } from "../store/doctorSession";
 import { IDENTITY_UI_URL } from "../services/runtime";
 import * as api from "./doctorApi";
-import { groupPatients, localDay, statusLabel } from "./doctorData";
+import { groupPatients, localDay } from "./doctorData";
+import { DateTile, EmptyState, ErrorState, LoadingState, Notice, PageHeader, StatusBadge, Tabs } from "../../../shared-portal/design-system/ui.jsx";
 import "./LiveDoctorWorkspace.css";
 import DailyConsultation from '../../../shared-video/DailyConsultation';
 import ProfessionalAvailability from './ProfessionalAvailability';
@@ -26,45 +27,100 @@ function useResource(loader, key = "") {
 }
 const time = (value) => new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 const date = (value) => new Date(value).toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" });
+const weekday = (value) => new Date(value).toLocaleDateString([], { weekday: "long", day: "numeric", month: "long" });
 const patientName = (a) => a.dependent?.name || a.patient?.name || "Patient";
-function Status({ value }) { return <span className={`dl-status dl-status-${value?.toLowerCase()}`}>{statusLabel(value)}</span>; }
-function Empty({ title, text }) { return <div className="dl-empty"><ClipboardList size={30} /><h3>{title}</h3><p>{text}</p></div>; }
+const initials = (name) => name.split(" ").filter(Boolean).map((part) => part[0]).slice(0, 2).join("").toUpperCase();
+const typeLabel = (a) => a.consultationType === "VIRTUAL" ? "Video consultation" : "In-person consultation";
+// Video rooms open 10 minutes before the start and close 15 minutes after the end (server rule).
+const joinable = (a, now = Date.now()) => a?.status === "CONFIRMED" && a.consultationType === "VIRTUAL" && now >= new Date(a.startsAt).getTime() - 10 * 60_000 && now < new Date(a.endsAt).getTime() + 15 * 60_000;
+/** When a consultation happens, relative where that helps: "Starts in 12 min · 10:00–10:30", "Tomorrow · 09:00–09:30". */
+const when = (a, now = Date.now()) => {
+  const range = `${time(a.startsAt)}–${time(a.endsAt)}`;
+  const minutes = Math.round((new Date(a.startsAt).getTime() - now) / 60_000);
+  if (minutes <= 0) return `${joinable(a, now) ? "In progress" : "Started"} · ${range}`;
+  if (minutes < 60) return `Starts in ${minutes} min · ${range}`;
+  const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
+  if (localDay(a.startsAt) === localDay(new Date(now))) return `Today · ${range}`;
+  if (localDay(a.startsAt) === localDay(tomorrow)) return `Tomorrow · ${range}`;
+  return `${new Date(a.startsAt).toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })} · ${range}`;
+};
+// Professionals act on a request, so it reads as "Needs response" rather than the patient's wording.
+const PRO_LABELS = { REQUESTED: "Needs response" };
+function Status({ value }) { return <StatusBadge status={value} labels={PRO_LABELS} />; }
+function Empty({ title, text, action }) { return <EmptyState icon={ClipboardList} title={title} action={action}>{text}</EmptyState>; }
 function ResourceStatus({ resource }) {
-  if (resource.loading && !resource.data) return <div className="dl-loading" role="status"><span className="dl-spinner" /> Loading your workspace…</div>;
-  if (resource.error) return <div className="dl-error" role="alert"><p>{resource.error}</p><button className="dp-btn dp-btn-outline dp-btn-sm" onClick={resource.reload}>Try again</button></div>;
+  if (resource.loading && !resource.data) return <LoadingState label="Loading your workspace…" />;
+  if (resource.error) return <ErrorState title="We couldn't load this page" message={resource.error} onRetry={resource.reload} />;
   return null;
 }
-function Page({ title, description, resource, actions, children }) {
-  return <PortalLayout topbarProps={{ title: "Sabi Health · Professional Portal" }}><div className="dl-page">
-    <header className="dl-heading"><div><span className="dl-eyebrow">YOUR PRACTICE, CONNECTED</span><h1>{title}</h1><p>{description}</p></div><div className="dl-actions">{actions}{resource && <button className="dp-btn dp-btn-outline dp-btn-sm" disabled={resource.loading} onClick={resource.reload}><RefreshCw size={15} /> Refresh</button>}</div></header>
-    {resource && <ResourceStatus resource={resource} />}{(!resource || !resource.loading && !resource.error) && children}
+function Page({ eyebrow = "Professional portal", title, description, resource, actions, children }) {
+  return <PortalLayout topbarProps={{ title: "Sabi Health · Professional Portal" }}><div className="dl-page sx-page">
+    <PageHeader eyebrow={eyebrow} title={title} description={description} actions={<>{actions}{resource && <button type="button" className="sx-btn sx-btn-secondary" disabled={resource.loading} onClick={resource.reload} aria-busy={resource.loading && !!resource.data}><RefreshCw size={16} aria-hidden="true" /> Refresh</button>}</>} />
+    {resource && <ResourceStatus resource={resource} />}{(!resource || (!resource.error && (resource.data || !resource.loading))) && children}
   </div></PortalLayout>;
 }
-function AppointmentCards({ items }) {
-  return <div className="dl-list">{items.map((a) => <Link key={a.id} to={`/appointments/${a.id}`} className="dl-appointment-card">
-    <span className="dl-avatar">{patientName(a).split(" ").map((part) => part[0]).slice(0, 2).join("")}</span>
-    <div className="dl-card-main"><h3>{patientName(a)}</h3><p>{date(a.startsAt)} · {time(a.startsAt)}–{time(a.endsAt)}</p><small>{a.consultationType === "VIRTUAL" ? "Virtual consultation" : "In-person consultation"}{a.dependentId ? " · Dependent" : ""}</small></div>
-    <Status value={a.status} />
-  </Link>)}</div>;
+function AppointmentRow({ appointment: a, to, selected, onClick }) {
+  const body = <><DateTile value={a.startsAt} /><div className="sx-row-main"><p className="sx-row-title">{patientName(a)}{a.dependentId ? <span className="dl-muted"> · Dependant</span> : null}</p><p className="sx-row-meta">{time(a.startsAt)}–{time(a.endsAt)} · {typeLabel(a)}</p></div><Status value={a.status} /></>;
+  return to ? <Link to={to} className={`sx-row${selected ? " is-selected" : ""}`} aria-current={selected || undefined}>{body}</Link>
+    : <button type="button" className={`sx-row${selected ? " is-selected" : ""}`} aria-current={selected || undefined} onClick={onClick}>{body}</button>;
 }
 function Dashboard() {
   const doctor = getCurrentDoctor();
+  // Include consultations that started in the last hour so a call in progress stays visible.
   const resource = useResource((signal) => Promise.all([
-    api.loadAppointments("limit=100&offset=0&status=CONFIRMED&from=" + encodeURIComponent(new Date().toISOString()), signal),
+    api.loadAppointments("limit=100&offset=0&status=CONFIRMED&from=" + encodeURIComponent(new Date(Date.now() - 60 * 60_000).toISOString()), signal),
     api.loadAppointments("limit=5&offset=0&status=REQUESTED", signal),
     api.loadSlots(signal),
   ]).then(([upcoming, requests, slots]) => ({ upcoming, requests, slots })));
   const data = resource.data;
-  return <Page title={`Welcome, ${doctor.name}`} description={new Date().toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" })} resource={resource} actions={<Link className="dp-btn dp-btn-primary" to="/availability"><CalendarDays size={16} /> Publish availability</Link>}>
-    {data && <><div className="dl-stats">
-      {[{ icon: CalendarCheck, label: "Upcoming appointments", value: data.upcoming.total }, { icon: Clock, label: "Awaiting your response", value: data.requests.total }, { icon: CalendarDays, label: "Open slots · next 30 days", value: data.slots.items.filter((s) => s.state === "OPEN" && new Date(s.startsAt) > new Date()).length }].map(({ icon: Icon, label, value }) => <div className="dl-stat" key={label}><Icon size={21} /><strong>{value}</strong><span>{label}</span></div>)}
-    </div><div className="dl-columns"><section className="dp-panel"><div className="dl-section-heading"><h2>Needs your response</h2><Link to="/appointments?status=REQUESTED">View requests</Link></div>{data.requests.items.length ? <AppointmentCards items={data.requests.items} /> : <Empty title="You're all caught up" text="New patient booking requests will appear here." />}</section><section className="dp-panel"><div className="dl-section-heading"><h2>Next consultations</h2><Link to="/calendar">Open calendar</Link></div>{data.upcoming.items.length ? <AppointmentCards items={data.upcoming.items.slice(0, 5)} /> : <Empty title="Your schedule is clear" text="Publish availability so patients can request a consultation." />}</section></div></>}
+  const upcoming = data ? [...data.upcoming.items].sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt)) : [];
+  const next = upcoming.find((a) => new Date(a.endsAt).getTime() + 15 * 60_000 > Date.now());
+  const today = upcoming.filter((a) => localDay(a.startsAt) === localDay(new Date()));
+  const openSlots = data ? data.slots.items.filter((s) => s.state === "OPEN" && new Date(s.startsAt) > new Date()).length : 0;
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const summary = data ? [`${today.length} ${today.length === 1 ? "consultation" : "consultations"} today`, `${data.requests.total} ${data.requests.total === 1 ? "request" : "requests"} waiting`].join(" · ") : weekday(new Date());
+  return <Page eyebrow={weekday(new Date())} title={`${greeting}, ${doctor.firstNameGreeting || doctor.name}`} description={summary} resource={resource}
+    actions={next ? <Link className="sx-btn sx-btn-primary" to={`/appointments/${next.id}${joinable(next) ? "?join=1" : ""}`}>{joinable(next) ? <><Video size={16} aria-hidden="true" /> Join next consultation</> : <>Open next consultation</>}</Link> : <Link className="sx-btn sx-btn-primary" to="/availability"><CalendarDays size={16} aria-hidden="true" /> Publish availability</Link>}>
+    {data && <>
+      <div className="dl-stats">
+        {[{ icon: Clock, label: "Need your response", value: data.requests.total, to: "/appointments?status=REQUESTED", tone: data.requests.total ? "warning" : "" },
+          { icon: CalendarCheck, label: "Upcoming confirmed", value: data.upcoming.total, to: "/appointments?status=CONFIRMED" },
+          { icon: CalendarDays, label: "Open slots · next 30 days", value: openSlots, to: "/availability" }].map(({ icon: Icon, label, value, to, tone }) =>
+          <Link className={`dl-stat${tone ? ` dl-stat-${tone}` : ""}`} to={to} key={label}><Icon size={20} aria-hidden="true" /><strong>{value}</strong><span>{label}</span></Link>)}
+      </div>
+      <div className="sx-split">
+        <div className="sx-grid">
+          <section className="sx-card" aria-labelledby="next-heading">
+            <div className="sx-card-header"><h2 id="next-heading" className="sx-card-title">Next consultation</h2>{next && <Status value={next.status} />}</div>
+            {next ? <div className="dl-next">
+              <div className="dl-next-who"><span className="sx-avatar">{initials(patientName(next))}</span><div><p className="sx-row-title">{patientName(next)}</p><p className="sx-row-meta">{when(next)}</p></div></div>
+              <dl className="sx-facts"><dt>Consultation</dt><dd>{typeLabel(next)}</dd><dt>Reason</dt><dd>{next.reason || "Not provided"}</dd></dl>
+              <div className="sx-actions">
+                {joinable(next) ? <Link className="sx-btn sx-btn-primary" to={`/appointments/${next.id}?join=1`}><Video size={16} aria-hidden="true" /> Join video and chat</Link> : <Link className="sx-btn sx-btn-secondary" to={`/appointments/${next.id}`}>View details</Link>}
+                {next.consultationType === "VIRTUAL" && !joinable(next) && <span className="sx-hint">The video room opens 10 minutes before the start.</span>}
+              </div>
+            </div> : <Empty title="No confirmed consultations ahead" text="Accept booking requests or publish availability so patients can book you." action={<Link className="sx-btn sx-btn-secondary sx-btn-sm" to="/availability">Manage availability</Link>} />}
+          </section>
+          <section className="sx-card" aria-labelledby="today-heading">
+            <div className="sx-card-header"><h2 id="today-heading" className="sx-card-title">Today</h2><Link className="sx-link" to="/calendar">Open calendar</Link></div>
+            {today.length ? <div className="sx-list">{today.map((a) => <AppointmentRow key={a.id} appointment={a} to={`/appointments/${a.id}`} />)}</div> : <p className="dl-muted">No confirmed consultations today.</p>}
+          </section>
+        </div>
+        <section className="sx-card" aria-labelledby="requests-heading">
+          <div className="sx-card-header"><div><h2 id="requests-heading" className="sx-card-title">Needs your response</h2><p className="sx-card-subtitle">Patients are waiting for you to accept or decline.</p></div>{data.requests.total > data.requests.items.length && <Link className="sx-link" to="/appointments?status=REQUESTED">View all {data.requests.total}</Link>}</div>
+          {data.requests.items.length ? <div className="sx-list">{data.requests.items.map((a) => <AppointmentRow key={a.id} appointment={a} to={`/appointments/${a.id}`} />)}</div> : <Empty title="You're all caught up" text="New booking requests will appear here." />}
+        </section>
+      </div>
+    </>}
   </Page>;
 }
+const APPOINTMENT_TABS = [{ id: "REQUESTED", label: "Needs response" }, { id: "CONFIRMED", label: "Upcoming" }, { id: "COMPLETED", label: "Completed" }, { id: "DECLINED", label: "Declined" }, { id: "CANCELLED", label: "Cancelled" }, { id: "", label: "All" }];
 function Appointments({ consultations = false }) {
   const { id } = useParams();
-  const initialStatus = new URLSearchParams(window.location.search).get("status") || "";
-  const [filter, setFilter] = useState(consultations ? "CONFIRMED" : initialStatus);
+  const [searchParams] = useSearchParams();
+  const initialStatus = searchParams.get("status");
+  const [filter, setFilter] = useState(consultations ? "CONFIRMED" : APPOINTMENT_TABS.some((t) => t.id === initialStatus) ? initialStatus : "");
   const [offset, setOffset] = useState(0);
   const resource = useResource((signal) => api.loadAppointments(`limit=20&offset=${offset}${filter ? `&status=${filter}` : ""}`, signal), `${filter}:${offset}`);
   const [selectedId, setSelectedId] = useState(id || "");
@@ -72,7 +128,7 @@ function Appointments({ consultations = false }) {
   const [reason, setReason] = useState("");
   const [callId, setCallId] = useState('');
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState(null);
   const detail = useResource(async (signal) => {
     if (!id) return null;
     return api.loadAppointment(id, signal);
@@ -80,7 +136,10 @@ function Appointments({ consultations = false }) {
   const navigate = useNavigate();
   const items = resource.data?.items || [];
   const selected = items.find((a) => a.id === (id || selectedId)) || (id ? detail.data : null);
-  useEffect(() => { setSelectedId(id || ""); setOperation(""); setNotice(""); setCallId(''); }, [id]);
+  useEffect(() => { setSelectedId(id || ""); setOperation(""); setNotice(null); setCallId(''); }, [id]);
+  // Arriving from "Join" on the dashboard opens the call straight away (consent is still asked in the call dialog).
+  const wantsJoin = searchParams.get("join") === "1";
+  useEffect(() => { if (wantsJoin && selected && joinable(selected) && !callId) setCallId(selected.id); }, [wantsJoin, selected?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     // Refreshing the gated page unmounts its children; never tear down an active call.
     if (callId) return;
@@ -88,64 +147,63 @@ function Appointments({ consultations = false }) {
     return () => clearInterval(timer);
   }, [filter, offset, callId]);
   async function act(event) {
-    event.preventDefault(); setBusy(true); setNotice("");
+    event.preventDefault(); setBusy(true); setNotice(null);
     try {
       const body = operation === "decline" || operation === "cancel" ? { reason } : {};
       await api.appointmentAction(selected.id, operation, body);
-      setNotice("Appointment updated. The patient sees the updated status in Sabi Health."); setOperation(""); setReason(""); resource.reload(); detail.reload();
-    } catch (error) { setNotice(error.message); }
+      setNotice({ tone: "success", text: "Appointment updated. The patient sees the new status in Sabi Health." }); setOperation(""); setReason(""); resource.reload(); detail.reload();
+    } catch (error) { setNotice({ tone: "danger", text: error.message }); }
     finally { setBusy(false); }
   }
-  return <Page title={consultations ? "Consultations" : "Appointments"} description="Manage booking requests and consultation status." resource={resource}>
-    <div className="dl-filters"><label>Show <select value={filter} onChange={(e) => { setFilter(e.target.value); setOffset(0); setSelectedId(""); }}><option value="">All appointments</option>{["REQUESTED", "CONFIRMED", "COMPLETED", "DECLINED", "CANCELLED"].map((s) => <option key={s} value={s}>{statusLabel(s)}</option>)}</select></label></div>
-    {notice && <div className="dl-notice" role="status">{notice}</div>}
-    <div className="dl-columns"><section className="dp-panel">
-      {items.length ? <div className="dl-list">{items.map((a) => <button key={a.id} className={`dl-appointment-card ${selected?.id === a.id ? "is-selected" : ""}`} onClick={() => { if (id) navigate(`/appointments/${a.id}`); setSelectedId(a.id); setOperation(""); setNotice(""); }}><div className="dl-card-main"><h3>{patientName(a)}</h3><p>{date(a.startsAt)} · {time(a.startsAt)}</p><small>{a.consultationType === "VIRTUAL" ? "Virtual" : "In person"}</small></div><Status value={a.status} /></button>)}</div> : <Empty title="No appointments here yet" text="Patient bookings appear here as soon as they are requested." />}
-      <Pagination offset={offset} total={resource.data?.total || 0} size={20} onChange={setOffset} />
-    </section><section className="dp-panel">
-      {id && <ResourceStatus resource={detail} />}
-      {selected ? <><div className="dl-section-heading"><h2>{patientName(selected)}</h2><Status value={selected.status} /></div><dl className="dl-facts"><dt>Patient reference</dt><dd>{selected.patient?.patientId || "Not supplied"}</dd><dt>Consultation</dt><dd>{selected.consultationType === "VIRTUAL" ? "Virtual" : "In person"}</dd><dt>Scheduled for</dt><dd>{date(selected.startsAt)} · {time(selected.startsAt)}–{time(selected.endsAt)}</dd><dt>Reason for visit</dt><dd>{selected.reason || "No reason provided"}</dd>{selected.decisionReason && <><dt>Decision note</dt><dd>{selected.decisionReason}</dd></>}</dl>
-        {selected.status === "CONFIRMED" && selected.consultationType === 'VIRTUAL' && <button className="dp-btn dp-btn-primary" onClick={() => setCallId(selected.id)}><Video size={16} /> Join video and chat</button>}
-        <div className="dl-actions dl-space">
-          {selected.status === "REQUESTED" && <><button disabled={busy || new Date(selected.startsAt) <= new Date()} className="dp-btn dp-btn-primary" onClick={() => setOperation("confirm")}>Accept request</button><button disabled={busy} className="dp-btn dp-btn-outline" onClick={() => setOperation("decline")}>Decline</button></>}
-          {selected.status === "CONFIRMED" && new Date(selected.startsAt) <= new Date() && <button disabled={busy} className="dp-btn dp-btn-primary" onClick={() => setOperation("complete")}>Mark completed</button>}
-          {["REQUESTED", "CONFIRMED"].includes(selected.status) && new Date(selected.startsAt) > new Date() && <button disabled={busy} className="dp-btn dp-btn-danger" onClick={() => setOperation("cancel")}>Cancel appointment</button>}
-        </div>
-        {operation && <form className="dl-form dl-space" onSubmit={act}><h3>{operation === "complete" ? "Complete this consultation?" : operation === "confirm" ? "Confirm booking" : "Record your reason"}</h3>{["decline", "cancel"].includes(operation) && <label>Reason<textarea required maxLength={300} value={reason} onChange={(e) => setReason(e.target.value)} /></label>}{operation === 'confirm' && selected.consultationType === 'VIRTUAL' && <p>Sabi prepares a private Daily room when you or the patient joins. No meeting link is needed.</p>}<div className="dl-actions"><button className="dp-btn dp-btn-primary" disabled={busy}>{busy ? "Saving…" : "Confirm"}</button><button className="dp-btn dp-btn-outline" type="button" disabled={busy} onClick={() => setOperation("")}>Back</button></div></form>}
-      </> : !id && <Empty title="Select an appointment" text="Review its details, respond to the request, or join a consultation." />}
-    </section></div>
+  const future = selected && new Date(selected.startsAt) > new Date();
+  const nextStep = !selected ? "" : selected.status === "REQUESTED" ? (future ? "Accept to confirm the booking, or decline with a reason the patient will see." : "This request's start time has passed, so it can no longer be accepted.")
+    : selected.status === "CONFIRMED" ? (joinable(selected) ? "The video room is open." : future ? (selected.consultationType === "VIRTUAL" ? "The video room opens 10 minutes before the start." : "See the patient at your practice at the scheduled time.") : "Mark the consultation completed when you have finished.") : "";
+  return <Page title={consultations ? "Consultations" : "Appointments"} description="Respond to booking requests, run consultations and keep each patient's status up to date." resource={resource}>
+    <Tabs label="Filter appointments" tabs={APPOINTMENT_TABS.map((t) => ({ ...t, count: t.id === filter && resource.data ? resource.data.total : undefined }))} value={filter} onChange={(value) => { setFilter(value); setOffset(0); setSelectedId(""); if (id) navigate(consultations ? "/consultations" : "/appointments"); }} />
+    {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
+    <div className="sx-split">
+      <section className="sx-card" aria-label="Appointment list">
+        {items.length ? <div className="sx-list">{items.map((a) => <AppointmentRow key={a.id} appointment={a} selected={selected?.id === a.id} onClick={() => { if (id) navigate(`/appointments/${a.id}`); setSelectedId(a.id); setOperation(""); setNotice(null); }} />)}</div>
+          : <Empty title={filter === "REQUESTED" ? "No requests waiting" : "Nothing here yet"} text={filter === "REQUESTED" ? "New booking requests will appear here as soon as patients send them." : "Appointments in this view will appear here."} />}
+        <Pagination offset={offset} total={resource.data?.total || 0} size={20} onChange={setOffset} />
+      </section>
+      <section className="sx-card dl-detail" aria-label="Appointment details">
+        {id && <ResourceStatus resource={detail} />}
+        {selected ? <>
+          <div className="sx-card-header"><div className="dl-next-who"><span className="sx-avatar">{initials(patientName(selected))}</span><div><h2 className="sx-card-title">{patientName(selected)}</h2><p className="sx-card-subtitle">{weekday(selected.startsAt)} · {time(selected.startsAt)}–{time(selected.endsAt)}</p></div></div><Status value={selected.status} /></div>
+          <dl className="sx-facts"><dt>Patient reference</dt><dd>{selected.patient?.patientId || "Not supplied"}</dd><dt>Consultation</dt><dd>{typeLabel(selected)}{selected.dependentId ? " · for a dependant" : ""}</dd><dt>Reason for visit</dt><dd>{selected.reason || "No reason provided"}</dd>{selected.decisionReason && <><dt>Decision note</dt><dd>{selected.decisionReason}</dd></>}</dl>
+          {nextStep && <p className="dl-next-step">{nextStep}</p>}
+          <div className="sx-actions">
+            {joinable(selected) && <button type="button" className="sx-btn sx-btn-primary" onClick={() => setCallId(selected.id)}><Video size={16} aria-hidden="true" /> Join video and chat</button>}
+            {selected.status === "REQUESTED" && <><button type="button" disabled={busy || !future} className="sx-btn sx-btn-primary" onClick={() => setOperation("confirm")}>Accept request</button><button type="button" disabled={busy} className="sx-btn sx-btn-secondary" onClick={() => setOperation("decline")}>Decline</button></>}
+            {selected.status === "CONFIRMED" && !future && <button type="button" disabled={busy} className={`sx-btn ${joinable(selected) ? "sx-btn-secondary" : "sx-btn-primary"}`} onClick={() => setOperation("complete")}>Mark completed</button>}
+            {["REQUESTED", "CONFIRMED"].includes(selected.status) && future && <button type="button" disabled={busy} className="sx-btn sx-btn-danger" onClick={() => setOperation("cancel")}>Cancel appointment</button>}
+          </div>
+          {operation && <form className="dl-form dl-confirm" onSubmit={act}>
+            <h3>{operation === "complete" ? "Complete this consultation?" : operation === "confirm" ? "Confirm this booking?" : operation === "decline" ? "Decline this request" : "Cancel this appointment"}</h3>
+            {["decline", "cancel"].includes(operation) && <div className="sx-field"><label htmlFor="appointment-reason">Reason the patient will see</label><textarea id="appointment-reason" className="sx-textarea" required maxLength={300} value={reason} onChange={(e) => setReason(e.target.value)} /><span className="sx-hint">{300 - reason.length} characters left</span></div>}
+            {operation === 'confirm' && selected.consultationType === 'VIRTUAL' && <p className="dl-muted">Sabi prepares a private video room when you or the patient joins. No meeting link is needed.</p>}
+            <div className="sx-actions"><button className={`sx-btn ${operation === "cancel" || operation === "decline" ? "sx-btn-danger" : "sx-btn-primary"}`} disabled={busy} aria-busy={busy}>{busy ? "Saving…" : operation === "confirm" ? "Accept and confirm" : operation === "complete" ? "Mark completed" : operation === "decline" ? "Decline request" : "Cancel appointment"}</button><button className="sx-btn sx-btn-ghost" type="button" disabled={busy} onClick={() => setOperation("")}>Back</button></div>
+          </form>}
+        </> : !id && <Empty title="Select an appointment" text="Choose an appointment to review it, respond to the request or join the consultation." />}
+      </section>
+    </div>
     {callId && <DailyConsultation key={callId} appointmentId={callId} title="Patient consultation" getConfig={api.videoConfig} joinSession={api.joinVideoSession} checkSession={api.checkVideoSession} onClose={() => setCallId('')} />}
   </Page>;
 }
 function Pagination({ offset, total, size, onChange }) {
-  return total > size ? <div className="dl-pagination"><button className="dp-btn dp-btn-outline dp-btn-sm" disabled={!offset} onClick={() => onChange(Math.max(0, offset - size))}>Previous</button><span>{offset + 1}–{Math.min(offset + size, total)} of {total}</span><button className="dp-btn dp-btn-outline dp-btn-sm" disabled={offset + size >= total} onClick={() => onChange(offset + size)}>Next</button></div> : null;
+  return total > size ? <nav className="dl-pagination" aria-label="Pages"><button type="button" className="sx-btn sx-btn-secondary sx-btn-sm" disabled={!offset} onClick={() => onChange(Math.max(0, offset - size))}>Previous</button><span>{offset + 1}–{Math.min(offset + size, total)} of {total}</span><button type="button" className="sx-btn sx-btn-secondary sx-btn-sm" disabled={offset + size >= total} onClick={() => onChange(offset + size)}>Next</button></nav> : null;
 }
 function Calendar() {
   const [day, setDay] = useState(localDay(new Date()));
+  const shift = (days) => { const d = new Date(`${day}T12:00:00`); d.setDate(d.getDate() + days); setDay(localDay(d)); };
   const resource = useResource((signal) => Promise.all([api.loadAppointments("limit=100&offset=0&from=" + encodeURIComponent(new Date(`${day}T00:00:00`).toISOString()), signal), api.loadSlots(signal)]).then(([appointments, slots]) => ({ appointments, slots })), day);
   const bookings = resource.data?.appointments.items.filter((a) => localDay(a.startsAt) === day && !["CANCELLED", "DECLINED"].includes(a.status)) || [];
   const slots = resource.data?.slots.items.filter((s) => localDay(s.startsAt) === day && s.state === "OPEN") || [];
-  return <Page title="Calendar" description={`Your schedule · ${Intl.DateTimeFormat().resolvedOptions().timeZone}`} resource={resource} actions={<Link to="/availability" className="dp-btn dp-btn-primary">Manage availability</Link>}>
-    <div className="dl-filters"><label>Choose a date<input type="date" required value={day} onChange={(e) => e.target.value && setDay(e.target.value)} /></label></div><div className="dl-columns"><section className="dp-panel"><h2>Consultations</h2>{bookings.length ? <AppointmentCards items={bookings} /> : <Empty title="No consultations on this date" text="Confirmed and requested appointments appear in your calendar." />}</section><section className="dp-panel"><h2>Open consultation slots</h2>{slots.length ? slots.map((s) => <div className="dl-slot" key={s.id}><Clock size={17} /><strong>{time(s.startsAt)}–{time(s.endsAt)}</strong><span>{s.consultationTypes.map((t) => t === "VIRTUAL" ? "Virtual" : "In person").join(" · ")}</span></div>) : <Empty title="No open slots" text="Publish available times from Manage Availability." />}</section></div>
-  </Page>;
-}
-function Availability() {
-  const resource = useResource(api.loadSlots);
-  const [form, setForm] = useState({ day: "", start: "09:00", end: "09:30", virtual: true, physical: false });
-  const [busy, setBusy] = useState(false); const [notice, setNotice] = useState("");
-  const update = (key, value) => setForm((f) => ({ ...f, [key]: value }));
-  async function publish(event) {
-    event.preventDefault(); setNotice("");
-    const startsAt = new Date(`${form.day}T${form.start}`), endsAt = new Date(`${form.day}T${form.end}`);
-    if (startsAt <= new Date() || endsAt <= startsAt) { setNotice("Choose a future start time and an end time after it."); return; }
-    if (!form.virtual && !form.physical) { setNotice("Choose at least one consultation type."); return; }
-    setBusy(true);
-    try { await api.publishSlots([{ startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString(), consultationTypes: [...(form.virtual ? ["VIRTUAL"] : []), ...(form.physical ? ["IN_PERSON"] : [])] }]); setNotice("Availability published. Patients can now book this slot."); resource.reload(); }
-    catch (error) { setNotice(error.message); } finally { setBusy(false); }
-  }
-  async function cancel(id) { setBusy(true); setNotice(""); try { await api.cancelSlot(id); setNotice("Slot removed from patient booking."); resource.reload(); } catch (error) { setNotice(error.message); } finally { setBusy(false); } }
-  return <Page title="Manage availability" description={`Publish consultation slots · Times are shown in ${Intl.DateTimeFormat().resolvedOptions().timeZone}.`} resource={resource}>
-    {notice && <div className="dl-notice" role="status">{notice}</div>}<div className="dl-columns"><section className="dp-panel"><h2>Publish a slot</h2><p className="dl-muted">Publish the dates and times you can offer. Booked slots stay protected.</p><form className="dl-form" onSubmit={publish}><label>Date<input type="date" min={localDay(new Date())} required value={form.day} onChange={(e) => update("day", e.target.value)} /></label><div className="dl-form-row"><label>Starts at<input type="time" required value={form.start} onChange={(e) => update("start", e.target.value)} /></label><label>Ends at<input type="time" required value={form.end} onChange={(e) => update("end", e.target.value)} /></label></div><div className="dl-checks"><label><input type="checkbox" checked={form.virtual} onChange={(e) => update("virtual", e.target.checked)} /> Virtual</label><label><input type="checkbox" checked={form.physical} onChange={(e) => update("physical", e.target.checked)} /> In person</label></div><button className="dp-btn dp-btn-primary" disabled={busy}>{busy ? "Saving…" : "Publish availability"}</button></form></section><section className="dp-panel"><h2>Published slots · next 30 days</h2>{resource.data?.items.length ? <div className="dl-list">{resource.data.items.map((s) => <div className="dl-slot" key={s.id}><div><strong>{date(s.startsAt)}</strong><p>{time(s.startsAt)}–{time(s.endsAt)}</p><small>{s.consultationTypes.map((t) => t === "VIRTUAL" ? "Virtual" : "In person").join(" · ")}</small></div><Status value={s.state} />{s.state === "OPEN" && <button className="dp-btn dp-btn-outline dp-btn-sm" disabled={busy} onClick={() => cancel(s.id)}>Remove</button>}</div>)}</div> : <Empty title="No published availability" text="Add your first slot to appear in patient booking." />}</section></div>
+  return <Page title="Calendar" description={`Your day at a glance · times in ${Intl.DateTimeFormat().resolvedOptions().timeZone}`} resource={resource} actions={<Link to="/availability" className="sx-btn sx-btn-secondary">Manage availability</Link>}>
+    <div className="dl-daybar"><button type="button" className="sx-btn sx-btn-secondary sx-btn-sm" onClick={() => shift(-1)} aria-label="Previous day">‹</button><div className="sx-field"><label htmlFor="calendar-day" className="sx-sr-only">Choose a date</label><input id="calendar-day" className="sx-input" type="date" required value={day} onChange={(e) => e.target.value && setDay(e.target.value)} /></div><button type="button" className="sx-btn sx-btn-secondary sx-btn-sm" onClick={() => shift(1)} aria-label="Next day">›</button>{day !== localDay(new Date()) && <button type="button" className="sx-btn sx-btn-ghost sx-btn-sm" onClick={() => setDay(localDay(new Date()))}>Today</button>}<strong className="dl-daybar-label">{weekday(`${day}T12:00:00`)}</strong></div>
+    <div className="sx-split"><section className="sx-card" aria-labelledby="cal-bookings"><div className="sx-card-header"><h2 id="cal-bookings" className="sx-card-title">Consultations</h2><span className="sx-hint">{bookings.length} booked</span></div>{bookings.length ? <div className="sx-list">{bookings.map((a) => <AppointmentRow key={a.id} appointment={a} to={`/appointments/${a.id}`} />)}</div> : <Empty title="No consultations on this date" text="Confirmed and requested appointments appear here." />}</section>
+      <section className="sx-card" aria-labelledby="cal-slots"><div className="sx-card-header"><h2 id="cal-slots" className="sx-card-title">Open slots</h2><span className="sx-hint">{slots.length} bookable</span></div>{slots.length ? <div className="sx-chips">{slots.map((s) => <span className="sx-chip" key={s.id}>{time(s.startsAt)}<small>{s.consultationTypes.map((t) => t === "VIRTUAL" ? "Video" : "In person").join(" · ")}</small></span>)}</div> : <Empty title="No open slots" text="Publish available times from Manage availability." />}</section></div>
   </Page>;
 }
 function Patients() {
