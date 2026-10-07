@@ -298,7 +298,8 @@ function ConsultationReports() {
   const resource = useResource((signal) => api.loadConsultationNotes(offset, signal), offset);
   const data = resource.data;
   return <Page title="Reports" description="Consultation notes and the visit summaries your patients receive." resource={resource}>
-    {data && <div className="dl-columns"><section className="dp-panel"><h2>Waiting for your note</h2>{data.awaiting.length ? <div className="dl-list">{data.awaiting.map((a) => <Link key={a.appointmentId} to={`/reports/${a.appointmentId}`} className="dl-appointment-card"><div className="dl-card-main"><h3>{noteWho(a)}</h3><p>{date(a.startsAt)} · {time(a.startsAt)}</p><small>Completed · no signed note yet</small></div><span className="dl-status dl-status-requested">Write note</span></Link>)}</div> : <Empty title="You're up to date" text="Completed consultations without a signed note appear here." />}</section>
+    {data?.notLive && <Notice tone="info" title="Consultation notes are being switched on">Your notes will appear here as soon as the update is live. Nothing else changes.</Notice>}
+    {data && !data.notLive && <div className="dl-columns"><section className="dp-panel"><h2>Waiting for your note</h2>{data.awaiting.length ? <div className="dl-list">{data.awaiting.map((a) => <Link key={a.appointmentId} to={`/reports/${a.appointmentId}`} className="dl-appointment-card"><div className="dl-card-main"><h3>{noteWho(a)}</h3><p>{date(a.startsAt)} · {time(a.startsAt)}</p><small>Completed · no signed note yet</small></div><span className="dl-status dl-status-requested">Write note</span></Link>)}</div> : <Empty title="You're up to date" text="Completed consultations without a signed note appear here." />}</section>
       <section className="dp-panel"><h2>Your consultation notes</h2>{data.items.length ? <div className="dl-list">{data.items.map((n) => <Link key={n.appointmentId} to={`/reports/${n.appointmentId}`} className="dl-appointment-card"><div className="dl-card-main"><h3>{noteWho(n)}</h3><p>{date(n.startsAt)} · {time(n.startsAt)}</p><small>Last edited {date(n.updatedAt)}</small></div><NoteStatus note={n} /></Link>)}</div> : <Empty title="No notes yet" text="Open a confirmed or completed appointment and choose Consultation note." />}<Pagination offset={offset} total={data.total} size={20} onChange={setOffset} /></section></div>}
   </Page>;
 }
@@ -306,7 +307,7 @@ function ConsultationNoteEditor() {
   const { appointmentId } = useParams();
   const resource = useResource((signal) => api.loadConsultationNote(appointmentId, signal), appointmentId);
   const [saved, setSaved] = useState(null); const [form, setForm] = useState(null); const [reason, setReason] = useState(""); const [busy, setBusy] = useState(false); const [notice, setNotice] = useState("");
-  useEffect(() => { if (resource.data) { setSaved(resource.data); setForm(resource.data.note?.draft || BLANK_NOTE); } }, [resource.data]);
+  useEffect(() => { if (resource.data && !resource.data.notLive) { setSaved(resource.data); setForm(resource.data.note?.draft || BLANK_NOTE); } }, [resource.data]);
   const dirty = Boolean(form && saved) && JSON.stringify(form) !== JSON.stringify(saved.note?.draft || BLANK_NOTE);
   // Warn before leaving the page with unsaved clinical text.
   useEffect(() => { if (!dirty) return undefined; const warn = (event) => { event.preventDefault(); event.returnValue = ""; }; window.addEventListener("beforeunload", warn); return () => window.removeEventListener("beforeunload", warn); }, [dirty]);
@@ -326,6 +327,7 @@ function ConsultationNoteEditor() {
   }
   const appointment = saved?.appointment; const note = saved?.note;
   return <Page title="Consultation note" description={appointment ? `${appointment.dependent ? `${appointment.dependent.name} (via ${appointment.patient.name || "patient"})` : appointment.patient.name || "Patient"} · ${date(appointment.startsAt)} · ${time(appointment.startsAt)}` : "The record of this consultation."} resource={resource} actions={<Link className="dp-btn dp-btn-outline dp-btn-sm" to="/reports">All notes</Link>}>
+    {resource.data?.notLive && <Notice tone="info" title="Consultation notes are being switched on">You will be able to write notes here as soon as the update is live.</Notice>}
     {notice && <div className="dl-notice" role="status">{notice}</div>}
     {form && appointment && <div className="dl-columns"><section className="dp-panel"><div className="dl-section-heading"><h2>Clinical record</h2>{note ? <NoteStatus note={note} /> : <span className="dl-status dl-status-requested">New</span>}</div>
       <form className="dl-form" onSubmit={save}>

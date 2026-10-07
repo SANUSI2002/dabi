@@ -229,7 +229,8 @@ export async function listUiAppointments() {
   // ones say the summary is unavailable instead of looking like none was written.
   const [result, summaries] = await Promise.all([
     get("/api/v1/doctor-appointments/mine", { limit: 100 }),
-    listVisitSummaries().then((items) => ({ items }), (error) => ({ error })),
+    // A plain 404 (no error code) means the server does not have visit summaries yet: show none.
+    listVisitSummaries().then((items) => ({ items }), (error) => (error.status === 404 && !error.code ? { items: [] } : { error })),
   ]);
   const byAppointment = new Map((summaries.items || []).map((s) => [s.appointmentId, s]));
   return result.items.map((item) => {

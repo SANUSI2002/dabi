@@ -42,6 +42,12 @@ describe('doctor consultation note editor',()=>{
     expect(await screen.findByRole('button',{name:'Sign and share with patient'})).toBeDisabled();
     expect(screen.getByText(/Signing opens once you mark the consultation completed/)).toBeInTheDocument();
   });
+  it('says notes are being switched on while the server does not have them yet',async()=>{
+    api.loadConsultationNotes.mockResolvedValue({notLive:true});
+    render(<MemoryRouter initialEntries={['/reports']}><LiveDoctorWorkspace/></MemoryRouter>);
+    expect(await screen.findByText('Consultation notes are being switched on')).toBeInTheDocument();
+    expect(screen.queryByText(/couldn't load/i)).not.toBeInTheDocument();
+  });
   it('asks for a reason before signing an amendment',async()=>{
     api.loadConsultationNote.mockResolvedValue(detail({revision:3,signedVersion:1}));
     api.signConsultationNote.mockResolvedValue(detail({revision:5,signedVersion:2}));
@@ -70,6 +76,11 @@ describe('patient visit summaries',()=>{
     identity.authorizedRequest.mockImplementation(async(path)=>{if(path.includes('consultation-notes'))throw new Error('Service unavailable');return {data:{items:[appointment]}};});
     const [item]=await listUiAppointments();
     expect(item).toMatchObject({visitSummary:null,followUpRecommended:false,visitSummaryUnavailable:true});
+  });
+  it('shows no summaries, and no error, while the server does not have them yet',async()=>{
+    identity.authorizedRequest.mockImplementation(async(path)=>{if(path.includes('consultation-notes'))throw Object.assign(new Error('Not Found'),{status:404});return {data:{items:[appointment]}};});
+    const [item]=await listUiAppointments();
+    expect(item).toMatchObject({visitSummary:null,visitSummaryUnavailable:false});
   });
   it('shows the summary in the appointment details, skipping empty sections',()=>{
     render(<AppointmentDetailModal appointment={{status:'completed',doctor:'Dr Synthetic',location:'Video consultation',date:'Oct 07, 2026',time:'01:00 PM',visitSummary:visit}} onClose={()=>{}}/>);

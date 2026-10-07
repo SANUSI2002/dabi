@@ -32,7 +32,10 @@ export const loadMfa = (signal) => doctorRequest("/auth/mfa/status", { signal })
 export const logoutEverywhere = () => doctorRequest("/auth/sessions/logout-all", json("POST", {}));
 // Consultation notes: the doctor's record of a consultation and the patient's visit summary.
 const NOTES = "/consultation-notes/practice";
-export const loadConsultationNotes = (offset, signal) => doctorRequest(`${NOTES}?limit=20&offset=${offset}`, { signal }).then((r) => r.data);
-export const loadConsultationNote = (appointmentId, signal) => doctorRequest(`${NOTES}/appointments/${encodeURIComponent(appointmentId)}`, { signal }).then((r) => r.data);
+// Until the server has the consultation-notes module, its routes answer a plain 404 (no error code;
+// the module's own "not found" always carries one). Screens then say notes are being switched on.
+const notesNotLive = (error) => { if (error.status === 404 && !error.code) return { notLive: true }; throw error; };
+export const loadConsultationNotes = (offset, signal) => doctorRequest(`${NOTES}?limit=20&offset=${offset}`, { signal }).then((r) => r.data, notesNotLive);
+export const loadConsultationNote = (appointmentId, signal) => doctorRequest(`${NOTES}/appointments/${encodeURIComponent(appointmentId)}`, { signal }).then((r) => r.data, notesNotLive);
 export const saveConsultationNote = (appointmentId, body) => doctorRequest(`${NOTES}/appointments/${encodeURIComponent(appointmentId)}`, json("PUT", body)).then((r) => r.data);
 export const signConsultationNote = (appointmentId, body) => doctorRequest(`${NOTES}/appointments/${encodeURIComponent(appointmentId)}/sign`, json("POST", body)).then((r) => r.data);
