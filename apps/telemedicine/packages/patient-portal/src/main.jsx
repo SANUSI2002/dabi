@@ -3,6 +3,9 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./styles/global.css";
 import 'leaflet/dist/leaflet.css';
+import { registerPwa } from "../../shared-portal/pwa/registerPwa.ts";
+
+registerPwa();
 
 const container = document.getElementById("root");
 const root = createRoot(container);
