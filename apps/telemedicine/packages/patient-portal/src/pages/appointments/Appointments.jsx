@@ -114,7 +114,8 @@ export function Appointments() {
             return appointment.status === "cancelled";
 
           case "Follow-ups":
-            return appointment.status === "follow-up";
+            // Visits where the doctor recommended a follow-up in the signed visit summary.
+            return appointment.status === "follow-up" || appointment.followUpRecommended;
 
           default:
             return true;

@@ -221,7 +221,24 @@ export function toUiAppointment(api) {
 
 export const getUiAppointment = async (id) => toUiAppointment(await get(`/api/v1/doctor-appointments/${id}`));
 
+/** Signed visit summaries from my doctors (never their private clinical notes). */
+export const listVisitSummaries = () => get("/api/v1/consultation-notes/mine");
+
 export async function listUiAppointments() {
-  const result = await get("/api/v1/doctor-appointments/mine", { limit: 100 });
-  return result.items.map(toUiAppointment);
+  // Visit summaries are extra detail: if they fail to load, appointments still show and completed
+  // ones say the summary is unavailable instead of looking like none was written.
+  const [result, summaries] = await Promise.all([
+    get("/api/v1/doctor-appointments/mine", { limit: 100 }),
+    listVisitSummaries().then((items) => ({ items }), (error) => ({ error })),
+  ]);
+  const byAppointment = new Map((summaries.items || []).map((s) => [s.appointmentId, s]));
+  return result.items.map((item) => {
+    const visitSummary = byAppointment.get(item.id) || null;
+    return {
+      ...toUiAppointment(item),
+      visitSummary,
+      visitSummaryUnavailable: Boolean(summaries.error) && item.status === "COMPLETED",
+      followUpRecommended: Boolean(visitSummary?.summary.followUp.needed),
+    };
+  });
 }

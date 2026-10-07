@@ -63,6 +63,7 @@ function Dashboard() {
 }
 function Appointments({ consultations = false }) {
   const { id } = useParams();
+  const writesNotes = getCurrentDoctor()?.professionType === "DOCTOR";
   const initialStatus = new URLSearchParams(window.location.search).get("status") || "";
   const [filter, setFilter] = useState(consultations ? "CONFIRMED" : initialStatus);
   const [offset, setOffset] = useState(0);
@@ -110,6 +111,7 @@ function Appointments({ consultations = false }) {
           {selected.status === "REQUESTED" && <><button disabled={busy || new Date(selected.startsAt) <= new Date()} className="dp-btn dp-btn-primary" onClick={() => setOperation("confirm")}>Accept request</button><button disabled={busy} className="dp-btn dp-btn-outline" onClick={() => setOperation("decline")}>Decline</button></>}
           {selected.status === "CONFIRMED" && new Date(selected.startsAt) <= new Date() && <button disabled={busy} className="dp-btn dp-btn-primary" onClick={() => setOperation("complete")}>Mark completed</button>}
           {["REQUESTED", "CONFIRMED"].includes(selected.status) && new Date(selected.startsAt) > new Date() && <button disabled={busy} className="dp-btn dp-btn-danger" onClick={() => setOperation("cancel")}>Cancel appointment</button>}
+          {writesNotes && ["CONFIRMED", "COMPLETED"].includes(selected.status) && <Link className="dp-btn dp-btn-outline" to={`/reports/${selected.id}`}><FileText size={16} /> Consultation note</Link>}
         </div>
         {operation && <form className="dl-form dl-space" onSubmit={act}><h3>{operation === "complete" ? "Complete this consultation?" : operation === "confirm" ? "Confirm booking" : "Record your reason"}</h3>{["decline", "cancel"].includes(operation) && <label>Reason<textarea required maxLength={300} value={reason} onChange={(e) => setReason(e.target.value)} /></label>}{operation === 'confirm' && selected.consultationType === 'VIRTUAL' && <p>Sabi prepares a private Daily room when you or the patient joins. No meeting link is needed.</p>}<div className="dl-actions"><button className="dp-btn dp-btn-primary" disabled={busy}>{busy ? "Saving…" : "Confirm"}</button><button className="dp-btn dp-btn-outline" type="button" disabled={busy} onClick={() => setOperation("")}>Back</button></div></form>}
       </> : !id && <Empty title="Select an appointment" text="Review its details, respond to the request, or join a consultation." />}
@@ -219,6 +221,67 @@ function Settings() {
   async function logout() { setBusy(true); try { await api.logoutEverywhere(); signOutDoctor(); navigate("/login", { replace: true }); } catch (error) { setNotice(error.message); } finally { setBusy(false); } }
   return <Page title="Account settings" description="Manage your Sabi Identity security and active sessions." resource={resource}>{notice && <div className="dl-notice" role="status">{notice}</div>}<div className="dl-columns"><section className="dp-panel"><h2>Account & security</h2><p>{getCurrentDoctor().email}</p><p className="dl-muted">Manage your authenticator and recovery codes through Sabi Identity.</p><div className="dl-actions"><a className="dp-btn dp-btn-primary" href={`${IDENTITY_UI_URL}/identity/mfa`}><ShieldCheck size={16} /> Manage authenticator</a><Link className="dp-btn dp-btn-outline" to="/forgot-password">Reset password</Link></div></section><section className="dp-panel"><div className="dl-section-heading"><h2>Active sessions</h2><button className="dp-btn dp-btn-danger dp-btn-sm" disabled={busy} onClick={logout}>Log out everywhere</button></div>{resource.data?.sessions.map((s) => <div className="dl-slot" key={s.id}><div className="dl-card-main"><h3>{s.device?.label || "Browser session"}</h3><p>Last used {date(s.lastUsedAt)}</p><small>{s.current ? "Current session" : "Other device"}</small></div>{!s.current && <button className="dp-btn dp-btn-outline dp-btn-sm" disabled={busy} onClick={() => revoke(s.id)}>Revoke</button>}</div>)}</section></div></Page>;
 }
+// Consultation notes: the doctor's private record plus the visit summary the patient receives when signed.
+const BLANK_NOTE = { clinical: { presentingComplaint: "", history: "", findings: "", assessment: "", plan: "" }, patient: { summary: "", advice: "", warningSigns: "", followUp: { needed: false, timeframe: "", instructions: "" } } };
+const CLINICAL_FIELDS = [["presentingComplaint", "Presenting complaint", 2000], ["history", "History", 4000], ["findings", "Findings and observations", 4000], ["assessment", "Assessment", 2000], ["plan", "Plan", 4000]];
+const SUMMARY_FIELDS = [["summary", "What we discussed", 3000], ["advice", "Advice and next steps", 3000], ["warningSigns", "When to seek urgent care", 1500]];
+const noteWho = (a) => a.forName ? `${a.patient.name || "Patient"} · for ${a.forName}` : a.patient.name || "Patient";
+function NoteStatus({ note }) {
+  if (!note?.signedVersion) return <span className="dl-status dl-status-requested">Draft</span>;
+  return <span className="dl-status dl-status-confirmed">{note.hasUnsignedChanges ? `Signed v${note.signedVersion} · unsigned changes` : `Signed v${note.signedVersion}`}</span>;
+}
+function ConsultationReports() {
+  const [offset, setOffset] = useState(0);
+  const resource = useResource((signal) => api.loadConsultationNotes(offset, signal), offset);
+  const data = resource.data;
+  return <Page title="Reports" description="Consultation notes and the visit summaries your patients receive." resource={resource}>
+    {data && <div className="dl-columns"><section className="dp-panel"><h2>Waiting for your note</h2>{data.awaiting.length ? <div className="dl-list">{data.awaiting.map((a) => <Link key={a.appointmentId} to={`/reports/${a.appointmentId}`} className="dl-appointment-card"><div className="dl-card-main"><h3>{noteWho(a)}</h3><p>{date(a.startsAt)} · {time(a.startsAt)}</p><small>Completed · no signed note yet</small></div><span className="dl-status dl-status-requested">Write note</span></Link>)}</div> : <Empty title="You're up to date" text="Completed consultations without a signed note appear here." />}</section>
+      <section className="dp-panel"><h2>Your consultation notes</h2>{data.items.length ? <div className="dl-list">{data.items.map((n) => <Link key={n.appointmentId} to={`/reports/${n.appointmentId}`} className="dl-appointment-card"><div className="dl-card-main"><h3>{noteWho(n)}</h3><p>{date(n.startsAt)} · {time(n.startsAt)}</p><small>Last edited {date(n.updatedAt)}</small></div><NoteStatus note={n} /></Link>)}</div> : <Empty title="No notes yet" text="Open a confirmed or completed appointment and choose Consultation note." />}<Pagination offset={offset} total={data.total} size={20} onChange={setOffset} /></section></div>}
+  </Page>;
+}
+function ConsultationNoteEditor() {
+  const { appointmentId } = useParams();
+  const resource = useResource((signal) => api.loadConsultationNote(appointmentId, signal), appointmentId);
+  const [saved, setSaved] = useState(null); const [form, setForm] = useState(null); const [reason, setReason] = useState(""); const [busy, setBusy] = useState(false); const [notice, setNotice] = useState("");
+  useEffect(() => { if (resource.data) { setSaved(resource.data); setForm(resource.data.note?.draft || BLANK_NOTE); } }, [resource.data]);
+  const dirty = Boolean(form && saved) && JSON.stringify(form) !== JSON.stringify(saved.note?.draft || BLANK_NOTE);
+  // Warn before leaving the page with unsaved clinical text.
+  useEffect(() => { if (!dirty) return undefined; const warn = (event) => { event.preventDefault(); event.returnValue = ""; }; window.addEventListener("beforeunload", warn); return () => window.removeEventListener("beforeunload", warn); }, [dirty]);
+  const setClinical = (key, value) => setForm((f) => ({ ...f, clinical: { ...f.clinical, [key]: value } }));
+  const setSummary = (key, value) => setForm((f) => ({ ...f, patient: { ...f.patient, [key]: value } }));
+  const setFollowUp = (key, value) => setForm((f) => ({ ...f, patient: { ...f.patient, followUp: { ...f.patient.followUp, [key]: value } } }));
+  async function persist() { const next = await api.saveConsultationNote(appointmentId, { ...(saved.note ? { revision: saved.note.revision } : {}), content: form }); setSaved(next); setForm(next.note.draft); return next; }
+  async function run(work, message) { setBusy(true); setNotice(""); try { await work(); setNotice(message); } catch (error) { setNotice(error.message); } finally { setBusy(false); } }
+  const amending = Boolean(saved?.note?.signedVersion);
+  function save(event) { event.preventDefault(); run(persist, amending ? "Changes saved. The patient still sees the signed version until you sign the amendment." : "Draft saved. Only you can see it until you sign."); }
+  function sign() {
+    run(async () => {
+      const current = dirty || !saved.note ? await persist() : saved;
+      const next = await api.signConsultationNote(appointmentId, { revision: current.note.revision, ...(amending ? { amendmentReason: reason } : {}) });
+      setSaved(next); setForm(next.note.draft); setReason("");
+    }, amending ? "Amendment signed. The patient sees the updated visit summary." : "Note signed. The patient can now read the visit summary.");
+  }
+  const appointment = saved?.appointment; const note = saved?.note;
+  return <Page title="Consultation note" description={appointment ? `${appointment.dependent ? `${appointment.dependent.name} (via ${appointment.patient.name || "patient"})` : appointment.patient.name || "Patient"} · ${date(appointment.startsAt)} · ${time(appointment.startsAt)}` : "The record of this consultation."} resource={resource} actions={<Link className="dp-btn dp-btn-outline dp-btn-sm" to="/reports">All notes</Link>}>
+    {notice && <div className="dl-notice" role="status">{notice}</div>}
+    {form && appointment && <div className="dl-columns"><section className="dp-panel"><div className="dl-section-heading"><h2>Clinical record</h2>{note ? <NoteStatus note={note} /> : <span className="dl-status dl-status-requested">New</span>}</div>
+      <form className="dl-form" onSubmit={save}>
+        <fieldset className="dl-medication" disabled={busy}><legend>Private to you</legend>{CLINICAL_FIELDS.map(([key, label, max]) => <label key={key}>{label}<textarea maxLength={max} value={form.clinical[key]} onChange={(e) => setClinical(key, e.target.value)} /></label>)}</fieldset>
+        <fieldset className="dl-medication" disabled={busy}><legend>Visit summary for the patient</legend><p className="dl-muted">Shared with the patient when you sign. Write it in plain language.</p>{SUMMARY_FIELDS.map(([key, label, max]) => <label key={key}>{label}<textarea maxLength={max} value={form.patient[key]} onChange={(e) => setSummary(key, e.target.value)} /></label>)}
+          <div className="dl-checks"><label><input type="checkbox" checked={form.patient.followUp.needed} onChange={(e) => setFollowUp("needed", e.target.checked)} /> Recommend a follow-up</label></div>
+          {form.patient.followUp.needed && <div className="dl-form-row"><label>When<input maxLength={120} placeholder="e.g. In two weeks" value={form.patient.followUp.timeframe} onChange={(e) => setFollowUp("timeframe", e.target.value)} /></label><label>Follow-up instructions<input maxLength={1000} value={form.patient.followUp.instructions} onChange={(e) => setFollowUp("instructions", e.target.value)} /></label></div>}
+        </fieldset>
+        {amending && <label>Reason for changing the signed note<textarea maxLength={500} placeholder="e.g. Corrected the advice on fluids" value={reason} onChange={(e) => setReason(e.target.value)} /></label>}
+        <div className="dl-actions"><button className="dp-btn dp-btn-outline" disabled={busy || !dirty}>{busy ? "Saving…" : "Save draft"}</button><button type="button" className="dp-btn dp-btn-primary" disabled={busy || !saved.canSign || (amending && reason.trim().length < 5)} onClick={sign}>{amending ? "Sign amendment" : "Sign and share with patient"}</button></div>
+        {!saved.canSign && <p className="dl-muted">You can save drafts now. Signing opens once you mark the consultation completed in <Link to={`/appointments/${appointment.id}`}>Appointments</Link>.</p>}
+        {amending && reason.trim().length < 5 && <p className="dl-muted">Give a reason (at least 5 characters) to sign an amendment. Earlier signed versions are kept.</p>}
+      </form></section>
+      <section className="dp-panel"><h2>Consultation</h2><dl className="dl-facts"><dt>Patient</dt><dd>{appointment.patient.name || "Patient"}{appointment.patient.patientId ? ` · ${appointment.patient.patientId}` : ""}</dd>{appointment.dependent && <><dt>Consultation for</dt><dd>{appointment.dependent.name}</dd></>}<dt>Scheduled for</dt><dd>{date(appointment.startsAt)} · {time(appointment.startsAt)}–{time(appointment.endsAt)}</dd><dt>Consultation</dt><dd>{appointment.consultationType === "VIRTUAL" ? "Virtual" : "In person"}</dd><dt>Status</dt><dd><Status value={appointment.status} /></dd><dt>Reason for visit</dt><dd>{appointment.reason || "No reason provided"}</dd></dl>
+        {note?.versions.length > 0 && <><h3>Signed versions</h3><div className="dl-list">{note.versions.map((v) => <div className="dl-slot" key={v.number}><div className="dl-card-main"><h3>Version {v.number}</h3><p>{date(v.signedAt)} · {time(v.signedAt)}</p>{v.amendmentReason && <small>Reason: {v.amendmentReason}</small>}</div></div>)}</div></>}
+        <h3 className="dl-space">Your earlier notes for this patient</h3>{saved.previous.length ? <div className="dl-list">{saved.previous.map((p) => <Link className="dl-appointment-card" key={p.appointmentId} to={`/reports/${p.appointmentId}`}><div className="dl-card-main"><h3>{date(p.startsAt)}</h3><p>{p.assessment}</p><small>{p.plan}</small></div></Link>)}</div> : <p className="dl-muted">No earlier signed notes from you for this patient.</p>}
+      </section></div>}
+  </Page>;
+}
 function PendingFeature({ title, text }) { return <Page title={title} description={text}><section className="dp-panel"><Empty title={`${title} is being connected`} text="You can manage appointments, publish availability, and update your practice profile now." /><div className="dl-actions"><Link to="/appointments" className="dp-btn dp-btn-primary">Open appointments</Link><Link to="/dashboard" className="dp-btn dp-btn-outline">Back to dashboard</Link></div></section></Page>; }
 export default function LiveDoctorWorkspace() {
   const professional=getCurrentDoctor();
@@ -237,7 +300,9 @@ export default function LiveDoctorWorkspace() {
     <Route path="/settings" element={<Settings />} />
     <Route path="/notifications" element={<Notifications />} />
     <Route path="/prescriptions" element={clinical ? <Prescriptions /> : <Navigate to="/care-workspace" replace />} />
-    {[{ path: "reports", title: "Reports", text: "Consultation reports and lab orders." }, { path: "messages", title: "Messages", text: "Patient conversations and care updates." }, { path: "hospital-workspace", title: "Hospital workspace", text: "Your hospital affiliations and assigned patient queues." }, { path: "earnings", title: "Earnings", text: "Consultation earnings and payout history." }, { path: "reviews", title: "Reviews", text: "Patient feedback on your care." }].map((feature) => <Route key={feature.path} path={`/${feature.path}`} element={<PendingFeature {...feature} />} />)}
+    <Route path="/reports" element={clinical ? <ConsultationReports /> : <PendingFeature title="Reports" text="Consultation reports and lab orders." />} />
+    <Route path="/reports/:appointmentId" element={clinical ? <ConsultationNoteEditor /> : <Navigate to="/reports" replace />} />
+    {[{ path: "messages", title: "Messages", text: "Patient conversations and care updates." }, { path: "hospital-workspace", title: "Hospital workspace", text: "Your hospital affiliations and assigned patient queues." }, { path: "earnings", title: "Earnings", text: "Consultation earnings and payout history." }, { path: "reviews", title: "Reviews", text: "Patient feedback on your care." }].map((feature) => <Route key={feature.path} path={`/${feature.path}`} element={<PendingFeature {...feature} />} />)}
     <Route path="*" element={<Navigate to="/dashboard" replace />} />
   </Routes>;
 }

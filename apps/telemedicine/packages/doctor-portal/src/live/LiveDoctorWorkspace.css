@@ -28,3 +28,5 @@
 .dl-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }.dl-page button:disabled { opacity: .5; cursor: not-allowed; }.dl-page :focus-visible { outline: 3px solid #64ba9c; outline-offset: 3px; }
 @media(max-width: 1050px) { .dl-columns { grid-template-columns: 1fr; } }
 @media(max-width: 600px) { .dl-heading { align-items: flex-start; flex-direction: column; }.dl-stats { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }.dl-stat { flex: 0 0 78%; scroll-snap-align: start; }.dl-form-row { grid-template-columns: 1fr; }.dl-appointment-card { flex-wrap: wrap; }.dl-slot { flex-wrap: wrap; }.dl-facts { grid-template-columns: 1fr; gap: 5px; }.dl-facts dd { margin-bottom: 12px; }.dl-section-heading { align-items: flex-start; }.dl-search { width: 100%; }.dl-search input { width: 100%; } }
+/* Consultation note: keep the follow-up checkbox inline inside the grid-laid-out fieldset. */
+.dl-medication .dl-checks label { display: flex; }

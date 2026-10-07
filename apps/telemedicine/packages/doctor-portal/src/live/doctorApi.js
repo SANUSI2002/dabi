@@ -30,3 +30,9 @@ export const loadSessions = (signal) => doctorRequest("/auth/sessions", { signal
 export const revokeSession = (id) => doctorRequest(`/auth/sessions/${encodeURIComponent(id)}/revoke`, json("POST", {}));
 export const loadMfa = (signal) => doctorRequest("/auth/mfa/status", { signal });
 export const logoutEverywhere = () => doctorRequest("/auth/sessions/logout-all", json("POST", {}));
+// Consultation notes: the doctor's record of a consultation and the patient's visit summary.
+const NOTES = "/consultation-notes/practice";
+export const loadConsultationNotes = (offset, signal) => doctorRequest(`${NOTES}?limit=20&offset=${offset}`, { signal }).then((r) => r.data);
+export const loadConsultationNote = (appointmentId, signal) => doctorRequest(`${NOTES}/appointments/${encodeURIComponent(appointmentId)}`, { signal }).then((r) => r.data);
+export const saveConsultationNote = (appointmentId, body) => doctorRequest(`${NOTES}/appointments/${encodeURIComponent(appointmentId)}`, json("PUT", body)).then((r) => r.data);
+export const signConsultationNote = (appointmentId, body) => doctorRequest(`${NOTES}/appointments/${encodeURIComponent(appointmentId)}/sign`, json("POST", body)).then((r) => r.data);
