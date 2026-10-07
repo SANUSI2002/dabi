@@ -28,6 +28,7 @@ import { JoinConsultationModal } from "./components/JoinConsultationModal";
 import { HospitalAppointmentsCard } from "./components/HospitalAppointmentsCard";
 
 import { ConfirmModal } from "./ConfirmModal";
+import { FILTER_TABS } from "./data";
 import { useApiData } from "../../api/useApiData";
 import { bookDoctor, cancelDoctorAppointment, listUiAppointments } from "../../api/doctorsApi";
 import { listMyHospitalAppointments } from "../../api/sabiApi";
@@ -85,13 +86,11 @@ export function Appointments() {
     ---------------------------------------------------------
     Applies filtering logic based on active tab selection.
   */
-  const filteredAppointments = showAllAppointments
-    ? appointments
-    : appointments.filter((appointment) => {
+  const matchesTab = (appointment, tab) => {
         const appointmentDate = new Date(appointment.date);
         const today = new Date();
 
-        switch (activeTab) {
+        switch (tab) {
           case "Today":
             return appointmentDate.toDateString() === today.toDateString();
 
@@ -120,7 +119,12 @@ export function Appointments() {
           default:
             return true;
         }
-      });
+      };
+  // Each tab shows how many appointments it holds; upcoming ones read soonest first, the rest newest first.
+  const tabCounts = Object.fromEntries(FILTER_TABS.map((tab) => [tab, appointments.filter((a) => matchesTab(a, tab)).length]));
+  const soonestFirst = activeTab === "Upcoming" || activeTab === "Request" || activeTab === "Today";
+  const filteredAppointments = (showAllAppointments ? appointments : appointments.filter((a) => matchesTab(a, activeTab)))
+    .slice().sort((a, b) => (soonestFirst ? 1 : -1) * (new Date(a.startsAt) - new Date(b.startsAt)));
 
   // Handle filter tab change
   const handleFilterChange = (tab) => {
@@ -202,7 +206,7 @@ export function Appointments() {
         <StatsRow values={statValues} />
 
         {/* Filter Tabs */}
-        <FilterTabs active={activeTab} onChange={handleFilterChange} />
+        <FilterTabs active={showAllAppointments ? "" : activeTab} onChange={handleFilterChange} counts={data ? tabCounts : {}} />
 
         {/* Main Grid Layout */}
         <div className="sabi-grid sabi-apt-grid">

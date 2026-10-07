@@ -43,6 +43,7 @@ function SpecialtyGrid({ activeSpecialty, onSelect, doctors }) {
                         onClick={() =>
                             onSelect(activeSpecialty === label ? "" : label)
                         }
+                        aria-pressed={activeSpecialty === label}
                         className={`sabi-doctor-specialty ${
                             activeSpecialty === label ? "active" : ""
                         }`}
@@ -240,6 +241,7 @@ export default function FindYourDoctor() {
                         <Search size={20} />
 
                         <input
+                            aria-label="Search doctors by name or specialty"
                             value={query}
                             onChange={(event) =>
                                 setQuery(event.target.value)
@@ -249,13 +251,15 @@ export default function FindYourDoctor() {
 
                         <button
                             type="button"
-                            onClick={() =>
+                            onClick={() => {
                                 notify(
                                     query
                                         ? `Searching for ${query}`
                                         : "Showing all doctors"
-                                )
-                            }
+                                );
+                                // Results filter as you type; Search also takes you to them.
+                                document.getElementById("doctor-results")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                            }}
                         >
                             Search
                         </button>

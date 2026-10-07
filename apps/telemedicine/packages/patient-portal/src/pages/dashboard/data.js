@@ -24,33 +24,41 @@ import {
   HeartHandshake,
   Settings,
   LogOut,
+  Salad,
 } from "lucide-react";
 
 // Placeholder content for the patient dashboard.
 // Swap these for real API data when wiring the page up.
 // `icon` holds the lucide-react component itself (not a rendered
 // element) — consumers render it as <item.icon size={18} />.
-export const NAV_ITEMS = [
-
-  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, to: "/dashboard" },
-  { key: "records", label: "Medical Records", icon: FileText, to: "/records" },
-  { key: "vitals", label: "Vital History", icon: HeartPulse, to: "/vitals" },
-  { key: "doctors", label: "Doctors", icon: Stethoscope, to: "/doctor" },
-  { key: "wellness-hub", label: "Wellness Hub", icon: HeartHandshake, to: "/wellness-hub" },
-  
-  { key: "appointments", label: "Appointments", icon: Calendar, to: "/appointments" },
-  { key: "hospitals", label: "Hospitals", icon: Building2, to: "/hospitals" },
-  { key: "prescriptions", label: "Prescriptions", icon: ClipboardList,  to: "/prescriptions", },
-  { key: "pharmacy-market", label: "Pharmacy Market", icon: Store, to: "/pharmacy-market" },
-  { key: "pharmacy-quotes", label: "Pharmacy Quotes", icon: ReceiptText, to: "/pharmacy-quotes" },
-  { key: "delivery-tracking", label: "Delivery Tracking", icon: Truck, to: "/delivery-tracking" },
-  // { key: "lab", label: "Lab Results", icon: TestTube },
-  // { key: "vaccinations", label: "Vaccinations", icon: Syringe },
-  { key: "insurance", label: "Insurance", icon: InsuranceIcon, to: "/insurance" },
-  // { key: "medications", label: "Medications", icon: Pill },
-  {key: "family",label: "Family", icon: Users,to: "/family",},
-  // { key: "emergency", label: "Emergency ID", icon: ShieldAlert },
+// Patient navigation, grouped by what people come to do. Same pages and names as the original
+// list; My Care Plans and Dietician Table stay separate pages.
+export const NAV_GROUPS = [
+  { label: "Your care", items: [
+    { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, to: "/dashboard" },
+    { key: "appointments", label: "Appointments", icon: Calendar, to: "/appointments" },
+    { key: "doctors", label: "Doctors", icon: Stethoscope, to: "/doctor" },
+    { key: "wellness-hub", label: "Wellness Hub", icon: HeartHandshake, to: "/wellness-hub" },
+    { key: "care-plans", label: "My Care Plans", icon: ClipboardList, to: "/care-plans" },
+    { key: "hospitals", label: "Hospitals", icon: Building2, to: "/hospitals" },
+  ] },
+  { label: "Health record", items: [
+    { key: "records", label: "Medical Records", icon: FileText, to: "/records" },
+    { key: "vitals", label: "Vital History", icon: HeartPulse, to: "/vitals" },
+    { key: "prescriptions", label: "Prescriptions", icon: ClipboardList, to: "/prescriptions", except: ["/prescriptions/dietician-table"] },
+    { key: "dietician-table", label: "Dietician Table", icon: Salad, to: "/prescriptions/dietician-table" },
+  ] },
+  { label: "Medicines", items: [
+    { key: "pharmacy-market", label: "Pharmacy Market", icon: Store, to: "/pharmacy-market" },
+    { key: "pharmacy-quotes", label: "Pharmacy Quotes", icon: ReceiptText, to: "/pharmacy-quotes" },
+    { key: "delivery-tracking", label: "Delivery Tracking", icon: Truck, to: "/delivery-tracking" },
+  ] },
+  { label: "Family & cover", items: [
+    { key: "insurance", label: "Insurance", icon: InsuranceIcon, to: "/insurance" },
+    { key: "family", label: "Family", icon: Users, to: "/family" },
+  ] },
 ];
+export const NAV_ITEMS = NAV_GROUPS.flatMap((group) => group.items);
 
 export const FOOTER_ITEMS = [
   { key: "settings", label: "Settings", icon: Settings, to: "/profile" },
