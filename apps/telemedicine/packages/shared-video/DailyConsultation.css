@@ -6,3 +6,10 @@
 .sabi-video-lobby{max-width:700px;margin:auto;padding:38px 28px 42px;text-align:center}.sabi-video-lobby h3{font-size:28px;margin:18px 0 10px}.sabi-video-lobby p{line-height:1.7}.sabi-video-mark{display:grid;place-items:center;margin:auto;width:64px;height:64px;border-radius:20px;background:#d9f6e9;color:#007e65;font-size:36px}.sabi-video-muted{color:#5c726b;font-size:13px}.sabi-video-consent{display:flex;align-items:flex-start;gap:10px;margin:24px 0;text-align:left;font-size:14px;line-height:1.5}.sabi-video-consent input{margin-top:4px;accent-color:#007b62}
 .sabi-video-panel .sabi-video-primary{background:#007b62;color:white;border-color:#007b62;min-width:220px}.sabi-video-frame{height:min(70dvh,720px);min-height:360px;padding:12px}.sabi-video-error{padding:14px 24px;background:#fff0ed;color:#9d2f24;font-size:14px}
 @media(max-width:640px){.sabi-video-overlay{padding:0}.sabi-video-panel{border-radius:0;width:100%;height:100dvh;max-height:100dvh}.sabi-video-header{padding:16px}.sabi-video-header h2{font-size:18px}.sabi-video-header button{padding:10px;font-size:12px}.sabi-video-frame{height:calc(100dvh - 118px);min-height:320px;padding:6px}.sabi-video-lobby{padding:28px 20px}.sabi-video-lobby h3{font-size:23px}}
+/* Connection guidance: weak network, reconnecting, blocked camera. */
+.sabi-video-banner{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px 24px;background:#fff8e6;color:#7a4b00;font-size:14px;border-bottom:1px solid #f3dfae}
+.sabi-video-banner button{padding:8px 12px;min-height:40px}
+.sabi-video-hint{margin:16px 0 0;padding:12px 14px;border-radius:12px;background:#fff8e6;color:#7a4b00;font-size:14px}
+.sabi-video-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:12px}
+.sabi-video-actions button{min-height:48px}
+@media(max-width:640px){.sabi-video-actions button{flex:1 1 100%}.sabi-video-banner{padding:12px 16px}}
