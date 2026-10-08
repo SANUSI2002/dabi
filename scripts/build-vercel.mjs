@@ -9,8 +9,8 @@ const patientRoot = resolve(telemedicineRoot, "packages/patient-portal");
 const doctorRoot = resolve(telemedicineRoot, "packages/doctor-portal");
 const surface = process.argv[2];
 
-if (!["health", "emr", "pharmacy", "command-center", "telemedicine"].includes(surface)) {
-  throw new Error("Choose one deployment: health, emr, pharmacy, command-center, or telemedicine.");
+if (!["health", "emr", "pharmacy", "command-center", "telemedicine", "doctor"].includes(surface)) {
+  throw new Error("Choose one deployment: health, emr, pharmacy, command-center, telemedicine, or doctor.");
 }
 
 function run(label, script, args, cwd, env = {}) {
@@ -28,6 +28,17 @@ const typeScript = resolve(repoRoot, "node_modules/typescript/bin/tsc");
 const vite = resolve(repoRoot, "node_modules/vite/bin/vite.js");
 const output = resolve(repoRoot, `dist-${surface}`);
 const patientVite = resolve(telemedicineRoot, "node_modules/vite/bin/vite.js");
+
+if (surface === "doctor") {
+  // Standalone professional deployment: the existing router and PWA use BASE_URL,
+  // so building at / keeps login, registration, deep links and installed apps scoped
+  // to doctor.sabihealth.org rather than the former /doctor-portal/ mount.
+  run("Doctor portal", patientVite, ["build", "--base", "/", "--outDir", output, "--emptyOutDir"], doctorRoot, {
+    VITE_SABI_IDENTITY_API_URL: process.env.VITE_SABI_IDENTITY_API_URL || process.env.VITE_API_BASE_URL || "same-origin",
+  });
+  console.log(`Prepared ${surface} deployment in ${output}`);
+  process.exit(0);
+}
 
 if (surface === "telemedicine") {
   if (!existsSync(patientVite)) {
