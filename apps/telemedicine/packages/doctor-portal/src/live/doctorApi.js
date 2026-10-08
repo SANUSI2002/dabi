@@ -30,6 +30,8 @@ export const loadSessions = (signal) => doctorRequest("/auth/sessions", { signal
 export const revokeSession = (id) => doctorRequest(`/auth/sessions/${encodeURIComponent(id)}/revoke`, json("POST", {}));
 export const loadMfa = (signal) => doctorRequest("/auth/mfa/status", { signal });
 export const logoutEverywhere = () => doctorRequest("/auth/sessions/logout-all", json("POST", {}));
+// Activity log: sign-ins, patient records opened or changed, permissions, and other activity.
+export const loadActivity = ({ category, cursor } = {}) => doctorRequest(`/audit/mine?${new URLSearchParams({ ...(category ? { category } : {}), ...(cursor ? { cursor } : {}) })}`).then((r) => r.data);
 // Consultation notes: the doctor's record of a consultation and the patient's visit summary.
 const NOTES = "/consultation-notes/practice";
 // Until the server has the consultation-notes module, its routes answer a plain 404 (no error code;

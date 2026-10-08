@@ -1,0 +1,22 @@
+/* Activity log (both portals). Values come from shared-portal/design-system/tokens.css. */
+.sx-activity { display: grid; gap: var(--sx-space-4); }
+.sx-activity-day { padding: 0; overflow: hidden; }
+.sx-activity-day-title { margin: 0; padding: var(--sx-space-3) var(--sx-space-5); background: var(--sx-surface-sunken); font-size: var(--sx-text-sm); font-weight: 700; color: var(--sx-text-muted); letter-spacing: .02em; }
+.sx-activity-list { list-style: none; margin: 0; padding: 0; }
+.sx-activity-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--sx-space-3); align-items: start; padding: var(--sx-space-4) var(--sx-space-5); }
+.sx-activity-item + .sx-activity-item { border-top: 1px solid var(--sx-line); }
+.sx-activity-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--sx-brand-50); color: var(--sx-brand-700); }
+.sx-activity-item.is-warning .sx-activity-icon { background: var(--sx-warning-bg); color: var(--sx-warning-fg); }
+.sx-activity-item.is-warning .sx-activity-text { color: var(--sx-warning-fg); font-weight: 650; }
+.sx-activity-body { min-width: 0; }
+.sx-activity-text { margin: 0; color: var(--sx-text); font-size: var(--sx-text-md); line-height: var(--sx-leading-normal); overflow-wrap: anywhere; }
+.sx-activity-meta { margin: 2px 0 0; color: var(--sx-text-muted); font-size: var(--sx-text-sm); overflow-wrap: anywhere; }
+.sx-activity-time { color: var(--sx-text-muted); font-size: var(--sx-text-sm); white-space: nowrap; padding-top: 2px; }
+.sx-activity-more { justify-content: center; }
+.sx-activity-error { margin: 0; color: var(--sx-danger-fg); font-size: var(--sx-text-sm); }
+.sx-activity-note { margin: var(--sx-space-5) 0 0; color: var(--sx-text-muted); font-size: var(--sx-text-sm); line-height: var(--sx-leading-normal); max-width: var(--sx-reading-max); }
+@media (max-width: 520px) {
+  .sx-activity-item { grid-template-columns: auto minmax(0, 1fr); padding: var(--sx-space-3) var(--sx-space-4); }
+  .sx-activity-time { grid-column: 2; padding-top: 0; }
+  .sx-activity-day-title { padding: var(--sx-space-3) var(--sx-space-4); }
+}

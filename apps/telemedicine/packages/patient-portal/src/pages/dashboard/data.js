@@ -1,5 +1,6 @@
 import { colors } from "design-system";
 import {
+  History,
   LayoutDashboard,
   FileText,
   HeartPulse,
@@ -61,6 +62,7 @@ export const NAV_GROUPS = [
 export const NAV_ITEMS = NAV_GROUPS.flatMap((group) => group.items);
 
 export const FOOTER_ITEMS = [
+  { key: "activity", label: "Activity log", icon: History, to: "/activity" },
   { key: "settings", label: "Settings", icon: Settings, to: "/profile" },
   { key: "logout", label: "Logout", icon: LogOut, danger: true },
 ];

@@ -11,6 +11,7 @@ import "./LiveDoctorWorkspace.css";
 import DailyConsultation from '../../../shared-video/DailyConsultation';
 import ProfessionalAvailability from './ProfessionalAvailability';
 import ProfessionalCareWorkspace from './ProfessionalCareWorkspace';
+import ActivityLog from '../../../shared-portal/activity/ActivityLog.jsx';
 
 function useResource(loader, key = "") {
   const [state, setState] = useState({ loading: true, data: null, error: "" });
@@ -380,6 +381,7 @@ export default function LiveDoctorWorkspace() {
     <Route path="/profile" element={<Profile />} />
     <Route path="/settings" element={<Settings />} />
     <Route path="/notifications" element={<Notifications />} />
+    <Route path="/activity" element={<PortalLayout topbarProps={{title:'Sabi Health · Professional Portal'}}><div className="dl-page sx-page"><ActivityLog load={api.loadActivity} audience="professional" /></div></PortalLayout>} />
     <Route path="/prescriptions" element={clinical ? <Prescriptions /> : <Navigate to="/care-workspace" replace />} />
     <Route path="/reports" element={clinical ? <ConsultationReports /> : <PendingFeature title="Reports" text="Consultation reports and lab orders." />} />
     <Route path="/reports/:appointmentId" element={clinical ? <ConsultationNoteEditor /> : <Navigate to="/reports" replace />} />

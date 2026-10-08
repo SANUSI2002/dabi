@@ -20,6 +20,7 @@ import {
   X,
   ChevronsLeft,
   ChevronsRight,
+  History,
 } from "lucide-react";
 import "./Sidebar.css";
 import logo from '../../../patient-portal/src/assets/logo.jpeg';
@@ -181,6 +182,26 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
           />
           <span style={{ position: "relative", zIndex: 1 }}>Profile</span>
         </NavLink>
+
+        {/* Activity log (live accounts): sign-ins and every patient record opened or changed. */}
+        {!professional?.isDemo && <NavLink
+          to="/activity"
+          onClick={onClose}
+          title="Activity log"
+          aria-label="Activity log"
+          data-label="Activity log"
+          className={`dp-sidebar-link${isRouteActive("/activity") ? " dp-sidebar-link-active" : ""}`}
+        >
+          {isRouteActive("/activity") && (
+            <motion.span
+              layoutId="dp-sidebar-active-indicator"
+              className="dp-sidebar-active-indicator"
+              transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
+            />
+          )}
+          <History size={18} style={{ position: "relative", zIndex: 1, flexShrink: 0 }} />
+          <span style={{ position: "relative", zIndex: 1 }}>Activity log</span>
+        </NavLink>}
 
         {/* Settings link — uses the standard link + active classes */}
         <NavLink

@@ -3,7 +3,7 @@ import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
 import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
 import {createMemoryRouter,MemoryRouter,RouterProvider} from 'react-router-dom';
 
-const api=vi.hoisted(()=>({loadConsultationNote:vi.fn(),saveConsultationNote:vi.fn(),signConsultationNote:vi.fn(),loadConsultationNotes:vi.fn()}));
+const api=vi.hoisted(()=>({loadConsultationNote:vi.fn(),saveConsultationNote:vi.fn(),signConsultationNote:vi.fn(),loadConsultationNotes:vi.fn(),loadActivity:vi.fn()}));
 const identity=vi.hoisted(()=>({authorizedRequest:vi.fn()}));
 vi.mock('../../apps/telemedicine/packages/doctor-portal/src/live/doctorApi',()=>api);
 vi.mock('../../apps/telemedicine/packages/doctor-portal/src/store/doctorSession',()=>({getCurrentDoctor:()=>({professionType:'DOCTOR',name:'Synthetic doctor'}),signOutDoctor:vi.fn()}));

@@ -25,6 +25,7 @@ import IdentityVerificationPage from "./pages/Onboarding/IdentityVerification";
 import SuccessPage from "./pages/Onboarding/SuccessPage";
 import { PrescriptionsPage } from "./pages/prescriptions/PrescriptionsPage";
 import { DieticianTablePage } from './pages/prescriptions/DieticianTablePage';
+import { ActivityLogPage } from './pages/activity/ActivityLogPage';
 import { PrescriptionDetailPage } from "./pages/prescriptions/PrescriptionDetailPage";
 import { SelectPharmacyPage } from "./pages/prescriptions/SelectPharmacyPage";
 import { PharmacyMarketPage } from "./pages/pharmacy-market/PharmacyMarketPage";
@@ -196,6 +197,7 @@ export default function App() {
               <Route path="/prescriptions" element={<PrescriptionsPage />} />
               <Route path="/prescriptions/dietician-table" element={<DieticianTablePage />} />
               <Route path="/care-plans" element={<DieticianTablePage support />} />
+              <Route path="/activity" element={<ActivityLogPage />} />
               <Route path="/prescriptions/:id" element={<PrescriptionDetailPage />} />
               <Route path="/prescriptions/:id/select-pharmacy" element={<SelectPharmacyPage />} />
               <Route path="/prescriptions/:id/quotes" element={<PharmacyQuotesPage />} />
