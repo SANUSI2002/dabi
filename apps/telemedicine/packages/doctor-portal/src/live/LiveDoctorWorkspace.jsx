@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Link, Navigate, Route, Routes, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Link, Navigate, Route, Routes, useBlocker, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { CalendarDays, CalendarCheck, ClipboardList, Clock, FileText, RefreshCw, ShieldCheck, Stethoscope, Users, Video } from "lucide-react";
 import PortalLayout from "../components/PortalLayout";
 import { getCurrentDoctor, signOutDoctor } from "../store/doctorSession";
@@ -309,8 +309,14 @@ function ConsultationNoteEditor() {
   const [saved, setSaved] = useState(null); const [form, setForm] = useState(null); const [reason, setReason] = useState(""); const [busy, setBusy] = useState(false); const [notice, setNotice] = useState("");
   useEffect(() => { if (resource.data && !resource.data.notLive) { setSaved(resource.data); setForm(resource.data.note?.draft || BLANK_NOTE); } }, [resource.data]);
   const dirty = Boolean(form && saved) && JSON.stringify(form) !== JSON.stringify(saved.note?.draft || BLANK_NOTE);
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => (dirty || busy || Boolean(reason.trim())) && currentLocation.pathname !== nextLocation.pathname);
+  const leaveDialog = useRef(null);
+  useEffect(() => {
+    if (blocker.state === 'blocked') leaveDialog.current?.showModal();
+    else leaveDialog.current?.close();
+  }, [blocker.state]);
   // Warn before leaving the page with unsaved clinical text.
-  useEffect(() => { if (!dirty) return undefined; const warn = (event) => { event.preventDefault(); event.returnValue = ""; }; window.addEventListener("beforeunload", warn); return () => window.removeEventListener("beforeunload", warn); }, [dirty]);
+  useEffect(() => { if (!dirty && !busy && !reason.trim()) return undefined; const warn = (event) => { event.preventDefault(); event.returnValue = ""; }; window.addEventListener("beforeunload", warn); return () => window.removeEventListener("beforeunload", warn); }, [dirty, busy, reason]);
   const setClinical = (key, value) => setForm((f) => ({ ...f, clinical: { ...f.clinical, [key]: value } }));
   const setSummary = (key, value) => setForm((f) => ({ ...f, patient: { ...f.patient, [key]: value } }));
   const setFollowUp = (key, value) => setForm((f) => ({ ...f, patient: { ...f.patient, followUp: { ...f.patient.followUp, [key]: value } } }));
@@ -327,6 +333,16 @@ function ConsultationNoteEditor() {
   }
   const appointment = saved?.appointment; const note = saved?.note;
   return <Page title="Consultation note" description={appointment ? `${appointment.dependent ? `${appointment.dependent.name} (via ${appointment.patient.name || "patient"})` : appointment.patient.name || "Patient"} · ${date(appointment.startsAt)} · ${time(appointment.startsAt)}` : "The record of this consultation."} resource={resource} actions={<Link className="dp-btn dp-btn-outline dp-btn-sm" to="/reports">All notes</Link>}>
+    <dialog ref={leaveDialog} className="dl-leave-dialog" aria-labelledby="leave-note-title" aria-describedby="leave-note-description" onCancel={(event) => { event.preventDefault(); if (blocker.state === 'blocked') blocker.reset(); }}>
+      <h2 id="leave-note-title">Keep your consultation note?</h2>
+      <p id="leave-note-description">{busy ? 'Your note is still being saved. Wait for the result before leaving.' : 'You have unsaved changes. Stay here, save your draft before leaving, or discard the changes.'}</p>
+      <div className="dl-actions">
+        <button type="button" className="dp-btn dp-btn-outline" autoFocus onClick={() => blocker.reset()}>Keep editing</button>
+        <button type="button" className="dp-btn dp-btn-primary" disabled={busy} onClick={() => run(async () => { await persist(); blocker.proceed(); }, 'Draft saved.')}>Save draft and leave</button>
+        <button type="button" className="dp-btn dp-btn-outline" disabled={busy} onClick={() => blocker.proceed()}>Discard and leave</button>
+      </div>
+      {blocker.state === 'blocked' && notice && <p role="status">{notice}</p>}
+    </dialog>
     {resource.data?.notLive && <Notice tone="info" title="Consultation notes are being switched on">You will be able to write notes here as soon as the update is live.</Notice>}
     {notice && <div className="dl-notice" role="status">{notice}</div>}
     {form && appointment && <div className="dl-columns"><section className="dp-panel"><div className="dl-section-heading"><h2>Clinical record</h2>{note ? <NoteStatus note={note} /> : <span className="dl-status dl-status-requested">New</span>}</div>

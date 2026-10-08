@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BedDouble, Plus, Crown, Pencil, PowerOff, Power, ArrowLeftRight, ClipboardList, Activity, Pill, ShieldAlert, Stethoscope } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard, SectionNote } from "@/components/ui/primitives";
@@ -19,6 +19,10 @@ import { INPATIENT_SERVICES, DISCHARGE_OUTCOMES, type Admission } from "@/data/t
 import { MOBILITY_OPTIONS, RISK_LEVELS } from "@/data/nursing";
 import { dateTime, shortDate, timeAgo } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import type { Bed } from "@/data/wards";
+import { useIsLiveEmr, useLiveEmr } from "@/emr-live/session";
+import { useLiveWards, useLiveWardsRefresh, WARD_KIND_LABEL, type LiveAdmission, type LiveBed, type LiveMarSlot, type LiveWard } from "@/emr-live/inpatient";
+import { describeEmrError, newIdempotencyKey } from "@/emr-live/client";
 
 const lengthOfStayDays = (admission: Admission, now: number) =>
   Math.max(0, Math.round((now - new Date(admission.admittedAt).getTime()) / 86400000));
@@ -26,11 +30,37 @@ const lengthOfStayDays = (admission: Admission, now: number) =>
 export default function Inpatient() {
   const navigate = useNavigate();
   const emr = useEmr();
-  const { admissions, patientById, encounters, admit, dischargeWithSummary, transferBed, setDischargeReady } = emr;
-  const { wards, beds, addWard, updateWard, addBed, setBedVip, setBedActive } = useWards();
+  const { encounters, admit, dischargeWithSummary, transferBed, setDischargeReady } = emr;
+  const demoWards = useWards();
+  const { addWard, updateWard, addBed, setBedVip, setBedActive } = demoWards;
   const nursing = useNursing();
-  const clinicians = useHr((state) => state.staff).filter((staff) => staff.status === "Active" && staff.role === "Medical Officer");
+  const demoClinicians = useHr((state) => state.staff).filter((staff) => staff.status === "Active" && staff.role === "Medical Officer");
+
+  // A live hospital's wards come from its EMR (see src/emr-live/inpatient.ts); the demo is unchanged.
+  const live = useIsLiveEmr();
+  useLiveWardsRefresh(live);
+  const ward = useLiveWards();
+  const admissions = live ? [...ward.admissions, ...ward.discharged] : emr.admissions;
+  const patientById = (id?: string) => (live ? (admissions as LiveAdmission[]).find((a) => a.patientId === id)?.patient : emr.patientById(id));
+  const wards = live ? ward.wards : demoWards.wards;
+  const beds: Bed[] = live ? ward.beds : demoWards.beds;
+  // Clinicians offered as the admitting clinician: the hospital's doctors (by user id) or demo staff.
+  const clinicians = live ? ward.doctors.map((d) => ({ value: d.userId, label: d.name })) : demoClinicians.map((c) => ({ value: c.name, label: c.name }));
+  const [actionError, setActionError] = useState("");
+  const [busy, setBusy] = useState(false);
+  /** Runs a live action; failures are shown on the page. Returns whether it worked. */
+  async function runLive(action: () => Promise<void>) {
+    setBusy(true);
+    setActionError("");
+    try { await action(); return true; } catch (cause) { setActionError(describeEmrError(cause)); return false; } finally { setBusy(false); }
+  }
+  const liveAdmission = (admission: Admission) => admission as LiveAdmission;
+  const bedIdFor = (wardName: string, label: string) => {
+    const target = wards.find((entry) => entry.name === wardName);
+    return beds.find((bed) => bed.wardId === target?.id && bed.label === label)?.id ?? "";
+  };
   const currentUser = useIdentity((state) => state.user.name);
+  const myUserId = useLiveEmr((state) => state.user?.id);
   const masterData = useMasterData((state) => state.data);
   const wardTypeOptions = useMemo(() => {
     const items = (masterData["ward-types"] ?? []).filter((item) => item.active).map((item) => item.label);
@@ -41,17 +71,21 @@ export default function Inpatient() {
   const active = admissions.filter((admission) => admission.status === "Active");
   const activeBeds = beds.filter((bed) => bed.active);
   const bedOccupied = (wardName: string, label: string) => active.some((admission) => admission.ward === wardName && admission.bed === label);
+  // A live bed is free only when the hospital marks it available (not occupied, cleaning or out of service).
+  const bedFree = (wardName: string, bed: Bed) => (live ? (bed as LiveBed).status === "AVAILABLE" : bed.active && !bedOccupied(wardName, bed.label));
+  const freeBedCount = live ? beds.filter((bed) => (bed as LiveBed).status === "AVAILABLE").length : activeBeds.length - active.length;
 
   const firstFreeBed = (wardName: string) => {
-    const ward = wards.find((entry) => entry.name === wardName);
-    return ward ? beds.find((bed) => bed.wardId === ward.id && bed.active && !bedOccupied(ward.name, bed.label))?.label ?? "" : "";
+    const target = wards.find((entry) => entry.name === wardName);
+    return target ? beds.find((bed) => bed.wardId === target.id && bedFree(target.name, bed))?.label ?? "" : "";
   };
   const [admitOpen, setAdmitOpen] = useState(false);
   const defaultAdmitWard = wards[1]?.name ?? wards[0]?.name ?? "";
-  const [admitForm, setAdmitForm] = useState({ patientId: "", ward: defaultAdmitWard, bed: firstFreeBed(defaultAdmitWard), diagnosis: "", service: INPATIENT_SERVICES[0] as string, clinician: clinicians[0]?.name ?? currentUser, reason: "", isolation: "", expectedDischarge: "" });
+  const [admitForm, setAdmitForm] = useState({ patientId: "", ward: defaultAdmitWard, bed: firstFreeBed(defaultAdmitWard), diagnosis: "", service: INPATIENT_SERVICES[0] as string, clinician: clinicians[0]?.value ?? currentUser, reason: "", isolation: "", expectedDischarge: "" });
 
   function openAdmit() {
-    setAdmitForm({ patientId: "", ward: defaultAdmitWard, bed: firstFreeBed(defaultAdmitWard), diagnosis: "", service: INPATIENT_SERVICES[0], clinician: clinicians[0]?.name ?? currentUser, reason: "", isolation: "", expectedDischarge: "" });
+    setActionError("");
+    setAdmitForm({ patientId: "", ward: defaultAdmitWard, bed: firstFreeBed(defaultAdmitWard), diagnosis: "", service: INPATIENT_SERVICES[0], clinician: clinicians[0]?.value ?? (live ? "" : currentUser), reason: "", isolation: "", expectedDischarge: "" });
     setAdmitOpen(true);
   }
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -67,13 +101,16 @@ export default function Inpatient() {
   const [flowsheetId, setFlowsheetId] = useState<string | null>(active[0]?.id ?? null);
   const [obsForm, setObsForm] = useState({ temp: "", pulse: "", resp: "", bp: "", spo2: "", painScore: "", intakeMl: "", outputMl: "", mobility: "", fallsRisk: "", pressureRisk: "", note: "" });
   const [marId, setMarId] = useState<string | null>(active[0]?.id ?? null);
-  const [doseAction, setDoseAction] = useState<{ admission: Admission; slot: { slotKey: string; prescriptionId: string; drug: string; dose: string; route: string; scheduledFor: string }; status: "held" | "refused" | "omitted" } | null>(null);
+  const [doseAction, setDoseAction] = useState<{ admission: Admission; slot: { slotKey: string; prescriptionId: string; drug: string; dose: string; route: string; scheduledFor: string }; status: "given" | "held" | "refused" | "omitted" } | null>(null);
   const [doseReason, setDoseReason] = useState("");
+  const [doseWitness, setDoseWitness] = useState("");
+  const [doseKey, setDoseKey] = useState("");
 
-  const [wardModal, setWardModal] = useState<{ id: string; name: string; type: string } | null>(null);
+  const [wardModal, setWardModal] = useState<{ id: string; name: string; type: string; code?: string } | null>(null);
   const [bedForWard, setBedForWard] = useState<string | null>(null);
   const [newBedLabel, setNewBedLabel] = useState("");
   const [manageBed, setManageBed] = useState<string | null>(null);
+  const [retireReason, setRetireReason] = useState("");
   const managedBed = beds.find((bed) => bed.id === manageBed);
 
   const census = active.filter((admission) =>
@@ -87,18 +124,49 @@ export default function Inpatient() {
 
   const flowsheetAdmission = active.find((admission) => admission.id === flowsheetId);
   const marAdmission = active.find((admission) => admission.id === marId);
-  const marSlots = marAdmission ? nursing.marFor(marAdmission, prescriptionsFor(marAdmission.patientId)) : [];
-  const dueDoses = active.flatMap((admission) =>
-    nursing.marFor(admission, prescriptionsFor(admission.patientId)).filter((slot) => slot.status === "due"),
-  );
+  const chartFor = (admission: Admission) => (live ? ward.mar[admission.id] ?? [] : nursing.marFor(admission, prescriptionsFor(admission.patientId)));
+  const observationsFor = (admissionId: string) => (live ? ward.flowsheet[admissionId] ?? [] : nursing.observationsFor(admissionId));
+  const marSlots = marAdmission ? chartFor(marAdmission) : [];
+  const dueDoses = active.flatMap((admission) => chartFor(admission).filter((slot) => slot.status === "due"));
   const noRecentObs = active.filter((admission) => {
-    const latest = nursing.observationsFor(admission.id)[0];
-    return !latest || renderedAt - new Date(latest.recordedAt).getTime() > 6 * 3600000;
+    const latest = live ? liveAdmission(admission).lastObservedAt : nursing.observationsFor(admission.id)[0]?.recordedAt;
+    return !latest || renderedAt - new Date(latest).getTime() > 6 * 3600000;
   });
 
-  function submitObservation() {
+  // Live: load the chosen patient's flowsheet (vital signs + nursing findings) when chosen.
+  const flowsheetEncounter = live && flowsheetAdmission ? liveAdmission(flowsheetAdmission).encounterId : "";
+  const loadFlowsheet = ward.loadFlowsheet;
+  useEffect(() => {
+    if (!flowsheetId || !flowsheetEncounter) return;
+    const admission = useLiveWards.getState().admissions.find((a) => a.id === flowsheetId);
+    if (admission) loadFlowsheet(admission).catch((cause) => setActionError(describeEmrError(cause)));
+  }, [flowsheetId, flowsheetEncounter, loadFlowsheet]);
+
+  /** Charts a dose on the live MAR (a new idempotency key per tap: a repeated tap is refused, not doubled). */
+  function chartLive(admission: Admission, slot: LiveMarSlot, status: "given" | "held" | "refused" | "omitted", reason?: string, witnessUserId?: string, key: string = newIdempotencyKey()) {
+    return runLive(() => ward.chart(liveAdmission(admission), slot, status, { reason, witnessUserId, key }));
+  }
+
+  function openDoseAction(admission: Admission, slot: { slotKey: string; prescriptionId: string; drug: string; dose: string; route: string; scheduledFor: string }, status: "given" | "held" | "refused" | "omitted") {
+    setActionError("");
+    setDoseReason("");
+    setDoseWitness("");
+    setDoseKey(newIdempotencyKey());
+    setDoseAction({ admission, slot, status });
+  }
+
+  async function submitObservation() {
     if (!flowsheetAdmission) return;
     const parseNumber = (value: string) => (value.trim() === "" ? undefined : Number(value));
+    if (live) {
+      const done = await runLive(() => ward.observe(liveAdmission(flowsheetAdmission), {
+        temp: parseNumber(obsForm.temp), pulse: parseNumber(obsForm.pulse), resp: parseNumber(obsForm.resp), bp: obsForm.bp.trim() || undefined,
+        spo2: parseNumber(obsForm.spo2), painScore: parseNumber(obsForm.painScore), intakeMl: parseNumber(obsForm.intakeMl), outputMl: parseNumber(obsForm.outputMl),
+        mobility: obsForm.mobility || undefined, fallsRisk: obsForm.fallsRisk || undefined, pressureRisk: obsForm.pressureRisk || undefined, note: obsForm.note.trim() || undefined,
+      }));
+      if (done) setObsForm({ temp: "", pulse: "", resp: "", bp: "", spo2: "", painScore: "", intakeMl: "", outputMl: "", mobility: "", fallsRisk: "", pressureRisk: "", note: "" });
+      return;
+    }
     nursing.addObservation({
       admissionId: flowsheetAdmission.id,
       patientId: flowsheetAdmission.patientId,
@@ -122,13 +190,17 @@ export default function Inpatient() {
     <div>
       <PageHeader
         title="In-patient care"
-        subtitle={`${active.length} on the ward · ${activeBeds.length - active.length} beds free`}
+        subtitle={`${active.length} on the ward · ${freeBedCount} beds free`}
         actions={<Button onClick={openAdmit}><Plus size={15} /> Admit patient</Button>}
       />
 
+      {((live && ward.error) || (actionError && !admitOpen && !dischargeId && !transferFor && !doseAction && !wardModal && !bedForWard && !manageBed)) && (
+        <p role="alert" className="mb-4 rounded-xl bg-action-50 px-4 py-2.5 text-sm font-medium text-action-800 ring-1 ring-action-200">{actionError || ward.error}</p>
+      )}
+
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="On the ward" value={active.length} tone="brand" icon={<BedDouble size={18} />} />
-        <StatCard label="Beds free" value={activeBeds.length - active.length} tone="mist" delay={0.05} />
+        <StatCard label="Beds free" value={freeBedCount} tone="mist" delay={0.05} />
         <StatCard label="Ready for discharge" value={active.filter((admission) => admission.dischargeReady).length} tone="amber" delay={0.1} />
         <StatCard label="Doses due now" value={dueDoses.length} tone={dueDoses.length ? "action" : "mist"} delay={0.15} icon={<Pill size={18} />} />
       </div>
@@ -204,13 +276,13 @@ export default function Inpatient() {
                       <Field label="Pressure-injury risk"><Select value={obsForm.pressureRisk} onChange={(event) => setObsForm({ ...obsForm, pressureRisk: event.target.value })} options={["", ...RISK_LEVELS.map(String)]} /></Field>
                     </Grid>
                     <Field label="Nursing note"><Textarea value={obsForm.note} onChange={(event) => setObsForm({ ...obsForm, note: event.target.value })} className="min-h-[60px]" /></Field>
-                    <Button className="w-full" onClick={submitObservation}>Save observations</Button>
+                    <Button className="w-full" disabled={busy} onClick={() => { void submitObservation(); }}>Save observations</Button>
                   </div>
                   <div className="card p-0">
                     <p className="border-b border-mist-100 px-4 py-2.5 text-sm font-bold text-mist-700">Flowsheet — most recent first</p>
                     <Table columns={["Recorded", "Temp", "Pulse", "Resp", "BP", "SpO₂", "Pain", "In/Out", "Risks", "By"]}>
-                      {nursing.observationsFor(flowsheetAdmission.id).length === 0 && <EmptyRow colSpan={10}>No observations recorded this admission.</EmptyRow>}
-                      {nursing.observationsFor(flowsheetAdmission.id).map((observation, index) => (
+                      {observationsFor(flowsheetAdmission.id).length === 0 && <EmptyRow colSpan={10}>No observations recorded this admission.</EmptyRow>}
+                      {observationsFor(flowsheetAdmission.id).map((observation, index) => (
                         <Row key={observation.id} index={index}>
                           <Cell className="text-mist-400">{dateTime(observation.recordedAt)}</Cell>
                           <Cell>{observation.temp ?? "—"}</Cell>
@@ -238,7 +310,9 @@ export default function Inpatient() {
               {!marAdmission ? (
                 <SectionNote>Select an admitted patient to view their medication administration record.</SectionNote>
               ) : marSlots.length === 0 ? (
-                <SectionNote tone="unavailable">No dispensed regular medications for this admission — the MAR is generated from dispensed prescriptions and their frequency. PRN medicines and anything not yet dispensed do not appear here.</SectionNote>
+                <SectionNote tone="unavailable">{live
+                  ? "No medicines to chart for this admission — the MAR lists pharmacist-approved medicines prescribed during this stay."
+                  : "No dispensed regular medications for this admission — the MAR is generated from dispensed prescriptions and their frequency. PRN medicines and anything not yet dispensed do not appear here."}</SectionNote>
               ) : (
                 <Table columns={["Scheduled", "Medication", "Dose / route", "Status", "Given by", ""]} caption="Medication administration record">
                   {marSlots.map((slot) => (
@@ -254,10 +328,19 @@ export default function Inpatient() {
                       <Cell>
                         {["scheduled", "due"].includes(slot.status) && (
                           <div className="flex justify-end gap-1">
-                            <button className="btn-primary px-2 py-1 text-xs" onClick={() => nursing.recordDose(marAdmission, slot, "given")}>Give</button>
-                            <button className="btn-ghost px-2 py-1 text-xs" onClick={() => { setDoseReason(""); setDoseAction({ admission: marAdmission, slot, status: "held" }); }}>Hold</button>
-                            <button className="btn-ghost px-2 py-1 text-xs" onClick={() => { setDoseReason(""); setDoseAction({ admission: marAdmission, slot, status: "refused" }); }}>Refused</button>
-                            <button className="btn-ghost px-2 py-1 text-xs" onClick={() => { setDoseReason(""); setDoseAction({ admission: marAdmission, slot, status: "omitted" }); }}>Omit</button>
+                            <button
+                              className="btn-primary px-2 py-1 text-xs"
+                              disabled={busy}
+                              onClick={() => {
+                                if (!live) { nursing.recordDose(marAdmission, slot, "given"); return; }
+                                // A controlled medicine is given in front of a witness, chosen in the dialog.
+                                if ((slot as LiveMarSlot).controlled) { openDoseAction(marAdmission, slot, "given"); return; }
+                                void chartLive(marAdmission, slot as LiveMarSlot, "given");
+                              }}
+                            >Give</button>
+                            <button className="btn-ghost px-2 py-1 text-xs" onClick={() => openDoseAction(marAdmission, slot, "held")}>Hold</button>
+                            <button className="btn-ghost px-2 py-1 text-xs" onClick={() => openDoseAction(marAdmission, slot, "refused")}>Refused</button>
+                            <button className="btn-ghost px-2 py-1 text-xs" onClick={() => openDoseAction(marAdmission, slot, "omitted")}>Omit</button>
                           </div>
                         )}
                       </Cell>
@@ -315,18 +398,19 @@ export default function Inpatient() {
           ) : tab === "Bed board" ? (
             <div className="space-y-4">
               <div className="flex justify-end">
-                <Button variant="soft" onClick={() => setWardModal({ id: "", name: "", type: wardTypeOptions[0] })}><Plus size={14} /> Add ward</Button>
+                <Button variant="soft" onClick={() => { setActionError(""); setWardModal({ id: "", name: "", type: live ? "General" : wardTypeOptions[0] }); }}><Plus size={14} /> Add ward</Button>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 {wards.map((ward) => {
                   const wardBeds = beds.filter((bed) => bed.wardId === ward.id);
+                  const cleaning = (bed: Bed) => live && (bed as LiveBed).status === "CLEANING";
                   return (
                     <div key={ward.id} className="card">
                       <div className="mb-3 flex items-center justify-between">
                         <h3 className="font-display font-bold text-mist-900">{ward.name}</h3>
                         <div className="flex items-center gap-1.5">
                           <Badge tone="mist">{ward.type}</Badge>
-                          <button onClick={() => setWardModal({ id: ward.id, name: ward.name, type: ward.type })} className="btn-ghost px-2 py-1 text-xs"><Pencil size={12} /></button>
+                          <button onClick={() => { setActionError(""); setWardModal({ id: ward.id, name: ward.name, type: ward.type }); }} className="btn-ghost px-2 py-1 text-xs"><Pencil size={12} /></button>
                         </div>
                       </div>
                       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -335,25 +419,26 @@ export default function Inpatient() {
                           return (
                             <button
                               key={bed.id}
-                              onClick={() => (occupant ? setDetailId(occupant.id) : setManageBed(bed.id))}
+                              onClick={() => { setActionError(""); setRetireReason(""); if (occupant) setDetailId(occupant.id); else setManageBed(bed.id); }}
                               className={cn(
                                 "relative rounded-xl p-2 text-center text-[11px] font-semibold ring-1 transition hover:opacity-80",
                                 !bed.active ? "bg-mist-100 text-mist-400 ring-mist-200 line-through"
                                   : occupant?.isolation ? "bg-action-100 text-action-800 ring-action-300"
                                   : occupant ? "bg-action-50 text-action-700 ring-action-200"
+                                  : cleaning(bed) ? "bg-amber-50 text-amber-700 ring-amber-200"
                                   : "bg-brand-50 text-brand-700 ring-brand-200",
                               )}
                             >
                               {bed.isVip && <Crown size={11} className="absolute right-1 top-1 text-amber-500" aria-hidden />}
                               {bed.label}
                               <span className="block font-normal">
-                                {!bed.active ? "Retired" : occupant ? (occupant.isolation ? "Isolation" : "Occupied") : "Available"}
+                                {!bed.active ? "Retired" : occupant ? (occupant.isolation ? "Isolation" : "Occupied") : cleaning(bed) ? "Cleaning" : "Available"}
                               </span>
                             </button>
                           );
                         })}
                         <button
-                          onClick={() => { setBedForWard(ward.id); setNewBedLabel(`Bed ${wardBeds.length + 1}`); }}
+                          onClick={() => { setActionError(""); setBedForWard(ward.id); setNewBedLabel(live ? `${(ward as LiveWard).code}${wardBeds.length + 1}` : `Bed ${wardBeds.length + 1}`); }}
                           className="grid place-items-center rounded-xl border border-dashed border-mist-300 p-2 text-mist-400 hover:border-brand-400 hover:text-brand-600"
                           aria-label={`Add a bed to ${ward.name}`}
                         >
@@ -395,8 +480,15 @@ export default function Inpatient() {
         wide
         footer={<><Button variant="ghost" onClick={() => setAdmitOpen(false)}>Cancel</Button>
           <Button
-            disabled={!admitForm.patientId || !admitForm.diagnosis.trim() || !admitForm.bed}
+            disabled={!admitForm.patientId || !admitForm.diagnosis.trim() || !admitForm.bed || busy}
             onClick={() => {
+              if (live) {
+                void runLive(() => ward.admit({
+                  patientId: admitForm.patientId, bedId: bedIdFor(admitForm.ward, admitForm.bed), diagnosis: admitForm.diagnosis, reason: admitForm.reason,
+                  service: admitForm.service, isolation: admitForm.isolation, attendingUserId: admitForm.clinician, expectedDischarge: admitForm.expectedDischarge,
+                })).then((done) => { if (done) setAdmitOpen(false); });
+                return;
+              }
               admit(admitForm.patientId, admitForm.ward, admitForm.bed, admitForm.diagnosis.trim(), {
                 admittingClinician: admitForm.clinician,
                 service: admitForm.service,
@@ -411,6 +503,7 @@ export default function Inpatient() {
           </Button></>}
       >
         <div className="space-y-4">
+          {live && actionError && <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError}</p>}
           <Field label="Patient"><PatientPicker value={admitForm.patientId} onChange={(id) => setAdmitForm({ ...admitForm, patientId: id })} /></Field>
           <Grid cols={2}>
             <Field label="Ward">
@@ -418,7 +511,7 @@ export default function Inpatient() {
                 value={admitForm.ward}
                 onChange={(event) => {
                   const ward = wards.find((entry) => entry.name === event.target.value);
-                  const firstFree = ward && beds.find((bed) => bed.wardId === ward.id && bed.active && !bedOccupied(ward.name, bed.label));
+                  const firstFree = ward && beds.find((bed) => bed.wardId === ward.id && bedFree(ward.name, bed));
                   setAdmitForm({ ...admitForm, ward: event.target.value, bed: firstFree?.label ?? "" });
                 }}
                 options={wards.map((ward) => ward.name)}
@@ -430,13 +523,13 @@ export default function Inpatient() {
                 onChange={(event) => setAdmitForm({ ...admitForm, bed: event.target.value })}
                 options={(() => {
                   const ward = wards.find((entry) => entry.name === admitForm.ward);
-                  const free = ward ? beds.filter((bed) => bed.wardId === ward.id && bed.active && !bedOccupied(ward.name, bed.label)) : [];
+                  const free = ward ? beds.filter((bed) => bed.wardId === ward.id && bedFree(ward.name, bed)) : [];
                   return free.length ? free.map((bed) => ({ value: bed.label, label: bed.isVip ? `${bed.label} · VIP` : bed.label })) : [{ value: "", label: "No free beds in this ward" }];
                 })()}
               />
             </Field>
             <Field label="Service"><Select value={admitForm.service} onChange={(event) => setAdmitForm({ ...admitForm, service: event.target.value })} options={[...INPATIENT_SERVICES]} /></Field>
-            <Field label="Admitting clinician"><Select value={admitForm.clinician} onChange={(event) => setAdmitForm({ ...admitForm, clinician: event.target.value })} options={clinicians.length ? clinicians.map((clinician) => clinician.name) : [currentUser]} /></Field>
+            <Field label="Admitting clinician"><Select value={admitForm.clinician} onChange={(event) => setAdmitForm({ ...admitForm, clinician: event.target.value })} options={clinicians.length ? clinicians : live ? [{ value: "", label: "—" }] : [currentUser]} /></Field>
             <Field label="Isolation / precautions"><Input value={admitForm.isolation} onChange={(event) => setAdmitForm({ ...admitForm, isolation: event.target.value })} placeholder="e.g. Contact isolation" /></Field>
             <Field label="Expected discharge"><Input type="date" value={admitForm.expectedDischarge} onChange={(event) => setAdmitForm({ ...admitForm, expectedDischarge: event.target.value })} /></Field>
           </Grid>
@@ -455,14 +548,22 @@ export default function Inpatient() {
           <>
             <Button variant="ghost" onClick={() => setDetailId(null)}>Close</Button>
             <Button variant="soft" onClick={() => navigate(`/ward-round/${detail.id}`)}><Stethoscope size={14} /> Ward Round</Button>
-            <Button variant="soft" onClick={() => { setTransferForm({ ward: detail.ward, bed: "", reason: "" }); setTransferFor(detail.id); }}><ArrowLeftRight size={14} /> Transfer bed</Button>
-            <Button variant="ghost" onClick={() => setDischargeReady(detail.id, !detail.dischargeReady)}>{detail.dischargeReady ? "Unmark discharge-ready" : "Mark discharge-ready"}</Button>
-            <Button variant="action" onClick={() => { setDischargeForm({ outcome: DISCHARGE_OUTCOMES[0], summary: "", destination: "" }); setDischargeId(detail.id); }}>Discharge</Button>
+            <Button variant="soft" onClick={() => { setActionError(""); setTransferForm({ ward: detail.ward, bed: "", reason: "" }); setTransferFor(detail.id); }}><ArrowLeftRight size={14} /> Transfer bed</Button>
+            <Button
+              variant="ghost"
+              disabled={busy}
+              onClick={() => {
+                if (live) void runLive(() => ward.updateStay(liveAdmission(detail), { dischargeReady: !detail.dischargeReady }));
+                else setDischargeReady(detail.id, !detail.dischargeReady);
+              }}
+            >{detail.dischargeReady ? "Unmark discharge-ready" : "Mark discharge-ready"}</Button>
+            <Button variant="action" onClick={() => { setActionError(""); setDischargeForm({ outcome: DISCHARGE_OUTCOMES[0], summary: "", destination: "" }); setDischargeId(detail.id); }}>Discharge</Button>
           </>
         ) : <Button onClick={() => setDetailId(null)}>Close</Button>}
       >
         {detail && (
           <div className="space-y-3 text-sm">
+            {live && actionError && <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError}</p>}
             <div className="grid gap-2 sm:grid-cols-2">
               <p><span className="text-mist-400">Admitted</span> {dateTime(detail.admittedAt)} ({lengthOfStayDays(detail, renderedAt)} d)</p>
               <p><span className="text-mist-400">Attending</span> {detail.admittingClinician ?? "—"}</p>
@@ -495,8 +596,15 @@ export default function Inpatient() {
         footer={<><Button variant="ghost" onClick={() => setDischargeId(null)}>Cancel</Button>
           <Button
             variant="action"
-            disabled={!dischargeForm.summary.trim()}
+            disabled={!dischargeForm.summary.trim() || busy}
             onClick={() => {
+              if (live && dischargeId) {
+                const admission = active.find((a) => a.id === dischargeId);
+                if (admission) {
+                  void runLive(() => ward.discharge(liveAdmission(admission), dischargeForm)).then((done) => { if (done) { setDischargeId(null); setDetailId(null); } });
+                }
+                return;
+              }
               if (dischargeId) dischargeWithSummary(dischargeId, { outcome: dischargeForm.outcome, summary: dischargeForm.summary.trim(), destination: dischargeForm.destination.trim() || undefined });
               setDischargeId(null);
               setDetailId(null);
@@ -506,6 +614,7 @@ export default function Inpatient() {
           </Button></>}
       >
         <div className="space-y-4">
+          {live && actionError && <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError}</p>}
           <Grid cols={2}>
             <Field label="Outcome"><Select value={dischargeForm.outcome} onChange={(event) => setDischargeForm({ ...dischargeForm, outcome: event.target.value })} options={[...DISCHARGE_OUTCOMES]} /></Field>
             <Field label="Discharged to"><Input value={dischargeForm.destination} onChange={(event) => setDischargeForm({ ...dischargeForm, destination: event.target.value })} placeholder="Home / referral facility" /></Field>
@@ -523,13 +632,25 @@ export default function Inpatient() {
         title="Transfer patient to another bed"
         footer={<><Button variant="ghost" onClick={() => setTransferFor(null)}>Cancel</Button>
           <Button
-            disabled={!transferForm.bed}
-            onClick={() => { if (transferFor) transferBed(transferFor, transferForm.ward, transferForm.bed, transferForm.reason.trim() || "Ward routine"); setTransferFor(null); }}
+            disabled={!transferForm.bed || busy}
+            onClick={() => {
+              if (live && transferFor) {
+                const admission = active.find((a) => a.id === transferFor);
+                if (admission) {
+                  void runLive(() => ward.transfer(liveAdmission(admission), bedIdFor(transferForm.ward, transferForm.bed), transferForm.reason))
+                    .then((done) => { if (done) setTransferFor(null); });
+                }
+                return;
+              }
+              if (transferFor) transferBed(transferFor, transferForm.ward, transferForm.bed, transferForm.reason.trim() || "Ward routine");
+              setTransferFor(null);
+            }}
           >
             Move patient
           </Button></>}
       >
         <div className="space-y-4">
+          {live && actionError && <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError}</p>}
           <Grid cols={2}>
             <Field label="Ward"><Select value={transferForm.ward} onChange={(event) => setTransferForm({ ...transferForm, ward: event.target.value, bed: "" })} options={wards.map((ward) => ward.name)} /></Field>
             <Field label="Bed">
@@ -538,7 +659,7 @@ export default function Inpatient() {
                 onChange={(event) => setTransferForm({ ...transferForm, bed: event.target.value })}
                 options={(() => {
                   const ward = wards.find((entry) => entry.name === transferForm.ward);
-                  const free = ward ? beds.filter((bed) => bed.wardId === ward.id && bed.active && !bedOccupied(ward.name, bed.label)) : [];
+                  const free = ward ? beds.filter((bed) => bed.wardId === ward.id && bedFree(ward.name, bed)) : [];
                   return free.length ? free.map((bed) => bed.label) : [{ value: "", label: "No free beds" }];
                 })()}
               />
@@ -555,9 +676,15 @@ export default function Inpatient() {
         title={doseAction ? `Record dose as ${doseAction.status}` : ""}
         footer={<><Button variant="ghost" onClick={() => setDoseAction(null)}>Cancel</Button>
           <Button
-            disabled={!doseReason.trim()}
+            disabled={(doseAction?.status !== "given" && !doseReason.trim()) || (doseAction?.status === "given" && !doseWitness) || busy}
             onClick={() => {
-              if (doseAction) nursing.recordDose(doseAction.admission, doseAction.slot, doseAction.status, doseReason.trim());
+              if (!doseAction) return;
+              if (live) {
+                void chartLive(doseAction.admission, doseAction.slot as LiveMarSlot, doseAction.status, doseReason, doseWitness || undefined, doseKey)
+                  .then((done) => { if (done) setDoseAction(null); });
+                return;
+              }
+              if (doseAction.status !== "given") nursing.recordDose(doseAction.admission, doseAction.slot, doseAction.status, doseReason.trim());
               setDoseAction(null);
             }}
           >
@@ -566,8 +693,15 @@ export default function Inpatient() {
       >
         {doseAction && (
           <div className="space-y-3">
+            {live && actionError && <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError}</p>}
             <p className="text-sm text-mist-600">{doseAction.slot.drug} {doseAction.slot.dose} · scheduled {dateTime(doseAction.slot.scheduledFor)}</p>
-            <Field label="Reason *"><Textarea value={doseReason} onChange={(event) => setDoseReason(event.target.value)} placeholder="Why the dose was not given as scheduled" /></Field>
+            {doseAction.status === "given" ? (
+              <Field label="Witness (required — controlled medicine) *">
+                <Select value={doseWitness} onChange={(event) => setDoseWitness(event.target.value)} options={[{ value: "", label: "Choose the witnessing colleague…" }, ...ward.witnesses.filter((w) => w.userId !== myUserId).map((w) => ({ value: w.userId, label: w.name }))]} />
+              </Field>
+            ) : (
+              <Field label="Reason *"><Textarea value={doseReason} onChange={(event) => setDoseReason(event.target.value)} placeholder="Why the dose was not given as scheduled" /></Field>
+            )}
           </div>
         )}
       </Modal>
@@ -579,9 +713,17 @@ export default function Inpatient() {
         title={wardModal?.id ? "Edit ward" : "Add ward"}
         footer={<><Button variant="ghost" onClick={() => setWardModal(null)}>Cancel</Button>
           <Button
-            disabled={!wardModal?.name.trim()}
+            disabled={!wardModal?.name.trim() || (live && !wardModal?.id && !wardModal?.code?.trim()) || busy}
             onClick={() => {
               if (!wardModal) return;
+              if (live) {
+                const kind = Object.entries(WARD_KIND_LABEL).find(([, label]) => label === wardModal.type)?.[0] ?? "GENERAL";
+                const existing = ward.wards.find((w) => w.id === wardModal.id);
+                void runLive(() => (existing
+                  ? ward.updateWard(existing, { name: wardModal.name.trim(), kind })
+                  : ward.addWard({ code: (wardModal.code ?? "").trim().toUpperCase(), name: wardModal.name.trim(), kind }))).then((done) => { if (done) setWardModal(null); });
+                return;
+              }
               if (wardModal.id) updateWard(wardModal.id, { name: wardModal.name.trim(), type: wardModal.type });
               else addWard(wardModal.name.trim(), wardModal.type);
               setWardModal(null);
@@ -591,8 +733,12 @@ export default function Inpatient() {
           </Button></>}
       >
         <div className="space-y-4">
+          {live && actionError && <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError}</p>}
+          {live && !wardModal?.id && (
+            <Field label="Ward code *" hint="Short code used on bed labels, e.g. MED"><Input value={wardModal?.code ?? ""} onChange={(event) => setWardModal((state) => (state ? { ...state, code: event.target.value.toUpperCase() } : state))} /></Field>
+          )}
           <Field label="Ward name"><Input value={wardModal?.name ?? ""} onChange={(event) => setWardModal((state) => (state ? { ...state, name: event.target.value } : state))} /></Field>
-          <Field label="Type"><Select value={wardModal?.type ?? wardTypeOptions[0]} onChange={(event) => setWardModal((state) => (state ? { ...state, type: event.target.value } : state))} options={wardTypeOptions} /></Field>
+          <Field label="Type"><Select value={wardModal?.type ?? wardTypeOptions[0]} onChange={(event) => setWardModal((state) => (state ? { ...state, type: event.target.value } : state))} options={live ? Object.values(WARD_KIND_LABEL) : wardTypeOptions} /></Field>
         </div>
       </Modal>
 
@@ -601,9 +747,21 @@ export default function Inpatient() {
         onClose={() => setBedForWard(null)}
         title="Add bed"
         footer={<><Button variant="ghost" onClick={() => setBedForWard(null)}>Cancel</Button>
-          <Button disabled={!newBedLabel.trim()} onClick={() => { if (bedForWard) addBed(bedForWard, newBedLabel.trim()); setBedForWard(null); }}>Add bed</Button></>}
+          <Button
+            disabled={!newBedLabel.trim() || busy}
+            onClick={() => {
+              if (!bedForWard) return;
+              if (live) {
+                void runLive(() => ward.addBed(bedForWard, newBedLabel.trim().toUpperCase())).then((done) => { if (done) setBedForWard(null); });
+                return;
+              }
+              addBed(bedForWard, newBedLabel.trim());
+              setBedForWard(null);
+            }}
+          >Add bed</Button></>}
       >
-        <Field label="Bed label"><Input value={newBedLabel} onChange={(event) => setNewBedLabel(event.target.value)} /></Field>
+        {live && actionError && <p role="alert" className="mb-3 rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError}</p>}
+        <Field label="Bed label" hint={live ? "Letters, digits, - or _ (no spaces), e.g. MED4" : undefined}><Input value={newBedLabel} onChange={(event) => setNewBedLabel(event.target.value)} /></Field>
       </Modal>
 
       <Modal
@@ -612,7 +770,30 @@ export default function Inpatient() {
         title={`Manage — ${managedBed?.label ?? ""}`}
         footer={<Button onClick={() => setManageBed(null)}>Done</Button>}
       >
-        {managedBed && (
+        {managedBed && live && (
+          <div className="space-y-4">
+            {actionError && <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError}</p>}
+            {(managedBed as LiveBed).status === "CLEANING" && (
+              <Button disabled={busy} onClick={() => { void runLive(() => ward.setBedStatus(managedBed as LiveBed, "AVAILABLE")).then((done) => { if (done) setManageBed(null); }); }}>
+                <Power size={14} /> Mark clean — available
+              </Button>
+            )}
+            {(managedBed as LiveBed).status === "OUT_OF_SERVICE" && (
+              <Button disabled={busy} onClick={() => { void runLive(() => ward.setBedStatus(managedBed as LiveBed, "AVAILABLE")).then((done) => { if (done) setManageBed(null); }); }}>
+                <Power size={14} /> Reactivate this bed
+              </Button>
+            )}
+            {(managedBed as LiveBed).status === "AVAILABLE" && (
+              <>
+                <Field label="Reason for retiring *"><Input value={retireReason} onChange={(event) => setRetireReason(event.target.value)} placeholder="e.g. Broken bed frame" /></Field>
+                <Button variant="action" disabled={!retireReason.trim() || busy} onClick={() => { void runLive(() => ward.setBedStatus(managedBed as LiveBed, "OUT_OF_SERVICE", retireReason)).then((done) => { if (done) setManageBed(null); }); }}>
+                  <PowerOff size={14} /> Retire this bed
+                </Button>
+              </>
+            )}
+          </div>
+        )}
+        {managedBed && !live && (
           <div className="space-y-4">
             <Checkbox label="VIP bed" checked={managedBed.isVip} onChange={(event) => setBedVip(managedBed.id, event.target.checked)} />
             {(() => {

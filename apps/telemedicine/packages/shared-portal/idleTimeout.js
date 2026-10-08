@@ -29,10 +29,14 @@ function safeStorage(target) {
  * Starts watching for inactivity and returns a stop function. `onIdle` runs at most once. While
  * `isSignedIn()` is false the clock is held, so it starts counting from the moment someone signs in.
  */
-export function startIdleTimeout({ timeoutMs = IDLE_TIMEOUT_MS, onIdle, isSignedIn = () => true, now = () => Date.now(), target = globalThis.window, doc = globalThis.document, storage = safeStorage(target) }) {
+export function startIdleTimeout({ timeoutMs = IDLE_TIMEOUT_MS, onIdle, onActive, isSignedIn = () => true, now = () => Date.now(), target = globalThis.window, doc = globalThis.document, storage = safeStorage(target) }) {
   let last = now();
   let shared = 0;
   let fired = false;
+  let stopped = false;
+  let activitySent = 0;
+  let sentAt = 0;
+  let sending = false;
 
   const read = () => { try { return Number(storage?.getItem(ACTIVITY_KEY)) || 0; } catch { return 0; } };
   const write = (key, value) => { try { storage?.setItem(key, String(value)); } catch { /* private mode: this tab still times out on its own */ } };
@@ -51,7 +55,14 @@ export function startIdleTimeout({ timeoutMs = IDLE_TIMEOUT_MS, onIdle, isSigned
   const check = () => {
     if (fired) return;
     if (!isSignedIn()) { last = now(); return; }
-    if (now() - Math.max(last, read()) >= timeoutMs) fire(true);
+    const activeAt = Math.max(last, read());
+    if (now() - activeAt >= timeoutMs) { fire(true); return; }
+    // Only real input (or an active call) earns a heartbeat. Background timers must not
+    // keep an unattended session alive. No clinical text is sent or stored here.
+    if (onActive && !stopped && !sending && activeAt > activitySent && now() - activeAt < 60_000 && now() - sentAt >= 30_000) {
+      activitySent = activeAt; sentAt = now(); sending = true;
+      Promise.resolve().then(() => { if (!stopped && !fired && isSignedIn()) return onActive(); }).catch(() => {}).finally(() => { sending = false; });
+    }
   };
   // Another tab hit the limit and is signing the shared session out: follow it.
   const onStorage = (event) => { if (event.key === SIGNED_OUT_KEY && event.newValue && isSignedIn()) fire(false); };
@@ -67,6 +78,7 @@ export function startIdleTimeout({ timeoutMs = IDLE_TIMEOUT_MS, onIdle, isSigned
   const timer = setInterval(check, CHECK_INTERVAL_MS);
 
   return () => {
+    stopped = true;
     INPUT_EVENTS.forEach((type) => target.removeEventListener(type, activity, { capture: true }));
     target.removeEventListener(ACTIVITY_EVENT, activity);
     target.removeEventListener("storage", onStorage);

@@ -1,6 +1,6 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getCurrentUser, restoreSession, signOut } from "./utils/sabiIdentity";
+import { getCurrentUser, restoreSession, signOut, authorizedRequest } from "./utils/sabiIdentity";
 import { idleSignInUrl, startIdleTimeout } from "../../shared-portal/idleTimeout.js";
 import "./index.css";
 import { ZoomProvider } from "./context/ZoomContext";
@@ -163,7 +163,9 @@ async function signOutForInactivity() {
 }
 
 export default function App() {
-  useEffect(() => startIdleTimeout({ isSignedIn: () => getCurrentUser() !== null, onIdle: () => { void signOutForInactivity(); } }), []);
+  useEffect(() => startIdleTimeout({ isSignedIn: () => getCurrentUser() !== null,
+    onActive: () => authorizedRequest('/api/v1/auth/me', { signal: AbortSignal.timeout(30_000) }),
+    onIdle: () => { void signOutForInactivity(); } }), []);
   return (
     <ZoomProvider>
       <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "") || "/"}>

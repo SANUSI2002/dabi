@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useSyncExternalStore } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Navigate, Route, Routes } from "react-router-dom";
 import { getCurrentDoctor, subscribeToDoctorSession, activateDoctorSession, signOutDoctor } from "./store/doctorSession";
 import SaveNotice from "./components/SaveNotice";
 import DoctorRegistrationPage from "./pages/auth/DoctorRegistrationPage";
@@ -7,7 +7,7 @@ import ProfessionalRegistrationPage from "./pages/auth/ProfessionalRegistrationP
 import SignInPage from "./pages/auth/SignInPage";
 import RegistrationStatusPage from "./pages/auth/RegistrationStatusPage";
 import PortalPreviewPage from "./pages/auth/PortalPreviewPage";
-import { AUTH_CONFIGURED, PREVIEW_ENABLED, getAuthenticatedSession, signOutAccount } from "./services/doctorAuth";
+import { AUTH_CONFIGURED, PREVIEW_ENABLED, getAuthenticatedSession, signOutAccount, doctorRequest } from "./services/doctorAuth";
 import { idleSignInUrl, startIdleTimeout } from "../../shared-portal/idleTimeout.js";
 import LiveDoctorWorkspace from "./live/LiveDoctorWorkspace";
 import PortalErrorBoundary from "./components/PortalErrorBoundary";
@@ -43,7 +43,7 @@ async function signOutForInactivity() {
   window.location.assign(idleSignInUrl(import.meta.env.BASE_URL));
 }
 
-export default function App() {
+function DoctorApplication() {
   const doctor = useSyncExternalStore(subscribeToDoctorSession, getCurrentDoctor, getCurrentDoctor);
   const [ready, setReady] = useState(!AUTH_CONFIGURED);
   const [sessionError, setSessionError] = useState("");
@@ -55,10 +55,12 @@ export default function App() {
     getAuthenticatedSession().then((result) => { if (!cancelled) { if (result.doctor) activateDoctorSession(result.doctor); else signOutDoctor(); setReady(true); } }).catch((error) => { if (!cancelled) setSessionError(error.message); });
     return () => { cancelled = true; };
   }, [attempt]);
-  useEffect(() => startIdleTimeout({ isSignedIn: () => getCurrentDoctor() !== null, onIdle: () => { void signOutForInactivity(); } }), []);
+  useEffect(() => startIdleTimeout({ isSignedIn: () => getCurrentDoctor() !== null,
+    onActive: () => AUTH_CONFIGURED && !getCurrentDoctor()?.isDemo ? doctorRequest('/auth/me') : undefined,
+    onIdle: () => { void signOutForInactivity(); } }), []);
   if (!ready) return <main className="dp-session-page" role="status">{sessionError ? <><h1>We couldn't check your session</h1><p>{sessionError}</p><button className="dp-btn dp-btn-primary" onClick={() => setAttempt((n) => n + 1)}>Try again</button></> : "Loading your account…"}</main>;
   return (
-    <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "") || "/"}>
+    <>
       <SaveNotice key={`notice:${doctor?.id || "signed-out"}`} />
       <PortalErrorBoundary key={`boundary:${doctor?.id || "signed-out"}`}>
       <Routes key={doctor?.id || "signed-out"}>
@@ -97,6 +99,14 @@ export default function App() {
         </>}
       </Routes>
       </PortalErrorBoundary>
-    </BrowserRouter>
+    </>
   );
+}
+
+export default function App() {
+  // A data router enables reliable blocking of links AND browser Back for unsaved clinical notes.
+  const [router] = useState(() => createBrowserRouter([{ path: '*', element: <DoctorApplication /> }], {
+    basename: import.meta.env.BASE_URL.replace(/\/$/, '') || '/',
+  }));
+  return <RouterProvider router={router} />;
 }

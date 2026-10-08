@@ -20,6 +20,8 @@ const CHECK_INTERVAL_MS = 10_000;
 type Options = {
   timeoutMs?: number;
   onIdle: () => void;
+  /** Authenticated keepalive only after user activity, never for an unattended tab. */
+  onActive?: () => unknown | Promise<unknown>;
   /** While this returns false (nobody signed in) the clock is held at zero instead of running out. */
   isSignedIn?: () => boolean;
   now?: () => number;
@@ -31,10 +33,11 @@ function safeStorage(): Storage | null {
 }
 
 /** Starts watching for inactivity; returns a function that stops watching. `onIdle` runs at most once. */
-export function startIdleTimeout({ timeoutMs = IDLE_TIMEOUT_MS, onIdle, isSignedIn = () => true, now = () => Date.now(), storage = safeStorage() }: Options): () => void {
+export function startIdleTimeout({ timeoutMs = IDLE_TIMEOUT_MS, onIdle, onActive, isSignedIn = () => true, now = () => Date.now(), storage = safeStorage() }: Options): () => void {
   let last = now();
   let shared = 0;
   let fired = false;
+  let stopped = false, sending = false, activitySent = 0, sentAt = 0;
 
   const read = () => { try { return Number(storage?.getItem(ACTIVITY_KEY)) || 0; } catch { return 0; } };
   const write = (key: string, value: number) => { try { storage?.setItem(key, String(value)); } catch { /* private mode: this tab still times out on its own */ } };
@@ -53,7 +56,12 @@ export function startIdleTimeout({ timeoutMs = IDLE_TIMEOUT_MS, onIdle, isSigned
   const check = () => {
     if (fired) return;
     if (!isSignedIn()) { last = now(); return; }
-    if (now() - Math.max(last, read()) >= timeoutMs) fire(true);
+    const activeAt = Math.max(last, read());
+    if (now() - activeAt >= timeoutMs) { fire(true); return; }
+    if (onActive && !stopped && !sending && activeAt > activitySent && now() - activeAt < 60_000 && now() - sentAt >= 30_000) {
+      activitySent = activeAt; sentAt = now(); sending = true;
+      Promise.resolve().then(() => { if (!stopped && !fired && isSignedIn()) return onActive(); }).catch(() => {}).finally(() => { sending = false; });
+    }
   };
   const onStorage = (event: StorageEvent) => {
     // Another tab hit the limit and is signing the shared session out: follow it.
@@ -71,6 +79,7 @@ export function startIdleTimeout({ timeoutMs = IDLE_TIMEOUT_MS, onIdle, isSigned
   const timer = window.setInterval(check, CHECK_INTERVAL_MS);
 
   return () => {
+    stopped = true;
     INPUT_EVENTS.forEach((type) => window.removeEventListener(type, activity, { capture: true }));
     window.removeEventListener(ACTIVITY_EVENT, activity);
     window.removeEventListener("storage", onStorage);

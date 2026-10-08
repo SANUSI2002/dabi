@@ -11,6 +11,7 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string> = {
   "/laboratory": "lab.order.read",
   // The pharmacy queue is for pharmacy staff (the backend allows reviewers and dispensers).
   "/pharmacy": "prescription.dispense",
+  "/inpatient": "admission.read",
 };
 
 export type LiveRouteState = "connected" | "no-permission" | "not-connected";

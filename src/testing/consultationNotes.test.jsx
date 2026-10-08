@@ -1,7 +1,7 @@
 import React from 'react';
 import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
-import {cleanup,fireEvent,render,screen} from '@testing-library/react';
-import {MemoryRouter} from 'react-router-dom';
+import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
+import {createMemoryRouter,MemoryRouter,RouterProvider} from 'react-router-dom';
 
 const api=vi.hoisted(()=>({loadConsultationNote:vi.fn(),saveConsultationNote:vi.fn(),signConsultationNote:vi.fn(),loadConsultationNotes:vi.fn()}));
 const identity=vi.hoisted(()=>({authorizedRequest:vi.fn()}));
@@ -19,11 +19,68 @@ const {AppointmentDetailModal}=await import('../../apps/telemedicine/packages/pa
 
 const content=(over={})=>({clinical:{presentingComplaint:'Synthetic complaint',history:'',findings:'',assessment:'Synthetic assessment',plan:'',...over.clinical},patient:{summary:'Synthetic summary',advice:'',warningSigns:'',followUp:{needed:false,timeframe:'',instructions:''},...over.patient}});
 const detail=({revision=2,signedVersion=null,canSign=true,draft=content()}={})=>({appointment:{id:'apt',status:canSign?'COMPLETED':'CONFIRMED',startsAt:'2026-10-07T12:00:00Z',endsAt:'2026-10-07T12:30:00Z',consultationType:'VIRTUAL',reason:'Synthetic reason',patient:{name:'Synthetic patient',patientId:'SABI-T-1'},dependent:null},note:{revision,signedVersion,draft,hasUnsignedChanges:false,versions:signedVersion?[{number:1,signedAt:'2026-10-07T13:00:00Z',amendmentReason:null}]:[]},canSign,previous:[]});
-const openEditor=()=>render(<MemoryRouter initialEntries={['/reports/apt']}><LiveDoctorWorkspace/></MemoryRouter>);
-beforeEach(()=>vi.clearAllMocks());
-afterEach(cleanup);
+const openEditor=(initialEntries=['/reports/apt'])=>{
+  const router=createMemoryRouter([{path:'*',element:<LiveDoctorWorkspace/>}],{initialEntries,initialIndex:initialEntries.length-1});
+  render(<RouterProvider router={router}/>);
+  return router;
+};
+// jsdom has the element but does not implement native modal methods.
+if (!HTMLDialogElement.prototype.showModal) HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','');};
+if (!HTMLDialogElement.prototype.close) HTMLDialogElement.prototype.close=function(){this.removeAttribute('open');};
+beforeEach(()=>{
+  vi.clearAllMocks();
+  api.loadConsultationNotes.mockResolvedValue({notLive:true});
+  vi.spyOn(HTMLDialogElement.prototype,'showModal').mockImplementation(function(){this.setAttribute('open','');});
+  vi.spyOn(HTMLDialogElement.prototype,'close').mockImplementation(function(){this.removeAttribute('open');});
+});
+afterEach(()=>{cleanup();vi.restoreAllMocks();});
 
 describe('doctor consultation note editor',()=>{
+  it('keeps unsaved text when internal navigation is cancelled',async()=>{
+    api.loadConsultationNote.mockResolvedValue(detail());
+    const router=openEditor();
+    fireEvent.change(await screen.findByLabelText('Plan'),{target:{value:'Do not lose this'}});
+    fireEvent.click(screen.getByRole('link',{name:'All notes'}));
+    await screen.findByRole('dialog');
+    expect(router.state.location.pathname).toBe('/reports/apt');
+    fireEvent.click(screen.getByRole('button',{name:'Keep editing'}));
+    await waitFor(()=>expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.getByLabelText('Plan')).toHaveValue('Do not lose this');
+    expect(api.saveConsultationNote).not.toHaveBeenCalled();
+  });
+  it('saves the draft before proceeding with navigation',async()=>{
+    api.loadConsultationNote.mockResolvedValue(detail());
+    api.saveConsultationNote.mockImplementation(async(_id,body)=>detail({revision:3,draft:body.content}));
+    const router=openEditor();
+    fireEvent.change(await screen.findByLabelText('Plan'),{target:{value:'Saved before leaving'}});
+    fireEvent.click(screen.getByRole('link',{name:'All notes'}));
+    fireEvent.click(await screen.findByRole('button',{name:'Save draft and leave'}));
+    await waitFor(()=>expect(router.state.location.pathname).toBe('/reports'));
+    expect(api.saveConsultationNote).toHaveBeenCalledOnce();
+    expect(api.signConsultationNote).not.toHaveBeenCalled();
+  });
+  it('does not leave or discard the draft when saving fails',async()=>{
+    api.loadConsultationNote.mockResolvedValue(detail());
+    api.saveConsultationNote.mockRejectedValue(new Error('Unable to save. Try again.'));
+    const router=openEditor();
+    fireEvent.change(await screen.findByLabelText('Plan'),{target:{value:'Keep this on failure'}});
+    fireEvent.click(screen.getByRole('link',{name:'All notes'}));
+    fireEvent.click(await screen.findByRole('button',{name:'Save draft and leave'}));
+    await waitFor(()=>expect(screen.getByRole('button',{name:'Save draft and leave'})).toBeEnabled());
+    expect(router.state.location.pathname).toBe('/reports/apt');
+    expect(screen.getByLabelText('Plan')).toHaveValue('Keep this on failure');
+    expect(screen.getByRole('dialog')).toHaveTextContent('Unable to save');
+  });
+  it('blocks browser Back and only discards after an explicit choice',async()=>{
+    api.loadConsultationNote.mockResolvedValue(detail());
+    const router=openEditor(['/reports','/reports/apt']);
+    fireEvent.change(await screen.findByLabelText('Plan'),{target:{value:'Back protection'}});
+    await router.navigate(-1);
+    await screen.findByRole('dialog');
+    fireEvent.click(screen.getByRole('button',{name:'Discard and leave'}));
+    await waitFor(()=>expect(router.state.location.pathname).toBe('/reports'));
+    expect(api.saveConsultationNote).not.toHaveBeenCalled();
+  });
   it('saves unsaved edits first, then signs the revision the save returned',async()=>{
     api.loadConsultationNote.mockResolvedValue(detail());
     api.saveConsultationNote.mockImplementation(async(_id,body)=>detail({revision:3,draft:body.content}));

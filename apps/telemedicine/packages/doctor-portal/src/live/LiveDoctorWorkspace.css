@@ -172,3 +172,7 @@ a.dl-stat:hover { border-color: var(--sx-brand-300); background: var(--sx-brand-
 }
 /* Consultation note: keep the follow-up checkbox inline inside the grid-laid-out fieldset. */
 .dl-medication .dl-checks label { display: flex; }
+.dl-leave-dialog { max-width: 560px; width: calc(100% - 32px); padding: 24px; border: 1px solid var(--sx-border, #dce5df); border-radius: 20px; background: var(--sx-surface, #fff); color: var(--sx-text, #183c30); }
+.dl-leave-dialog::backdrop { background: rgb(0 20 14 / 55%); }
+.dl-leave-dialog .dl-actions { flex-wrap: wrap; }
+.dl-leave-dialog button { min-height: 44px; }
