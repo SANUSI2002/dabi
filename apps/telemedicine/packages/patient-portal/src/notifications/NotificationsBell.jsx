@@ -1,5 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Bell, CheckCheck, ClipboardList, CreditCard, PackageCheck, Truck, FileText } from "lucide-react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Bell, CalendarClock, CheckCheck, ClipboardList, CreditCard, PackageCheck, Pill, Truck, FileText } from "lucide-react";
+import { listNotifications, markAllNotificationsRead, markNotificationRead } from "../api/notificationsApi";
 import {
   getNotifications,
   getUnreadCount,
@@ -15,7 +17,15 @@ const KIND_ICON = {
   delivery: Truck,
   delivered: PackageCheck,
   invoice: FileText,
+  MEDICATION: Pill,
+  APPOINTMENT: CalendarClock,
+  CARE: ClipboardList,
 };
+
+// Notifications from the Sabi service (medicine reminders, prescriptions, care updates) shown next to
+// the ones this browser keeps for pharmacy orders.
+const fromServer = (n) => ({ id: `srv-${n.id}`, serverId: n.id, title: n.title, body: n.message, kind: n.category, read: n.isRead, createdAt: n.createdAt, link: n.link });
+const REFRESH_MS = 60_000;
 
 function timeAgo(iso) {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -30,9 +40,21 @@ function timeAgo(iso) {
 export function NotificationsBell() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState(getNotifications);
+  const [serverItems, setServerItems] = useState([]);
   const ref = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => subscribeToNotifications(() => setNotifications(getNotifications())), []);
+
+  const refresh = useCallback(() => {
+    listNotifications().then((page) => setServerItems((page?.items || []).map(fromServer))).catch(() => { /* the local list still shows */ });
+  }, []);
+  useEffect(() => {
+    refresh();
+    const timer = setInterval(() => { if (document.visibilityState === "visible") refresh(); }, REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [refresh]);
+  useEffect(() => { if (open) refresh(); }, [open, refresh]);
 
   useEffect(() => {
     function onClickOutside(e) {
@@ -42,7 +64,25 @@ export function NotificationsBell() {
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
-  const unread = getUnreadCount();
+  const unread = getUnreadCount() + serverItems.filter((n) => !n.read).length;
+  const items = [...serverItems, ...notifications].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  const openItem = (n) => {
+    if (!n.serverId) return markRead(n.id);
+    if (!n.read) {
+      setServerItems((list) => list.map((item) => (item.id === n.id ? { ...item, read: true } : item)));
+      markNotificationRead(n.serverId).catch(() => {});
+    }
+    if (n.link) { setOpen(false); navigate(n.link); }
+    return undefined;
+  };
+  const readAll = () => {
+    markAllRead();
+    if (serverItems.some((n) => !n.read)) {
+      setServerItems((list) => list.map((item) => ({ ...item, read: true })));
+      markAllNotificationsRead().catch(() => {});
+    }
+  };
 
   return (
     <div className="sabi-notif-wrap" ref={ref}>
@@ -61,24 +101,24 @@ export function NotificationsBell() {
           <div className="sabi-notif-panel-head">
             <h4>Notifications</h4>
             {unread > 0 && (
-              <button type="button" onClick={() => markAllRead()}>
+              <button type="button" onClick={readAll}>
                 Mark all read
               </button>
             )}
           </div>
 
-          {notifications.length === 0 ? (
+          {items.length === 0 ? (
             <p className="sabi-notif-empty">No notifications yet.</p>
           ) : (
             <div className="sabi-notif-list">
-              {notifications.map((n) => {
+              {items.map((n) => {
                 const Icon = KIND_ICON[n.kind] || ClipboardList;
                 return (
                   <button
                     type="button"
                     key={n.id}
                     className={`sabi-notif-item${n.read ? "" : " unread"}`}
-                    onClick={() => markRead(n.id)}
+                    onClick={() => openItem(n)}
                   >
                     <span className="sabi-notif-icon">
                       <Icon size={15} />

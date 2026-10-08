@@ -26,6 +26,7 @@ import {
   Settings,
   LogOut,
   Salad,
+  BellRing,
 } from "lucide-react";
 
 // Placeholder content for the patient dashboard.
@@ -50,6 +51,7 @@ export const NAV_GROUPS = [
     { key: "dietician-table", label: "Dietician Table", icon: Salad, to: "/prescriptions/dietician-table" },
   ] },
   { label: "Medicines", items: [
+    { key: "medications", label: "My Medicines", icon: Pill, to: "/medications" },
     { key: "pharmacy-market", label: "Pharmacy Market", icon: Store, to: "/pharmacy-market" },
     { key: "pharmacy-quotes", label: "Pharmacy Quotes", icon: ReceiptText, to: "/pharmacy-quotes" },
     { key: "delivery-tracking", label: "Delivery Tracking", icon: Truck, to: "/delivery-tracking" },
@@ -63,6 +65,7 @@ export const NAV_ITEMS = NAV_GROUPS.flatMap((group) => group.items);
 
 export const FOOTER_ITEMS = [
   { key: "activity", label: "Activity log", icon: History, to: "/activity" },
+  { key: "notification-settings", label: "Notifications", icon: BellRing, to: "/settings/notifications" },
   { key: "settings", label: "Settings", icon: Settings, to: "/profile" },
   { key: "logout", label: "Logout", icon: LogOut, danger: true },
 ];

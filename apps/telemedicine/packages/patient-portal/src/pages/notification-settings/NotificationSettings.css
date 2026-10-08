@@ -1,0 +1,29 @@
+/* Settings → Notifications and My Medicines. Values come from shared-portal/design-system/tokens.css. */
+.ns-page { max-width: 860px; }
+.ns-title { display: flex; align-items: flex-start; gap: var(--sx-space-3); }
+.ns-icon { flex-shrink: 0; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--sx-brand-50); color: var(--sx-brand-700); }
+.ns-form { display: grid; gap: var(--sx-space-4); }
+.ns-lead { margin: 0; color: var(--sx-text); font-size: var(--sx-text-md); line-height: var(--sx-leading-normal); }
+.ns-code { max-width: 12ch; font-size: 22px; letter-spacing: .3em; font-variant-numeric: tabular-nums; }
+.ns-check, .ns-option { display: flex; gap: var(--sx-space-3); align-items: flex-start; font-size: var(--sx-text-md); line-height: var(--sx-leading-normal); color: var(--sx-text); cursor: pointer; }
+.ns-check input, .ns-option input { width: 20px; height: 20px; margin-top: 2px; flex-shrink: 0; accent-color: var(--sx-brand-600); }
+.ns-option strong { display: block; font-weight: 650; }
+.ns-option small { display: block; color: var(--sx-text-muted); font-size: var(--sx-text-sm); }
+.ns-options { display: grid; gap: var(--sx-space-4); margin: 0; padding: 0; border: 0; min-width: 0; }
+.ns-privacy { display: flex; gap: var(--sx-space-3); margin-top: var(--sx-space-5); padding-top: var(--sx-space-5); border-top: 1px solid var(--sx-line); }
+.ns-note { margin: 0; color: var(--sx-text-muted); font-size: var(--sx-text-sm); line-height: var(--sx-leading-normal); }
+
+/* My Medicines */
+.md-day { display: flex; align-items: center; justify-content: space-between; gap: var(--sx-space-3); flex-wrap: wrap; }
+.md-dose { display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; gap: var(--sx-space-4); align-items: center; padding: var(--sx-space-4); border: 1px solid var(--sx-line); border-radius: var(--sx-radius-md); background: var(--sx-surface); }
+.md-dose.is-done { background: var(--sx-surface-subtle); }
+.md-time { font-family: var(--sx-font-display); font-weight: 700; font-size: var(--sx-text-lg); color: var(--sx-brand-800); white-space: nowrap; }
+.md-times { display: flex; flex-wrap: wrap; gap: var(--sx-space-2); align-items: center; }
+.md-times .sx-input { width: auto; min-width: 8.5em; }
+.md-med { display: grid; gap: var(--sx-space-3); padding: var(--sx-space-4); border: 1px solid var(--sx-line); border-radius: var(--sx-radius-md); }
+.md-med-head { display: flex; justify-content: space-between; gap: var(--sx-space-3); flex-wrap: wrap; align-items: flex-start; }
+.md-grid { display: grid; gap: var(--sx-space-4); grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+@media (max-width: 560px) {
+  .md-dose { grid-template-columns: minmax(0, 1fr); }
+  .md-dose .sx-actions { justify-content: flex-start; }
+}
