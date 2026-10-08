@@ -195,7 +195,7 @@ function Appointments({ consultations = false }) {
         </> : !id && <Empty title="Select an appointment" text="Choose an appointment to review it, respond to the request or join the consultation." />}
       </section>
     </div>
-    {callId && <DailyConsultation key={callId} appointmentId={callId} title="Patient consultation" getConfig={api.videoConfig} joinSession={api.joinVideoSession} checkSession={api.checkVideoSession} onClose={() => setCallId('')} />}
+    {callId && <DailyConsultation key={callId} appointmentId={callId} title="Patient consultation" getConfig={api.videoConfig} joinSession={api.joinVideoSession} checkSession={api.checkVideoSession} onClose={() => setCallId('')} role="professional" />}
   </Page>;
 }
 function Pagination({ offset, total, size, onChange }) {

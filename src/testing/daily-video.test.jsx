@@ -25,7 +25,7 @@ describe('Daily call UI lifecycle', () => {
     await waitFor(() => expect(screen.queryByText('Checking video availability…')).not.toBeInTheDocument());
     expect(screen.getByRole('button', { name: 'Join video and chat' })).toBeDisabled();
     await connect(); await waitFor(() => expect(mock.create).toHaveBeenCalledTimes(1));
-    expect(view.join).toHaveBeenCalledWith('synthetic', { providerConsent: true });
+    expect(view.join).toHaveBeenCalledWith('synthetic', { providerConsent: true, consentVersion: 'telemedicine-patient-v1' });
     expect(mock.frames[0].join).toHaveBeenCalledWith({ url: session.url, token: session.token });
     view.unmount(); await waitFor(() => expect(mock.frames[0].destroy).toHaveBeenCalledTimes(1));
   });

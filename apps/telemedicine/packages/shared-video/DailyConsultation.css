@@ -13,3 +13,7 @@
 .sabi-video-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:12px}
 .sabi-video-actions button{min-height:48px}
 @media(max-width:640px){.sabi-video-actions button{flex:1 1 100%}.sabi-video-banner{padding:12px 16px}}
+/* Telemedicine consent notice shown before joining. */
+.sabi-video-notice{margin:20px 0 8px;padding:16px 18px;border:1px solid #dce9e3;border-radius:14px;background:white;text-align:left}
+.sabi-video-notice h4{margin:0 0 8px;font-size:15px}
+.sabi-video-notice ul{margin:0;padding-left:20px;display:grid;gap:6px;font-size:14px;line-height:1.55;color:#284a42}

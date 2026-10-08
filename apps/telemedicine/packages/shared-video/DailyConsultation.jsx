@@ -44,11 +44,42 @@ const accessGone = (error) => [401, 403, 404, 409].includes(error?.status);
 export function slowConnection(connection = typeof navigator === 'undefined' ? undefined : navigator.connection) {
   return Boolean(connection && (connection.saveData || ['slow-2g', '2g'].includes(connection.effectiveType)));
 }
+// The consent notice each side reads before joining. The version is sent with the join request and
+// recorded by the server, so it is clear which wording a person agreed to. Change the wording => new version.
+export const CONSENT = {
+  patient: {
+    version: 'telemedicine-patient-v1',
+    points: (forName) => [
+      'This is a telemedicine consultation by video or audio. Your professional cannot examine you in person and may advise you to visit a clinic or hospital.',
+      'It is not for emergencies. If you have chest pain, difficulty breathing, heavy bleeding or another emergency, call 112 or go to the nearest hospital now.',
+      'Everything you share in this consultation, such as your symptoms, history and anything you show on camera, you share voluntarily and with your consent so your professional can care for you.',
+      'Your professional may write notes about this consultation in your Sabi Health record, and you will receive a visit summary.',
+      'The call is not recorded. Daily, our video provider, processes the call audio, video and in-call messages only to run the call. In-call chat is not saved to your record.',
+      'Sabi Health uses the information collected in this consultation only to provide and record your care. You can review your privacy choices in Profile, under Consent & Privacy.',
+      'You can leave the call at any time.',
+      ...(forName ? [`You are joining for ${forName}. You confirm you are their parent or guardian, or are otherwise allowed to consent for them.`] : []),
+    ],
+    agree: 'I have read this notice. I consent to this telemedicine consultation and to the information shared being used for care as described above.',
+  },
+  professional: {
+    version: 'telemedicine-professional-v1',
+    points: () => [
+      "You are joining as the patient's assigned professional on Sabi Health.",
+      'Join from a private place. Keep everything the patient shares confidential and use it only for their care.',
+      'Do not record the call or take screenshots. Record clinical details in the consultation note.',
+      'If the patient needs in-person or emergency care, tell them clearly and advise them to call 112 or go to the nearest hospital.',
+      'The call is not recorded. Daily, our video provider, processes the call audio, video and in-call messages only to run the call.',
+      'You can leave the call at any time.',
+    ],
+    agree: 'I have read this notice and agree to conduct this consultation on these terms.',
+  },
+};
 // Daily's settings calls return promises and some do not apply to every call type; failing quietly is
 // fine because Daily's own adaptive video keeps working either way.
 const quietly = (work) => Promise.resolve().then(work).catch(() => {});
 
-export default function DailyConsultation({ appointmentId, title, getConfig, joinSession, checkSession, onClose }) {
+export default function DailyConsultation({ appointmentId, title, getConfig, joinSession, checkSession, onClose, role = 'patient', forName }) {
+  const notice = CONSENT[role] || CONSENT.patient;
   const host = useRef(null), closeButton = useRef(null), alive = useRef(false), frameRef = useRef(null);
   const [config, setConfig] = useState(null), [configError, setConfigError] = useState('');
   const [consent, setConsent] = useState(false), [busy, setBusy] = useState(false);
@@ -146,7 +177,14 @@ export default function DailyConsultation({ appointmentId, title, getConfig, joi
   async function connect(withAudioOnly) {
     setBusy(true); setError(''); setAudioOnly(withAudioOnly);
     try {
-      const result = await joinSession(appointmentId, { providerConsent: true });
+      let result;
+      try { result = await joinSession(appointmentId, { providerConsent: true, consentVersion: notice.version }); }
+      catch (e) {
+        // A server from before versioned consent rejects the extra field as invalid input; consent is
+        // still given explicitly, so join the way that server expects. Safe to remove once deployed.
+        if (e?.status !== 400 || e?.code) throw e;
+        result = await joinSession(appointmentId, { providerConsent: true });
+      }
       if (!validVideoSession(result)) throw new Error('The video provider returned an invalid session. Please retry.');
       if (alive.current) { setPhase('Preparing camera and microphone…'); setSession(result); }
     } catch (e) { if (alive.current) setError(e.message); }
@@ -168,13 +206,14 @@ export default function DailyConsultation({ appointmentId, title, getConfig, joi
     {session && quality === 'very-low' && <div className="sabi-video-banner" role="status">Your connection is very weak. Turning off your video keeps the conversation going.<button type="button" onClick={() => quietly(() => frameRef.current?.setLocalVideo(false))}>Turn off my video</button></div>}
     {session && quality === 'low' && <div className="sabi-video-banner" role="status">Weak connection: video quality is lowered so the call can continue.</div>}
     {session && note && <div className="sabi-video-banner" role="status">{note}</div>}
-    {session ? <div ref={host} className="sabi-video-frame" /> : <div className="sabi-video-lobby"><div className="sabi-video-mark" aria-hidden="true">↗</div><h3>Your consultation, connected</h3><p>Check your camera and microphone before joining. Use the Chat button inside the call to message the other participant.</p><p className="sabi-video-muted">Daily processes your call audio, video and in-call messages. Recording and transcription are disabled. Chat is for this call, not a persistent medical record. Calls open 10 minutes before your appointment and close 15 minutes after its scheduled end.</p>
+    {session ? <div ref={host} className="sabi-video-frame" /> : <div className="sabi-video-lobby"><div className="sabi-video-mark" aria-hidden="true">↗</div><h3>Your consultation, connected</h3><p>Check your camera and microphone before joining. Use the Chat button inside the call to message the other participant.</p><section className="sabi-video-notice" aria-labelledby="sabi-video-notice-title"><h4 id="sabi-video-notice-title">Before you join</h4><ul>{notice.points(forName).map((point) => <li key={point}>{point}</li>)}</ul></section>
+      <p className="sabi-video-muted">Calls open 10 minutes before your appointment and close 15 minutes after its scheduled end.</p>
       <p className="sabi-video-muted">On a weak connection the call lowers video quality by itself and keeps your voice first. Audio only uses much less data.</p>
       {slow && <p className="sabi-video-hint" role="status">Your connection looks slow. Joining with audio only is more reliable; you can turn your camera on inside the call.</p>}
       {!config && !configError && <p role="status">Checking video availability…</p>}
       {configError && <><p role="alert">{configError}</p><button type="button" onClick={() => setAttempt((v) => v + 1)}>Retry availability check</button></>}
       {config && !config.enabled && <p role="alert">Video service is not enabled yet. Please contact Sabi support.</p>}
-      <label className="sabi-video-consent"><input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />I understand and agree to connect this consultation through Daily.</label>
+      <label className="sabi-video-consent"><input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />{notice.agree}</label>
       <div className="sabi-video-actions">
         <button className={slow ? undefined : 'sabi-video-primary'} type="button" disabled={!canJoin} onClick={() => connect(false)}>{busy ? 'Preparing secure call…' : error ? 'Reconnect' : 'Join video and chat'}</button>
         <button className={slow ? 'sabi-video-primary' : undefined} type="button" disabled={!canJoin} onClick={() => connect(true)}>Join with audio only</button>

@@ -4,7 +4,8 @@ import { videoConfig, joinVideoSession, checkVideoSession } from '../../../api/d
 
 export function JoinConsultationModal({ appointment, onClose }) {
   return <DailyConsultation key={appointment.id} appointmentId={appointment.id} title={`Consultation with ${appointment.doctor}`}
-    getConfig={videoConfig} joinSession={joinVideoSession} checkSession={checkVideoSession} onClose={onClose} />;
+    getConfig={videoConfig} joinSession={joinVideoSession} checkSession={checkVideoSession} onClose={onClose}
+    role="patient" forName={appointment.bookedFor} />;
 }
 
 export default JoinConsultationModal;
