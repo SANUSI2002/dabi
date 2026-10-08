@@ -9,6 +9,16 @@ const defaults = () => {
 };
 
 describe('standalone doctor domain', () => {
+  it.each([
+    [false, '', 'https://telemedicine.sabihealth.org/login'],
+    [true, '', 'http://127.0.0.1:5174/login'],
+    [false, 'https://patient.example.test/', 'https://patient.example.test/login'],
+  ])('keeps patient sign-in separate from the doctor root (dev=%s, override=%s)', async (dev, origin, expected) => {
+    defaults(); vi.stubEnv('DEV', dev); vi.stubEnv('BASE_URL', '/');
+    vi.stubEnv('VITE_SABI_TELEMEDICINE_URL', origin);
+    const runtime = await import('../../apps/telemedicine/packages/doctor-portal/src/services/runtime');
+    expect(runtime.PATIENT_SIGN_IN_URL).toBe(expected);
+  });
   it('uses the doctor domain for production landing and patient entry points', async () => {
     defaults(); vi.stubEnv('DEV', false);
     const landing = await import('../public/ecosystemLinks');
