@@ -1,5 +1,19 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/telemedicine/doctor-portal/:path*",
+      "destination": "https://doctor.sabihealth.org/:path*",
+      "permanent": false,
+      "has": [{ "type": "header", "key": "accept", "value": ".*text/html.*" }]
+    },
+    {
+      "source": "/doctor-portal/:path*",
+      "destination": "https://doctor.sabihealth.org/:path*",
+      "permanent": false,
+      "has": [{ "type": "header", "key": "accept", "value": ".*text/html.*" }]
+    }
+  ],
   "rewrites": [
     { "source": "/api/:path*", "destination": "https://sabi-health-api-test.onrender.com/api/:path*" },
     { "source": "/telemedicine/doctor-portal/:path*", "destination": "/telemedicine/doctor-portal/index.html" },

@@ -4,5 +4,5 @@ export const HOSPITAL_ONBOARDING_URL =
     ? "http://127.0.0.1:5173/register/organization"
     : "/register/organization");
 
-export const DOCTOR_PORTAL_URL = import.meta.env.VITE_DOCTOR_PORTAL_URL ||
-  (import.meta.env.DEV ? "http://127.0.0.1:5175/doctor-portal" : `${import.meta.env.BASE_URL}doctor-portal`);
+export const DOCTOR_PORTAL_URL = String(import.meta.env.VITE_DOCTOR_PORTAL_URL || import.meta.env.VITE_SABI_DOCTOR_URL ||
+  (import.meta.env.DEV ? "http://127.0.0.1:5175/doctor-portal" : "https://doctor.sabihealth.org")).trim().replace(/\/$/, "");
