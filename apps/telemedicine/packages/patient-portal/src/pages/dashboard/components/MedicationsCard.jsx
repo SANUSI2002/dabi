@@ -1,18 +1,22 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, Button } from "design-system";
 import { Pill, CheckCircle2 } from "lucide-react";
 import { SectionTitle } from "../share";
 import { useApiData } from "../../../api/useApiData";
-import { formatClock, listMedications, setMedicationTaken } from "../../../api/dashboardApi";
+import { clockLabel, dosesForDay, recordDose } from "../../../api/notificationsApi";
 
-// The patient's daily medication list: "take" until marked as taken today.
-const toMed = (m) => ({
-  id: m.id,
-  name: m.name,
-  sub: m.isTaken ? `${formatClock(m.time)} · Taken` : m.instructions || formatClock(m.time),
-  state: m.isTaken ? "taken" : "take",
+// Today's doses from the patient's medicine schedules: "take" until confirmed — here or
+// with the Taken button on WhatsApp. Each day has its own dose records, so nothing carries over.
+const toMed = (d) => ({
+  id: d.id,
+  name: d.medicine?.name,
+  sub: d.status === "TAKEN" ? `${clockLabel(d.localTime)} · Taken${d.confirmedVia === "WHATSAPP" ? " on WhatsApp" : ""}`
+    : d.status === "SKIPPED" ? `${clockLabel(d.localTime)} · Skipped`
+    : [clockLabel(d.localTime), d.medicine?.instructions].filter(Boolean).join(" · "),
+  state: d.status === "NOT_CONFIRMED" ? "take" : d.status === "TAKEN" ? "taken" : "skipped",
 });
-const loadMeds = async () => (await listMedications()).map(toMed);
+const loadMeds = async () => (await dosesForDay()).doses.map(toMed);
 
 
 export function MedicationsCard() {
@@ -23,7 +27,7 @@ export function MedicationsCard() {
 
   const markTaken = async (i) => {
     try {
-      const updated = toMed(await setMedicationTaken(meds[i].id, true));
+      const updated = toMed((await recordDose(meds[i].id, "TAKEN")).dose);
       setMeds((prev) => prev.map((m, idx) => (idx === i ? updated : m)));
     } catch (err) {
       alert(err.message);
@@ -66,13 +70,16 @@ export function MedicationsCard() {
                 <div className="sabi-med-name">{m.name}</div>
                 <div className="sabi-med-sub">{m.sub}</div>
               </div>
-              <span className="sabi-med-taken-icon" aria-label="Taken">
-                <CheckCircle2 size={18} />
-              </span>
+              {m.state === "taken" && (
+                <span className="sabi-med-taken-icon" aria-label="Taken">
+                  <CheckCircle2 size={18} />
+                </span>
+              )}
             </div>
           )
         )}
       </div>
+      <Link className="sx-link" to="/medications">My Medicines</Link>
     </Card>
   );
 }
