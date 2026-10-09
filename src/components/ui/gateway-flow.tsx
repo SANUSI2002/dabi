@@ -31,6 +31,8 @@ type BakeKnobs = {
   density: number;
   strokeWidth: number;
   mode: NeuformMode;
+  /** Optional line colour as an "r, g, b" triplet (overrides the mode's ink). */
+  ink?: string;
 };
 
 type EffectDefinition = {
@@ -58,6 +60,10 @@ export type GatewayFlowProps = {
   brightness?: number;
   className?: string;
   style?: CSSProperties;
+  /** Sabi addition: background colour behind the lines (defaults to the mode's paper). */
+  paper?: string;
+  /** Sabi addition: line colour as an "r, g, b" triplet, e.g. "31, 92, 69". */
+  ink?: string;
 };
 
 const GATEWAY_FLOW_DEFAULTS = {
@@ -267,7 +273,7 @@ const GATEWAY_FLOW_DEFINITION: EffectDefinition = {
   supportsMode: true,
   background: (mode) => (mode === "light" ? LIGHT_PAPER : "#000000"),
   targets: [{ selector: "#flow-canvas", role: "background" }],
-  patch(source, { size, density, mode }) {
+  patch(source, { size, density, mode, ink }) {
     let next = source
       .replace(
         "const numPaths = 80;",
@@ -281,7 +287,17 @@ const GATEWAY_FLOW_DEFINITION: EffectDefinition = {
         "ctx.lineWidth = 1.2;",
         `ctx.lineWidth = ${Number((1.2 * size).toFixed(2))};`,
       );
-    if (mode === "light") {
+    if (ink && /^\d{1,3},\s*\d{1,3},\s*\d{1,3}$/.test(ink)) {
+      next = next
+        .replace(
+          "ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';",
+          `ctx.strokeStyle = 'rgba(${ink}, 0.4)';`,
+        )
+        .replace(
+          "ctx.fillStyle = `rgba(255, 255, 255, 0.7)`;",
+          `ctx.fillStyle = \`rgba(${ink}, 0.75)\`;`,
+        );
+    } else if (mode === "light") {
       next = next
         .replace(
           "ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';",
@@ -298,10 +314,10 @@ const GATEWAY_FLOW_DEFINITION: EffectDefinition = {
 
 function buildFocusedDocument(
   definition: EffectDefinition,
-  knobs: BakeKnobs & { speed: number; opacity: number },
+  knobs: BakeKnobs & { speed: number; opacity: number; paper?: string },
 ) {
   const mode = knobs.mode;
-  const background = resolveBackground(definition.background, mode);
+  const background = knobs.paper && /^#[0-9a-f]{3,8}$/i.test(knobs.paper) ? knobs.paper : resolveBackground(definition.background, mode);
   const targetJson = JSON.stringify(definition.targets).replace(
     /</g,
     "\\u003c",
@@ -324,6 +340,7 @@ function buildFocusedDocument(
         density: knobs.density,
         strokeWidth: knobs.strokeWidth,
         mode,
+        ink: knobs.ink,
       })
     : definition.source;
   const focusStyle = `<style data-threeui-focus>
@@ -434,6 +451,8 @@ function GatewayFlowFrame({
   brightness = GATEWAY_FLOW_DEFAULTS.brightness,
   className,
   style,
+  paper,
+  ink,
 }: GatewayFlowProps & { definition: EffectDefinition }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const requestedMode =
@@ -443,7 +462,7 @@ function GatewayFlowFrame({
     requestedMode === "auto"
       ? automaticMode
       : resolveMode(requestedMode, GATEWAY_FLOW_DEFAULTS.mode);
-  const background = resolveBackground(definition.background, resolvedMode);
+  const background = paper ?? resolveBackground(definition.background, resolvedMode);
   const safeSpeed = clamp(speed, 0, 3);
   const safeSize = clamp(size, 0.05, 200);
   const safeGap = clamp(gap, 0, 64);
@@ -467,10 +486,14 @@ function GatewayFlowFrame({
         density: safeDensity,
         strokeWidth: safeStrokeWidth,
         opacity: GATEWAY_FLOW_DEFAULTS.opacity,
+        paper,
+        ink,
       }),
     [
       definition,
       resolvedMode,
+      paper,
+      ink,
       safeDensity,
       safeGap,
       safeLength,

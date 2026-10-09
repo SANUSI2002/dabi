@@ -1,6 +1,6 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useInView, useReducedMotion } from "framer-motion";
 import { ArrowRight, ArrowUpRight, Building2, HeartHandshake, Minus, Plus, Sparkles, Stethoscope } from "lucide-react";
 import GatewayFlow from "@/components/ui/gateway-flow";
 import { WorksWheel, type WorksWheelItem } from "@/components/ui/works-wheel";
@@ -25,6 +25,22 @@ const SOFT = "text-[#55685f]";
 const WAITLIST = "#waitlist";
 
 const SUBNAV = [["For professionals", "#professionals"], ["For everyday health", "#everyday-health"], ["How it works", "#how-it-works"], ["FAQs", "#faqs"]] as const;
+
+/**
+ * The Gateway Flow lines behind a light section, drawn in forest green on the section's own paper.
+ * Mounted only while the section is near the screen, so several on one page don't all keep animating.
+ * `fade` keeps the lines away from the text: it masks them towards the given side.
+ */
+function FlowBackdrop({ paper, opacity = 0.5, fade = "none" }: { paper: string; opacity?: number; fade?: "none" | "left" | "center" }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const near = useInView(ref, { margin: "200px 0px" });
+  const reduce = useReducedMotion();
+  const mask = fade === "left" ? "linear-gradient(to right, transparent 0%, rgba(0,0,0,.35) 35%, #000 65%)"
+    : fade === "center" ? "radial-gradient(ellipse at center, rgba(0,0,0,.25) 0%, #000 70%)" : undefined;
+  return <div ref={ref} aria-hidden className="pointer-events-none absolute inset-0 -z-10" style={{ opacity, maskImage: mask, WebkitMaskImage: mask }}>
+    {near && <GatewayFlow className="h-full w-full" paper={paper} ink="31, 92, 69" density={0.6} speed={reduce ? 0 : 0.5} />}
+  </div>;
+}
 
 function Kicker({ children, light = false }: { children: ReactNode; light?: boolean }) {
   return <p className={cn("mb-5 text-[12px] font-semibold uppercase tracking-[0.2em]", light ? "text-[#a9d9bf]" : "text-[#1f5c45]")}>{children}</p>;
@@ -83,6 +99,7 @@ function SubNav() {
 function Hero() {
   const reduce = useReducedMotion();
   return <section id="top" aria-labelledby="ai-hero-heading" className="relative isolate scroll-mt-40 overflow-hidden">
+    <FlowBackdrop paper="#f7f4ee" opacity={0.55} fade="left" />
     <div aria-hidden className="pointer-events-none absolute -right-40 -top-40 -z-10 h-[620px] w-[620px] rounded-full bg-[radial-gradient(circle,#e3ede4_0%,transparent_65%)]" />
     <div className="mx-auto grid max-w-[1280px] items-center gap-14 px-5 pb-20 pt-14 sm:px-8 lg:grid-cols-[1.02fr_1fr] lg:gap-16 lg:pb-28 lg:pt-20">
       <motion.div initial={reduce ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .7, ease: [0.22, 1, 0.36, 1] }}>
@@ -150,7 +167,8 @@ function PreviewCard({ label, children }: { label: string; children: ReactNode }
 }
 
 function Professionals() {
-  return <section id="professionals" aria-labelledby="pro-heading" className="scroll-mt-36 border-t border-[#0b2b20]/[0.06] bg-[#fbf9f4] px-5 py-20 sm:px-8 lg:py-28">
+  return <section id="professionals" aria-labelledby="pro-heading" className="relative isolate scroll-mt-36 overflow-hidden border-t border-[#0b2b20]/[0.06] bg-[#fbf9f4] px-5 py-20 sm:px-8 lg:py-28">
+    <FlowBackdrop paper="#fbf9f4" opacity={0.4} fade="center" />
     <div className="mx-auto max-w-[1180px]">
       <Reveal className="max-w-[760px]"><Kicker>For healthcare professionals</Kicker><Headline id="pro-heading">More clarity for the work that matters.</Headline>
         <p className={cn("mt-6 max-w-[600px] text-[17px] leading-[1.75]", SOFT)}>Sabi helps with the reading, organising and explaining that surrounds clinical work — so your attention stays on the patient. It supports your professional judgment; it doesn't diagnose, prescribe or make decisions for you.</p></Reveal>
@@ -175,7 +193,8 @@ const EVERYDAY: (WorksWheelItem & { copy: string })[] = [
 ];
 
 function EverydayHealth() {
-  return <section id="everyday-health" aria-labelledby="everyday-heading" className="scroll-mt-36 px-5 py-20 sm:px-8 lg:py-28">
+  return <section id="everyday-health" aria-labelledby="everyday-heading" className="relative isolate scroll-mt-36 overflow-hidden px-5 py-20 sm:px-8 lg:py-28">
+    <FlowBackdrop paper="#f7f4ee" opacity={0.45} fade="center" />
     <div className="mx-auto max-w-[1180px]">
       <div className="grid gap-10 lg:grid-cols-[1fr_.9fr] lg:items-end">
         <Reveal><Kicker>For patients and caregivers</Kicker><Headline id="everyday-heading">Understand more. Feel better prepared.</Headline></Reveal>
