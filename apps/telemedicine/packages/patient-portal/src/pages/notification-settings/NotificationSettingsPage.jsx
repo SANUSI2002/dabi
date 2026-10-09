@@ -6,6 +6,7 @@ import { ErrorState, LoadingState, Notice, PageHeader } from "../../../../shared
 import {
   getNotificationSettings, resendWhatsAppCode, sendWhatsAppCode, turnOffWhatsApp, updateNotificationSettings, verifyWhatsAppCode,
 } from "../../api/notificationsApi";
+import { DeviceNotificationsCard } from "./DeviceNotificationsCard";
 import "./NotificationSettings.css";
 
 const CATEGORY_LABELS = {
@@ -164,10 +165,11 @@ export function NotificationSettingsPage() {
   useEffect(load, [load]);
 
   return <PageShell mainClassName="sabi-main"><div className="sx-page ns-page">
-    <PageHeader eyebrow="Settings" title="Notifications" description="Choose how Sabi reaches you. Notifications always appear in the app; WhatsApp is optional." />
+    <PageHeader eyebrow="Settings" title="Notifications" description="Choose how Sabi reaches you. Notifications always appear in the app; phone notifications and WhatsApp are optional." />
     {error && !settings ? <ErrorState title="We couldn't load your notification settings" message={error} onRetry={load} />
       : !settings ? <LoadingState label="Loading your settings…" />
       : <>
+        <DeviceNotificationsCard settings={settings} onChanged={setSettings} />
         <WhatsAppCard settings={settings} onChanged={setSettings} />
         <CategoriesCard settings={settings} onChanged={setSettings} />
         <p className="ns-note">Medicine reminders follow the times in <Link to="/medications" className="sx-link">My Medicines</Link>. Marking a dose as taken on WhatsApp updates it here too. Changes to these settings appear in your <Link to="/activity" className="sx-link">Activity log</Link>.</p>

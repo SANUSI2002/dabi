@@ -19,6 +19,8 @@ export default defineConfig(({ mode }) => {
         backgroundColor: "#f6f7f2",
         // The professional portal is deployed inside this one.
         nestedApps: [/(?:^|\/)doctor-portal(?:\/|$)/],
+        // Shows phone notifications and answers their Taken / Remind me later buttons.
+        importScripts: ["push-sw.js"],
       })),
     ],
     server: SABI_DEV_API_TARGET

@@ -7,6 +7,7 @@ import { NotificationsBell } from "../../../notifications/NotificationsBell";
 import { getCurrentUser, signOut } from "../../../utils/sabiIdentity";
 import PageBanner from "../../../../../shared-portal/PageBanner";
 import { InstallAppSheet } from "../../../pwa/InstallApp";
+import { forgetThisDevice } from "../../../pwa/pushNotifications";
 
 export function Topbar({
   userName,
@@ -42,6 +43,7 @@ export function Topbar({
     if (onLogout) {
       await onLogout();
     } else {
+      await forgetThisDevice();
       await signOut();
       navigate("/login");
     }

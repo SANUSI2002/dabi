@@ -24,6 +24,8 @@ export type SabiPwaApp = {
   backgroundColor: string;
   /** Paths of other Sabi apps nested inside this one; their pages are never served from this app. */
   nestedApps: RegExp[];
+  /** Extra worker scripts from the public folder, e.g. push-sw.js for phone notifications. */
+  importScripts?: string[];
 };
 
 const MONTH = 60 * 60 * 24 * 30;
@@ -69,6 +71,7 @@ export function sabiPwaOptions(app: SabiPwaApp) {
         { urlPattern: ownImages, handler: "CacheFirst" as const, options: { cacheName: `sabi-${app.cacheId}-images`, expiration: { maxEntries: 80, maxAgeSeconds: MONTH } } },
       ],
       cleanupOutdatedCaches: true,
+      ...(app.importScripts?.length ? { importScripts: app.importScripts } : {}),
     },
   };
 }

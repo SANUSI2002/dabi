@@ -5,6 +5,7 @@ import { NavRow } from "../share";
 import { FOOTER_ITEMS, NAV_GROUPS } from "../data";
 import logo from "../../../assets/logo.jpeg";
 import { signOut } from "../../../utils/sabiIdentity";
+import { forgetThisDevice } from "../../../pwa/pushNotifications";
 
 export function Sidebar() {
   const location = useLocation();
@@ -25,6 +26,7 @@ export function Sidebar() {
   };
 
   const handleLogout = async () => {
+    await forgetThisDevice();
     await signOut();
     try {
       localStorage.removeItem("auth");
