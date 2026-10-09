@@ -40,7 +40,7 @@ export function getUnreadCount() {
 // dedupeKey lets a caller avoid pushing the same lifecycle event twice
 // (e.g. "quotes received" firing once per prescription, not once per
 // quotes-page render).
-export function pushNotification({ title, body, kind = "info", dedupeKey } = {}) {
+export function pushNotification({ title, body, kind = "info", dedupeKey, link } = {}) {
   const list = getNotifications();
   if (dedupeKey && list.some((n) => n.dedupeKey === dedupeKey)) return list;
 
@@ -52,6 +52,7 @@ export function pushNotification({ title, body, kind = "info", dedupeKey } = {})
     read: false,
     createdAt: new Date().toISOString(),
     dedupeKey,
+    link,
   };
   return persist([entry, ...list].slice(0, 50));
 }

@@ -10,7 +10,7 @@ import "./NotificationSettings.css";
 
 const CATEGORY_LABELS = {
   MEDICATION: ["Medication reminders", "A message when a dose is due, with Taken and Remind me later buttons."],
-  APPOINTMENT: ["Appointment updates", "Confirmations, changes and cancellations."],
+  APPOINTMENT: ["Appointment updates", "Confirmations, cancellations, and reminders the day before and an hour before."],
   CARE: ["Prescriptions and care updates", "New prescriptions, care plans and visit summaries. The message only says there is an update; details stay in Sabi."],
 };
 

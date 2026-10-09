@@ -28,6 +28,7 @@ import { DieticianTablePage } from './pages/prescriptions/DieticianTablePage';
 import { ActivityLogPage } from './pages/activity/ActivityLogPage';
 import { MedicinesPage } from './pages/medicines/MedicinesPage';
 import { NotificationSettingsPage } from './pages/notification-settings/NotificationSettingsPage';
+import { InstallAppPage } from './pwa/InstallApp';
 import { PrescriptionDetailPage } from "./pages/prescriptions/PrescriptionDetailPage";
 import { SelectPharmacyPage } from "./pages/prescriptions/SelectPharmacyPage";
 import { PharmacyMarketPage } from "./pages/pharmacy-market/PharmacyMarketPage";
@@ -202,6 +203,7 @@ export default function App() {
               <Route path="/activity" element={<ActivityLogPage />} />
               <Route path="/medications" element={<MedicinesPage />} />
               <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
+              <Route path="/install" element={<InstallAppPage />} />
               <Route path="/prescriptions/:id" element={<PrescriptionDetailPage />} />
               <Route path="/prescriptions/:id/select-pharmacy" element={<SelectPharmacyPage />} />
               <Route path="/prescriptions/:id/quotes" element={<PharmacyQuotesPage />} />

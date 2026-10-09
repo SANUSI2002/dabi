@@ -6,6 +6,7 @@ import { EmergencyCardModal } from "./EmergencyCardModal";
 import { NotificationsBell } from "../../../notifications/NotificationsBell";
 import { getCurrentUser, signOut } from "../../../utils/sabiIdentity";
 import PageBanner from "../../../../../shared-portal/PageBanner";
+import { InstallAppSheet } from "../../../pwa/InstallApp";
 
 export function Topbar({
   userName,
@@ -68,6 +69,7 @@ export function Topbar({
           <ShieldAlert /> Emergency
         </button>
         <NotificationsBell />
+        <InstallAppSheet />
 
         <div className="sabi-profile" ref={profileRef}>
           <button

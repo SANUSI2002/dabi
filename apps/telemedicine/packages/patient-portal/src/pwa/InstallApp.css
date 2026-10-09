@@ -1,0 +1,45 @@
+/* Install the Sabi app: sheet after sign-in and the /install page. Tokens from shared-portal/design-system. */
+.ia-sheet {
+  position: fixed; right: 20px; bottom: 20px; z-index: var(--sx-z-overlay, 1000); width: min(400px, calc(100vw - 32px));
+  display: grid; gap: var(--sx-space-4); padding: var(--sx-space-5); border-radius: var(--sx-radius-xl);
+  background: var(--sx-surface); border: 1px solid var(--sx-line); box-shadow: var(--sx-shadow-lg);
+  animation: ia-rise .35s var(--sx-ease, ease-out);
+}
+@keyframes ia-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.ia-close { position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--sx-text-muted); cursor: pointer; }
+.ia-close:hover { background: var(--sx-surface-sunken); }
+.ia-sheet-head { display: flex; gap: var(--sx-space-4); align-items: center; padding-right: 28px; }
+.ia-sheet-head h2 { margin: 0; font-family: var(--sx-font-display); font-size: var(--sx-text-xl); font-weight: 700; color: var(--sx-text); }
+.ia-sheet-head p { margin: 2px 0 0; color: var(--sx-text-muted); font-size: var(--sx-text-sm); line-height: var(--sx-leading-snug); }
+.ia-icon { flex-shrink: 0; border-radius: 14px; box-shadow: 0 6px 18px rgb(6 29 21 / 22%); }
+.ia-icon-lg { border-radius: 22px; }
+.ia-benefits { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ia-benefits li { display: flex; gap: 10px; align-items: center; font-size: var(--sx-text-md); color: var(--sx-text); }
+.ia-benefits svg { color: var(--sx-brand-600); flex-shrink: 0; }
+.ia-steps { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; counter-reset: ia; }
+.ia-steps li { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: var(--sx-radius-md); background: var(--sx-surface-subtle); font-size: var(--sx-text-md); color: var(--sx-text); }
+.ia-step-icon { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px; background: var(--sx-brand-100); color: var(--sx-brand-700); flex-shrink: 0; }
+.ia-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sx-space-2) var(--sx-space-3); }
+
+.ia-page { max-width: 960px; }
+.ia-hero { display: flex; gap: var(--sx-space-6); align-items: center; padding: var(--sx-space-8) var(--sx-space-6); border-radius: var(--sx-radius-xl);
+  background: linear-gradient(135deg, var(--sx-brand-800), var(--sx-brand-600)); color: var(--sx-text-inverse); }
+.ia-hero h1 { margin: 0; font-family: var(--sx-font-display); font-size: clamp(26px, 3vw, 36px); letter-spacing: -.03em; line-height: 1.1; color: var(--sx-text-inverse) !important; }
+.ia-hero p { margin: var(--sx-space-3) 0 0; max-width: 56ch; color: rgb(255 255 255 / 86%); line-height: var(--sx-leading-normal); }
+.ia-hero .sx-eyebrow { color: rgb(255 255 255 / 78%); }
+.ia-status { display: grid; gap: var(--sx-space-3); justify-items: start; }
+.ia-status p { margin: 0; color: var(--sx-text); font-size: var(--sx-text-base); }
+.ia-done { display: flex; gap: 10px; align-items: center; color: var(--sx-success-fg) !important; font-weight: 650; }
+.ia-big { min-height: 48px; padding: 0 22px; font-size: var(--sx-text-base); }
+.ia-grid { display: grid; gap: var(--sx-space-4); grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.ia-benefit h2 { margin: var(--sx-space-3) 0 4px; font-size: var(--sx-text-base); font-weight: 700; color: var(--sx-text); }
+.ia-benefit p { margin: 0; color: var(--sx-text-muted); font-size: var(--sx-text-sm); line-height: var(--sx-leading-normal); }
+.ia-benefit-icon { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; background: var(--sx-brand-50); color: var(--sx-brand-700); }
+.ia-faq dl { margin: 0; display: grid; gap: var(--sx-space-2); }
+.ia-faq dt { font-weight: 650; color: var(--sx-text); margin-top: var(--sx-space-2); }
+.ia-faq dd { margin: 0; color: var(--sx-text-muted); line-height: var(--sx-leading-normal); }
+@media (max-width: 600px) {
+  .ia-sheet { right: 16px; left: 16px; bottom: 16px; width: auto; }
+  .ia-hero { flex-direction: column; align-items: flex-start; padding: var(--sx-space-6) var(--sx-space-5); }
+}
+@media (prefers-reduced-motion: reduce) { .ia-sheet { animation: none; } }

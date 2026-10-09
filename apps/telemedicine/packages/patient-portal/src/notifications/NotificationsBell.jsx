@@ -68,7 +68,11 @@ export function NotificationsBell() {
   const items = [...serverItems, ...notifications].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   const openItem = (n) => {
-    if (!n.serverId) return markRead(n.id);
+    if (!n.serverId) {
+      markRead(n.id);
+      if (n.link) { setOpen(false); navigate(n.link); }
+      return undefined;
+    }
     if (!n.read) {
       setServerItems((list) => list.map((item) => (item.id === n.id ? { ...item, read: true } : item)));
       markNotificationRead(n.serverId).catch(() => {});
