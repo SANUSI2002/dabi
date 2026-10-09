@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { SectionCard } from "../shared";
+import { Link } from 'react-router-dom';
 import { EMERGENCY_ACCESS_RECORDS, clearEmergencyAccessDraft, getEmergencyAccessDraft, saveEmergencyAccessDraft, toSettings, toValues } from "../emergencyAccessStore";
 
-/* Settings > Privacy: hospitals only receive record categories the patient has explicitly saved. */
+/* Preserve legacy category preferences; they never grant code-based emergency access. */
 export function EmergencyAccessCard({ savedValues, onSave }) {
   const savedSettings = useMemo(() => toSettings(savedValues), [savedValues]);
   const [draft, setDraft] = useState(() => getEmergencyAccessDraft(savedSettings));
@@ -48,7 +49,7 @@ export function EmergencyAccessCard({ savedValues, onSave }) {
 
   return (
     <SectionCard icon="🚨" title="Emergency Access">
-      <p className="sabi-emergency-access-intro">Choose which records verified hospitals can access when you need emergency care.</p>
+      <p className="sabi-emergency-access-intro">These saved record-category preferences do not enable Emergency Card sharing. Manage your consent, eligible sharing groups and card in <Link to="/settings/notifications">Emergency Card settings</Link>. Only the concise emergency summary—not entire records—is available through your emergency code.</p>
       <div className="sabi-consent-list">
         {EMERGENCY_ACCESS_RECORDS.map((record) => (
           <label className="sabi-consent-row" key={record.key}>

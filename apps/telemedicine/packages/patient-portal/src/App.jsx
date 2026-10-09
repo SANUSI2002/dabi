@@ -1,6 +1,6 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getCurrentUser, restoreSession, signOut, authorizedRequest, checkSession } from "./utils/sabiIdentity";
+import { getCurrentUser, restoreSession, signOut, authorizedRequest, checkSession, mayUsePatientPortal } from "./utils/sabiIdentity";
 import { idleSignInUrl, startIdleTimeout } from "../../shared-portal/idleTimeout.js";
 import { elsewhereSignInUrl, startSessionWatch } from "../../shared-portal/sessionWatch.js";
 import "./index.css";
@@ -30,6 +30,7 @@ import { ActivityLogPage } from './pages/activity/ActivityLogPage';
 import { MedicinesPage } from './pages/medicines/MedicinesPage';
 import { NotificationSettingsPage } from './pages/notification-settings/NotificationSettingsPage';
 import { InstallAppPage } from './pwa/InstallApp';
+import EmergencyAccessPage from './emergency/EmergencyAccessPage';
 import { PrescriptionDetailPage } from "./pages/prescriptions/PrescriptionDetailPage";
 import { SelectPharmacyPage } from "./pages/prescriptions/SelectPharmacyPage";
 import { PharmacyMarketPage } from "./pages/pharmacy-market/PharmacyMarketPage";
@@ -110,7 +111,7 @@ function RequirePatientSession() {
     let live = true;
     let timer;
     restoreSession().then(
-      (user) => { if (live) setState(user ? 'ready' : 'denied'); },
+      (user) => { if (live) setState(mayUsePatientPortal(user) ? 'ready' : 'denied'); },
       // Server busy or unreachable: keep the session and try again rather than signing out.
       () => { if (live) { setState('unavailable'); timer = setTimeout(() => setAttempt((n) => n + 1), 8000); } },
     );
@@ -186,7 +187,8 @@ export default function App() {
           <Logo />
 
           <main>
-           <Routes>
+          <Routes>
+            <Route path="/emergency-access" element={<EmergencyAccessPage />} />
               <Route path="/" element={<Navigate to="/login" replace />} />
               <Route path="/login" element={<SabiHealthLogin />} />
               <Route path="/signup" element={<AccountTypeSelection />} />

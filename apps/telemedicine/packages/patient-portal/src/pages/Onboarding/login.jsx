@@ -9,13 +9,13 @@ import {
   ShieldCheck,
   HeartPulse,
 } from "lucide-react";
-import { restoreSession, signIn, verifyMfaLogin } from "../../utils/sabiIdentity";
+import { restoreSession, signIn, verifyMfaLogin, mayUsePatientPortal } from "../../utils/sabiIdentity";
 import { useEffect } from "react";
 import { DOCTOR_PORTAL_URL } from "../../ecosystemLinks";
 import { signedOutForInactivity } from "../../../../shared-portal/idleTimeout.js";
 import { ELSEWHERE_NOTICE, signedOutElsewhere } from "../../../../shared-portal/sessionWatch.js";
 
-export default function SabiHealthLogin() {
+export default function SabiHealthLogin({ responder = false, onSignedIn } = {}) {
   const navigate = useNavigate();
   const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
@@ -28,16 +28,17 @@ export default function SabiHealthLogin() {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaValue, setMfaValue] = useState("");
   const [useRecovery, setUseRecovery] = useState(false);
-  useEffect(() => { restoreSession().then((user) => { if (user) navigate('/dashboard', { replace: true }); }, () => { /* server busy: stay on the sign-in page */ }); }, [navigate]);
+  useEffect(() => { restoreSession().then((user) => { if (user && responder) onSignedIn?.(user); else if (mayUsePatientPortal(user)) navigate('/dashboard', { replace: true }); }, () => { /* server busy: stay on the sign-in page */ }); }, [navigate, responder, onSignedIn]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setBusy(true); setError(""); setVerificationRequired(false);
     try {
-      if (mfaRequired) { await verifyMfaLogin(mfaValue, useRecovery); navigate('/dashboard', { replace: true }); }
+      if (mfaRequired) { const user = await verifyMfaLogin(mfaValue, useRecovery); if (responder) onSignedIn?.(user); else navigate('/dashboard', { replace: true }); }
       else {
-        const result = await signIn(email, password);
+        const result = await signIn(email, password, { responder });
         if (result.mfaRequired) setMfaRequired(true);
+        else if (responder) onSignedIn?.(result);
         else navigate("/dashboard", { replace: true });
       }
     }
@@ -65,9 +66,9 @@ export default function SabiHealthLogin() {
           <p className="mt-2 text-sm text-gray-500 italic">Precision Care, Compassionate Vision.</p>
 
           <div className="mt-4">
-            <h2 className="text-xl font-bold text-gray-900">Welcome back 👋</h2>
+            <h2 className="text-xl font-bold text-gray-900">{responder ? 'Sign in for emergency access' : 'Welcome back 👋'}</h2>
             <p className="mt-1 text-sm text-gray-500">
-              Enter your credentials to access your health dashboard.
+              {responder ? 'Use your own Sabi account. A patient code alone does not grant access; your current emergency permissions will be checked.' : 'Enter your credentials to access your health dashboard.'}
             </p>
           </div>
 

@@ -10,7 +10,8 @@ let currentUser = null;
 let pendingChallenge = null;
 let restoring = null;
 let endedElsewhere = false;
-const mayUsePatientPortal = (user) => user?.roles?.some((role) => ['PATIENT', 'CAREGIVER'].includes(role));
+export const mayUsePatientPortal = (user) => user?.roles?.some((role) => ['PATIENT', 'CAREGIVER'].includes(role));
+let responderSignIn = false;
 
 async function request(path, options = {}) {
   if (!apiConfigured) throw new Error('Sabi Identity API is not configured.');
@@ -38,7 +39,8 @@ function exclusiveRefresh(work) {
     : work();
 }
 
-export async function signIn(email, password) {
+export async function signIn(email, password, { responder = false } = {}) {
+  responderSignIn = responder;
   endedElsewhere = false;
   const login = await request('/login', { method: 'POST', body: JSON.stringify({ email, password }) });
   if (login.status === 'mfa_required' && login.challengeToken) {
@@ -48,7 +50,7 @@ export async function signIn(email, password) {
   if (!login.accessToken) throw new Error('The identity service returned an invalid login response.');
   accessToken = login.accessToken;
   const me = await request('/me');
-  if (!mayUsePatientPortal(me.user)) {
+  if (!responder && !mayUsePatientPortal(me.user)) {
     await signOut();
     throw new Error('This account does not have patient portal access.');
   }
@@ -73,14 +75,15 @@ export async function verifyMfaLogin(value, recovery = false) {
   pendingChallenge = null;
   accessToken = result.accessToken;
   const me = await request('/me');
-  if (!mayUsePatientPortal(me.user)) { await signOut(); throw new Error('This account does not have patient portal access.'); }
+  if (!responderSignIn && !mayUsePatientPortal(me.user)) { await signOut(); throw new Error('This account does not have patient portal access.'); }
   currentUser = me.user;
   return currentUser;
 }
 
 async function loadCurrentUser() {
   const me = await request('/me');
-  if (!mayUsePatientPortal(me.user)) { accessToken = null; currentUser = null; return null; }
+  // Emergency responders reuse Sabi Identity. The patient route guard still checks patient roles;
+  // accepting a session here never grants access to any patient or emergency summary.
   currentUser = me.user;
   return currentUser;
 }
@@ -141,6 +144,7 @@ export async function authorizedRequest(path, { method = 'GET', body, query, sig
   const search = query ? `?${new URLSearchParams(Object.entries(query).filter(([, v]) => v !== undefined && v !== null && v !== '')).toString()}` : '';
   const send = (token) => fetch(`${apiBaseUrl}${path}${search === '?' ? '' : search}`, {
     method,
+    cache: 'no-store',
     signal,
     credentials: 'include',
     headers: { 'X-Sabi-Client': 'browser', ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -182,6 +186,7 @@ export async function signOut() {
   currentUser = null;
   pendingChallenge = null;
   endedElsewhere = false;
+  responderSignIn = false;
 }
 
 export const mfaStatus = () => request('/mfa/status');

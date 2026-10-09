@@ -118,4 +118,13 @@ describe('service worker add-on', () => {
     await sw.dispatch('notificationclick', { action: '', notification: { tag: 'x', data: { url: '/appointments' }, close: vi.fn() } });
     expect(sw.opened).toEqual(['https://telemedicine.sabihealth.test/appointments']);
   });
+
+  it('opens Emergency Card identifiers only inside the controlled app, without fetching a patient summary', async () => {
+    const sw = worker(); const url = 'https://telemedicine.sabihealth.test/emergency-access#code=EC-AAAA-BBBB-CCCC-DDDD-EEEE-FFFF';
+    await sw.dispatch('notificationclick', { action: '', notification: { tag: 'sabi-emergency-card', data: { kind: 'sabi-emergency-card', url }, close: vi.fn() } });
+    expect(sw.opened).toEqual([url]);
+    expect(sw.scope.fetch).not.toHaveBeenCalled();
+    await sw.dispatch('notificationclick', { action: '', notification: { tag: 'sabi-emergency-card', data: { url: 'https://unrelated.test/secret' }, close: vi.fn() } });
+    expect(sw.opened[1]).toBe('https://telemedicine.sabihealth.test/');
+  });
 });

@@ -48,7 +48,7 @@ export const toMember = (m) => ({
   email: m.caregiverEmail || null,
   relationship: m.relationshipLabel || null,
   level: m.permissionLevel || null,
-  permissions: m.permissions || [],
+  permissions: (m.permissions || []).filter((p) => p !== 'EMERGENCY_SUMMARY' || Boolean(m.emergencyAccessGrantedAt)),
   requestedPermissions: m.requestedPermissions || [],
   expiresAt: m.expiresAt,
   createdAt: m.createdAt,
@@ -66,7 +66,7 @@ const toJoined = (m) => ({
   ownerName: m.ownerName || "Family circle",
   state: memberState(m),
   level: m.permissionLevel,
-  permissions: m.permissions || [],
+  permissions: (m.permissions || []).filter((p) => p !== 'EMERGENCY_SUMMARY' || Boolean(m.emergencyAccessGrantedAt)),
 });
 
 /** The signed-in patient's circle. Revoked/declined relationships are left out. */

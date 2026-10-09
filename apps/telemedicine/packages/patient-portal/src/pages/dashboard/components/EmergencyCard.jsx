@@ -1,75 +1,21 @@
-import React, { useState } from "react";
-import { Card } from "design-system";
-import { ImagePlus, ArrowRight } from "lucide-react";
-import { EmergencyCardModal } from "./EmergencyCardModal";
-import { useApiData } from "../../../api/useApiData";
-import { getProfile } from "../../../api/profileApi";
+import React, { useState } from 'react';
+import { Card } from 'design-system';
+import { ShieldCheck, ArrowRight } from 'lucide-react';
+import { EmergencyCardModal } from './EmergencyCardModal';
+import { useApiData } from '../../../api/useApiData';
+import { getEmergencyCard } from '../../../api/emergencyCardApi';
+import '../../../emergency/EmergencyCard.css';
 
-// Blood group and genotype always come from the patient's saved profile, never from defaults.
 export function EmergencyCard() {
   const [showModal, setShowModal] = useState(false);
-  const { data, loading } = useApiData(getProfile, []);
-  const shown = (value) => (loading && !data ? "…" : value || "—");
-  const blood = shown(data?.form.bloodType);
-  const genotype = shown(data?.form.genotype);
-
-  // Pattern matrix to mirror the active/inactive grid tiles in the design
-  const gridPattern = [
-    true,  true,  true,  false,
-    true,  true,  true,  false,
-    true,  true,  false, true,
-    false, true,  false, true,
-  ];
-
-  return (
-    <Card className="sabi-emergency-card">
-      {/* Header */}
-      <div className="sabi-emergency-head">
-        <span className="sabi-emergency-label">EMERGENCY ID</span>
-        <button
-          className="sabi-emergency-photo-btn"
-          aria-label="Add ID photo"
-          type="button"
-        >
-          <ImagePlus size={16} />
-        </button>
-      </div>
-
-      {/* Main Body Layout */}
-      <div className="sabi-emergency-body">
-        {/* Left: Decorative 4x4 Grid */}
-        <div className="sabi-emergency-grid" aria-hidden="true">
-          {gridPattern.map((isActive, i) => (
-            <span key={i} className={isActive ? "active" : ""} />
-          ))}
-        </div>
-
-        {/* Right: Info & Stats */}
-        <div className="sabi-emergency-info">
-          <div className="sabi-emergency-stats">
-            <div className="sabi-stat-item">
-              <span className="sabi-emergency-stat-label">BLOOD</span>
-              <span className="sabi-emergency-stat-value">{blood}</span>
-            </div>
-            <div className="sabi-stat-item">
-              <span className="sabi-emergency-stat-label">GENOTYPE</span>
-              <span className="sabi-emergency-stat-value">{genotype}</span>
-            </div>
-          </div>
-
-          <button
-            className="sabi-emergency-link"
-            type="button"
-            onClick={() => setShowModal(true)}
-          >
-            View Critical Info <ArrowRight size={14} />
-          </button>
-        </div>
-      </div>
-
-      {showModal && <EmergencyCardModal onClose={() => setShowModal(false)} />}
-    </Card>
-  );
+  const { data, loading, error } = useApiData(getEmergencyCard, [showModal]);
+  return <Card className="sabi-emergency-card">
+    <div className="sabi-emergency-head"><span className="sabi-emergency-label">SABI EMERGENCY CARD</span><ShieldCheck size={22} aria-hidden="true" /></div>
+    <p>{data?.displayName || 'Your emergency identity'}</p>
+    <p className="ec-readable-code">{data?.code || (loading ? 'Loading…' : 'Card unavailable')}</p>
+    <p>{error ? 'Open your card to retry.' : data?.sharingEnabled ? 'Sharing on · eligible users only' : 'Sharing off · your consent is required'}</p>
+    <button className="sabi-emergency-link" type="button" onClick={() => setShowModal(true)}>View Emergency Card <ArrowRight size={16} aria-hidden="true" /></button>
+    {showModal && <EmergencyCardModal onClose={() => setShowModal(false)} />}
+  </Card>;
 }
-
 export default EmergencyCard;

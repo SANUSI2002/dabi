@@ -8,6 +8,7 @@ import {
 } from "../../api/notificationsApi";
 import { DeviceNotificationsCard } from "./DeviceNotificationsCard";
 import "./NotificationSettings.css";
+import { EmergencyCardSection } from '../../emergency/EmergencyCardSection';
 
 const CATEGORY_LABELS = {
   MEDICATION: ["Medication reminders", "A message when a dose is due, with Taken and Remind me later buttons."],
@@ -172,6 +173,7 @@ export function NotificationSettingsPage() {
         <DeviceNotificationsCard settings={settings} onChanged={setSettings} />
         <WhatsAppCard settings={settings} onChanged={setSettings} />
         <CategoriesCard settings={settings} onChanged={setSettings} />
+        <EmergencyCardSection />
         <p className="ns-note">Medicine reminders follow the times in <Link to="/medications" className="sx-link">My Medicines</Link>. Marking a dose as taken on WhatsApp updates it here too. Changes to these settings appear in your <Link to="/activity" className="sx-link">Activity log</Link>.</p>
       </>}
   </div></PageShell>;

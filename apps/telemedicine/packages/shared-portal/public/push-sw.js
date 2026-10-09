@@ -21,7 +21,11 @@ self.addEventListener('push', (event) => {
   }));
 });
 
-const appUrl = (path) => new URL(String(path || '/').replace(/^\//, ''), self.registration.scope).href;
+const appUrl = (path) => {
+  const url = new URL(String(path || '/').replace(/^\//, ''), self.registration.scope);
+  // Notifications never navigate outside the controlled Sabi app or grant authentication.
+  return url.origin === self.location.origin && url.href.startsWith(self.registration.scope) ? url.href : self.registration.scope;
+};
 
 async function openSabi(path) {
   const target = appUrl(path);

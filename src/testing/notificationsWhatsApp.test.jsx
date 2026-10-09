@@ -9,6 +9,8 @@ const api = vi.hoisted(() => ({
   listNotifications: vi.fn(), markNotificationRead: vi.fn(), markAllNotificationsRead: vi.fn(),
 }));
 vi.mock('../../apps/telemedicine/packages/patient-portal/src/api/notificationsApi', async (original) => ({ ...(await original()), ...api }));
+// This suite exercises WhatsApp controls; the Emergency Card has its own complete suite.
+vi.mock('../../apps/telemedicine/packages/patient-portal/src/emergency/EmergencyCardSection', () => ({ EmergencyCardSection: () => <section aria-label="Emergency Card" /> }));
 vi.mock('../../apps/telemedicine/packages/patient-portal/src/pages/hospitals/hospitalShared', () => ({ PageShell: ({ children }) => <main>{children}</main> }));
 
 const { NotificationSettingsPage } = await import('../../apps/telemedicine/packages/patient-portal/src/pages/notification-settings/NotificationSettingsPage.jsx');

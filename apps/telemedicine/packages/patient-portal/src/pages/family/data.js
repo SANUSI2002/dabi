@@ -38,11 +38,12 @@ export const EMERGENCY_ONLY_LEVEL = {
   id: "emergency-only",
   label: "Emergency Only",
   icon: IdCard,
-  description: "No access until an Emergency state is triggered. Ideal for extended family or neighbors.",
+  description: "Read-only emergency summary when you enable emergency sharing. No access to other records.",
 };
 
 // ---------------- Granular access toggles ----------------
 export const ACCESS_KEYS = [
+  { key: "emergencySummary", label: "Emergency Summary" },
   { key: "medicalRecords", label: "Medical Records" },
   { key: "prescriptions", label: "Prescriptions" },
   { key: "appointments", label: "Appointments" },
@@ -57,7 +58,7 @@ export const DEFAULT_ACCESS_BY_LEVEL = {
   "care-manager": { medicalRecords: true, prescriptions: true, appointments: true, vitals: true, labResults: false, messaging: true, healthWallet: false },
   caregiver: { medicalRecords: false, prescriptions: false, appointments: true, vitals: true, labResults: false, messaging: true, healthWallet: false },
   viewer: { medicalRecords: false, prescriptions: false, appointments: false, vitals: true, labResults: false, messaging: false, healthWallet: false },
-  "emergency-only": { medicalRecords: false, prescriptions: false, appointments: false, vitals: false, labResults: false, messaging: false, healthWallet: false },
+  "emergency-only": { emergencySummary: true, medicalRecords: false, prescriptions: false, appointments: false, vitals: false, labResults: false, messaging: false, healthWallet: false },
 };
 
 export const RELATIONSHIPS = [
@@ -73,16 +74,17 @@ export const GENOTYPES = ["AA", "AS", "SS", "AC", "SC"];
 const ACCESS_TO_SERVER = { medicalRecords: "RECORDS", labResults: "RECORDS", prescriptions: "MEDICATIONS", appointments: "APPOINTMENTS", vitals: "VITALS" };
 
 export function toServerPermissions(access, level) {
-  if (level === "emergency-only") return [];
+  if (level === "emergency-only") return access?.emergencySummary ? ["EMERGENCY_SUMMARY"] : [];
   const permissions = new Set(Object.entries(ACCESS_TO_SERVER).filter(([key]) => access?.[key]).map(([, value]) => value));
   if (level === "owner" || level === "care-manager") permissions.add("PROFILE");
-  permissions.add("EMERGENCY_SUMMARY");
+  if (access?.emergencySummary) permissions.add("EMERGENCY_SUMMARY");
   return [...permissions];
 }
 
 export function fromServerPermissions(permissions = []) {
   const has = (p) => permissions.includes(p);
   return {
+    emergencySummary: has("EMERGENCY_SUMMARY"),
     medicalRecords: has("RECORDS"),
     prescriptions: has("MEDICATIONS"),
     appointments: has("APPOINTMENTS"),

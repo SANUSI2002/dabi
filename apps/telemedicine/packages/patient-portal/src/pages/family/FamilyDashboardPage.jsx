@@ -268,6 +268,7 @@ export function FamilyDashboardPage() {
             <p>Manage the health of your loved ones and trusted people in one secure place.</p>
           </div>
           <div className="sabi-fam-header-actions">
+            <button type="button" className="sabi-btn-outline" onClick={() => navigate('/emergency-access')}>Emergency access</button>
             <button type="button" className="sabi-btn-outline" onClick={shareInvite}>
                         <Share2 size={16} /> Invite to Care Circle
             </button>
