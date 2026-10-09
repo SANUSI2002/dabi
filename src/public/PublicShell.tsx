@@ -9,6 +9,7 @@ import { ContactLines, FloatingWhatsApp } from "@/public/ui";
 const nav = [
   ["EMR", "/products/emr"],
   ["Telemedicine", "/products/telemedicine"],
+  ["Sabi AI", "/ai"],
   ["Solutions", "/solutions"],
   ["Pricing", "/pricing"],
   ["Security", "/security"],
@@ -20,7 +21,8 @@ const meta: Record<string, [string, string]> = {
   "/products/emr": ["Sabi EMR — Hospital & Clinic Management | Sabi Health", "Run registration, consultation, laboratory, pharmacy, wards and billing from one patient chart with Sabi EMR."],
   "/products/telemedicine": ["Sabi Health Telemedicine — See a Verified Doctor Online", "Video visits with verified professionals, prescriptions with partner pharmacies and family accounts."],
   "/solutions": ["Solutions — Sabi EMR and Sabi Health", "Find the right Sabi product for your hospital, clinic, practice, pharmacy or family."],
-  "/ai": ["Sabi Intelligence — Responsible AI Assistance", "Explore how Sabi supports healthcare professionals with documentation, workflow and operational intelligence."],
+  "/ai": ["Sabi AI — AI built for healthcare", "Sabi AI helps healthcare professionals, patients and caregivers explore medical knowledge, make sense of complex reports and work through healthcare questions. Join the waitlist."],
+  "/ai/organisations": ["Sabi Intelligence — AI pilots for hospitals and clinics", "Explore how Sabi supports healthcare professionals with documentation, workflow and operational intelligence."],
   "/roadmap": ["Product Roadmap | Sabi Health", "See selected Sabi Health and Sabi OS product improvements that are planned, in progress or released."],
   "/security": ["Security & Privacy | Sabi Health", "Learn about Sabi Health's security architecture, tenant isolation, access controls and privacy-by-design principles."],
   "/about": ["About Sabi Health", "Meet the team and mission behind connected healthcare infrastructure for Africa."],
@@ -94,7 +96,7 @@ export default function PublicShell() {
         <div className="mx-auto max-w-[1450px] px-5 py-16 lg:px-8">
           <div className="grid gap-10 border-b border-white/10 pb-12 md:grid-cols-[1.4fr_repeat(4,1fr)]">
             <div><Brand inverse /><p className="mt-5 max-w-xs text-sm leading-6 text-emerald-50/60">Building connected healthcare infrastructure for organizations, professionals and patients.</p><div className="mt-6"><p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-brand-300">Call or WhatsApp</p><ContactLines light /></div></div>
-            <FooterGroup title="Products" links={[["Sabi EMR", "/products/emr"], ["Sabi Health telemedicine", "/products/telemedicine"], ["Pricing", "/pricing"], ["Roadmap", "/roadmap"]]} />
+            <FooterGroup title="Products" links={[["Sabi EMR", "/products/emr"], ["Sabi Health telemedicine", "/products/telemedicine"], ["Sabi AI", "/ai"], ["Pricing", "/pricing"], ["Roadmap", "/roadmap"]]} />
             <FooterGroup title="Solutions" links={[["Hospitals", "/solutions/hospitals"], ["Clinics", "/solutions/clinics"], ["Hospital groups", "/solutions/hospital-groups"], ["Professionals", "/solutions/professionals"]]} />
             <FooterGroup title="Company" links={[["About", "/about"], ["Team", "/about#team"], ["Careers", "/resources#careers"], ["Contact", "/book-demo"]]} />
             <FooterGroup title="Resources" links={[["Resources", "/resources"], ["Documentation", "/resources#documentation"], ["Help Centre", "/resources#help-centre"], ["System Status", "/resources#system-status"]]} />

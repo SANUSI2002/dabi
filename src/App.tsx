@@ -188,6 +188,7 @@ const HomePage = lazy(() => import("@/public/pages/HomePage"));
 const EmrProductPage = lazy(() => import("@/public/pages/ProductPages").then((m) => ({ default: m.EmrPage })));
 const TelemedicineProductPage = lazy(() => import("@/public/pages/ProductPages").then((m) => ({ default: m.TelemedicinePage })));
 const AIPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.AIPage })));
+const SabiAIPage = lazy(() => import("@/public/ai/SabiAIPage"));
 const SecurityPage = lazy(() => import("@/public/pages/ProductPages").then((m) => ({ default: m.SecurityPage })));
 const AboutPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.AboutPage })));
 const PricingPage = lazy(() => import("@/public/pages/ProductPages").then((m) => ({ default: m.PricingPage })));
@@ -266,7 +267,9 @@ export default function App() {
           <Route path="products/telemedicine" element={<TelemedicineProductPage />} />
           <Route path="products/sabi-os" element={<Navigate to="/products/emr" replace />} />
           <Route path="products/sabi-health" element={<Navigate to="/products/telemedicine" replace />} />
-          <Route path="ai" element={<AIPage />} />
+          <Route path="ai" element={<SabiAIPage />} />
+          {/* The earlier Sabi Intelligence page: AI pilots for hospitals and clinics. */}
+          <Route path="ai/organisations" element={<AIPage />} />
           <Route path="roadmap" element={<RoadmapPage />} />
           <Route path="security" element={<SecurityPage />} />
           <Route path="about" element={<AboutPage />} />

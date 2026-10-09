@@ -7,6 +7,12 @@
 @layer base {
   :root {
     color-scheme: light;
+    /* shadcn-style tokens (warm paper, forest ink) for components in src/components/ui */
+    --background: 251 249 244;
+    --foreground: 11 43 32;
+    --muted: 236 231 220;
+    --muted-foreground: 85 104 95;
+    --border: 224 218 205;
   }
   html,
   body,

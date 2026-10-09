@@ -4,6 +4,11 @@ export default {
   theme: {
     extend: {
       colors: {
+        // shadcn-style tokens used by components in src/components/ui (values in src/index.css).
+        background: "rgb(var(--background) / <alpha-value>)",
+        foreground: "rgb(var(--foreground) / <alpha-value>)",
+        muted: { DEFAULT: "rgb(var(--muted) / <alpha-value>)", foreground: "rgb(var(--muted-foreground) / <alpha-value>)" },
+        border: "rgb(var(--border) / <alpha-value>)",
         // Primary — gradient green family
         brand: {
           50: "#eafff4",

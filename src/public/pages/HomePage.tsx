@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, BadgeCheck, Baby, Building2, CalendarCheck, ChevronDown, ClipboardList, HeartHandshake, HeartPulse, Hospital, LockKeyhole, Mic, Minus, Network, PhoneOff, Pill, Plus, Salad, Search, ShieldCheck, Stethoscope, UserRound, Video } from "lucide-react";
+import { ArrowRight, BadgeCheck, Baby, Building2, CalendarCheck, ChevronDown, ClipboardList, FileText, HeartHandshake, HeartPulse, Hospital, LockKeyhole, Mic, Minus, Network, PhoneOff, Pill, Plus, Salad, Search, ShieldCheck, Sparkles, Stethoscope, UserRound, Video } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/cn";
 import { DOCTOR_REGISTER_URL, DOCTOR_SIGN_IN_URL, TELEMEDICINE_SIGN_IN_URL } from "@/public/ecosystemLinks";
@@ -74,6 +74,7 @@ export default function HomePage() {
             <div className={cn("mt-9 grid gap-3 border-t border-[#0b2b20]/10 pt-6 text-sm font-medium sm:grid-cols-2", MUTED)}>
               <Link to="/products/emr" className="inline-flex items-center gap-2 hover:text-brand-700"><Hospital size={15} className="text-brand-600" /> Run a hospital? See Sabi EMR</Link>
               <a href={DOCTOR_REGISTER_URL} className="inline-flex items-center gap-2 hover:text-brand-700"><BadgeCheck size={15} className="text-brand-600" /> Professional? Apply to practise</a>
+              <Link to="/ai" className="inline-flex items-center gap-2 hover:text-brand-700"><Sparkles size={15} className="text-brand-600" /> Meet Sabi AI, built for healthcare</Link>
             </div>
           </motion.div>
           <HeroFigure />
@@ -120,10 +121,11 @@ export default function HomePage() {
 
       <section aria-labelledby="providers-heading" className="bg-white px-5 py-16 sm:px-8 lg:px-10 lg:py-24">
         <div className="mx-auto max-w-[1200px]">
-          <SectionTitle centered id="providers-heading" eyebrow="For healthcare providers" title="Bring your practice onto Sabi." copy="Two products, one network: Sabi EMR runs the facility, Sabi Health brings the patients." className="mb-10" />
-          <div className="grid gap-5 lg:grid-cols-2">
+          <SectionTitle centered id="providers-heading" eyebrow="For healthcare providers" title="Bring your practice onto Sabi." copy="Three products, one network: Sabi EMR runs the facility, Sabi Health brings the patients, and Sabi AI helps everyone make sense of health information." className="mb-10" />
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             <ProviderCard image={providerHospital} alt="A hospital care team reviewing a chart together" label="Sabi EMR · hospitals & clinics" title="Every department, one patient chart." copy="Front desk, triage, consultation, laboratory, pharmacy, wards and billing — working from the same record, with each facility's data kept to itself." primary={{ label: "Explore Sabi EMR", to: "/products/emr" }} secondary={{ label: "Register your facility", to: "/register/organization" }} />
             <ProviderCard image={providerProfessional} alt="A doctor working on her tablet in a bright consulting room" label="Sabi Health · professionals" title="Practise online, once you're verified." copy="Publish your hours, accept bookings, see patients on video and keep care plans going between visits." primary={{ label: "Apply as a professional", href: DOCTOR_REGISTER_URL }} secondary={{ label: "Professional sign in", href: DOCTOR_SIGN_IN_URL }} />
+            <AiProductCard />
           </div>
         </div>
       </section>
@@ -232,6 +234,19 @@ function CareTeam() {
       <div className="mt-6"><TextLink href={TELEMEDICINE_SIGN_IN_URL}>Browse professionals</TextLink></div>
     </div>
   </section>;
+}
+
+/** Sabi AI's card: a small sample exchange in place of a photograph, since the product is still opening. */
+function AiProductCard() {
+  return <Reveal className="h-full"><article className="flex h-full flex-col overflow-hidden rounded-[26px] border border-[#e3ebe5] bg-[#fcfefc]">
+    <div aria-hidden className="relative flex aspect-[16/9] w-full flex-col justify-center gap-2.5 overflow-hidden bg-[#f7f4ee] px-6">
+      <div className="ml-auto max-w-[78%] rounded-2xl rounded-br-md bg-[#0b2b20] px-3.5 py-2.5 text-[12px] leading-5 text-white"><span className="mb-1 flex items-center gap-1.5 text-[10px] text-white/70"><FileText size={11} /> blood-count-sample.pdf</span>Explain this report in plain language.</div>
+      <div className="flex max-w-[86%] gap-2"><span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#e6efe8] text-[#1f5c45]"><Sparkles size={12} /></span><p className="rounded-2xl rounded-tl-md bg-white px-3.5 py-2.5 text-[12px] leading-5 text-[#0b2b20] shadow-sm">Haemoglobin is a little below the range printed on the report. Here's what that measure describes…</p></div>
+      <span className="absolute bottom-3 right-4 text-[10px] font-semibold text-[#7a8a82]">Sample · fictional</span>
+    </div>
+    <div className="flex flex-1 flex-col p-6"><p className="text-[11px] font-bold uppercase tracking-[0.16em] text-brand-700">Sabi AI · professionals, patients &amp; caregivers</p><h3 className="mt-3 font-display text-2xl font-bold leading-tight tracking-[-0.03em]">AI built for healthcare.</h3><p className={cn("mt-3 flex-1 text-sm leading-6", MUTED)}>Explore medical knowledge, make sense of complex reports and work through healthcare questions in clear language. Opening in stages.</p>
+      <div className="mt-6 flex flex-wrap items-center gap-2"><Action to="/ai">Explore Sabi AI</Action><Link to="/ai#waitlist" className="px-2 py-2.5 text-sm font-bold text-brand-700 hover:text-brand-900">Join the waitlist</Link></div></div>
+  </article></Reveal>;
 }
 
 type CardLink = { label: string; to?: string; href?: string };
