@@ -62,24 +62,19 @@ export function InstallAppSheet() {
 
   if (!open || installed) return null;
   const later = () => { rememberDismissal(); setOpen(false); };
-  return <div className="ia-sheet" role="dialog" aria-modal="false" aria-labelledby="ia-sheet-title">
-    <button type="button" className="ia-close" aria-label="Close" onClick={later}><X size={18} /></button>
-    <div className="ia-sheet-head">
-      <img src={ICON} alt="" width="56" height="56" className="ia-icon" />
-      <div>
-        <h2 id="ia-sheet-title">Get the Sabi app</h2>
-        <p>Install Sabi on this {platform === "desktop" ? "computer" : "phone"}. No app store, takes a few seconds.</p>
+  // A small pop-up: icon, one line, Install / Not now. Details live on /install.
+  return <div className="ia-popup" role="dialog" aria-modal="false" aria-labelledby="ia-popup-title">
+    <img src={ICON} alt="" width="40" height="40" className="ia-icon" />
+    <div className="ia-popup-body">
+      <h2 id="ia-popup-title">Get the Sabi app</h2>
+      <p>{platform === "ios" && !canPrompt ? <>Tap <Share size={13} aria-label="Share" /> then <strong>Add to Home Screen</strong>.</> : "Opens from your home screen, fast on slow networks."}</p>
+      <div className="ia-popup-actions">
+        {canPrompt && <InstallButton className="sx-btn-sm" onDone={(outcome) => { if (outcome !== "accepted") later(); else setOpen(false); }} />}
+        <button type="button" className="sx-btn sx-btn-ghost sx-btn-sm" onClick={later}>Not now</button>
+        <Link to="/install" className="ia-more" onClick={() => setOpen(false)}>Why?</Link>
       </div>
     </div>
-    <ul className="ia-benefits">
-      {BENEFITS.slice(0, 3).map(({ icon: Icon, title }) => <li key={title}><Icon size={16} aria-hidden="true" /> {title}</li>)}
-    </ul>
-    {platform === "ios" && !canPrompt && <IosSteps />}
-    <div className="ia-actions">
-      {canPrompt && <InstallButton onDone={(outcome) => { if (outcome !== "accepted") later(); else setOpen(false); }} />}
-      <button type="button" className="sx-btn sx-btn-ghost" onClick={later}>Not now</button>
-      <Link to="/install" className="sx-link" onClick={() => setOpen(false)}>Why install?</Link>
-    </div>
+    <button type="button" className="ia-close" aria-label="Close" onClick={later}><X size={16} /></button>
   </div>;
 }
 

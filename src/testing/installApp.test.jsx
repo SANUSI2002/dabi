@@ -40,7 +40,7 @@ describe('install the Sabi app', () => {
     expect(event.defaultPrevented).toBe(true); // our invitation instead of the browser's mini bar
     showSheet();
     expect(screen.getByRole('dialog', { name: 'Get the Sabi app' })).toBeInTheDocument();
-    expect(screen.getByText('Opens from your home screen')).toBeInTheDocument();
+    expect(screen.getByText('Opens from your home screen, fast on slow networks.')).toBeInTheDocument();
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Install app' })); });
     expect(event.prompt).toHaveBeenCalled();
     expect(pwa.installState().installed).toBe(true);
