@@ -7,7 +7,8 @@ import ProfessionalRegistrationPage from "./pages/auth/ProfessionalRegistrationP
 import SignInPage from "./pages/auth/SignInPage";
 import RegistrationStatusPage from "./pages/auth/RegistrationStatusPage";
 import PortalPreviewPage from "./pages/auth/PortalPreviewPage";
-import { AUTH_CONFIGURED, PREVIEW_ENABLED, getAuthenticatedSession, signOutAccount, doctorRequest } from "./services/doctorAuth";
+import { AUTH_CONFIGURED, PREVIEW_ENABLED, getAuthenticatedSession, signOutAccount, doctorRequest, checkDoctorSession } from "./services/doctorAuth";
+import { elsewhereSignInUrl, startSessionWatch } from "../../shared-portal/sessionWatch.js";
 import { idleSignInUrl, startIdleTimeout } from "../../shared-portal/idleTimeout.js";
 import LiveDoctorWorkspace from "./live/LiveDoctorWorkspace";
 import PortalErrorBoundary from "./components/PortalErrorBoundary";
@@ -43,6 +44,13 @@ async function signOutForInactivity() {
   window.location.assign(idleSignInUrl(import.meta.env.BASE_URL));
 }
 
+// Signed in on another device: this one is signed out at once, and the sign-in page says why.
+async function signOutSignedInElsewhere() {
+  await signOutAccount().catch(() => {}); // the server already ended the session; this clears the cookie
+  signOutDoctor();
+  window.location.assign(elsewhereSignInUrl(import.meta.env.BASE_URL));
+}
+
 function DoctorApplication() {
   const doctor = useSyncExternalStore(subscribeToDoctorSession, getCurrentDoctor, getCurrentDoctor);
   const [ready, setReady] = useState(!AUTH_CONFIGURED);
@@ -55,6 +63,8 @@ function DoctorApplication() {
     getAuthenticatedSession().then((result) => { if (!cancelled) { if (result.doctor) activateDoctorSession(result.doctor); else signOutDoctor(); setReady(true); } }).catch((error) => { if (!cancelled) setSessionError(error.message); });
     return () => { cancelled = true; };
   }, [attempt]);
+  useEffect(() => AUTH_CONFIGURED ? startSessionWatch({ check: checkDoctorSession, isSignedIn: () => Boolean(getCurrentDoctor() && !getCurrentDoctor().isDemo),
+    onSignedInElsewhere: () => { void signOutSignedInElsewhere(); } }) : undefined, []);
   useEffect(() => startIdleTimeout({ isSignedIn: () => getCurrentDoctor() !== null,
     onActive: () => AUTH_CONFIGURED && !getCurrentDoctor()?.isDemo ? doctorRequest('/auth/me') : undefined,
     onIdle: () => { void signOutForInactivity(); } }), []);

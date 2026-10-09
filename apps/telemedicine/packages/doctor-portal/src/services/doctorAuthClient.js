@@ -1,8 +1,9 @@
 // Access tokens stay in memory. Sabi Identity owns sessions and professional approval.
-export function createDoctorAuthClient({ base, fetcher = (...args) => fetch(...args), lock = (work) => typeof navigator !== "undefined" && navigator.locks ? navigator.locks.request("sabi-identity-refresh", work) : work() }) {
+export function createDoctorAuthClient({ base, onSignedInElsewhere = () => {}, fetcher = (...args) => fetch(...args), lock = (work) => typeof navigator !== "undefined" && navigator.locks ? navigator.locks.request("sabi-identity-refresh", work) : work() }) {
   let accessToken = null;
   let restoring = null;
   let sessionDoctor = null;
+  let endedElsewhere = false;
   async function request(path, options = {}) {
     if (!base) throw new Error("Sabi Identity is unavailable. Please try again later.");
     const response = await fetcher(`${base}/api/v1${path}`, {
@@ -51,6 +52,8 @@ export function createDoctorAuthClient({ base, fetcher = (...args) => fetch(...a
         sessionDoctor = doctor;
         return { doctor: approved(doctor) ? doctor : null };
       } catch (error) {
+        // Signed in on another device: every part of the portal hears about it, not just this caller.
+        if (error.code === "SIGNED_IN_ELSEWHERE" && sessionDoctor) { endedElsewhere = true; onSignedInElsewhere(); }
         if (error.status === 401 || error.status === 403) { accessToken = null; sessionDoctor = null; return { doctor: null }; }
         throw error;
       }
@@ -68,8 +71,18 @@ export function createDoctorAuthClient({ base, fetcher = (...args) => fetch(...a
       return request(path, options);
     }
   }
+  /** Background check for the session watch: "active", "elsewhere" or "unknown" (offline, busy, token expired). */
+  async function checkSession() {
+    if (endedElsewhere) return "elsewhere";
+    if (!base || !accessToken || !sessionDoctor) return "unknown";
+    const response = await fetcher(`${base}/api/v1/auth/session`, { credentials: "include", cache: "no-store", headers: { "X-Sabi-Client": "browser", Authorization: `Bearer ${accessToken}` } });
+    if (response.ok) return "active";
+    if (response.status !== 401) return "unknown";
+    const body = await response.json().catch(() => ({}));
+    return body.code === "SIGNED_IN_ELSEWHERE" ? "elsewhere" : "unknown";
+  }
   return {
-    restore, authenticated,
+    restore, authenticated, checkSession,
     publicRequest: request,
     onboarding: async (path, options = {}) => {
       if (!/^\/doctors\/(me|applications\/[0-9a-f-]{36}\/(submit|details|credentials\/(licence|registrationCertificate|qualification|competence)))$/.test(path)) throw new Error("Invalid onboarding request.");
@@ -88,6 +101,7 @@ export function createDoctorAuthClient({ base, fetcher = (...args) => fetch(...a
     signIn: async (email, password) => {
       accessToken = null;
       sessionDoctor = null;
+      endedElsewhere = false;
       const result = await request("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
       if (result.status === "mfa_required" && result.challengeToken) return { mfaRequired: true, challengeId: result.challengeToken };
       if (!result.accessToken) throw new Error("Sabi Identity returned an invalid sign-in response.");
@@ -102,7 +116,7 @@ export function createDoctorAuthClient({ base, fetcher = (...args) => fetch(...a
       sessionDoctor = await doctorForSession();
       return { doctor: sessionDoctor };
     },
-    signOut: async () => { await request("/auth/logout", { method: "POST", body: "{}" }); accessToken = null; sessionDoctor = null; },
+    signOut: async () => { try { await request("/auth/logout", { method: "POST", body: "{}" }); } finally { accessToken = null; sessionDoctor = null; endedElsewhere = false; } },
     requestPasswordReset: (email) => request("/auth/password-reset/request", { method: "POST", body: JSON.stringify({ email }) }),
   };
 }

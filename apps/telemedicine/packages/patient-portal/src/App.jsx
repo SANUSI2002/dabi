@@ -1,7 +1,8 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getCurrentUser, restoreSession, signOut, authorizedRequest } from "./utils/sabiIdentity";
+import { getCurrentUser, restoreSession, signOut, authorizedRequest, checkSession } from "./utils/sabiIdentity";
 import { idleSignInUrl, startIdleTimeout } from "../../shared-portal/idleTimeout.js";
+import { elsewhereSignInUrl, startSessionWatch } from "../../shared-portal/sessionWatch.js";
 import "./index.css";
 import { ZoomProvider } from "./context/ZoomContext";
 import { Dashboard } from "./pages/dashboard/Dashboard";
@@ -166,7 +167,15 @@ async function signOutForInactivity() {
   window.location.assign(idleSignInUrl(import.meta.env.BASE_URL));
 }
 
+// Signed in on another device: this one is signed out at once, and the sign-in page says why.
+async function signOutSignedInElsewhere() {
+  await signOut();
+  window.location.assign(elsewhereSignInUrl(import.meta.env.BASE_URL));
+}
+
 export default function App() {
+  useEffect(() => startSessionWatch({ check: checkSession, isSignedIn: () => getCurrentUser() !== null,
+    onSignedInElsewhere: () => { void signOutSignedInElsewhere(); } }), []);
   useEffect(() => startIdleTimeout({ isSignedIn: () => getCurrentUser() !== null,
     onActive: () => authorizedRequest('/api/v1/auth/me', { signal: AbortSignal.timeout(30_000) }),
     onIdle: () => { void signOutForInactivity(); } }), []);

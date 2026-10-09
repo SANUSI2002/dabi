@@ -6,6 +6,7 @@ import { PREVIEW_ENABLED, signInDoctor, requestPasswordReset, verifySignIn } fro
 import { activateDoctorSession } from "../../store/doctorSession";
 import { canonicalEmail } from "./registrationModel";
 import { signedOutForInactivity } from "../../../../shared-portal/idleTimeout.js";
+import { ELSEWHERE_NOTICE, signedOutElsewhere } from "../../../../shared-portal/sessionWatch.js";
 
 const IDLE_NOTICE = "For your security, you were signed out after 5 minutes of inactivity. Please sign in again.";
 
@@ -17,7 +18,7 @@ export default function SignInPage({ recovery = false }) {
   const [code, setCode] = useState("");
   const [challenge, setChallenge] = useState(null);
   const [useRecovery, setUseRecovery] = useState(false);
-  const [notice, setNotice] = useState(() => !recovery && signedOutForInactivity(window.location.search) ? IDLE_NOTICE : "");
+  const [notice, setNotice] = useState(() => recovery ? "" : signedOutForInactivity(window.location.search) ? IDLE_NOTICE : signedOutElsewhere(window.location.search) ? ELSEWHERE_NOTICE : "");
   const [busy, setBusy] = useState(false);
   async function submit(event) {
     event.preventDefault(); setNotice(""); setBusy(true);

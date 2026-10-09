@@ -1,3 +1,5 @@
+import { SIGNED_IN_ELSEWHERE, reportSignedInElsewhere } from '../../../shared-portal/sessionWatch.js';
+
 const configuredBaseUrl = String(import.meta.env.VITE_SABI_IDENTITY_API_URL || '').trim().replace(/\/$/, '');
 export const apiBaseUrl = configuredBaseUrl === 'same-origin'
   ? (typeof window === 'undefined' ? '' : window.location.origin)
@@ -7,6 +9,7 @@ let accessToken = null;
 let currentUser = null;
 let pendingChallenge = null;
 let restoring = null;
+let endedElsewhere = false;
 const mayUsePatientPortal = (user) => user?.roles?.some((role) => ['PATIENT', 'CAREGIVER'].includes(role));
 
 async function request(path, options = {}) {
@@ -36,6 +39,7 @@ function exclusiveRefresh(work) {
 }
 
 export async function signIn(email, password) {
+  endedElsewhere = false;
   const login = await request('/login', { method: 'POST', body: JSON.stringify({ email, password }) });
   if (login.status === 'mfa_required' && login.challengeToken) {
     pendingChallenge = login.challengeToken;
@@ -103,6 +107,8 @@ async function doRestore() {
     if (error.status === 429 || error.status >= 500 || error.status === undefined) {
       throw Object.assign(new Error("Sabi Health is busy right now. Please try again in a moment."), { transient: true, status: error.status });
     }
+    // Signed in on another device: every part of the app hears about it, not just this caller.
+    if (error.code === SIGNED_IN_ELSEWHERE && currentUser !== null) { endedElsewhere = true; reportSignedInElsewhere(); }
     accessToken = null;
     currentUser = null;
     return null;
@@ -156,11 +162,26 @@ export async function authorizedRequest(path, { method = 'GET', body, query, sig
   return parsed;
 }
 
+/**
+ * Background check for the session watch: "active", "elsewhere" (signed in on another device) or
+ * "unknown" (offline, busy, or the short-lived access token expired; real use refreshes it).
+ */
+export async function checkSession() {
+  if (endedElsewhere) return 'elsewhere';
+  if (!apiConfigured || !accessToken || !currentUser) return 'unknown';
+  const response = await fetch(`${apiBaseUrl}/api/v1/auth/session`, { credentials: 'include', cache: 'no-store', headers: { 'X-Sabi-Client': 'browser', Authorization: `Bearer ${accessToken}` } });
+  if (response.ok) return 'active';
+  if (response.status !== 401) return 'unknown';
+  const body = await response.json().catch(() => ({}));
+  return body.code === SIGNED_IN_ELSEWHERE ? 'elsewhere' : 'unknown';
+}
+
 export async function signOut() {
   try { await request('/logout', { method: 'POST', body: '{}' }); } catch { /* stale sessions still clear locally */ }
   accessToken = null;
   currentUser = null;
   pendingChallenge = null;
+  endedElsewhere = false;
 }
 
 export const mfaStatus = () => request('/mfa/status');

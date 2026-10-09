@@ -13,6 +13,7 @@ import { restoreSession, signIn, verifyMfaLogin } from "../../utils/sabiIdentity
 import { useEffect } from "react";
 import { DOCTOR_PORTAL_URL } from "../../ecosystemLinks";
 import { signedOutForInactivity } from "../../../../shared-portal/idleTimeout.js";
+import { ELSEWHERE_NOTICE, signedOutElsewhere } from "../../../../shared-portal/sessionWatch.js";
 
 export default function SabiHealthLogin() {
   const navigate = useNavigate();
@@ -137,6 +138,7 @@ export default function SabiHealthLogin() {
 
             {location.state?.verified && <p role="status" className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">Your email is verified. Sign in to continue.</p>}
             {signedOutForInactivity(location.search) && <p role="status" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">For your security, you were signed out after 5 minutes of inactivity. Please sign in again.</p>}
+            {signedOutElsewhere(location.search) && <p role="status" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">{ELSEWHERE_NOTICE}</p>}
             {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
             {verificationRequired && <Link to="/verify-email" state={{ email }} className="inline-block text-sm font-semibold text-emerald-700 underline">Request a new verification email</Link>}
             <button

@@ -1,10 +1,12 @@
 import { apiBase, AUTH_CONFIGURED } from "./runtime.js";
 import { createDoctorAuthClient } from "./doctorAuthClient.js";
+import { reportSignedInElsewhere } from "../../../shared-portal/sessionWatch.js";
 export { AUTH_CONFIGURED, PREVIEW_ENABLED } from "./runtime.js";
 export const TERMS_URL = import.meta.env?.VITE_DOCTOR_TERMS_URL || "";
 export const PRIVACY_URL = import.meta.env?.VITE_DOCTOR_PRIVACY_URL || "";
 export const REGISTRATION_CONFIGURED = AUTH_CONFIGURED;
-const auth = createDoctorAuthClient({ base: apiBase });
+const auth = createDoctorAuthClient({ base: apiBase, onSignedInElsewhere: () => reportSignedInElsewhere() });
+export const checkDoctorSession = auth.checkSession;
 export const signInDoctor = auth.signIn;
 export const verifySignIn = auth.verifySignIn;
 export const getAuthenticatedSession = auth.restore;
