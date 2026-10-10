@@ -88,7 +88,7 @@ export default function PatientChart() {
     .flatMap((encounter) => encounter.prescriptions.map((prescription) => ({ ...prescription, date: encounter.date, encounterId: encounter.id })))
     .sort((left, right) => +new Date(right.date) - +new Date(left.date));
   const invoices = liveRecord ? liveRecord.invoices : emr.invoices.filter((entry) => entry.patientId === patient.id);
-  const appointments = emr.appointments.filter((entry) => entry.patientId === patient.id);
+  const appointments = liveRecord ? liveRecord.appointments : emr.appointments.filter((entry) => entry.patientId === patient.id);
   const admissions = liveRecord ? liveRecord.admissions : emr.admissions.filter((entry) => entry.patientId === patient.id);
   const transfers = emr.transfers.filter((entry) => entry.patientId === patient.id);
   const referrals = emr.referrals.filter((entry) => entry.patientId === patient.id);

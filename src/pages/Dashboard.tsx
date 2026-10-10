@@ -80,7 +80,7 @@ export default function Dashboard() {
       overdueLab: overdueLabTests(work.pendingLabTests ?? [], tatFor)
         .map((test) => ({ key: test.id, text: person(test.patient), detail: `${test.testName} · ordered ${timeAgo(test.orderedAt)}` })),
       referrals: [],
-      followUps: [],
+      followUps: (work.followUpsDue ?? []).map((appointment) => ({ key: appointment.id, text: person(appointment.patient), detail: `${shortDate(appointment.scheduledAt)} · ${appointment.reason ?? "Follow-up"}` })),
     }
     : {
       unsigned: unsignedNotes.map((encounter) => ({ key: encounter.id, text: patientName(encounter.patientId), detail: `${encounter.complaint} · ${timeAgo(encounter.date)}` })),
@@ -192,7 +192,7 @@ export default function Dashboard() {
               icon={<CalendarClock size={15} />}
               title="Follow-ups due"
               items={queueItems.followUps}
-              emptyText={live ? "Appointments are not connected for your hospital yet." : "No follow-ups due."}
+              emptyText={notForRole(work.followUpsDue, "No follow-ups due.")}
               linkTo="/appointments"
               linkLabel="Open appointments"
             />

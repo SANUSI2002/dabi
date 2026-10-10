@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { create } from "zustand";
-import type { Admission, Encounter, EncounterStatus, Invoice, LabOrder, Patient, QueueEntry, Station, Vitals } from "@/data/types";
+import type { Admission, Appointment, Encounter, EncounterStatus, Invoice, LabOrder, Patient, QueueEntry, Station, Vitals } from "@/data/types";
 import type { AllergyIntolerance, Condition, ConditionClinicalStatus, ConditionVerificationStatus } from "@/data/clinical";
 import { ALLERGEN_SNOMED, icd11Concept, localConcept, type CodeableConcept } from "@/data/clinicalCoding";
 import { emrRequest } from "./client";
@@ -9,6 +9,7 @@ import { liveLabTest } from "./lab";
 import { vitalsSets } from "./consultation";
 import { liveRxLine, type LiveRxLine } from "./pharmacy";
 import { liveAdmission } from "./inpatient";
+import { appointmentFromApi, type ApiAppointment } from "./appointments";
 
 // The patient chart and Medical History in live mode: one read of the patient's record from the
 // hospital's EMR (GET /patients/:id/record), mapped onto the shapes those screens already render,
@@ -57,7 +58,8 @@ export type ApiPatientRecord = {
   prescriptions: ApiRx[] | null;
   admissions: ApiAdmission[] | null;
   invoices: ApiRecordInvoice[] | null;
-  sections: { labs: boolean; prescriptions: boolean; admissions: boolean; invoices: boolean };
+  appointments?: ApiAppointment[] | null;
+  sections: { labs: boolean; prescriptions: boolean; admissions: boolean; invoices: boolean; appointments?: boolean };
 };
 
 /** A problem-list row plus what a change needs: stored entries have an id and version; a flagged diagnosis not yet stored has neither. */
@@ -73,6 +75,7 @@ export type LivePatientRecord = {
   allergies: AllergyIntolerance[];
   admissions: Admission[];
   invoices: Invoice[];
+  appointments: Appointment[];
   /** What the patient still owes on issued invoices, in naira. */
   outstanding: number;
   /** Where the patient is in clinic right now (an open visit's queue place), if anywhere. */
@@ -210,6 +213,7 @@ export function recordFromApi(record: ApiPatientRecord): LivePatientRecord {
     allergies: record.allergies.map((allergy) => allergyFromApi(allergy, patient.id)),
     admissions: (record.admissions ?? []).map(liveAdmission),
     invoices: (record.invoices ?? []).map((invoice) => invoiceFromApi(invoice, patient)),
+    appointments: (record.appointments ?? []).map(appointmentFromApi),
     outstanding: (record.invoices ?? []).reduce((total, invoice) => total + invoice.balanceMinor, 0) / 100,
     inClinic: open?.queueEntry ? { station: open.queueEntry.station as Station, status: STATUS_FROM_API[open.queueEntry.status] } : null,
     lastUpdated: times.reduce((latest, time) => (time > latest ? time : latest), ""),

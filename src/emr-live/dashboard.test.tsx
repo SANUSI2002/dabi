@@ -26,6 +26,7 @@ const board = (extra: Partial<LiveDashboard> = {}): LiveDashboard => ({
     criticalResults: [{ id: "c1", testName: "Full blood count", result: "Haemoglobin: 6.2 g/dL", resultedAt: minutesAgo(20), patient: amaka }],
     resultsToAcknowledge: [{ id: "r1", testName: "Malaria parasite (RDT)", result: "Malaria antigen: POSITIVE", abnormal: true, verifiedAt: minutesAgo(10), patient: amaka }],
     pendingLabTests: [{ id: "t1", testName: "Lipid profile", orderedAt: minutesAgo(600), collectedAt: minutesAgo(590), patient: amaka }],
+    followUpsDue: [{ id: "f1", scheduledAt: minutesAgo(15), reason: "BP review", patient: amaka }],
   },
   month: { outpatientVisits: 128, admissions: 6, labTestsResulted: 71, prescriptionsDispensed: 44 },
   revenue: null,
@@ -83,10 +84,10 @@ describe("the live workspace dashboard", () => {
     expect(screen.getByText("Full blood count: Haemoglobin: 6.2 g/dL")).toBeTruthy();
     expect(screen.getByText("Malaria parasite (RDT): Malaria antigen: POSITIVE (Abnormal)")).toBeTruthy();
     expect(screen.getByText(/Lipid profile · ordered/)).toBeTruthy();
-    expect(screen.getByText("4 outstanding")).toBeTruthy();
+    expect(screen.getByText("5 outstanding")).toBeTruthy();
+    expect(screen.getByText(/· BP review/)).toBeTruthy();
     // Modules not connected yet say so instead of "nothing due".
     expect(screen.getByText("Referrals are not connected for your hospital yet.")).toBeTruthy();
-    expect(screen.getByText("Appointments are not connected for your hospital yet.")).toBeTruthy();
 
     // Real monthly counts, no made-up targets.
     expect(screen.getByText("OPD Visits").parentElement?.textContent).toContain("128");
@@ -107,7 +108,7 @@ describe("the live workspace dashboard", () => {
     render(<MemoryRouter><Dashboard /></MemoryRouter>);
     await waitFor(() => expect(screen.getByText(/Revenue collected this month: ₦12,500 · 3 unpaid invoices/)).toBeTruthy());
     expect(screen.getByText("Lab Pending").parentElement?.textContent).toContain("—");
-    expect(screen.getAllByText("Not part of your role.").length).toBe(4);
+    expect(screen.getAllByText("Not part of your role.").length).toBe(5);
     expect(screen.getByText("Pharmacy stock is not part of your role.")).toBeTruthy();
     expect(screen.getByText("This month’s clinical figures are not part of your role.")).toBeTruthy();
     expect(screen.getByText("recorded payment")).toBeTruthy();

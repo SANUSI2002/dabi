@@ -17,6 +17,7 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   // The patient chart (/patients/:id) and Medical History are clinical records (doctors, nurses).
   "/patients": "clinical.read",
   "/history": "clinical.read",
+  "/appointments": "appointment.read",
 };
 
 export type LiveRouteState = "connected" | "no-permission" | "not-connected";

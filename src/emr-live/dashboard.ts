@@ -18,6 +18,7 @@ export type LiveDashboard = {
     criticalResults?: { id: string; testName: string; result: string; resultedAt: string | null; patient: ApiPerson }[];
     resultsToAcknowledge?: { id: string; testName: string; result: string; abnormal: boolean; verifiedAt: string | null; patient: ApiPerson }[];
     pendingLabTests?: { id: string; testName: string; orderedAt: string; collectedAt: string | null; patient: ApiPerson }[];
+    followUpsDue?: { id: string; scheduledAt: string; reason: string | null; patient: ApiPerson }[];
   };
   month: { outpatientVisits?: number; admissions?: number; labTestsResulted?: number; prescriptionsDispensed?: number };
   revenue: { collectedThisMonthMinor: number; unpaidInvoices: number } | null;
