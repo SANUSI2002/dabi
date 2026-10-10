@@ -12,21 +12,39 @@ import { useEmr } from "@/store/useEmr";
 import { activeFacility } from "@/platform/tenantRuntime";
 import { dateTime, isoDate, shortDate } from "@/lib/format";
 import { getRevenueCycleApi } from "@/billing/runtime";
+import { useIsLiveEmr, useLiveEmr } from "@/emr-live/session";
+import { LIVE_PAYMENT_METHODS, newIdempotencyKey, recordLivePayment, useLiveInvoice, useLiveInvoiceLoad } from "@/emr-live/billing";
+import { describeEmrError } from "@/emr-live/client";
 
 const paymentMethods: PaymentMethod[] = ["CASH", "CARD_POS", "BANK_TRANSFER", "MOBILE_MONEY", "INSURANCE", "OTHER"];
 
 export default function BillingInvoiceDetail() {
   const { invoiceId } = useParams();
   const navigate = useNavigate();
-  const invoice = useRevenueCycle((state) => state.invoices.find((item) => item.id === invoiceId));
-  const account = useRevenueCycle((state) => state.accounts.find((item) => item.id === invoice?.accountId));
+  // A live hospital's invoice comes from its billing service (see src/emr-live/billing.ts).
+  const live = useIsLiveEmr();
+  useLiveInvoiceLoad(live, invoiceId);
+  const liveView = useLiveInvoice((state) => (state.id === invoiceId ? state.view : null));
+  const liveError = useLiveInvoice((state) => (state.id === invoiceId ? state.error : ""));
+  const hospitalName = useLiveEmr((state) => state.access?.organizationName);
+  const demoInvoice = useRevenueCycle((state) => state.invoices.find((item) => item.id === invoiceId));
+  const demoAccount = useRevenueCycle((state) => state.accounts.find((item) => item.id === demoInvoice?.accountId));
   const payments = useRevenueCycle((state) => state.payments);
   const allocations = useRevenueCycle((state) => state.allocations);
-  const receipts = useRevenueCycle((state) => state.receipts);
+  const demoReceipts = useRevenueCycle((state) => state.receipts);
   const auditEvents = useRevenueCycle((state) => state.auditEvents);
-  const patient = useEmr((state) => state.patients.find((item) => item.id === invoice?.patientId));
-  const encounter = useEmr((state) => state.encounters.find((item) => item.id === invoice?.encounterId));
+  const demoPatient = useEmr((state) => state.patients.find((item) => item.id === demoInvoice?.patientId));
+  const encounter = useEmr((state) => state.encounters.find((item) => item.id === demoInvoice?.encounterId));
+  const invoice = live ? liveView?.invoice : demoInvoice;
+  const account = live ? liveView?.account : demoAccount;
+  const patient = live ? liveView?.patient : demoPatient;
+  const receipts = live ? liveView?.receipts ?? [] : demoReceipts;
   const facility = activeFacility();
+  const facilityName = live ? hospitalName ?? "Hospital" : facility.name;
+  const facilityLine = live ? "Patient invoice" : `${facility.code} · ${facility.state}, ${facility.country}`;
+  const methods = live ? LIVE_PAYMENT_METHODS : paymentMethods;
+  const provider = live ? liveView?.provider ?? "—" : encounter?.provider ?? account?.attendingProvider ?? "—";
+  const serviceDate = live ? liveView?.serviceDate ?? invoice?.issuedAt ?? "" : encounter?.date ?? invoice?.issuedAt ?? "";
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [error, setError] = useState("");
   const [paymentPending, setPaymentPending] = useState(false);
@@ -34,14 +52,18 @@ export default function BillingInvoiceDetail() {
   const [form, setForm] = useState({ amount: "", method: "CASH" as PaymentMethod, paymentDate: isoDate(new Date()), reference: "", receivingAccount: "Main cash account", notes: "" });
 
   const invoicePayments = useMemo(() => {
+    if (live) return liveView?.payments ?? [];
     if (!invoice) return [];
     const paymentIds = allocations.filter((allocation) => allocation.invoiceId === invoice.id).map((allocation) => allocation.paymentId);
     return payments.filter((payment) => paymentIds.includes(payment.id));
-  }, [allocations, invoice, payments]);
-  const invoiceAudit = auditEvents.filter((event) => event.resourceId === invoice?.id || event.accountId === invoice?.accountId);
+  }, [live, liveView, allocations, invoice, payments]);
+  const invoiceAudit = live ? liveView?.audit ?? [] : auditEvents.filter((event) => event.resourceId === invoice?.id || event.accountId === invoice?.accountId);
   const amountMinor = Math.round((Number(form.amount) || 0) * 100);
   const projectedStatus = invoice ? invoiceStatusFor(invoice.totalMinor, invoice.paidMinor + Math.min(amountMinor, invoice.balanceMinor)) : "ISSUED";
 
+  if (live && !liveView && !liveError) {
+    return <div className="card py-16 text-center"><FileText size={30} className="mx-auto mb-3 text-mist-300" /><p className="text-sm text-mist-500">Loading the invoice…</p></div>;
+  }
   if (!invoice || !account) {
     return <div className="card py-16 text-center"><FileText size={30} className="mx-auto mb-3 text-mist-300" /><h1 className="font-display text-xl font-bold text-mist-900">Invoice not found</h1><p className="mt-1 text-sm text-mist-500">It may belong to another tenant or no longer be available.</p><Button className="mt-4" onClick={() => navigate("/billing")}><ArrowLeft size={14} /> Back to billing</Button></div>;
   }
@@ -51,7 +73,7 @@ export default function BillingInvoiceDetail() {
 
   function openPayment() {
     setError("");
-    setPaymentRequestId(`payment:${currentInvoice.id}:${globalThis.crypto.randomUUID()}`);
+    setPaymentRequestId(live ? newIdempotencyKey() : `payment:${currentInvoice.id}:${globalThis.crypto.randomUUID()}`);
     setForm({ amount: (currentInvoice.balanceMinor / 100).toFixed(2), method: "CASH", paymentDate: isoDate(new Date()), reference: "", receivingAccount: "Main cash account", notes: "" });
     setPaymentOpen(true);
   }
@@ -60,10 +82,11 @@ export default function BillingInvoiceDetail() {
     setError("");
     setPaymentPending(true);
     try {
-      await getRevenueCycleApi().recordPayment({ invoiceId: currentInvoice.id, amountMinor, method: form.method, paymentDate: new Date(`${form.paymentDate}T12:00:00`).toISOString(), reference: form.reference, receivingAccount: form.receivingAccount, notes: form.notes, idempotencyKey: paymentRequestId });
+      if (live) await recordLivePayment(currentInvoice.id, { amountMinor, method: form.method, paymentDate: form.paymentDate, reference: form.reference, receivingAccount: form.receivingAccount, notes: form.notes }, paymentRequestId);
+      else await getRevenueCycleApi().recordPayment({ invoiceId: currentInvoice.id, amountMinor, method: form.method, paymentDate: new Date(`${form.paymentDate}T12:00:00`).toISOString(), reference: form.reference, receivingAccount: form.receivingAccount, notes: form.notes, idempotencyKey: paymentRequestId });
       setPaymentOpen(false);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Payment could not be recorded.");
+      setError(live ? describeEmrError(cause) : cause instanceof Error ? cause.message : "Payment could not be recorded.");
     } finally {
       setPaymentPending(false);
     }
@@ -82,7 +105,7 @@ export default function BillingInvoiceDetail() {
           <section className="card overflow-hidden p-0">
             <div className="border-b border-mist-100 bg-gradient-to-r from-brand-50 to-white px-6 py-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
-                <div><p className="font-display text-xl font-bold text-mist-900">{facility.name}</p><p className="mt-1 text-sm text-mist-500">{facility.code} · {facility.state}, {facility.country}</p></div>
+                <div><p className="font-display text-xl font-bold text-mist-900">{facilityName}</p><p className="mt-1 text-sm text-mist-500">{facilityLine}</p></div>
                 <div className="text-right"><Badge tone={statusTone(invoice.status.replaceAll("_", " "))}>{invoice.status.replaceAll("_", " ")}</Badge><p className="mt-2 font-mono text-xs text-mist-500">{invoice.number}</p></div>
               </div>
             </div>
@@ -128,7 +151,7 @@ export default function BillingInvoiceDetail() {
             <SummaryLine label="Outstanding" value={minorMoney(invoice.balanceMinor, invoice.currency)} tone={invoice.balanceMinor > 0 ? "action" : "brand"} strong />
             <div className="mt-3 border-t border-mist-100 pt-3"><Badge tone={statusTone(invoice.status.replaceAll("_", " "))}>{invoice.status.replaceAll("_", " ")}</Badge></div>
           </InfoCard>
-          <InfoCard icon={<Stethoscope size={17} />} title="Encounter information"><InfoLine label="Encounter" value={invoice.encounterId} mono /><InfoLine label="Visit" value={account.visitType} /><InfoLine label="Provider" value={encounter?.provider ?? account.attendingProvider ?? "—"} /><InfoLine label="Service date" value={shortDate(encounter?.date ?? invoice.issuedAt)} /><InfoLine label="Billing readiness" value={account.readinessReasons.length ? account.readinessReasons.join(" · ") : "Ready"} /></InfoCard>
+          <InfoCard icon={<Stethoscope size={17} />} title="Encounter information"><InfoLine label="Encounter" value={invoice.encounterId} mono /><InfoLine label="Visit" value={account.visitType} /><InfoLine label="Provider" value={provider} /><InfoLine label="Service date" value={shortDate(serviceDate)} /><InfoLine label="Billing readiness" value={account.readinessReasons.length ? account.readinessReasons.join(" · ") : "Ready"} /></InfoCard>
           <InfoCard icon={<UserRound size={17} />} title="Patient account"><InfoLine label="Account" value={account.number} mono /><InfoLine label="MRN" value={patient?.mrn ?? "—"} mono /><InfoLine label="Payer" value={account.payer} /><InfoLine label="Responsibility" value={account.payer === "Out of Pocket" ? "Patient" : account.payer} /></InfoCard>
           <InfoCard icon={<CalendarClock size={17} />} title="Quick actions"><div className="grid gap-2">{canPay && <Button className="w-full justify-center" onClick={openPayment}><Banknote size={14} /> Record payment</Button>}<Button variant="soft" className="w-full justify-center" onClick={() => window.print()}><Printer size={14} /> Print invoice</Button></div></InfoCard>
         </aside>
@@ -138,7 +161,7 @@ export default function BillingInvoiceDetail() {
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-2 rounded-xl bg-mist-50 p-3 text-sm"><div><p className="text-[10px] font-bold uppercase text-mist-400">Invoice total</p><p className="mt-1 font-semibold">{minorMoney(invoice.totalMinor, invoice.currency)}</p></div><div><p className="text-[10px] font-bold uppercase text-mist-400">Already paid</p><p className="mt-1 font-semibold text-brand-700">{minorMoney(invoice.paidMinor, invoice.currency)}</p></div><div><p className="text-[10px] font-bold uppercase text-mist-400">Outstanding</p><p className="mt-1 font-bold text-action-700">{minorMoney(invoice.balanceMinor, invoice.currency)}</p></div></div>
           <Field label="Amount received"><Input autoFocus type="number" min="0.01" max={(invoice.balanceMinor / 100).toFixed(2)} step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} /></Field>
-          <div className="grid gap-4 sm:grid-cols-2"><Field label="Payment method"><Select value={form.method} onChange={(event) => setForm({ ...form, method: event.target.value as PaymentMethod })} options={paymentMethods.map((method) => ({ value: method, label: paymentMethodLabel[method] }))} /></Field><Field label="Transaction date"><Input type="date" value={form.paymentDate} onChange={(event) => setForm({ ...form, paymentDate: event.target.value })} /></Field></div>
+          <div className="grid gap-4 sm:grid-cols-2"><Field label="Payment method"><Select value={form.method} onChange={(event) => setForm({ ...form, method: event.target.value as PaymentMethod })} options={methods.map((method) => ({ value: method, label: paymentMethodLabel[method] }))} /></Field><Field label="Transaction date"><Input type="date" value={form.paymentDate} onChange={(event) => setForm({ ...form, paymentDate: event.target.value })} /></Field></div>
           <Field label="Reference (optional)"><Input value={form.reference} onChange={(event) => setForm({ ...form, reference: event.target.value })} placeholder="Transfer, POS or insurer reference" /></Field>
           <Field label="Receiving account"><Select value={form.receivingAccount} onChange={(event) => setForm({ ...form, receivingAccount: event.target.value })} options={["Main cash account", "POS clearing account", "Primary bank account", "Mobile money clearing"]} /></Field>
           <Field label="Notes (optional)"><Textarea rows={3} value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Additional payment context" /></Field>

@@ -12,12 +12,18 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string> = {
   // The pharmacy queue is for pharmacy staff (the backend allows reviewers and dispensers).
   "/pharmacy": "prescription.dispense",
   "/inpatient": "admission.read",
+  // The billing desk (cashiers and finance); its invoice pages live under /billing/invoices/:id.
+  "/billing": "billing.read",
 };
 
 export type LiveRouteState = "connected" | "no-permission" | "not-connected";
 
+/** The connected screen a path belongs to: the screen itself or one of its sub-pages (/billing/invoices/…). */
+const connectedScreen = (path: string) => (LIVE_CONNECTED_ROUTES[path] ? path : Object.keys(LIVE_CONNECTED_ROUTES).find((screen) => path.startsWith(`${screen}/`)));
+
 export function liveRouteState(path: string, permissions: readonly string[]): LiveRouteState {
-  const permission = LIVE_CONNECTED_ROUTES[path];
+  const screen = connectedScreen(path);
+  const permission = screen ? LIVE_CONNECTED_ROUTES[screen] : undefined;
   if (!permission) return "not-connected";
   return permissions.includes(permission) ? "connected" : "no-permission";
 }

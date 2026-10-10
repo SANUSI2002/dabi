@@ -9,18 +9,21 @@ import { minorMoney, useRevenueCycle } from "@/billing/useRevenueCycle";
 import { getRevenueCycleApi } from "@/billing/runtime";
 import { stableBillingIdempotencyKey } from "@/billing/idempotency";
 import { dateTime } from "@/lib/format";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { useLiveBilling, useLiveBillingRefresh } from "@/emr-live/billing";
+import { describeEmrError } from "@/emr-live/client";
 
 const filters = ["All", "Open", "Ready to bill", "Uninvoiced", "Unpaid", "Partial", "Paid", "Insurance", "Inpatient"] as const;
 
 export default function Billing() {
   const navigate = useNavigate();
-  const patients = useEmr((state) => state.patients);
+  const demoPatients = useEmr((state) => state.patients);
   const legacyInvoices = useEmr((state) => state.invoices);
-  const accounts = useRevenueCycle((state) => state.accounts);
-  const charges = useRevenueCycle((state) => state.charges);
-  const invoices = useRevenueCycle((state) => state.invoices);
-  const payments = useRevenueCycle((state) => state.payments);
-  const exceptions = useRevenueCycle((state) => state.exceptions);
+  const demoAccounts = useRevenueCycle((state) => state.accounts);
+  const demoCharges = useRevenueCycle((state) => state.charges);
+  const demoInvoices = useRevenueCycle((state) => state.invoices);
+  const demoPayments = useRevenueCycle((state) => state.payments);
+  const demoExceptions = useRevenueCycle((state) => state.exceptions);
   const bootstrapLegacy = useRevenueCycle((state) => state.bootstrapLegacy);
   const [filter, setFilter] = useState<(typeof filters)[number]>("All");
   const [query, setQuery] = useState("");
@@ -28,9 +31,31 @@ export default function Billing() {
   const [issuingAccountId, setIssuingAccountId] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState("");
 
+  // A live hospital bills its own visits (see src/emr-live/billing.ts): one account per visit, with
+  // charges captured from the visit's records, and totals for the whole hospital.
+  const live = useIsLiveEmr();
+  useLiveBillingRefresh(live, query);
+  const liveBilling = useLiveBilling();
+  const liveSource = useMemo(() => ({
+    patients: liveBilling.rows.map((row) => row.patient),
+    accounts: liveBilling.rows.map((row) => row.account),
+    charges: liveBilling.rows.flatMap((row) => row.charges),
+    invoices: liveBilling.rows.flatMap((row) => row.invoices),
+    payments: liveBilling.rows.flatMap((row) => row.payments),
+    exceptions: liveBilling.rows.flatMap((row) => row.exceptions),
+  }), [liveBilling.rows]);
+  const patients = live ? liveSource.patients : demoPatients;
+  const accounts = live ? liveSource.accounts : demoAccounts;
+  const charges = live ? liveSource.charges : demoCharges;
+  const invoices = live ? liveSource.invoices : demoInvoices;
+  const payments = live ? liveSource.payments : demoPayments;
+  const exceptions = live ? liveSource.exceptions : demoExceptions;
+  const [loadingMore, setLoadingMore] = useState(false);
+
   useEffect(() => {
-    bootstrapLegacy(legacyInvoices.map((invoice) => ({ invoice, patient: patients.find((patient) => patient.id === invoice.patientId) })));
-  }, [bootstrapLegacy, legacyInvoices, patients]);
+    if (live) return;
+    bootstrapLegacy(legacyInvoices.map((invoice) => ({ invoice, patient: demoPatients.find((patient) => patient.id === invoice.patientId) })));
+  }, [live, bootstrapLegacy, legacyInvoices, demoPatients]);
 
   const rows = useMemo(() => accounts.map((account) => {
     const patient = patients.find((item) => item.id === account.patientId);
@@ -59,19 +84,21 @@ export default function Billing() {
     return true;
   });
 
-  const collected = payments.filter((payment) => payment.status === "SUCCEEDED").reduce((sum, payment) => sum + payment.amountMinor, 0);
-  const outstanding = rows.reduce((sum, row) => sum + row.balance, 0);
-  const uninvoiced = charges.filter((charge) => charge.status === "BILLABLE").reduce((sum, charge) => sum + charge.netAmountMinor, 0);
+  // Live totals cover the whole hospital, not just the visits loaded on this page.
+  const collected = live && liveBilling.totals ? liveBilling.totals.collectedMinor : payments.filter((payment) => payment.status === "SUCCEEDED").reduce((sum, payment) => sum + payment.amountMinor, 0);
+  const outstanding = live && liveBilling.totals ? liveBilling.totals.outstandingMinor : rows.reduce((sum, row) => sum + row.balance, 0);
+  const uninvoiced = live && liveBilling.totals ? liveBilling.totals.unbilledMinor : charges.filter((charge) => charge.status === "BILLABLE").reduce((sum, charge) => sum + charge.netAmountMinor, 0);
 
   async function issue(accountId: string, chargeIds: string[]) {
     setMutationError("");
     setIssuingAccountId(accountId);
     try {
       const idempotencyKey = await stableBillingIdempotencyKey("invoice", `${accountId}:${[...chargeIds].sort().join(",")}`);
-      const invoice = await getRevenueCycleApi().issueInvoice({ accountId, chargeIds, idempotencyKey });
+      // Live: the server invoices every unbilled charge on the visit (the account is the visit).
+      const invoice = live ? await liveBilling.issueInvoice(accountId, idempotencyKey) : await getRevenueCycleApi().issueInvoice({ accountId, chargeIds, idempotencyKey });
       navigate(`/billing/invoices/${invoice.id}`);
     } catch (cause) {
-      setMutationError(cause instanceof Error ? cause.message : "The invoice could not be generated.");
+      setMutationError(live ? describeEmrError(cause) : cause instanceof Error ? cause.message : "The invoice could not be generated.");
     } finally {
       setIssuingAccountId(null);
     }
@@ -82,6 +109,7 @@ export default function Billing() {
       <PageHeader title="Patient billing" subtitle="Open encounters, captured charges, invoices and collections" />
 
       {mutationError && <div role="alert" className="mb-4 rounded-xl border border-action-200 bg-action-50 px-4 py-3 text-sm font-semibold text-action-700">{mutationError}</div>}
+      {live && liveBilling.error && <div role="alert" className="mb-4 rounded-xl border border-action-200 bg-action-50 px-4 py-3 text-sm font-semibold text-action-700">{liveBilling.error}</div>}
 
       <div className="mb-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
         <StatCard label="Collected" value={minorMoney(collected)} tone="brand" icon={<Receipt size={18} />} />
@@ -107,7 +135,7 @@ export default function Billing() {
       </div>
 
       <Table columns={["", "Patient", "Encounter / account", "Visit", <span key="charges" className="block text-right">Charges</span>, <span key="paid" className="block text-right">Paid</span>, <span key="balance" className="block text-right">Balance</span>, "Status", ""]} caption="Patient billing worklist">
-        {visible.length === 0 && <EmptyRow colSpan={9}>No patient accounts match this view.</EmptyRow>}
+        {visible.length === 0 && <EmptyRow colSpan={9}>{live && !liveBilling.loaded ? "Loading the billing worklist…" : "No patient accounts match this view."}</EmptyRow>}
         {visible.map((row) => {
           const open = expanded === row.account.id;
           const uninvoicedCharges = row.accountCharges.filter((charge) => charge.status === "BILLABLE");
@@ -163,6 +191,14 @@ export default function Billing() {
           );
         })}
       </Table>
+
+      {live && liveBilling.nextCursor && (
+        <div className="mt-3 flex justify-center">
+          <Button variant="ghost" disabled={loadingMore} onClick={async () => { setLoadingMore(true); try { await liveBilling.loadMore(); } catch (cause) { setMutationError(describeEmrError(cause)); } finally { setLoadingMore(false); } }}>
+            {loadingMore ? "Loading…" : "Load older visits"}
+          </Button>
+        </div>
+      )}
 
       {exceptions.some((item) => item.status === "NEEDS_REVIEW") && (
         <div className="mt-5 card border-l-4 border-l-action-500">

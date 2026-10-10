@@ -28,7 +28,7 @@ export type ChargeSourceType =
 export type ChargeStatus = "BILLABLE" | "HELD" | "INVOICED" | "PAID" | "VOIDED" | "REVERSED" | "ENTERED_IN_ERROR";
 export type InvoiceStatus = "DRAFT" | "ISSUED" | "PARTIALLY_PAID" | "PAID" | "OVERDUE" | "CANCELLED" | "VOIDED" | "CREDITED";
 export type PaymentStatus = "SUCCEEDED" | "REVERSED" | "VOIDED" | "REFUNDED";
-export type PaymentMethod = "CASH" | "CARD_POS" | "BANK_TRANSFER" | "MOBILE_MONEY" | "INSURANCE" | "OTHER";
+export type PaymentMethod = "CASH" | "CARD_POS" | "BANK_TRANSFER" | "MOBILE_MONEY" | "INSURANCE" | "CHEQUE" | "OTHER";
 
 /** All values are integer minor units (kobo for NGN). */
 export type Money = { amountMinor: number; currency: CurrencyCode };

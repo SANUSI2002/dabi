@@ -376,5 +376,5 @@ export const minorMoney = (amountMinor: number, currency = "NGN") => new Intl.Nu
 }).format(amountMinor / 100);
 
 export const paymentMethodLabel: Record<PaymentMethod, string> = {
-  CASH: "Cash", CARD_POS: "Card / POS", BANK_TRANSFER: "Bank transfer", MOBILE_MONEY: "Mobile money", INSURANCE: "Insurance", OTHER: "Other",
+  CASH: "Cash", CARD_POS: "Card / POS", BANK_TRANSFER: "Bank transfer", MOBILE_MONEY: "Mobile money", INSURANCE: "Insurance", CHEQUE: "Cheque", OTHER: "Other",
 };
