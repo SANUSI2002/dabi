@@ -17,7 +17,7 @@ import { patientFromApi, type ApiPatient } from "./mappers";
 
 const REFRESH_MS = 30_000;
 
-type ApiCategory = "CONSULTATION" | "LAB" | "MEDICATION" | "BED_DAY" | "PROCEDURE" | "OTHER";
+type ApiCategory = "CONSULTATION" | "LAB" | "MEDICATION" | "BED_DAY" | "PROCEDURE" | "IMAGING" | "OTHER";
 type ApiCharge = {
   id: string; encounterId: string; patientId: string; category: ApiCategory; description: string; quantity: number;
   unitPriceMinor: number; amountMinor: number; taxMinor: number; currency: string; sourceType: string; sourceKey: string | null;
@@ -48,8 +48,8 @@ type ApiInvoiceDetail = ApiInvoice & {
 // ---- mapping to the screens' shapes ----
 
 const CLASS_LABEL: Record<ApiEncounter["class"], string> = { OUTPATIENT: "Outpatient", INPATIENT: "Inpatient", EMERGENCY: "Emergency", TELEHEALTH: "Telehealth" };
-const DEPARTMENT: Record<ApiCategory, string> = { CONSULTATION: "Consultation", LAB: "Laboratory", MEDICATION: "Pharmacy", BED_DAY: "Ward", PROCEDURE: "Procedure", OTHER: "Other" };
-const SOURCE: Record<ApiCategory, ChargeSourceType> = { CONSULTATION: "CONSULTATION", LAB: "LABORATORY", MEDICATION: "PHARMACY", BED_DAY: "WARD", PROCEDURE: "PROCEDURE", OTHER: "OTHER" };
+const DEPARTMENT: Record<ApiCategory, string> = { CONSULTATION: "Consultation", LAB: "Laboratory", MEDICATION: "Pharmacy", BED_DAY: "Ward", PROCEDURE: "Procedure", IMAGING: "Radiology", OTHER: "Other" };
+const SOURCE: Record<ApiCategory, ChargeSourceType> = { CONSULTATION: "CONSULTATION", LAB: "LABORATORY", MEDICATION: "PHARMACY", BED_DAY: "WARD", PROCEDURE: "PROCEDURE", IMAGING: "RADIOLOGY", OTHER: "OTHER" };
 const CHARGE_STATUS: Record<ApiCharge["status"], ChargeStatus> = { UNBILLED: "BILLABLE", INVOICED: "INVOICED", VOIDED: "VOIDED" };
 const INVOICE_STATUS: Record<ApiInvoice["status"], InvoiceStatus> = { ISSUED: "ISSUED", PARTIALLY_PAID: "PARTIALLY_PAID", PAID: "PAID", VOID: "VOIDED" };
 const METHOD_FROM_API: Record<ApiPaymentMethod, PaymentMethod> = { CASH: "CASH", CARD: "CARD_POS", POS: "CARD_POS", BANK_TRANSFER: "BANK_TRANSFER", MOBILE_MONEY: "MOBILE_MONEY", CHEQUE: "CHEQUE" };

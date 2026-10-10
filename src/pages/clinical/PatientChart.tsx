@@ -98,7 +98,7 @@ export default function PatientChart() {
   const allergies = liveRecord ? liveRecord.allergies : clinical.allergiesFor(patient);
   const carePlans = clinical.carePlansFor(patient.id);
   const procedures = proceduresStore.proceduresFor(patient.id);
-  const imagingStudies = radiologyStore.studiesFor(patient.id);
+  const imagingStudies = liveRecord ? liveRecord.imaging : radiologyStore.studiesFor(patient.id);
   const wardRounds = admissions
     .flatMap((admission) => wardRoundStore.roundsFor(admission.id))
     .filter((round) => round.status !== "draft")

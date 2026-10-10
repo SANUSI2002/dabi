@@ -15,11 +15,42 @@ import { useEmr } from "@/store/useEmr";
 import { useIdentity } from "@/store/useIdentity";
 import { IMAGING_MODALITIES, type ImagingStudy } from "@/data/radiology";
 import { dateTime, shortDate } from "@/lib/format";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { describeEmrError } from "@/emr-live/client";
+import { newIdempotencyKey, useLiveRadiology, useLiveRadiologyLoad, type LiveStudy } from "@/emr-live/radiology";
 
 export default function Radiology() {
-  const { studies, requestStudy, scheduleStudy, performStudy, addReport, verifyReport, addAddendum, cancelStudy, priorStudiesFor, setCompareStudy } = useRadiology();
+  const { studies: demoStudies, requestStudy, scheduleStudy, performStudy, addReport, verifyReport, addAddendum, cancelStudy, priorStudiesFor: demoPriorStudiesFor, setCompareStudy } = useRadiology();
   const { patientById } = useEmr();
   const currentUser = useIdentity((state) => state.user.name);
+  // A live hospital's studies come from its EMR (see src/emr-live/radiology.ts).
+  const live = useIsLiveEmr();
+  useLiveRadiologyLoad(live);
+  const liveStudies = useLiveRadiology((state) => state.studies);
+  const liveError = useLiveRadiology((state) => state.error);
+  const liveRadiology = useLiveRadiology.getState;
+  const studies: (ImagingStudy & Partial<LiveStudy>)[] = live ? liveStudies : demoStudies;
+  const patientOf = (study: ImagingStudy & Partial<LiveStudy>) => (live ? study.patient : patientById(study.patientId));
+  const priorStudiesFor = (patientId: string, bodySite: string, excludeId?: string) => (live
+    ? studies.filter((study) => study.patientId === patientId && study.bodySite === bodySite && study.id !== excludeId && (study.status === "Verified" || study.status === "Amended"))
+    : demoPriorStudiesFor(patientId, bodySite, excludeId));
+  const [requestKey, setRequestKey] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState("");
+
+  /** Runs a step (live: on the hospital's record) and shows the hospital's answer if it refuses. */
+  async function run(step: () => unknown, after?: () => void) {
+    setActionError("");
+    setBusy(true);
+    try {
+      await step();
+      after?.();
+    } catch (cause) {
+      setActionError(describeEmrError(cause));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestForm, setRequestForm] = useState({ patientId: "", modality: IMAGING_MODALITIES[0], bodySite: "", laterality: "N/A" as ImagingStudy["laterality"], indication: "", priority: "Routine" as ImagingStudy["priority"], preparation: "", externalStudy: false });
@@ -37,6 +68,7 @@ export default function Radiology() {
   const verified = studies.filter((study) => study.status === "Verified" || study.status === "Amended");
 
   function openDetail(study: ImagingStudy) {
+    setActionError("");
     setScheduleDate(study.scheduledFor?.slice(0, 10) ?? "");
     setSeriesDraft(study.series.length ? study.series.map((series) => ({ description: series.description, bodyPart: series.bodyPart, imageCount: String(series.imageCount ?? "") })) : [{ description: "", bodyPart: study.bodySite, imageCount: "1" }]);
     setReportForm({ findings: study.report?.findings ?? "", impression: study.report?.impression ?? "" });
@@ -48,7 +80,7 @@ export default function Radiology() {
     <Table columns={["Patient", "Accession", "Modality / site", "Priority", "Requested", "Status", ""]} caption={caption}>
       {list.length === 0 && <EmptyRow colSpan={7}>Nothing here.</EmptyRow>}
       {list.map((study, index) => {
-        const patient = patientById(study.patientId);
+        const patient = patientOf(study);
         return (
           <Row key={study.id} index={index} onClick={() => openDetail(study)}>
             <Cell><PatientLink patient={patient} /></Cell>
@@ -71,8 +103,12 @@ export default function Radiology() {
       <PageHeader
         title="Radiology"
         subtitle="Patient → Study → Series → Report — no PACS/DICOM viewer is connected to this build"
-        actions={<Button onClick={() => { setRequestForm({ patientId: "", modality: IMAGING_MODALITIES[0], bodySite: "", laterality: "N/A", indication: "", priority: "Routine", preparation: "", externalStudy: false }); setRequestOpen(true); }}><Plus size={15} /> Request imaging</Button>}
+        actions={<Button onClick={() => { setActionError(""); setRequestKey(newIdempotencyKey()); setRequestForm({ patientId: "", modality: IMAGING_MODALITIES[0], bodySite: "", laterality: "N/A", indication: "", priority: "Routine", preparation: "", externalStudy: false }); setRequestOpen(true); }}><Plus size={15} /> Request imaging</Button>}
       />
+
+      {live && (actionError || liveError) && !detail && !requestOpen && (
+        <p role="alert" className="mb-4 rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError || liveError}</p>
+      )}
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Worklist" value={worklist.length} tone="amber" icon={<Radiation size={18} />} />
@@ -97,7 +133,7 @@ export default function Radiology() {
         title="Request imaging"
         wide
         footer={<><Button variant="ghost" onClick={() => setRequestOpen(false)}>Cancel</Button>
-          <Button disabled={!requestForm.patientId || !requestForm.bodySite.trim() || !requestForm.indication.trim()} onClick={() => { requestStudy(requestForm); setRequestOpen(false); }}>Request</Button></>}
+          <Button disabled={!requestForm.patientId || !requestForm.bodySite.trim() || !requestForm.indication.trim() || busy} onClick={() => void run(() => (live ? liveRadiology().request(requestForm, requestKey) : requestStudy(requestForm)), () => setRequestOpen(false))}>Request</Button></>}
       >
         <div className="space-y-4">
           <Field label="Patient"><PatientPicker value={requestForm.patientId} onChange={(id) => setRequestForm({ ...requestForm, patientId: id })} /></Field>
@@ -110,6 +146,7 @@ export default function Radiology() {
           <Field label="Indication"><Textarea value={requestForm.indication} onChange={(event) => setRequestForm({ ...requestForm, indication: event.target.value })} /></Field>
           <Field label="Preparation (optional)"><Input value={requestForm.preparation} onChange={(event) => setRequestForm({ ...requestForm, preparation: event.target.value })} placeholder="e.g. Full bladder, nil by mouth" /></Field>
           <Checkbox label="Performed at another facility — reference only, no local images" checked={requestForm.externalStudy} onChange={(event) => setRequestForm({ ...requestForm, externalStudy: event.target.checked })} />
+          {actionError && <p role="alert" className="text-sm text-action-700">{actionError}</p>}
         </div>
       </Modal>
 
@@ -117,12 +154,13 @@ export default function Radiology() {
       <Modal
         open={Boolean(detail)}
         onClose={() => setDetailId(null)}
-        title={detail ? `${detail.accessionNumber} — ${patientById(detail.patientId)?.firstName} ${patientById(detail.patientId)?.lastName}` : ""}
+        title={detail ? `${detail.accessionNumber} — ${patientOf(detail)?.firstName} ${patientOf(detail)?.lastName}` : ""}
         wide
         footer={<Button variant="ghost" onClick={() => setDetailId(null)}>Close</Button>}
       >
         {detail && (
           <div className="space-y-5">
+            {actionError && <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError}</p>}
             <div className="flex flex-wrap items-center gap-2">
               <ClinicalStatusBadge kind="imaging" status={detail.status} />
               <Badge tone="mist">{detail.modality}</Badge>
@@ -137,7 +175,7 @@ export default function Radiology() {
               <div className="rounded-xl bg-mist-50 p-4">
                 <p className="mb-2 text-xs font-bold uppercase text-mist-400">Schedule</p>
                 <Field label="Date"><Input type="date" value={scheduleDate} onChange={(event) => setScheduleDate(event.target.value)} /></Field>
-                <Button className="mt-2" disabled={!scheduleDate} onClick={() => scheduleStudy(detail.id, new Date(scheduleDate).toISOString())}>Schedule</Button>
+                <Button className="mt-2" disabled={!scheduleDate || busy} onClick={() => void run(() => (live ? liveRadiology().schedule(detail as LiveStudy, scheduleDate) : scheduleStudy(detail.id, new Date(scheduleDate).toISOString())))}>Schedule</Button>
               </div>
             )}
 
@@ -154,8 +192,11 @@ export default function Radiology() {
                 <div className="mt-2 flex gap-2">
                   <Button variant="ghost" className="px-2.5 py-1 text-xs" onClick={() => setSeriesDraft([...seriesDraft, { description: "", bodyPart: detail.bodySite, imageCount: "1" }])}>Add series</Button>
                   <Button
-                    disabled={!seriesDraft.some((series) => series.description.trim())}
-                    onClick={() => performStudy(detail.id, seriesDraft.filter((series) => series.description.trim()).map((series) => ({ seriesNumber: 0, description: series.description, bodyPart: series.bodyPart, imageCount: Number(series.imageCount) || undefined })).map((series, index) => ({ ...series, seriesNumber: index + 1 })))}
+                    disabled={!seriesDraft.some((series) => series.description.trim()) || busy}
+                    onClick={() => {
+                      const performed = seriesDraft.filter((series) => series.description.trim()).map((series) => ({ seriesNumber: 0, description: series.description, bodyPart: series.bodyPart, imageCount: Number(series.imageCount) || undefined })).map((series, index) => ({ ...series, seriesNumber: index + 1 }));
+                      void run(() => (live ? liveRadiology().perform(detail as LiveStudy, performed) : performStudy(detail.id, performed)));
+                    }}
                   >
                     Mark performed
                   </Button>
@@ -187,7 +228,7 @@ export default function Radiology() {
                 <p className="mb-2 text-xs font-bold uppercase text-mist-400">Report</p>
                 <Field label="Findings"><Textarea value={reportForm.findings} onChange={(event) => setReportForm({ ...reportForm, findings: event.target.value })} className="min-h-[80px]" /></Field>
                 <Field label="Impression"><Textarea value={reportForm.impression} onChange={(event) => setReportForm({ ...reportForm, impression: event.target.value })} /></Field>
-                <Button className="mt-2" disabled={!reportForm.findings.trim() || !reportForm.impression.trim()} onClick={() => addReport(detail.id, reportForm.findings.trim(), reportForm.impression.trim())}>Save report</Button>
+                <Button className="mt-2" disabled={!reportForm.findings.trim() || !reportForm.impression.trim() || busy} onClick={() => void run(() => (live ? liveRadiology().report(detail as LiveStudy, reportForm.findings.trim(), reportForm.impression.trim()) : addReport(detail.id, reportForm.findings.trim(), reportForm.impression.trim())))}>Save report</Button>
               </div>
             )}
 
@@ -196,7 +237,7 @@ export default function Radiology() {
                 <p className="text-sm text-mist-700"><b>Findings:</b> {detail.report.findings}</p>
                 <p className="mt-1 text-sm text-mist-700"><b>Impression:</b> {detail.report.impression}</p>
                 <Provenance className="mt-2" info={{ author: detail.report.author, recordedAt: detail.report.authoredAt, source: "Draft report" }} />
-                <Button className="mt-3" onClick={() => verifyReport(detail.id, currentUser)}>Verify report</Button>
+                <Button className="mt-3" disabled={busy} onClick={() => void run(() => (live ? liveRadiology().verify(detail as LiveStudy) : verifyReport(detail.id, currentUser)))}>Verify report</Button>
               </div>
             )}
 
@@ -214,7 +255,7 @@ export default function Radiology() {
                 )}
                 <div className="mt-2 flex gap-2">
                   <Input className="h-8 text-xs" placeholder="Addendum" value={addendumNote} onChange={(event) => setAddendumNote(event.target.value)} />
-                  <Button variant="ghost" className="px-2.5 py-1 text-xs" disabled={!addendumNote.trim()} onClick={() => { addAddendum(detail.id, addendumNote.trim()); setAddendumNote(""); }}>Add addendum</Button>
+                  <Button variant="ghost" className="px-2.5 py-1 text-xs" disabled={!addendumNote.trim() || busy} onClick={() => void run(() => (live ? liveRadiology().addendum(detail as LiveStudy, addendumNote.trim()) : addAddendum(detail.id, addendumNote.trim())), () => setAddendumNote(""))}>Add addendum</Button>
                 </div>
               </div>
             )}
@@ -227,7 +268,7 @@ export default function Radiology() {
                 <div className="space-y-1">
                   {priorStudies.map((prior) => (
                     <label key={prior.id} className="flex items-center gap-2 text-sm text-mist-600">
-                      <input type="radio" name="compare" checked={detail.compareToStudyId === prior.id} onChange={() => setCompareStudy(detail.id, prior.id)} />
+                      <input type="radio" name="compare" checked={detail.compareToStudyId === prior.id} onChange={() => void run(() => (live ? liveRadiology().compare(detail as LiveStudy, prior.id) : setCompareStudy(detail.id, prior.id)))} />
                       {prior.accessionNumber} — {shortDate(prior.performedAt ?? prior.requestedAt)} — {prior.report?.impression ?? "No report on file"}
                     </label>
                   ))}
@@ -241,7 +282,7 @@ export default function Radiology() {
                 <div className="rounded-xl border border-action-200 bg-action-50/50 p-3">
                   <Field label="Reason for cancelling"><Input value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} /></Field>
                   <div className="mt-2 flex gap-2">
-                    <Button variant="action" disabled={!cancelReason.trim()} onClick={() => { cancelStudy(detail.id, cancelReason.trim()); setCancelReason(null); setDetailId(null); }}>Confirm cancel</Button>
+                    <Button variant="action" disabled={!cancelReason.trim() || busy} onClick={() => void run(() => (live ? liveRadiology().cancel(detail as LiveStudy, cancelReason.trim()) : cancelStudy(detail.id, cancelReason.trim())), () => { setCancelReason(null); setDetailId(null); })}>Confirm cancel</Button>
                     <Button variant="ghost" onClick={() => setCancelReason(null)}>Back</Button>
                   </div>
                 </div>

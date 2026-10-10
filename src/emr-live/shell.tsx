@@ -29,7 +29,7 @@ export function LiveRouteBoundary({ pathname, children }: { pathname: string; ch
   const state = liveRouteState(pathname, permissions);
   if (state === "connected") return <>{children}</>;
 
-  const labels: Record<string, string> = { "/registration": "Registration", "/queue": "Clinical Queue", "/consultation": "Consultation", "/laboratory": "Laboratory", "/pharmacy": "Pharmacy", "/inpatient": "In-patient Care", "/billing": "Billing", "/history": "Medical History", "/workspace": "Workspace", "/appointments": "Appointments" };
+  const labels: Record<string, string> = { "/registration": "Registration", "/queue": "Clinical Queue", "/consultation": "Consultation", "/laboratory": "Laboratory", "/pharmacy": "Pharmacy", "/inpatient": "In-patient Care", "/billing": "Billing", "/history": "Medical History", "/workspace": "Workspace", "/appointments": "Appointments", "/radiology": "Radiology" };
   // Screens with a page of their own (the patient chart opens from a patient, not from here).
   const connected = Object.keys(LIVE_CONNECTED_ROUTES).filter((path) => labels[path] && liveRouteState(path, permissions) === "connected");
   const Icon = state === "no-permission" ? Lock : PlugZap;
