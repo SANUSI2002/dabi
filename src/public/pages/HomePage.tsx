@@ -4,7 +4,7 @@ import { ArrowRight, BadgeCheck, Baby, Building2, CalendarCheck, ChevronDown, Cl
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/cn";
 import { DOCTOR_REGISTER_URL, DOCTOR_SIGN_IN_URL, TELEMEDICINE_SIGN_IN_URL } from "@/public/ecosystemLinks";
-import { Action, ContactLines, Eyebrow, INK, MUTED, Reveal, SectionTitle, TextLink } from "@/public/ui";
+import { Action, ContactEmails, ContactLines, Eyebrow, INK, MUTED, Reveal, SectionTitle, TextLink } from "@/public/ui";
 import heroArt from "@/assets/landing/hero-care-conversation.webp";
 import storyUnwell from "@/assets/landing/story-unwell.webp";
 import storyDoctor from "@/assets/landing/story-doctor.webp";
@@ -264,7 +264,7 @@ function Faq() {
   return <section id="faq" aria-labelledby="faq-heading" className="scroll-mt-20 bg-white px-5 py-16 sm:px-8 lg:px-10 lg:py-24">
     <div className="mx-auto grid max-w-[1200px] gap-10 md:grid-cols-[.8fr_1.2fr] lg:gap-16">
       <div className="md:sticky md:top-28 md:self-start"><Eyebrow>Before you sign up</Eyebrow><h2 id="faq-heading" className="font-display text-[34px] font-bold leading-[1.1] tracking-[-0.04em] sm:text-[42px]">Good questions,<br />straight answers.</h2>
-        <div className="mt-6 max-w-[360px] rounded-2xl bg-[#0b2b20] p-6 text-white"><h3 className="text-lg font-bold">Rather talk to a person?</h3><p className="mb-4 mt-1 text-sm text-white/70">Call or WhatsApp the Sabi team.</p><ContactLines light /></div>
+        <div className="mt-6 max-w-[360px] rounded-2xl bg-[#0b2b20] p-6 text-white"><h3 className="text-lg font-bold">Rather talk to a person?</h3><p className="mb-4 mt-1 text-sm text-white/70">Call, WhatsApp or email the Sabi team.</p><ContactLines light /><ContactEmails light className="mt-5" /></div>
       </div>
       <div className="self-start overflow-hidden rounded-[24px] bg-[#f6f9f5]">
         {faqs.map(({ q, a }, i) => { const expanded = open === i; return <article key={q} className={cn("border-b border-[#e3ebe5] last:border-b-0 transition-colors", expanded && "bg-[#eaf4ed]")}>

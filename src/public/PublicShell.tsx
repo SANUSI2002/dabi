@@ -4,7 +4,7 @@ import { ArrowRight, Menu, ShieldPlus, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/cn";
 import { TELEMEDICINE_SIGN_IN_URL } from "@/public/ecosystemLinks";
-import { ContactLines, FloatingWhatsApp } from "@/public/ui";
+import { ContactEmails, ContactLines, FloatingWhatsApp } from "@/public/ui";
 
 const nav = [
   ["EMR", "/products/emr"],
@@ -95,7 +95,7 @@ export default function PublicShell() {
       <footer className="bg-[#061d15] text-white">
         <div className="mx-auto max-w-[1450px] px-5 py-16 lg:px-8">
           <div className="grid gap-10 border-b border-white/10 pb-12 md:grid-cols-[1.4fr_repeat(4,1fr)]">
-            <div><Brand inverse /><p className="mt-5 max-w-xs text-sm leading-6 text-emerald-50/60">Building connected healthcare infrastructure for organizations, professionals and patients.</p><div className="mt-6"><p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-brand-300">Call or WhatsApp</p><ContactLines light /></div></div>
+            <div><Brand inverse /><p className="mt-5 max-w-xs text-sm leading-6 text-emerald-50/60">Building connected healthcare infrastructure for organizations, professionals and patients.</p><div className="mt-6"><p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-brand-300">Call or WhatsApp</p><ContactLines light /><ContactEmails light className="mt-5" /></div></div>
             <FooterGroup title="Products" links={[["Sabi EMR", "/products/emr"], ["Sabi Health telemedicine", "/products/telemedicine"], ["Sabi AI", "/ai"], ["Pricing", "/pricing"], ["Roadmap", "/roadmap"]]} />
             <FooterGroup title="Solutions" links={[["Hospitals", "/solutions/hospitals"], ["Clinics", "/solutions/clinics"], ["Hospital groups", "/solutions/hospital-groups"], ["Professionals", "/solutions/professionals"]]} />
             <FooterGroup title="Company" links={[["About", "/about"], ["Team", "/about#team"], ["Careers", "/resources#careers"], ["Contact", "/book-demo"]]} />

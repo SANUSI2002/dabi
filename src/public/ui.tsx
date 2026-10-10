@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Phone, X } from "lucide-react";
+import { ArrowRight, Mail, Phone, X } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/cn";
-import { CONTACT_LINES, telUrl, whatsappUrl } from "@/public/contact";
+import { CONTACT_EMAILS, CONTACT_LINES, telUrl, whatsappUrl } from "@/public/contact";
 
 // The public site's shared look: forest ink, sage surfaces and brand green, taken from the
 // portal artwork. Every marketing page builds from these pieces so the pages rhyme.
@@ -69,6 +69,16 @@ export function ContactLines({ light = false }: { light?: boolean }) {
   return <ul className="space-y-2.5">{CONTACT_LINES.map((line) => <li key={line.tel} className="flex flex-wrap items-center gap-x-4 gap-y-1">
     <a href={telUrl(line)} className={cn("inline-flex items-center gap-2 text-sm font-bold", light ? "text-white hover:text-brand-200" : "hover:text-brand-700")}><Phone size={14} aria-hidden />{line.display}</a>
     <a href={whatsappUrl(line)} target="_blank" rel="noopener noreferrer" className={cn("inline-flex items-center gap-1.5 text-xs font-bold", light ? "text-brand-200 hover:text-white" : "text-brand-700 hover:text-brand-900")}><WhatsAppGlyph className="h-3.5 w-3.5" />WhatsApp</a>
+  </li>)}</ul>;
+}
+
+/** Public email links, labelled by purpose and allowed to wrap on small screens. */
+export function ContactEmails({ light = false, className }: { light?: boolean; className?: string }) {
+  return <ul className={cn("space-y-2", className)}>{CONTACT_EMAILS.map(({ label, address }) => <li key={address}>
+    <a href={`mailto:${address}`} className={cn("flex min-h-11 min-w-0 items-center gap-3 rounded-lg py-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400", light ? "text-white hover:text-brand-200" : "text-[#0b2b20] hover:text-brand-700")}>
+      <Mail size={16} className="shrink-0" aria-hidden />
+      <span className="min-w-0"><span className={cn("block text-xs", light ? "text-brand-200" : MUTED)}>{label}</span>{" "}<span className="block text-sm font-semibold [overflow-wrap:anywhere]">{address}</span></span>
+    </a>
   </li>)}</ul>;
 }
 
