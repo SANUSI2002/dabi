@@ -5,7 +5,8 @@ import { useEmr } from "@/store/useEmr";
 import { useClinical, selectAllergiesFor } from "@/store/useClinical";
 import { PATIENT_CATEGORIES } from "@/data/catalog";
 import { ageFromDob, initials, timeAgo } from "@/lib/format";
-import type { Patient } from "@/data/types";
+import type { Admission, Patient, QueueEntry, Station } from "@/data/types";
+import type { AllergyIntolerance, Condition } from "@/data/clinical";
 
 // Persistent patient-context header. Shows identity, the safety-critical alerts
 // (allergies, active problems), where the patient physically is right now, and
@@ -15,19 +16,30 @@ export function PatientBanner({
   patient,
   actions,
   compact = false,
+  live,
 }: {
   patient: Patient;
   actions?: ReactNode;
   compact?: boolean;
+  /** A live hospital's record (src/emr-live/patientRecord.ts); the demo stores hold nothing for it. */
+  live?: {
+    allergies: AllergyIntolerance[];
+    conditions: Condition[];
+    admissions: Admission[];
+    inClinic: { station: Station; status: QueueEntry["status"] } | null;
+    lastUpdated: string;
+  };
 }) {
   const emr = useEmr();
   const allergyRecords = useClinical((state) => state.allergies);
   const conditionRecords = useClinical((state) => state.conditions);
-  const allergies = useMemo(() => selectAllergiesFor(allergyRecords, patient), [allergyRecords, patient]);
-  const conditions = useMemo(
+  const demoAllergies = useMemo(() => selectAllergiesFor(allergyRecords, patient), [allergyRecords, patient]);
+  const demoConditions = useMemo(
     () => conditionRecords.filter((condition) => condition.patientId === patient.id),
     [conditionRecords, patient.id],
   );
+  const allergies = live ? live.allergies : demoAllergies;
+  const conditions = live ? live.conditions : demoConditions;
 
   const activeAllergies = allergies.filter((allergy) => allergy.clinicalStatus === "active");
   const highRiskAllergies = activeAllergies.filter((allergy) => allergy.criticality === "high");
@@ -36,13 +48,13 @@ export function PatientBanner({
   );
   const unreviewedAllergy = activeAllergies.some((allergy) => allergy.verificationStatus === "unconfirmed");
 
-  const admission = emr.admissions.find((entry) => entry.patientId === patient.id && entry.status === "Active");
-  const queued = emr.queue.find(
-    (entry) => entry.patientId === patient.id && (entry.status === "Waiting" || entry.status === "In Progress"),
-  );
+  const admission = (live ? live.admissions : emr.admissions).find((entry) => entry.patientId === patient.id && entry.status === "Active");
+  const queued = live
+    ? live.inClinic ?? undefined
+    : emr.queue.find((entry) => entry.patientId === patient.id && (entry.status === "Waiting" || entry.status === "In Progress"));
   const category = PATIENT_CATEGORIES.find((entry) => entry.code === patient.category);
 
-  const lastUpdated = [
+  const lastUpdated = live ? live.lastUpdated || patient.registeredAt : [
     ...emr.encounters.filter((entry) => entry.patientId === patient.id).map((entry) => entry.date),
     ...emr.labOrders.filter((entry) => entry.patientId === patient.id).map((entry) => entry.orderedAt),
     ...conditions.map((entry) => entry.recordedDate),

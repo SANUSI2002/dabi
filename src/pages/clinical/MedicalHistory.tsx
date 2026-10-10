@@ -12,6 +12,9 @@ import { ClinicalStatusBadge } from "@/components/clinical/ClinicalStatusBadge";
 import { useEmr } from "@/store/useEmr";
 import { useLabConfig } from "@/store/useLabConfig";
 import { dateTime, ageFromDob } from "@/lib/format";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { describeEmrError } from "@/emr-live/client";
+import { useLivePatientRecord, useLivePatientRecordLoad } from "@/emr-live/patientRecord";
 
 function noteStatus(status?: string): "draft" | "saved" | "signed" | "amended" | "cancelled" {
   if (status === "in-progress") return "saved";
@@ -23,13 +26,36 @@ function noteStatus(status?: string): "draft" | "saved" | "signed" | "amended" |
 export default function MedicalHistory() {
   const { patients, encounters, labOrders, patientById, amendEncounter } = useEmr();
   const { configFor } = useLabConfig();
-  const [pid, setPid] = useState<string | null>(patients[0]?.id ?? null);
+  // A live hospital's history comes from its EMR record (see src/emr-live/patientRecord.ts).
+  const live = useIsLiveEmr();
+  const [pid, setPid] = useState<string | null>(live ? null : patients[0]?.id ?? null);
   const [amend, setAmend] = useState<string | null>(null);
   const [amendReason, setAmendReason] = useState("");
+  const [amendError, setAmendError] = useState("");
+  const [amendPending, setAmendPending] = useState(false);
   const [printDoc, setPrintDoc] = useState(false);
-  const p = patientById(pid);
-  const encs = encounters.filter((e) => e.patientId === pid);
-  const labs = labOrders.filter((l) => l.patientId === pid);
+  useLivePatientRecordLoad(live, pid);
+  const liveRecord = useLivePatientRecord((state) => (state.id === pid ? state.record : null));
+  const liveError = useLivePatientRecord((state) => (state.id === pid ? state.error : ""));
+  const amendLive = useLivePatientRecord((state) => state.amendEncounter);
+  const p = live ? liveRecord?.patient : patientById(pid);
+  const encs = liveRecord ? liveRecord.encounters : encounters.filter((e) => e.patientId === pid);
+  const labs = liveRecord ? liveRecord.labs : labOrders.filter((l) => l.patientId === pid);
+
+  async function saveAmendment() {
+    if (!amend) return;
+    if (!live) { amendEncounter(amend, {}, amendReason.trim()); setAmend(null); return; }
+    setAmendError("");
+    setAmendPending(true);
+    try {
+      await amendLive(amend, amendReason.trim());
+      setAmend(null);
+    } catch (cause) {
+      setAmendError(describeEmrError(cause));
+    } finally {
+      setAmendPending(false);
+    }
+  }
   const meds = encs.flatMap((e) => e.prescriptions.map((r) => ({ ...r, date: e.date })));
 
   return (
@@ -59,8 +85,11 @@ export default function MedicalHistory() {
         )}
       </div>
 
+      {live && pid && liveError && (
+        <p role="alert" className="mb-4 rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{liveError}</p>
+      )}
       {!p ? (
-        <div className="card py-16 text-center text-mist-400">Select a patient to view their history.</div>
+        <div className="card py-16 text-center text-mist-400">{live && pid && !liveError ? "Loading the patient’s history…" : "Select a patient to view their history."}</div>
       ) : (
         <Tabs tabs={[`Consultation (${encs.length})`, `Medication (${meds.length})`, `Lab (${labs.length})`, "Vitals"]}>
           {(t) =>
@@ -75,7 +104,7 @@ export default function MedicalHistory() {
                         <span className="text-xs text-mist-400">· {e.provider}</span>
                         <ClinicalStatusBadge kind="note" status={noteStatus(e.status)} />
                       </div>
-                      <button onClick={() => { setAmend(e.id); setAmendReason(""); }} className="text-xs font-semibold text-action-600 hover:underline">
+                      <button onClick={() => { setAmend(e.id); setAmendReason(""); setAmendError(""); }} className="text-xs font-semibold text-action-600 hover:underline">
                         Amend
                       </button>
                     </div>
@@ -118,6 +147,11 @@ export default function MedicalHistory() {
                 ))}
                 {labs.length === 0 && <div className="py-12 text-center text-mist-400">No lab records.</div>}
               </div>
+            ) : live ? (
+              <div className="card py-12 text-center text-mist-400">
+                {liveRecord?.vitals.length ? `${liveRecord.vitals.length} set${liveRecord.vitals.length === 1 ? "" : "s"} of vital signs recorded. ` : "No vital signs recorded yet. "}
+                <Link to={`/patients/${p.id}`} className="font-semibold text-brand-600 hover:underline">See them with trends on the full chart →</Link>
+              </div>
             ) : (
               <div className="card py-12 text-center text-mist-400">
                 Vitals are not recorded as structured data in this build — no BP, temperature, pulse, or weight readings are captured against an encounter.
@@ -136,10 +170,10 @@ export default function MedicalHistory() {
             <Button variant="ghost" onClick={() => setAmend(null)}>Cancel</Button>
             <Button
               variant="action"
-              disabled={!amendReason.trim()}
-              onClick={() => { if (amend) amendEncounter(amend, {}, amendReason.trim()); setAmend(null); }}
+              disabled={!amendReason.trim() || amendPending}
+              onClick={() => void saveAmendment()}
             >
-              Save Amendment
+              {amendPending ? "Saving…" : "Save Amendment"}
             </Button>
           </>
         }
@@ -149,6 +183,7 @@ export default function MedicalHistory() {
             <Textarea value={amendReason} onChange={(event) => setAmendReason(event.target.value)} placeholder="Why is this encounter being amended?" />
           </Field>
           <p className="text-xs text-mist-400">Amendments are recorded in the audit log and never overwrite the original note.</p>
+          {amendError && <p role="alert" className="text-sm text-action-700">{amendError}</p>}
         </div>
       </Modal>
 

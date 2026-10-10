@@ -30,6 +30,10 @@ import {
   CONDITION_CLINICAL_STATUS, CONDITION_VERIFICATION_STATUS,
 } from "@/data/clinical";
 import { shortDate, dateTime, naira } from "@/lib/format";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { describeEmrError } from "@/emr-live/client";
+import { useLiveQueue } from "@/emr-live/queue";
+import { useLivePatientRecord, useLivePatientRecordLoad, type LiveCondition, type NewAllergy, type NewProblem } from "@/emr-live/patientRecord";
 
 const VITAL_LABELS: Record<VitalKey, string> = {
   bp: "Systolic BP", temp: "Temperature", pulse: "Pulse", resp: "Respiration",
@@ -48,39 +52,50 @@ export default function PatientChart() {
   const proceduresStore = useProcedures();
   const radiologyStore = useRadiology();
   const wardRoundStore = useWardRound();
-  const patient = emr.patientById(id);
+  // A live hospital's chart comes from its EMR record (see src/emr-live/patientRecord.ts).
+  const live = useIsLiveEmr();
+  useLivePatientRecordLoad(live, id);
+  const liveRecord = useLivePatientRecord((state) => (state.id === id ? state.record : null));
+  const liveError = useLivePatientRecord((state) => (state.id === id ? state.error : ""));
+  const liveActions = useLivePatientRecord();
+  const patient = live ? liveRecord?.patient : emr.patientById(id);
   const [doc, setDoc] = useState<"emr" | "card" | "summary" | null>(null);
   const [problemOpen, setProblemOpen] = useState(false);
   const [allergyOpen, setAllergyOpen] = useState(false);
   const [wardRoundDoctorFilter, setWardRoundDoctorFilter] = useState("All");
+  const [actionError, setActionError] = useState("");
 
+  if (live && !liveRecord && !liveError) {
+    return <div className="card py-16 text-center text-sm text-mist-500">Loading the patient record…</div>;
+  }
   if (!patient) {
     return (
       <div className="mx-auto max-w-lg pt-10">
         <EmptyState
           variant="error"
           title="Patient not found"
-          hint="This file number does not match a patient in the registry."
+          hint={live && liveError ? liveError : "This file number does not match a patient in the registry."}
           action={<Link to="/registration" className="btn-primary">Back to patient registry</Link>}
         />
       </div>
     );
   }
 
-  const encounters = emr.encounters.filter((entry) => entry.patientId === patient.id);
-  const labs = emr.labOrders.filter((entry) => entry.patientId === patient.id);
+  // Screens not yet connected live (appointments, procedures, imaging, care plans…) have no records for a live patient.
+  const encounters = liveRecord ? liveRecord.encounters : emr.encounters.filter((entry) => entry.patientId === patient.id);
+  const labs = liveRecord ? liveRecord.labs : emr.labOrders.filter((entry) => entry.patientId === patient.id);
   const meds = encounters
     .flatMap((encounter) => encounter.prescriptions.map((prescription) => ({ ...prescription, date: encounter.date, encounterId: encounter.id })))
     .sort((left, right) => +new Date(right.date) - +new Date(left.date));
-  const invoices = emr.invoices.filter((entry) => entry.patientId === patient.id);
+  const invoices = liveRecord ? liveRecord.invoices : emr.invoices.filter((entry) => entry.patientId === patient.id);
   const appointments = emr.appointments.filter((entry) => entry.patientId === patient.id);
-  const admissions = emr.admissions.filter((entry) => entry.patientId === patient.id);
+  const admissions = liveRecord ? liveRecord.admissions : emr.admissions.filter((entry) => entry.patientId === patient.id);
   const transfers = emr.transfers.filter((entry) => entry.patientId === patient.id);
   const referrals = emr.referrals.filter((entry) => entry.patientId === patient.id);
   const immunizations = emr.immunizations.filter((entry) => entry.patientId === patient.id);
-  const vitals = [...(emr.vitals[patient.id] ?? [])].sort((left, right) => +new Date(left.takenAt) - +new Date(right.takenAt));
-  const conditions = clinical.conditionsFor(patient.id);
-  const allergies = clinical.allergiesFor(patient);
+  const vitals = [...(liveRecord ? liveRecord.vitals : emr.vitals[patient.id] ?? [])].sort((left, right) => +new Date(left.takenAt) - +new Date(right.takenAt));
+  const conditions = liveRecord ? liveRecord.conditions : clinical.conditionsFor(patient.id);
+  const allergies = liveRecord ? liveRecord.allergies : clinical.allergiesFor(patient);
   const carePlans = clinical.carePlansFor(patient.id);
   const procedures = proceduresStore.proceduresFor(patient.id);
   const imagingStudies = radiologyStore.studiesFor(patient.id);
@@ -93,9 +108,30 @@ export default function PatientChart() {
 
   const activeProblems = conditions.filter((condition) => condition.clinicalStatus === "active" || condition.clinicalStatus === "recurrence" || condition.clinicalStatus === "relapse");
   const pastProblems = conditions.filter((condition) => !activeProblems.includes(condition));
-  const balance = invoices
-    .filter((invoice) => invoice.status === "Unpaid")
-    .reduce((total, invoice) => total + invoice.lines.reduce((sum, line) => sum + line.qty * line.unitPrice, 0), 0);
+  const balance = liveRecord
+    ? liveRecord.outstanding
+    : invoices
+      .filter((invoice) => invoice.status === "Unpaid")
+      .reduce((total, invoice) => total + invoice.lines.reduce((sum, line) => sum + line.qty * line.unitPrice, 0), 0);
+
+  // A live role without billing access is not shown invoices — say so rather than "nothing owed".
+  const billingHidden = liveRecord ? !liveRecord.sections.invoices : false;
+
+  /** Runs a live change and shows what went wrong, if anything. */
+  async function liveChange(change: () => Promise<void>) {
+    setActionError("");
+    try { await change(); } catch (cause) { setActionError(describeEmrError(cause)); }
+  }
+  const onProblemStatus = (conditionId: string, status: never) => {
+    if (!liveRecord) return clinical.setConditionClinicalStatus(conditionId, status);
+    const condition = liveRecord.conditions.find((entry) => entry.id === conditionId) as LiveCondition;
+    void liveChange(() => liveActions.changeProblem(condition, { clinicalStatus: status }));
+  };
+  const onProblemVerify = (conditionId: string, status: never) => {
+    if (!liveRecord) return clinical.setConditionVerification(conditionId, status);
+    const condition = liveRecord.conditions.find((entry) => entry.id === conditionId) as LiveCondition;
+    void liveChange(() => liveActions.changeProblem(condition, { verificationStatus: status }));
+  };
 
   const timeline: TimelineItem[] = [
     ...encounters.map((encounter) => ({ id: `enc-${encounter.id}`, timestamp: encounter.date, category: "Encounters", title: `${encounter.complaint}`, detail: `${encounter.station} · ${encounter.provider}`, author: encounter.provider })),
@@ -139,13 +175,21 @@ export default function PatientChart() {
 
       <PatientBanner
         patient={patient}
+        live={liveRecord ?? undefined}
         actions={
           <>
-            <Button variant="soft" onClick={() => { emr.addToQueue(patient.id, "Vital", "Normal"); nav("/queue"); }}>
+            <Button
+              variant="soft"
+              onClick={() => {
+                if (!live) { emr.addToQueue(patient.id, "Vital", "Normal"); nav("/queue"); return; }
+                void liveChange(async () => { await useLiveQueue.getState().checkIn(patient.id, "Vital", "Normal"); nav("/queue"); });
+              }}
+            >
               <ListPlus size={14} /> Add to queue
             </Button>
             <Button variant="ghost" onClick={() => nav("/appointments")}><CalendarPlus size={14} /> Appointment</Button>
-            <Button variant="ghost" onClick={() => { emr.createInvoice(patient.id, [serviceLine("CONS")]); nav("/billing"); }}>
+            {/* Live: the billing desk raises invoices from the visit's captured charges. */}
+            <Button variant="ghost" onClick={() => { if (!live) emr.createInvoice(patient.id, [serviceLine("CONS")]); nav("/billing"); }}>
               <Receipt size={14} /> Invoice
             </Button>
             <Button variant="ghost" onClick={() => setDoc("summary")}><FileText size={14} /> Patient summary</Button>
@@ -154,11 +198,15 @@ export default function PatientChart() {
         }
       />
 
+      {(actionError || (live && liveError)) && (
+        <p role="alert" className="mb-4 rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError || liveError}</p>
+      )}
+
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Active problems" value={activeProblems.length} tone={activeProblems.length ? "amber" : "mist"} icon={<ClipboardList size={18} />} />
         <StatCard label="Encounters" value={encounters.length} tone="mist" delay={0.05} />
         <StatCard label="Results" value={labs.length} tone="mist" delay={0.1} />
-        <StatCard label="Outstanding" value={naira(balance)} tone={balance > 0 ? "action" : "mist"} delay={0.15} />
+        <StatCard label="Outstanding" value={billingHidden ? "—" : naira(balance)} tone={balance > 0 ? "action" : "mist"} delay={0.15} />
       </div>
 
       <Tabs tabs={tabs} label="Patient chart sections">
@@ -232,9 +280,9 @@ export default function PatientChart() {
                 <div className="flex justify-end">
                   <Button variant="soft" onClick={() => setProblemOpen(true)}><Plus size={14} /> Add problem</Button>
                 </div>
-                <ProblemList title="Active" list={activeProblems} onStatus={clinical.setConditionClinicalStatus} onVerify={clinical.setConditionVerification} emptyText="No active problems have been recorded." />
+                <ProblemList title="Active" list={activeProblems} onStatus={onProblemStatus} onVerify={onProblemVerify} emptyText="No active problems have been recorded." />
                 {pastProblems.length > 0 && (
-                  <ProblemList title="Resolved / historical" list={pastProblems} onStatus={clinical.setConditionClinicalStatus} onVerify={clinical.setConditionVerification} emptyText="" muted />
+                  <ProblemList title="Resolved / historical" list={pastProblems} onStatus={onProblemStatus} onVerify={onProblemVerify} emptyText="" muted />
                 )}
               </div>
             );
@@ -263,7 +311,7 @@ export default function PatientChart() {
                             </div>
                           </div>
                           {!allergy.id.startsWith("alg-legacy") && allergy.verificationStatus !== "confirmed" && (
-                            <Button variant="ghost" className="px-2.5 py-1 text-xs" onClick={() => clinical.setAllergyVerification(allergy.id, "confirmed")}>
+                            <Button variant="ghost" className="px-2.5 py-1 text-xs" onClick={() => (live ? void liveChange(() => liveActions.confirmAllergy(allergy.id)) : clinical.setAllergyVerification(allergy.id, "confirmed"))}>
                               Mark confirmed
                             </Button>
                           )}
@@ -578,7 +626,7 @@ export default function PatientChart() {
           if (tab.startsWith("Billing")) {
             return (
               <Table columns={["Invoice", "Date", "Items", "Amount", "Status"]} caption="Billing history">
-                {invoices.length === 0 && <EmptyRow colSpan={5}>No invoices have been raised.</EmptyRow>}
+                {invoices.length === 0 && <EmptyRow colSpan={5}>{billingHidden ? "Billing history is not part of your role." : "No invoices have been raised."}</EmptyRow>}
                 {invoices.map((invoice, index) => (
                   <Row key={invoice.id} index={index}>
                     <Cell className="font-mono text-xs">{invoice.number}</Cell>
@@ -638,8 +686,8 @@ export default function PatientChart() {
         }}
       </Tabs>
 
-      <AddProblemModal open={problemOpen} onClose={() => setProblemOpen(false)} patientId={patient.id} />
-      <AddAllergyModal open={allergyOpen} onClose={() => setAllergyOpen(false)} patientId={patient.id} />
+      <AddProblemModal open={problemOpen} onClose={() => setProblemOpen(false)} patientId={patient.id} liveSave={live ? liveActions.addProblem : undefined} />
+      <AddAllergyModal open={allergyOpen} onClose={() => setAllergyOpen(false)} patientId={patient.id} liveSave={live ? liveActions.recordAllergy : undefined} />
 
       {doc === "emr" && <ConsolidatedEmrDoc patient={patient} encounters={encounters} labs={labs} open onClose={() => setDoc(null)} />}
       {doc === "card" && <PatientCardDoc patient={patient} open onClose={() => setDoc(null)} />}
@@ -766,13 +814,17 @@ function MedGroup({
   );
 }
 
-function AddProblemModal({ open, onClose, patientId }: { open: boolean; onClose: () => void; patientId: string }) {
+function AddProblemModal({
+  open, onClose, patientId, liveSave,
+}: { open: boolean; onClose: () => void; patientId: string; liveSave?: (problem: NewProblem) => Promise<void> }) {
   const addCondition = useClinical((state) => state.addCondition);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<{ code: string; name: string } | null>(null);
   const [verification, setVerification] = useState("provisional");
   const [onset, setOnset] = useState("");
   const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   const matches = useMemo(
     () => (query ? DIAGNOSES.filter((entry) => `${entry.code} ${entry.name}`.toLowerCase().includes(query.toLowerCase())).slice(0, 8) : []),
@@ -780,7 +832,7 @@ function AddProblemModal({ open, onClose, patientId }: { open: boolean; onClose:
   );
 
   function reset() {
-    setQuery(""); setSelected(null); setVerification("provisional"); setOnset(""); setNote("");
+    setQuery(""); setSelected(null); setVerification("provisional"); setOnset(""); setNote(""); setSaveError("");
   }
 
   return (
@@ -792,9 +844,17 @@ function AddProblemModal({ open, onClose, patientId }: { open: boolean; onClose:
         <>
           <Button variant="ghost" onClick={() => { reset(); onClose(); }}>Cancel</Button>
           <Button
-            disabled={!selected}
+            disabled={!selected || saving}
             onClick={() => {
               if (!selected) return;
+              if (liveSave) {
+                setSaving(true); setSaveError("");
+                liveSave({ code: selected.code, description: selected.name, verificationStatus: verification as never, onsetDate: onset || undefined, note: note.trim() || undefined })
+                  .then(() => { reset(); onClose(); })
+                  .catch((cause) => setSaveError(describeEmrError(cause)))
+                  .finally(() => setSaving(false));
+                return;
+              }
               addCondition({
                 patientId,
                 code: icd11Concept(selected.code, selected.name),
@@ -842,13 +902,18 @@ function AddProblemModal({ open, onClose, patientId }: { open: boolean; onClose:
         <Field label="Clinical note (optional)">
           <Textarea value={note} onChange={(event) => setNote(event.target.value)} />
         </Field>
+        {saveError && <p role="alert" className="text-sm text-action-700">{saveError}</p>}
       </div>
     </Modal>
   );
 }
 
-function AddAllergyModal({ open, onClose, patientId }: { open: boolean; onClose: () => void; patientId: string }) {
+function AddAllergyModal({
+  open, onClose, patientId, liveSave,
+}: { open: boolean; onClose: () => void; patientId: string; liveSave?: (allergy: NewAllergy) => Promise<void> }) {
   const addAllergy = useClinical((state) => state.addAllergy);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [substance, setSubstance] = useState("");
   const [category, setCategory] = useState<string>("medication");
   const [criticality, setCriticality] = useState<string>("high");
@@ -858,7 +923,7 @@ function AddAllergyModal({ open, onClose, patientId }: { open: boolean; onClose:
 
   function reset() {
     setSubstance(""); setCategory("medication"); setCriticality("high"); setSeverity("moderate");
-    setManifestations([]); setDescription("");
+    setManifestations([]); setDescription(""); setSaveError("");
   }
 
   return (
@@ -871,8 +936,16 @@ function AddAllergyModal({ open, onClose, patientId }: { open: boolean; onClose:
         <>
           <Button variant="ghost" onClick={() => { reset(); onClose(); }}>Cancel</Button>
           <Button
-            disabled={!substance.trim()}
+            disabled={!substance.trim() || saving}
             onClick={() => {
+              if (liveSave) {
+                setSaving(true); setSaveError("");
+                liveSave({ substance: substance.trim(), category, criticality, severity, manifestations, description: description.trim() || undefined, source: "Recorded at consultation" })
+                  .then(() => { reset(); onClose(); })
+                  .catch((cause) => setSaveError(describeEmrError(cause)))
+                  .finally(() => setSaving(false));
+                return;
+              }
               const known = ALLERGEN_SNOMED[substance.trim()];
               addAllergy({
                 patientId,
@@ -926,6 +999,7 @@ function AddAllergyModal({ open, onClose, patientId }: { open: boolean; onClose:
         <Field label="Description (optional)">
           <Textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Circumstances, timing, treatment given…" />
         </Field>
+        {saveError && <p role="alert" className="text-sm text-action-700">{saveError}</p>}
       </div>
     </Modal>
   );

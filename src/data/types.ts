@@ -539,7 +539,8 @@ export type Invoice = {
   lines: InvoiceLine[];
   exempt: boolean;
   createdAt: string;
-  status: "Unpaid" | "Paid" | "Waived";
+  /** "Partially Paid" and "Void" come from a live hospital's invoices (see src/emr-live/patientRecord.ts). */
+  status: "Unpaid" | "Paid" | "Waived" | "Partially Paid" | "Void";
   paidAt?: string;
   method?: "Cash" | "POS" | "Transfer" | "NHIS" | "Waiver";
 };
