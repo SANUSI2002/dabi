@@ -38,6 +38,21 @@ async function requestApi<T>(path: string, options: RequestInit = {}): Promise<T
 
 export const liveApiRequest = requestApi;
 
+/** Authenticated CSV download; access credentials stay in memory, never in a URL. */
+export async function liveApiCsvRequest(path: string): Promise<string> {
+  if (!apiBaseUrl) throw new Error('Sabi API is not configured.');
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(30000),
+    headers: { Accept: 'text/csv', 'X-Sabi-Client': 'browser', ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.message || 'Export failed. Please sign in again or retry.');
+  }
+  if (!response.headers.get('Content-Type')?.startsWith('text/csv')) throw new Error('The service did not return a valid CSV export.');
+  return response.text();
+}
+
 const request = <T,>(path: string, options: RequestInit = {}) => requestApi<T>(`/api/v1/auth${path}`, options);
 
 export const liveRequestPasswordReset = (email: string) => request<{ status: string }>('/password-reset/request', { method: 'POST', body: JSON.stringify({ email: email.trim() }) });

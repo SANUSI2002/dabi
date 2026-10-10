@@ -10,6 +10,8 @@ import {
   LogOut,
   ShieldCheck,
   Users,
+  BarChart3,
+  Boxes,
 } from "lucide-react";
 import {
   restoreLiveIdentity,
@@ -29,6 +31,7 @@ import { Panel, PanelHeader, StatusPill } from "@/command-center/components/ui";
 import InvitationManager from "@/identity/components/InvitationManager";
 import InventoryControls from "./InventoryControls";
 import LicenceRenewalForm from "./LicenceRenewalForm";
+import { PharmacyStockOperations, PharmacyReports } from './PharmacyOperations';
 const input =
   "mt-1 min-h-11 w-full rounded-xl border border-[#cfe0d8] bg-white px-3 py-2 text-base text-[#17342a] focus:outline-none focus:ring-2 focus:ring-[#0b8a63]";
 const button =
@@ -52,6 +55,8 @@ const sections = [
   ["overview", "Overview", ShieldCheck],
   ["branches", "Branches", Building2],
   ["catalogue", "Catalogue & inventory", Package],
+  ["stock", "Stock operations", Boxes],
+  ["reports", "Reports & reminders", BarChart3],
   ["prescriptions", "Prescriptions", FileText],
   ["orders", "Orders", ShoppingBag],
   ["team", "Team", Users],
@@ -338,6 +343,10 @@ export default function LivePharmacyPortal() {
             <p role="status">Loading your pharmacy…</p>
           ) : !pharmacy ? (
             <p>Your pharmacy workspace could not be loaded.</p>
+          ) : section === "stock" ? (
+            <PharmacyStockOperations branches={pharmacy.branches}/>
+          ) : section === "reports" ? (
+            <PharmacyReports branches={pharmacy.branches}/>
           ) : section === "overview" ? (
             <div className="space-y-5">
               <section className="rounded-3xl bg-[#0d2c22] p-6 text-white sm:p-8">

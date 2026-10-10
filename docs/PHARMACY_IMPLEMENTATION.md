@@ -26,7 +26,18 @@ These are the owner's requested defaults. Authorized Command Center administrato
 8. Approval checks verified active owner, submission, current superintendent and premises licences, latest clean and authenticated evidence, an enabled tier and branch cap. Own-pharmacy approval is denied. Rejection/suspension has a recorded reason.
 9. Licence/premises renewals preserve audit history, pause selling, invalidate old evidence decisions and require replacement documents and reapproval. Existing financial orders are not rewritten.
 
-Pharmacy submission/decision email notices and automated licence-expiry reminders remain follow-up work; do not promise these emails from this release. Registration verification email is implemented.
+Approval, rejection and suspension decisions now enqueue owner email notices in the same database transaction as the decision. The background worker delivers through the existing server-side Resend configuration. Messages use the current Sabi ID; no passwords, private document links or internal review notes are emailed. Registration verification email remains implemented. Submission confirmation is on-screen; a separate submission email is not yet implemented.
+
+### Licence reminders and advanced operations
+
+- Superintendent and verified-premises licence reminders are queued within 30, 14, 7 and 1 days before expiry, plus one expired notice, for verified pharmacies with active, email-verified owners. Each licence/expiry/window is deduplicated; missed earlier windows are not backfilled. Renewals and superseded decisions cancel stale queued notices.
+- Durable email jobs survive API restarts. Delivery uses compare-and-set leases, a stable provider idempotency key, bounded backoff, six attempts and a 23-hour retry window. `SENT` means provider acceptance, not confirmed inbox delivery; failure never reverses a committed approval. Existing approvals are not retrospectively emailed.
+- **Stock operations** filters by branch, product/batch, low/out-of-stock, inactive and expired/expiring batches. It separates available units, active reservation holds and outstanding order allocations; expiry ordering makes earlier batches visible but is not automatic FEFO allocation.
+- Owners set per-batch reorder thresholds/targets with a reason and expected version. Available-unit replenishment suggestions do not create purchase orders. Audited manual receipts/corrections use expected balances and idempotent retries; their history is not a complete reservation/sale movement ledger.
+- **Reports & reminders** shows paid fulfilments, daily sales, immutable commission snapshots, delivery fees, pending refund-review amounts and email delivery status. Sales use the first server-confirmed successful payment date, in Africa/Lagos, and exclude unpaid orders. Legacy unknown commissions are excluded from product-net totals. Net is before refunds, not profit, cash balance or payout.
+- Date windows are limited to 366 days. A branch filter selects whole fulfilments containing that branch's stock; mixed-branch prescription fulfilments are not prorated. Stock totals match the selected filters and retail value uses selling prices, not cost valuation.
+- Owner-authenticated stock/sales CSV exports are tenant-scoped, audited, non-cacheable, formula-escaped and limited to 5,000 rows (larger requests fail explicitly). They contain no patient contact/clinical records. Report/history pages contain 50 rows with next-page controls. Store downloaded business files securely.
+- Stock and reports screens retain Sabi's visual language with responsive filters/cards, labelled controls, 44px touch targets and explicit loading/error/retry states.
 
 ### Catalogue and inventory
 
@@ -69,19 +80,20 @@ User lifecycle actions support suspend, disable, ban and eligible restore. These
 | `/api/v1/platform/users` | MFA-protected account directory and lifecycle decisions |
 | Existing prescription/reservation/order/payment/fulfilment APIs | Patient quotations, stock holds, payment state and verified pharmacist fulfilment transitions |
 
-The frontend and backend remain in their existing separate repositories. The additive migration is `20261010120000_pharmacy_marketplace`; it seeds tier policies only, never fabricated pharmacies/products or automatic approvals. API-configured deployments use live identity; the existing local-storage demo remains isolated and unchanged.
+The frontend and backend remain in their existing separate repositories. The additive migrations are `20261010120000_pharmacy_marketplace` and `20261010180000_pharmacy_operations`; they seed tier policies only, never fabricated pharmacies/products or automatic approvals. API-configured deployments use live identity; the existing local-storage demo remains isolated and unchanged. These new operations screens require an API-connected owner workspace, not the demo on port 5186.
 
 ## Verification and acceptance evidence
 
 Automated tests use fake people, synthetic files and embedded PostgreSQL, never the live database or real payments.
 
-- Backend unit/regression suite: 834 tests passed.
-- Frontend regression suite: 434 tests passed, including the five live marketplace cases.
-- Embedded PostgreSQL full suite: 230 tests passed before the final end-to-end/staff test additions; focused pharmacy suite subsequently passed all 19 tests.
+- Backend unit/regression suite: 845 tests passed.
+- Frontend regression suite: 443 tests passed, including seven new stock/reporting interface cases.
+- Embedded PostgreSQL full suite: 237 tests passed. The six operations cases were re-run after the final first-success-payment/Lagos midnight fixes.
 - Eleven scanner/policy cases cover clean promotion, infected/rejected blocking, hash verification, stale scan leases, provider backoff, image sanitization and invalid image rejection.
 - Pharmacy, Command Center and telemedicine production builds succeeded.
 - Database cases include exact tier seeding, branch caps, foreign-tenant denial, approval gates, user-directory privacy, self/last-admin protection, session revocation, optimistic updates, required images/POM exclusion, out-of-stock races, client-price tampering, idempotent stock changes, expiry/radius enforcement and mandatory re-review after renewal.
 - The end-to-end synthetic prescription case covers pharmacist invitation/acceptance, quote, patient reservation, priced order/commission, unpaid denial, owner denial, expired-stock denial, dispensing approval, preparation and readiness. Paid state is synthetic; no payment provider was called.
+- New operations coverage verifies tenant/report/export isolation, reorder CAS and validation, transactional email rollback, reminder deduplication, stale recipient/renewal cancellation, provider retry/idempotency/lease checks, Lagos midnight and duplicate successful-payment records, CSV formula escaping, UI loading/error recovery and stable stock-adjustment retry keys. No real emails were sent by automated tests.
 
 ## Remaining release work and operational risks
 
@@ -91,7 +103,7 @@ Do not equate this implementation with complete commercial/regulatory certificat
 2. Reconcile abandoned **converted** unpaid orders against Paystack, with late-success handling before releasing stock. Existing active reservation expiry and payment failure webhook release do not cover every abandoned converted-order scenario. Do not implement blind expiry that could sell stock already paid for.
 3. Clarification-request resolution and full courier pickup/delivery proof workflows, customer dispute/return controls and corresponding portal actions.
 4. Multi-lot FEFO allocation, recall tracking, cold-chain handling and controlled-medicine policies. Separate batch inventory/expiry checks are not a complete dispensary stock-management certification.
-5. Approval/rejection/submission email outbox, pharmacy team roster/revocation UX, expiry reminders, opening-hour settings and deeper operational reporting.
+5. Submission email, pharmacy team roster/revocation UX, opening-hour settings, stock-expiry email alerts, purchase orders, supplier/cost valuation and deeper operational reporting. Licence expiry emails and paid-sales/stock reporting are implemented above.
 6. Global catalogue search/geographic indexing and pagination beyond current page filtering; high-volume clinical queue pagination, images served through dedicated scalable media infrastructure and load testing.
 7. Backed-up database, verified restore drill, monitoring/alerts, data retention/deletion schedule, audited document retention, provider contracts and third-party data-processing assessment. The existing hosted database is still the owner's previously approved disposable test release.
 8. Resolve remaining dependency audit findings (not by blindly downgrading Prisma), and run hosted end-to-end onboarding/preview and payment-provider sandbox acceptance with authorized accounts.
