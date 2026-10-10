@@ -31,6 +31,9 @@ const RegistrationStartPage = lazy(() => import("@/registration/pages/Organizati
 const OrganizationRegistrationPage = lazy(() => import("@/registration/pages/OrganizationRegistration").then((m) => ({ default: m.OrganizationRegistrationPage })));
 const ApplicationStatusPage = lazy(() => import("@/registration/pages/OrganizationRegistration").then((m) => ({ default: m.ApplicationStatusPage })));
 const PharmacyPortal = lazy(() => import("@/pharmacy/PharmacyPortal"));
+const LivePharmacyPortal = lazy(() => import("@/pharmacy/LivePharmacyEntry"));
+const PharmacyRegistrationPage = lazy(() => import("@/pharmacy/PharmacyRegistrationPage"));
+const PharmacyVerifyEmailPage = lazy(() => import("@/pharmacy/PharmacyRegistrationPage").then(m=>({default:m.PharmacyVerifyEmailPage})));
 const PharmacyLoginPage = lazy(() => import("@/pharmacy/PharmacyLoginPage"));
 
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
@@ -233,6 +236,7 @@ function CommandCenterGate() {
 
 function PharmacyPortalGate() {
   const { authed, identity, activeMembership } = useAuth();
+  if (apiConfigured) return <LivePharmacyPortal />;
   if (!authed || !identity) return <Navigate to="/pharmacy/login" replace />;
   if (identity.kind !== "organization" || !activeMembership) return <Navigate to={identity.kind === "platform" ? "/command-center" : "/patient"} replace />;
   if (!hasPharmacyPortalAccess(activeMembership)) return <Navigate to="/pharmacy/login" replace />;
@@ -298,6 +302,8 @@ export default function App() {
         <Route path="/accept-invite/:id" element={<InvitePage />} />
         <Route path="/patient" element={<PatientPortalPage />} />
         <Route path="/pharmacy/login" element={<PharmacyLoginPage />} />
+        <Route path="/pharmacy/register" element={<PharmacyRegistrationPage />} />
+        <Route path="/pharmacy/verify-email/:uid" element={<PharmacyVerifyEmailPage />} />
         <Route path="/pharmacy-portal/login" element={<PharmacyLoginPage />} />
         <Route path="/pharmacy-portal" element={<PharmacyPortalGate />} />
         <Route path="/workspace/setup" element={<TenantSetupGate />} />

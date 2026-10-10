@@ -1,3 +1,5 @@
+import { apiConfigured } from '../../utils/sabiIdentity';
+
 export const QUICK_ACTIONS = [
   { key: "prescription", label: "Prescription", icon: "UploadCloud", tone: "primary" },
   { key: "refill", label: "Refill Prescription", icon: "RotateCw", tone: "primary" },
@@ -85,6 +87,9 @@ export const FEATURED_PHARMACIES = [
 // projection to this shared key. Private drafts and tenant-owned inventory are
 // never read by the patient app.
 export function getMarketplacePharmacies() {
+  // Live cart lines are explicitly registered from approved API listings or
+  // issued prescription quotes. Never fall back to browser demo pharmacies.
+  if (apiConfigured) return [];
   try {
     const preview = new URLSearchParams(window.location.search).get("marketplacePreview");
     const parsedPreview = preview ? JSON.parse(preview) : null;

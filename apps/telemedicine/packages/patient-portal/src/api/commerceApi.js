@@ -36,6 +36,8 @@ export const listQuotes = () => get("/api/v1/pharmacy-requests/quotes/patient");
 // ---------------- Reservation (20-minute stock hold) ----------------
 export const createReservation = ({ prescriptionId, idempotencyKey, allocations }) =>
   post("/api/v1/reservations", { prescriptionId, idempotencyKey, allocations });
+export const createMarketplaceReservation = ({ idempotencyKey, items }) =>
+  post('/api/v1/marketplace/reservations', { idempotencyKey, items });
 export const getReservation = (id) => get(`/api/v1/reservations/${id}`);
 export const releaseReservation = (id) => authorizedRequest(`/api/v1/reservations/${id}`, { method: "DELETE" });
 

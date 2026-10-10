@@ -13,7 +13,7 @@ import { formatNaira } from "../../utils/currency";
 import { Sidebar, Topbar } from "../dashboard/components";
 import { getCart, clearCart, getAddresses, addAddress, findProduct, findPharmacy } from "./cartStore";
 import {
-  createOrder, createReservation, initializePayment, naira, newIdempotencyKey, previewCheckout, rememberPendingOrder,
+  createOrder, createReservation, createMarketplaceReservation, initializePayment, naira, newIdempotencyKey, previewCheckout, rememberPendingOrder,
 } from "../../api/commerceApi";
 import { getCurrentUser } from "../../utils/sabiIdentity";
 
@@ -51,7 +51,7 @@ function buildGroups(cart) {
       const lines = Object.entries(items)
         .map(([productId, qty]) => {
           const product = findProduct(pharmacyId, productId);
-          return product?.source === "prescription" ? { product, qty } : null;
+          return ['prescription', 'marketplace'].includes(product?.source) ? { product, qty } : null;
         })
         .filter(Boolean);
       if (lines.length === 0) return null;
@@ -73,6 +73,8 @@ export function CheckoutPage() {
   const itemsTotal = groups.reduce((sum, group) => sum + group.subtotal, 0);
   const needsDelivery = groups.some((group) => fulfilmentMethod(group) === "DELIVERY");
   const prescriptionIds = [...new Set(groups.flatMap((group) => group.lines.map((l) => l.product.prescriptionId)))];
+  const marketplaceOnly = groups.length > 0 && groups.every(group => group.lines.every(line => line.product.source === 'marketplace'));
+  const mixedCart = groups.some(group => group.lines.some(line => line.product.source === 'marketplace')) && !marketplaceOnly;
 
   // Set on Review: the stock hold and the server's prices for it.
   const [prepared, setPrepared] = useState(null); // { reservationId, preview }
@@ -153,15 +155,15 @@ export function CheckoutPage() {
 
   // Review: hold the stock for 20 minutes and get the server's final prices.
   const goToReview = async () => {
-    if (prescriptionIds.length !== 1) {
-      notify("Check out one prescription at a time");
+    if (mixedCart || (!marketplaceOnly && prescriptionIds.length !== 1)) {
+      notify("Check out prescription medicines and marketplace essentials separately. Each prescription must also be checked out separately.");
       return;
     }
     setPreparing(true);
     try {
       const reservation = prepared?.reservationId
         ? { id: prepared.reservationId }
-        : await createReservation({
+        : marketplaceOnly ? await createMarketplaceReservation({ idempotencyKey: keys.reservation, items: groups.flatMap(group => group.lines.map(({ product, qty }) => ({ listingId: product.listingId, quantity: qty }))) }) : await createReservation({
             prescriptionId: prescriptionIds[0],
             idempotencyKey: keys.reservation,
             allocations: groups.flatMap((group) =>

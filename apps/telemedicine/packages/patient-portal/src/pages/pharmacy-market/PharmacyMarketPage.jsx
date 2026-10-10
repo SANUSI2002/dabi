@@ -27,6 +27,8 @@ import { Sidebar, Topbar } from "../dashboard/components";
 import { QUICK_ACTIONS, CATEGORIES, getMarketplacePharmacies } from "./marketplaceData";
 import { openExternalDirections } from "../../utils/mapUtils";
 import { SwipeRow } from "../../ui/SwipeRow";
+import { apiConfigured } from '../../utils/sabiIdentity';
+import LiveMarketplace from './LiveMarketplace';
 
 const ICONS = {
     UploadCloud, RotateCw, Siren, History,
@@ -34,6 +36,10 @@ const ICONS = {
 };
 
 export function PharmacyMarketPage() {
+    return apiConfigured ? <LiveMarketplace /> : <DemoPharmacyMarketPage />;
+}
+
+function DemoPharmacyMarketPage() {
     const [zoom] = useZoom();
     const navigate = useNavigate();
     const [activeCategory, setActiveCategory] = useState("");

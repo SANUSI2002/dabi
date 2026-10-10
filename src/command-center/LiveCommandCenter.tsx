@@ -11,6 +11,8 @@ import { cn } from '@/lib/cn';
 import LivePackagesPage from './LivePackagesPage';
 import LiveApplicationsPage from './LiveApplicationsPage';
 import LiveDoctorsPage from './LiveDoctorsPage';
+import LiveUsersPage from './LiveUsersPage';
+import LivePharmaciesPage from './LivePharmaciesPage';
 import { livePlatformApplications, type LivePlatformApplication } from '@/registration/livePlatform';
 
 const PRODUCTS: { value: ProductContext; label: string }[] = [
@@ -136,6 +138,10 @@ export default function LiveCommandCenter() {
     content = identity?.platform?.permissions.includes('platform.catalog.manage') ? <LivePackagesPage /> : <UnavailableSection title="Packages" />;
   } else if (path === '/command-center/onboarding') {
     content = hasRegistry ? <LiveApplicationsPage canApprove={!!identity?.platform?.permissions.includes('platform.onboarding.approve')} /> : <UnavailableSection title="Verification center" />;
+  } else if (path === '/command-center/users') {
+    content = identity?.platform?.permissions.includes('platform.users.read') ? <LiveUsersPage canManage={identity.platform.permissions.includes('platform.users.manage')} currentUserId={identity.user.id}/> : <UnavailableSection title="User directory"/>;
+  } else if (path === '/command-center/pharmacy-tiers' || path === '/command-center/pharmacy-listings' || path.startsWith('/command-center/sabi-health/pharmacies')) {
+    content = identity?.platform?.permissions.includes('platform.pharmacy.manage') ? <LivePharmaciesPage key={path}/> : <UnavailableSection title="Pharmacy operations"/>;
   } else if (path === '/command-center/internal-users') {
     content = <><CommandPageHeader eyebrow="Administration" title="Internal users" description="Invite Command Center staff by email with a server-enforced role." />{hasInvites ? <InvitationManager title="Command Center staff invitations" /> : <Panel><p className="p-5 text-sm text-slate-600">Your platform role does not permit staff invitations.</p></Panel>}</>;
   } else if (path === '/command-center/sabi-health/doctors' || path.startsWith('/command-center/sabi-health/doctors/')) {

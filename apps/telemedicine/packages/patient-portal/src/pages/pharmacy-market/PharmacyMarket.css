@@ -1509,3 +1509,7 @@
     .sabi-checkout-step-line { flex: 1; min-width: 12px; margin-top: 12px; }
     .sabi-cart-summary { position: static; }
 }
+.live-market-filters { display: flex; flex-wrap: wrap; gap: 16px; padding: 20px; margin: 20px 0; }
+.live-market-filters label { display: flex; flex: 1 1 200px; flex-direction: column; gap: 8px; font-weight: 600; }
+.live-market-filters input, .live-market-filters select { min-height: 44px; padding: 10px; border: 1px solid #c8d8ce; border-radius: 10px; background: white; font: inherit; }
+.live-market-pagination { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 24px 0; }

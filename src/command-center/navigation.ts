@@ -80,6 +80,9 @@ export const COMMAND_NAV: CommandNavGroup[] = [
     { to: "/command-center/terminology", label: "Terminology", icon: FileText, permission: "organizations.manage" },
   ] },
   { title: "Administration", product: "all", items: [
+    { to: "/command-center/users", label: "All Sabi users", icon: Users, permission: "identity.manage" },
+    { to: "/command-center/pharmacy-tiers", label: "Pharmacy tier policies", icon: Layers3, permission: "platform.view" },
+    { to: "/command-center/pharmacy-listings", label: "Marketplace review", icon: PackageCheck, permission: "platform.view" },
     { to: "/command-center/internal-users", label: "Internal users", icon: CircleUserRound, permission: "identity.manage" },
     { to: "/command-center/audit", label: "Audit logs", icon: ScrollText, permission: "audit.view" },
     { to: "/command-center/security", label: "Security", icon: LockKeyhole, permission: "security.manage" },

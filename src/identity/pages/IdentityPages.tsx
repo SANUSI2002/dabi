@@ -10,6 +10,7 @@ import { IdleSignOutNotice } from "@/identity/IdleSessionGuard";
 import { hasPendingLiveMfa, liveAcceptInvitation, liveConfirmPasswordReset, livePreviewInvitation, liveRequestPasswordReset, liveSignIn, liveSignOut, liveVerifyMfa, restoreLiveIdentity, type LiveIdentity, type LiveInvitation } from "@/identity/liveIdentity";
 import InvitationManager from '@/identity/components/InvitationManager';
 import { hasPharmacyPortalAccess } from "@/pharmacy/access";
+import { canEnterLivePharmacy } from '@/pharmacy/liveApi';
 import { SABI_HEALTH_URL } from "@/public/ecosystemLinks";
 
 type SignInIntent = "shared" | "emr" | "platform";
@@ -125,7 +126,8 @@ function LiveMfaPage() {
         navigate(current.platform ? '/command-center' : '/identity/mfa?next=command-center', { replace: true });
         return;
       }
-      if (context === 'pharmacy' && !current.organizations.some((membership) => membership.status === 'ACTIVE' && membership.organization.type === 'PHARMACY')) throw new Error('This account has no active pharmacy membership.');
+      if (context === 'pharmacy' && !canEnterLivePharmacy(current)) throw new Error('This account has no active pharmacy membership or pharmacist invitation.');
+      if (context === 'pharmacy') { navigate('/pharmacy-portal', { replace: true }); return; }
       if (context === 'emr') {
         const memberships = current.organizations.filter((membership) => membership.status === 'ACTIVE' && membership.organization.type !== 'PHARMACY');
         if (!memberships.length) throw new Error('This account has no active EMR membership.');

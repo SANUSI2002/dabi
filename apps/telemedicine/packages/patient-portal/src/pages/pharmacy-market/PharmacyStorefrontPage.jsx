@@ -14,8 +14,15 @@ import { Sidebar, Topbar } from "../dashboard/components";
 import { getMarketplacePharmacies } from "./marketplaceData";
 import { getCartForPharmacy, setCartQty, getCartCount } from "./cartStore";
 import { openExternalDirections } from "../../utils/mapUtils";
+import { apiConfigured } from '../../utils/sabiIdentity';
+import LiveMarketplace from './LiveMarketplace';
 
 export function PharmacyStorefrontPage() {
+    const { pharmacyId } = useParams();
+    return apiConfigured ? <LiveMarketplace pharmacyId={pharmacyId} /> : <DemoPharmacyStorefrontPage />;
+}
+
+function DemoPharmacyStorefrontPage() {
     const [zoom] = useZoom();
     const { pharmacyId } = useParams();
     const navigate = useNavigate();
