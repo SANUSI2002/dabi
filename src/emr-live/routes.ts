@@ -19,6 +19,7 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   "/history": "clinical.read",
   "/appointments": "appointment.read",
   "/radiology": "imaging.read",
+  "/procedures": "procedure.read",
 };
 
 export type LiveRouteState = "connected" | "no-permission" | "not-connected";

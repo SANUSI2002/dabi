@@ -11,6 +11,8 @@ import { liveRxLine, type LiveRxLine } from "./pharmacy";
 import { liveAdmission } from "./inpatient";
 import { appointmentFromApi, type ApiAppointment } from "./appointments";
 import { studyFromApi, type ApiStudy } from "./radiology";
+import { procedureFromApi, type ApiProcedure } from "./procedures";
+import type { ProcedureRecord } from "@/data/procedures";
 import type { ImagingStudy } from "@/data/radiology";
 
 // The patient chart and Medical History in live mode: one read of the patient's record from the
@@ -62,7 +64,8 @@ export type ApiPatientRecord = {
   invoices: ApiRecordInvoice[] | null;
   appointments?: ApiAppointment[] | null;
   imaging?: ApiStudy[] | null;
-  sections: { labs: boolean; prescriptions: boolean; admissions: boolean; invoices: boolean; appointments?: boolean; imaging?: boolean };
+  procedures?: ApiProcedure[] | null;
+  sections: { labs: boolean; prescriptions: boolean; admissions: boolean; invoices: boolean; appointments?: boolean; imaging?: boolean; procedures?: boolean };
 };
 
 /** A problem-list row plus what a change needs: stored entries have an id and version; a flagged diagnosis not yet stored has neither. */
@@ -80,6 +83,7 @@ export type LivePatientRecord = {
   invoices: Invoice[];
   appointments: Appointment[];
   imaging: ImagingStudy[];
+  procedures: ProcedureRecord[];
   /** What the patient still owes on issued invoices, in naira. */
   outstanding: number;
   /** Where the patient is in clinic right now (an open visit's queue place), if anywhere. */
@@ -219,6 +223,7 @@ export function recordFromApi(record: ApiPatientRecord): LivePatientRecord {
     invoices: (record.invoices ?? []).map((invoice) => invoiceFromApi(invoice, patient)),
     appointments: (record.appointments ?? []).map(appointmentFromApi),
     imaging: (record.imaging ?? []).map(studyFromApi),
+    procedures: (record.procedures ?? []).map(procedureFromApi),
     outstanding: (record.invoices ?? []).reduce((total, invoice) => total + invoice.balanceMinor, 0) / 100,
     inClinic: open?.queueEntry ? { station: open.queueEntry.station as Station, status: STATUS_FROM_API[open.queueEntry.status] } : null,
     lastUpdated: times.reduce((latest, time) => (time > latest ? time : latest), ""),

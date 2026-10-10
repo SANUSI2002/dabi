@@ -14,6 +14,9 @@ import { useEmr } from "@/store/useEmr";
 import { useHr } from "@/store/useHr";
 import type { ProcedureRecord } from "@/data/procedures";
 import { dateTime, shortDate } from "@/lib/format";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { describeEmrError } from "@/emr-live/client";
+import { newIdempotencyKey, useLiveProcedures, useLiveProceduresLoad, type LiveProcedure } from "@/emr-live/procedures";
 
 const PROCEDURE_NAMES = [
   "Incision and drainage", "Wound debridement", "Suturing / laceration repair", "IUCD insertion",
@@ -22,8 +25,36 @@ const PROCEDURE_NAMES = [
 ];
 
 export default function Procedures() {
-  const { procedures, requestProcedure, scheduleProcedure, recordConsent, setChecklistItem, beginPreProcedure, performProcedure, moveToRecovery, setFollowUp, signNote, amendNote, cancelProcedure } = useProcedures();
+  const { procedures: demoProcedures, requestProcedure, scheduleProcedure, recordConsent, setChecklistItem, beginPreProcedure, performProcedure, moveToRecovery, setFollowUp, signNote, amendNote, cancelProcedure } = useProcedures();
   const { patientById } = useEmr();
+  // A live hospital's procedures come from its EMR (see src/emr-live/procedures.ts).
+  const live = useIsLiveEmr();
+  useLiveProceduresLoad(live);
+  const liveProcedures = useLiveProcedures((state) => state.procedures);
+  const liveClinicians = useLiveProcedures((state) => state.clinicians);
+  const liveError = useLiveProcedures((state) => state.error);
+  const liveOps = useLiveProcedures.getState;
+  const procedures: (ProcedureRecord & Partial<LiveProcedure>)[] = live ? liveProcedures : demoProcedures;
+  const patientOf = (procedure: ProcedureRecord & Partial<LiveProcedure>) => (live ? procedure.patient : patientById(procedure.patientId));
+  const [requestKey, setRequestKey] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [liveSchedule, setLiveSchedule] = useState({ performerUserId: "", assistantUserIds: [] as string[] });
+  const [consentUserId, setConsentUserId] = useState("");
+
+  /** Runs a step (live: on the hospital's record) and shows the hospital's answer if it refuses. */
+  async function run(step: () => unknown, after?: () => void) {
+    setActionError("");
+    setBusy(true);
+    try {
+      await step();
+      after?.();
+    } catch (cause) {
+      setActionError(describeEmrError(cause));
+    } finally {
+      setBusy(false);
+    }
+  }
   const clinicians = useHr((state) => state.staff).filter((staff) => staff.status === "Active" && staff.role === "Medical Officer");
   const nurses = useHr((state) => state.staff).filter((staff) => staff.status === "Active" && staff.role === "Nurse");
 
@@ -49,6 +80,10 @@ export default function Procedures() {
     setRecoveryNotes(procedure.recoveryNotes ?? "");
     setFollowUpPlan(procedure.followUpPlan ?? "");
     setAmendmentNote("");
+    setActionError("");
+    const liveProcedure = procedure as ProcedureRecord & Partial<LiveProcedure>;
+    setLiveSchedule({ performerUserId: liveProcedure.performerUserId ?? liveClinicians[0]?.userId ?? "", assistantUserIds: liveProcedure.assistantUserIds ?? [] });
+    setConsentUserId("");
     setDetailId(procedure.id);
   }
 
@@ -56,7 +91,7 @@ export default function Procedures() {
     <Table columns={["Patient", "Procedure", "Site", "Priority", "Requested", "Status", ""]} caption={caption}>
       {list.length === 0 && <EmptyRow colSpan={7}>Nothing here.</EmptyRow>}
       {list.map((procedure, index) => {
-        const patient = patientById(procedure.patientId);
+        const patient = patientOf(procedure);
         return (
           <Row key={procedure.id} index={index} onClick={() => openDetail(procedure)}>
             <Cell><PatientLink patient={patient} /></Cell>
@@ -77,8 +112,12 @@ export default function Procedures() {
       <PageHeader
         title="Procedures"
         subtitle="Minor / outpatient procedures performed at this facility — request through to signed note"
-        actions={<Button onClick={() => { setRequestForm({ patientId: "", name: PROCEDURE_NAMES[0], indication: "", bodySite: "", laterality: "N/A", priority: "Routine" }); setRequestOpen(true); }}><Plus size={15} /> Request procedure</Button>}
+        actions={<Button onClick={() => { setActionError(""); setRequestKey(newIdempotencyKey()); setRequestForm({ patientId: "", name: PROCEDURE_NAMES[0], indication: "", bodySite: "", laterality: "N/A", priority: "Routine" }); setRequestOpen(true); }}><Plus size={15} /> Request procedure</Button>}
       />
+
+      {live && (actionError || liveError) && !detail && !requestOpen && (
+        <p role="alert" className="mb-4 rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError || liveError}</p>
+      )}
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Awaiting / scheduled" value={scheduled.length} tone="amber" icon={<Scissors size={18} />} />
@@ -102,7 +141,7 @@ export default function Procedures() {
         title="Request procedure"
         wide
         footer={<><Button variant="ghost" onClick={() => setRequestOpen(false)}>Cancel</Button>
-          <Button disabled={!requestForm.patientId || !requestForm.indication.trim()} onClick={() => { requestProcedure(requestForm); setRequestOpen(false); }}>Request</Button></>}
+          <Button disabled={!requestForm.patientId || !requestForm.indication.trim() || !requestForm.name.trim() || busy} onClick={() => void run(() => (live ? liveOps().request(requestForm, requestKey) : requestProcedure(requestForm)), () => setRequestOpen(false))}>Request</Button></>}
       >
         <div className="space-y-4">
           <Field label="Patient"><PatientPicker value={requestForm.patientId} onChange={(id) => setRequestForm({ ...requestForm, patientId: id })} /></Field>
@@ -115,6 +154,7 @@ export default function Procedures() {
             <Field label="Laterality"><Select value={requestForm.laterality} onChange={(event) => setRequestForm({ ...requestForm, laterality: event.target.value as never })} options={["N/A", "Left", "Right", "Bilateral"]} /></Field>
           </Grid>
           <Field label="Indication"><Textarea value={requestForm.indication} onChange={(event) => setRequestForm({ ...requestForm, indication: event.target.value })} /></Field>
+          {actionError && <p role="alert" className="text-sm text-action-700">{actionError}</p>}
         </div>
       </Modal>
 
@@ -122,12 +162,13 @@ export default function Procedures() {
       <Modal
         open={Boolean(detail)}
         onClose={() => setDetailId(null)}
-        title={detail ? `${detail.name} — ${patientById(detail.patientId)?.firstName} ${patientById(detail.patientId)?.lastName}` : ""}
+        title={detail ? `${detail.name} — ${patientOf(detail)?.firstName} ${patientOf(detail)?.lastName}` : ""}
         wide
         footer={<Button variant="ghost" onClick={() => setDetailId(null)}>Close</Button>}
       >
         {detail && (
           <div className="space-y-5">
+            {actionError && <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError}</p>}
             <div className="flex flex-wrap items-center gap-2">
               <ClinicalStatusBadge kind="procedure" status={detail.status} />
               <Badge tone={detail.priority === "Routine" ? "mist" : "action"}>{detail.priority}</Badge>
@@ -141,12 +182,26 @@ export default function Procedures() {
                 <p className="mb-2 text-xs font-bold uppercase text-mist-400">Schedule</p>
                 <Grid cols={2}>
                   <Field label="Date"><Input type="date" value={scheduleForm.date} onChange={(event) => setScheduleForm({ ...scheduleForm, date: event.target.value })} /></Field>
-                  <Field label="Performer"><Select value={scheduleForm.performer} onChange={(event) => setScheduleForm({ ...scheduleForm, performer: event.target.value })} options={clinicians.length ? clinicians.map((clinician) => clinician.name) : ["—"]} /></Field>
+                  <Field label="Performer">
+                    {live ? (
+                      <Select value={liveSchedule.performerUserId} onChange={(event) => setLiveSchedule({ ...liveSchedule, performerUserId: event.target.value })} options={liveClinicians.length ? liveClinicians.map((c) => ({ value: c.userId, label: c.name })) : [{ value: "", label: "—" }]} />
+                    ) : (
+                      <Select value={scheduleForm.performer} onChange={(event) => setScheduleForm({ ...scheduleForm, performer: event.target.value })} options={clinicians.length ? clinicians.map((clinician) => clinician.name) : ["—"]} />
+                    )}
+                  </Field>
                 </Grid>
                 <div className="mt-2">
                   <p className="label mb-1">Assistants</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {nurses.map((nurse) => {
+                    {live && liveClinicians.filter((c) => c.userId !== liveSchedule.performerUserId).map((c) => {
+                      const on = liveSchedule.assistantUserIds.includes(c.userId);
+                      return (
+                        <button key={c.userId} type="button" aria-pressed={on} onClick={() => setLiveSchedule({ ...liveSchedule, assistantUserIds: on ? liveSchedule.assistantUserIds.filter((id) => id !== c.userId) : [...liveSchedule.assistantUserIds, c.userId] })} className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${on ? "bg-brand-gradient text-white ring-transparent" : "bg-white text-mist-500 ring-mist-200"}`}>
+                          {c.name}
+                        </button>
+                      );
+                    })}
+                    {!live && nurses.map((nurse) => {
                       const on = scheduleForm.assistants.includes(nurse.name);
                       return (
                         <button key={nurse.id} type="button" aria-pressed={on} onClick={() => setScheduleForm({ ...scheduleForm, assistants: on ? scheduleForm.assistants.filter((name) => name !== nurse.name) : [...scheduleForm.assistants, nurse.name] })} className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${on ? "bg-brand-gradient text-white ring-transparent" : "bg-white text-mist-500 ring-mist-200"}`}>
@@ -156,15 +211,21 @@ export default function Procedures() {
                     })}
                   </div>
                 </div>
-                <Button className="mt-3" disabled={!scheduleForm.date} onClick={() => scheduleProcedure(detail.id, new Date(scheduleForm.date).toISOString(), scheduleForm.performer, scheduleForm.assistants)}>Schedule</Button>
+                <Button className="mt-3" disabled={!scheduleForm.date || (live && !liveSchedule.performerUserId) || busy} onClick={() => void run(() => (live ? liveOps().schedule(detail as LiveProcedure, scheduleForm.date, liveSchedule.performerUserId, liveSchedule.assistantUserIds.filter((id) => id !== liveSchedule.performerUserId)) : scheduleProcedure(detail.id, new Date(scheduleForm.date).toISOString(), scheduleForm.performer, scheduleForm.assistants)))}>Schedule</Button>
               </div>
             )}
 
             {detail.status === "Scheduled" && (
               <div className="rounded-xl bg-mist-50 p-4">
                 <p className="mb-2 text-xs font-bold uppercase text-mist-400">Consent</p>
-                <Field label="Consent obtained by"><Select value={consentBy} onChange={(event) => setConsentBy(event.target.value)} options={["", ...clinicians.map((clinician) => clinician.name), ...nurses.map((nurse) => nurse.name)]} /></Field>
-                <Button className="mt-3" disabled={!consentBy} onClick={() => recordConsent(detail.id, consentBy)}><ShieldCheck size={14} /> Record consent</Button>
+                <Field label="Consent obtained by">
+                  {live ? (
+                    <Select value={consentUserId} onChange={(event) => setConsentUserId(event.target.value)} options={[{ value: "", label: "" }, ...liveClinicians.map((c) => ({ value: c.userId, label: c.name }))]} />
+                  ) : (
+                    <Select value={consentBy} onChange={(event) => setConsentBy(event.target.value)} options={["", ...clinicians.map((clinician) => clinician.name), ...nurses.map((nurse) => nurse.name)]} />
+                  )}
+                </Field>
+                <Button className="mt-3" disabled={(live ? !consentUserId : !consentBy) || busy} onClick={() => void run(() => (live ? liveOps().consent(detail as LiveProcedure, consentUserId) : recordConsent(detail.id, consentBy)))}><ShieldCheck size={14} /> Record consent</Button>
               </div>
             )}
 
@@ -177,21 +238,30 @@ export default function Procedures() {
                     <div className="space-y-1">
                       {detail.checklist.filter((item) => item.phase === phase).map((item) => (
                         <div key={item.id} className="flex items-center justify-between gap-2 rounded-lg bg-white px-2.5 py-1.5 text-sm ring-1 ring-mist-200">
-                          <Checkbox label={item.label} checked={item.completed} onChange={(event) => setChecklistItem(detail.id, item.id, event.target.checked)} />
-                          {!item.completed && (
+                          <Checkbox label={item.label} checked={item.completed} onChange={(event) => (live ? void run(() => liveOps().checklistItem(detail as LiveProcedure, item.id, event.target.checked)) : setChecklistItem(detail.id, item.id, event.target.checked))} />
+                          {!item.completed && (live ? (
+                            // Live: saved when the field is left, not on every keystroke.
+                            <input
+                              key={`${item.id}:${item.exceptionReason ?? ""}`}
+                              className="input h-7 w-40 text-xs"
+                              placeholder="Exception reason"
+                              defaultValue={item.exceptionReason ?? ""}
+                              onBlur={(event) => { if (event.target.value.trim() !== (item.exceptionReason ?? "")) void run(() => liveOps().checklistItem(detail as LiveProcedure, item.id, false, event.target.value)); }}
+                            />
+                          ) : (
                             <input
                               className="input h-7 w-40 text-xs"
                               placeholder="Exception reason"
                               value={item.exceptionReason ?? ""}
                               onChange={(event) => setChecklistItem(detail.id, item.id, false, event.target.value)}
                             />
-                          )}
+                          ))}
                         </div>
                       ))}
                     </div>
                   </div>
                 ))}
-                {detail.status === "Consented" && <Button onClick={() => beginPreProcedure(detail.id)}>Move to pre-procedure</Button>}
+                {detail.status === "Consented" && <Button disabled={busy} onClick={() => void run(() => (live ? liveOps().preProcedure(detail as LiveProcedure) : beginPreProcedure(detail.id)))}>Move to pre-procedure</Button>}
               </div>
             )}
 
@@ -206,7 +276,7 @@ export default function Procedures() {
                 <Field label="Complications"><Input value={performForm.complications} onChange={(event) => setPerformForm({ ...performForm, complications: event.target.value })} placeholder="None" /></Field>
                 <Field label="Outcome *"><Textarea value={performForm.outcome} onChange={(event) => setPerformForm({ ...performForm, outcome: event.target.value })} /></Field>
                 <Checkbox label="Specimen sent to laboratory" checked={performForm.specimenSentToLab} onChange={(event) => setPerformForm({ ...performForm, specimenSentToLab: event.target.checked })} />
-                <Button className="mt-3" disabled={!performForm.outcome.trim()} onClick={() => performProcedure(detail.id, performForm)}>Mark performed</Button>
+                <Button className="mt-3" disabled={!performForm.outcome.trim() || busy} onClick={() => void run(() => (live ? liveOps().perform(detail as LiveProcedure, performForm) : performProcedure(detail.id, performForm)))}>Mark performed</Button>
               </div>
             )}
 
@@ -214,7 +284,7 @@ export default function Procedures() {
               <div className="rounded-xl bg-mist-50 p-4">
                 <p className="mb-2 text-xs font-bold uppercase text-mist-400">Recovery</p>
                 <Field label="Recovery notes"><Textarea value={recoveryNotes} onChange={(event) => setRecoveryNotes(event.target.value)} /></Field>
-                <Button className="mt-2" disabled={!recoveryNotes.trim()} onClick={() => moveToRecovery(detail.id, recoveryNotes)}>Move to recovery</Button>
+                <Button className="mt-2" disabled={!recoveryNotes.trim() || busy} onClick={() => void run(() => (live ? liveOps().recovery(detail as LiveProcedure, recoveryNotes) : moveToRecovery(detail.id, recoveryNotes)))}>Move to recovery</Button>
               </div>
             )}
 
@@ -222,7 +292,7 @@ export default function Procedures() {
               <div className="rounded-xl bg-mist-50 p-4">
                 <p className="mb-2 text-xs font-bold uppercase text-mist-400">Follow-up plan</p>
                 <Field label="Plan"><Textarea value={followUpPlan} onChange={(event) => setFollowUpPlan(event.target.value)} /></Field>
-                <Button className="mt-2" disabled={!followUpPlan.trim()} onClick={() => setFollowUp(detail.id, followUpPlan)}>Set follow-up</Button>
+                <Button className="mt-2" disabled={!followUpPlan.trim() || busy} onClick={() => void run(() => (live ? liveOps().followUp(detail as LiveProcedure, followUpPlan) : setFollowUp(detail.id, followUpPlan)))}>Set follow-up</Button>
               </div>
             )}
 
@@ -239,7 +309,7 @@ export default function Procedures() {
                 <div className="mt-2 flex items-center gap-2">
                   <ClinicalStatusBadge kind="note" status={detail.noteSigned ? "signed" : "saved"} />
                   {detail.noteSignedBy && <span className="text-[11px] text-mist-400">{detail.noteSignedBy} · {dateTime(detail.noteSignedAt!)}</span>}
-                  {!detail.noteSigned && <Button variant="soft" className="px-2.5 py-1 text-xs" onClick={() => signNote(detail.id)}>Sign note</Button>}
+                  {!detail.noteSigned && <Button variant="soft" className="px-2.5 py-1 text-xs" disabled={busy} onClick={() => void run(() => (live ? liveOps().sign(detail as LiveProcedure) : signNote(detail.id)))}>Sign note</Button>}
                 </div>
                 {detail.amendments && detail.amendments.length > 0 && (
                   <div className="mt-2 space-y-1 border-t border-mist-100 pt-2 text-[11px] text-mist-500">
@@ -251,7 +321,7 @@ export default function Procedures() {
                 {detail.noteSigned && (
                   <div className="mt-2 flex gap-2">
                     <Input className="h-8 text-xs" placeholder="Amendment note" value={amendmentNote} onChange={(event) => setAmendmentNote(event.target.value)} />
-                    <Button variant="ghost" className="px-2.5 py-1 text-xs" disabled={!amendmentNote.trim()} onClick={() => { amendNote(detail.id, amendmentNote.trim()); setAmendmentNote(""); }}>Add amendment</Button>
+                    <Button variant="ghost" className="px-2.5 py-1 text-xs" disabled={!amendmentNote.trim() || busy} onClick={() => void run(() => (live ? liveOps().amend(detail as LiveProcedure, amendmentNote.trim()) : amendNote(detail.id, amendmentNote.trim())), () => setAmendmentNote(""))}>Add amendment</Button>
                   </div>
                 )}
               </div>
@@ -262,7 +332,7 @@ export default function Procedures() {
                 <div className="rounded-xl border border-action-200 bg-action-50/50 p-3">
                   <Field label="Reason for cancelling"><Input value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} /></Field>
                   <div className="mt-2 flex gap-2">
-                    <Button variant="action" disabled={!cancelReason.trim()} onClick={() => { cancelProcedure(detail.id, cancelReason.trim()); setCancelReason(null); setDetailId(null); }}>Confirm cancel</Button>
+                    <Button variant="action" disabled={!cancelReason.trim() || busy} onClick={() => void run(() => (live ? liveOps().cancel(detail as LiveProcedure, cancelReason.trim()) : cancelProcedure(detail.id, cancelReason.trim())), () => { setCancelReason(null); setDetailId(null); })}>Confirm cancel</Button>
                     <Button variant="ghost" onClick={() => setCancelReason(null)}>Back</Button>
                   </div>
                 </div>
