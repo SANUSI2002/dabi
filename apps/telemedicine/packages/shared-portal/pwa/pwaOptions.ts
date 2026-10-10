@@ -2,9 +2,10 @@
 // and command-center deployments), the patient portal and the professional portal.
 //
 // What is cached, and why:
-// - Up front: the app shell only (HTML, CSS, fonts, icons), so installing costs little data.
-// - On first use: this app's own code files and images (immutable, content-hashed), cache-first,
-//   so pages already visited open instantly and work offline.
+// - Up front: the app shell and its code (HTML, JS, CSS, fonts, icons). Keep the HTML and
+//   content-hashed JavaScript together: an older installed shell must not depend on code
+//   that the next deployment has already removed from the server.
+// - On first use: this app's own images (immutable, content-hashed), cache-first.
 // - Never: /api (patient and clinical data), other origins (video, payments, maps), or another
 //   Sabi app hosted under this one (e.g. /doctor-portal/ under the patient portal).
 // Updates wait for the person to choose "Reload" (see registerPwa.ts), so a form being filled in
@@ -64,7 +65,7 @@ export function sabiPwaOptions(app: SabiPwaApp) {
     workbox: {
       // Top-level files only: a nested app built into a subfolder is never precached here.
       // (Manifest icons are added by the plugin itself.)
-      globPatterns: ["*.html", "assets/*.{css,woff2}", "*.svg", "apple-touch-icon-*.png"],
+      globPatterns: ["*.html", "assets/*.{js,css,woff2}", "*.svg", "apple-touch-icon-*.png"],
       navigateFallbackDenylist: [/^\/api(?:\/|$)/, ...app.nestedApps],
       runtimeCaching: [
         { urlPattern: ownCode, handler: "CacheFirst" as const, options: { cacheName: `sabi-${app.cacheId}-code`, expiration: { maxEntries: 600, maxAgeSeconds: MONTH } } },
