@@ -1,0 +1,2 @@
+export const deliveryButton = 'min-h-11 rounded-xl bg-[#0d2c22] px-4 py-2 font-semibold text-white hover:bg-[#174a3a] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b8a63]';
+export const deliveryInput = 'min-h-11 w-full rounded-xl border border-[#cfe0d8] bg-white px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#0b8a63]';

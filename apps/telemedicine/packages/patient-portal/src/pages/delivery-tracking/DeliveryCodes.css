@@ -1,0 +1,70 @@
+.sabi-delivery-codes {
+  border: 1px solid #dbe9e2;
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 24px;
+  background: #fff;
+  color: #17342a;
+  overflow-wrap: anywhere;
+}
+.sabi-delivery-codes h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  line-height: 1.4;
+  margin: 0 0 12px;
+}
+.sabi-delivery-codes h3 {
+  font-size: 16px;
+  margin: 0 0 8px;
+}
+.sabi-delivery-codes p {
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 8px 0;
+}
+.sabi-delivery-codes article {
+  border-top: 1px solid #dbe9e2;
+  padding: 16px 0;
+}
+.sabi-delivery-codes .delivery-secret {
+  font-family: ui-monospace, monospace;
+  font-size: 30px;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+}
+.sabi-delivery-codes button {
+  min-height: 44px;
+  border: 1px solid #cfe0d8;
+  border-radius: 12px;
+  padding: 10px 16px;
+  background: #f5f8f4;
+  color: #17342a;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.sabi-delivery-codes button:hover {
+  background: #e8f2e9;
+}
+.sabi-delivery-codes button:focus-visible {
+  outline: 2px solid #0b8a63;
+  outline-offset: 3px;
+}
+.sabi-delivery-codes button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.sabi-delivery-codes .delivery-code-error {
+  color: #b91c1c;
+}
+@media (max-width: 480px) {
+  .sabi-delivery-codes {
+    padding: 16px;
+  }
+  .sabi-delivery-codes button {
+    width: 100%;
+  }
+}

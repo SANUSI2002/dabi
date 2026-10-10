@@ -35,6 +35,7 @@ const LivePharmacyPortal = lazy(() => import("@/pharmacy/LivePharmacyEntry"));
 const PharmacyRegistrationPage = lazy(() => import("@/pharmacy/PharmacyRegistrationPage"));
 const PharmacyVerifyEmailPage = lazy(() => import("@/pharmacy/PharmacyRegistrationPage").then(m=>({default:m.PharmacyVerifyEmailPage})));
 const PharmacyLoginPage = lazy(() => import("@/pharmacy/PharmacyLoginPage"));
+const CourierPortal = lazy(() => import("@/pharmacy/CourierPortal"));
 
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const ClinicalQueue = lazy(() => import("@/pages/clinical/ClinicalQueue"));
@@ -302,6 +303,8 @@ export default function App() {
         <Route path="/accept-invite/:id" element={<InvitePage />} />
         <Route path="/patient" element={<PatientPortalPage />} />
         <Route path="/pharmacy/login" element={<PharmacyLoginPage />} />
+        <Route path="/pharmacy/courier/login" element={<CourierPortal />} />
+        <Route path="/pharmacy/courier" element={<CourierPortal />} />
         <Route path="/pharmacy/register" element={<PharmacyRegistrationPage />} />
         <Route path="/pharmacy/verify-email/:uid" element={<PharmacyVerifyEmailPage />} />
         <Route path="/pharmacy-portal/login" element={<PharmacyLoginPage />} />

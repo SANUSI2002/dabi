@@ -126,6 +126,7 @@ function LiveMfaPage() {
         navigate(current.platform ? '/command-center' : '/identity/mfa?next=command-center', { replace: true });
         return;
       }
+      if (context === 'courier') { if (!current.user.roles.includes('DELIVERY_PARTNER')) throw new Error('Sabi operations must activate your delivery partner account.'); navigate('/pharmacy/courier', { replace: true }); return; }
       if (context === 'pharmacy' && !canEnterLivePharmacy(current)) throw new Error('This account has no active pharmacy membership or pharmacist invitation.');
       if (context === 'pharmacy') { navigate('/pharmacy-portal', { replace: true }); return; }
       if (context === 'emr') {

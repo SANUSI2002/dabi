@@ -32,6 +32,7 @@ import InvitationManager from "@/identity/components/InvitationManager";
 import InventoryControls from "./InventoryControls";
 import LicenceRenewalForm from "./LicenceRenewalForm";
 import { PharmacyStockOperations, PharmacyReports } from './PharmacyOperations';
+import DeliveryHandover from './DeliveryHandover';
 const input =
   "mt-1 min-h-11 w-full rounded-xl border border-[#cfe0d8] bg-white px-3 py-2 text-base text-[#17342a] focus:outline-none focus:ring-2 focus:ring-[#0b8a63]";
 const button =
@@ -809,6 +810,7 @@ export default function LivePharmacyPortal() {
                       </p>
                     </div>
                     <StatusPill status={order.status} />
+                    {order.fulfilmentMethod === 'DELIVERY' && order.order.status === 'PAID' && ['READY_FOR_PICKUP', 'PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) && <DeliveryHandover fulfilmentId={order.id} status={order.status} />}
                   </article>
                 ))}
                 {!orders.length && (

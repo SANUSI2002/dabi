@@ -97,11 +97,24 @@ Automated tests use fake people, synthetic files and embedded PostgreSQL, never 
 
 ## Remaining release work and operational risks
 
+### Two-code courier handover (10 October 2026)
+
+- Command Center → User directory → Courier access configures an existing active account, with `platform.users.manage`, recent MFA and an audited delivery-only role. Public signup cannot grant courier access.
+- Pharmacy → Orders → Courier handover assigns an active configured partner to a paid, stock-finalized, ready delivery fulfilment. Its collection code becomes visible to the active pharmacy owner after courier acceptance.
+- Courier signs in at `/pharmacy/courier/login`, accepts the assignment, enters the pharmacy's six-digit code while receiving the package, then starts delivery. Recipient details are available only for accepted assignments and removed after completion.
+- Patient → Delivery tracking → Your delivery codes shows a separate code per pharmacy package after pickup. The courier enters that code when handing over the package. Delivery cannot be confirmed by the pharmacy or by a code-less status update. Payment state is not modified.
+- Codes are cryptographically random, encrypted server-side with assignment/stage-bound AES-GCM, excluded from courier/tracking projections and audit contents, never placed in URLs/local storage and served with `Cache-Control: no-store`. Consumed secrets are erased in the same serializable transaction as the fulfilment transition and audit entry.
+- Pickup expires 48 hours after assignment; delivery expires 48 hours after pickup. The correct holder can replace an expired/lost code, with a one-minute reissue cooldown. Reissue invalidates the old code but does not clear the five-attempt/15-minute persisted verification lock. Existing assignments without codes need holder reissue; there is no legacy bypass.
+- These codes record an authenticated handover acknowledgement, not guaranteed package condition, identity verification or executed financial settlement. Returns, disputes, courier-provider callbacks, photos/signatures and offline proof are separate work.
+- Acceptance coverage: 38 isolated delivery HTTP tests, four embedded-PostgreSQL handover cases, nine frontend handover cases and phone/landscape visual QA with fake packages. No real package or account was assigned, activated or delivered during testing. The existing local-storage demo cannot verify real codes; use an API-connected deployment.
+
+### Remaining work
+
 Do not equate this implementation with complete commercial/regulatory certification. Remaining work:
 
 1. Automated merchant payouts, settlement reconciliation and provider-executed refunds. Rejected paid fulfilments currently create refund review cases, not executed refunds.
 2. Reconcile abandoned **converted** unpaid orders against Paystack, with late-success handling before releasing stock. Existing active reservation expiry and payment failure webhook release do not cover every abandoned converted-order scenario. Do not implement blind expiry that could sell stock already paid for.
-3. Clarification-request resolution and full courier pickup/delivery proof workflows, customer dispute/return controls and corresponding portal actions.
+3. Clarification-request resolution, customer dispute/return controls, courier-provider integrations and richer delivery evidence. Two-code collection/delivery confirmation is implemented above.
 4. Multi-lot FEFO allocation, recall tracking, cold-chain handling and controlled-medicine policies. Separate batch inventory/expiry checks are not a complete dispensary stock-management certification.
 5. Submission email, pharmacy team roster/revocation UX, opening-hour settings, stock-expiry email alerts, purchase orders, supplier/cost valuation and deeper operational reporting. Licence expiry emails and paid-sales/stock reporting are implemented above.
 6. Global catalogue search/geographic indexing and pagination beyond current page filtering; high-volume clinical queue pagination, images served through dedicated scalable media infrastructure and load testing.

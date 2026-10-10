@@ -78,6 +78,8 @@ export function pendingOrder() {
 
 // ---------------- Delivery tracking ----------------
 export const getTracking = (orderId) => get(`/api/v1/delivery/orders/${orderId}/tracking`);
+export const getDeliveryCodes = (orderId) => get(`/api/v1/delivery/orders/${orderId}/delivery-codes`);
+export const renewDeliveryCode = (fulfilmentId) => post(`/api/v1/delivery/fulfilments/${fulfilmentId}/delivery-code`);
 
 // Patient-facing wording for fulfilment and tracking states.
 export const FULFILMENT_LABELS = {

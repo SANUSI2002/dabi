@@ -18,6 +18,7 @@ import {
 import { getDelivery } from "./data";
 import { useApiData } from "../../api/useApiData";
 import { validateCoordinates } from "../../utils/mapUtils";
+import DeliveryCodes from './DeliveryCodes';
 
 export function DeliveryTrackingPage() {
     const [zoom] = useZoom();
@@ -79,6 +80,7 @@ export function DeliveryTrackingPage() {
                     </section>
 
                     <aside>
+                        <DeliveryCodes orderId={orderId} enabled={order.eta !== 'Awaiting Payment' && order.eta !== 'Payment Failed' && order.eta !== 'Cancelled'} />
                         <JourneyCard steps={steps} />
                         <PharmacyCard order={order} />
                         <OrderSummary items={items} deliveryFee={deliveryFee} />

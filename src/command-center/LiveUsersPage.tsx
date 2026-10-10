@@ -61,6 +61,9 @@ export default function LiveUsersPage({
     >("SUSPENDED"),
     [reason, setReason] = useState("");
   const confirmation = useRef<HTMLHeadingElement>(null);
+  const [courierUser, setCourierUser] = useState<DirectoryUser | null>(null),
+    [courierName, setCourierName] = useState(""),
+    [courierActive, setCourierActive] = useState(true);
   useEffect(() => {
     let current = true;
     setLoading(true);
@@ -213,6 +216,92 @@ export default function LiveUsersPage({
           </button>
         </form>
       </Panel>
+      {courierUser && (
+        <Panel className="mt-4">
+          <PanelHeader title="Configure delivery partner" />
+          <form
+            className="space-y-4 p-5"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setBusy(true);
+              setError("");
+              setMessage("");
+              try {
+                await liveApiRequest(
+                  `/api/v1/delivery/platform/partners/${courierUser.id}`,
+                  {
+                    method: "PUT",
+                    body: JSON.stringify({
+                      displayName: courierName.trim(),
+                      isActive: courierActive,
+                    }),
+                  },
+                );
+                setMessage(
+                  courierActive
+                    ? "Courier activated. They can sign in at the pharmacy delivery partner page."
+                    : "Courier deactivated. Assignment access is blocked.",
+                );
+                setCourierUser(null);
+              } catch (e) {
+                setError(
+                  e instanceof Error
+                    ? e.message
+                    : "Could not configure courier.",
+                );
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <p className="break-words font-semibold">{courierUser.email}</p>
+            <p className="text-sm text-slate-600">
+              This changes delivery partner access only. Recent MFA is required;
+              activation is audited.
+            </p>
+            <label className="block text-sm font-semibold">
+              Courier display name
+              <input
+                className={input}
+                required
+                minLength={2}
+                maxLength={120}
+                value={courierName}
+                onChange={(e) => setCourierName(e.target.value)}
+                disabled={busy}
+              />
+            </label>
+            <label className="block text-sm font-semibold">
+              Delivery access
+              <select
+                className={input}
+                value={courierActive ? "active" : "inactive"}
+                onChange={(e) => setCourierActive(e.target.value === "active")}
+                disabled={busy}
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </label>
+            <div className="flex flex-wrap gap-3">
+              <button
+                disabled={busy}
+                className="min-h-11 rounded-lg bg-emerald-700 px-4 font-bold text-white"
+              >
+                {busy ? "Saving…" : "Save courier access"}
+              </button>
+              <button
+                type="button"
+                className="min-h-11 rounded-lg border px-4"
+                disabled={busy}
+                onClick={() => setCourierUser(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </Panel>
+      )}
       {selected && (
         <Panel className="mt-4">
           <PanelHeader title="Confirm account access decision" />
@@ -311,6 +400,22 @@ export default function LiveUsersPage({
                 </div>
                 <div className="flex items-center gap-3">
                   <StatusPill status={user.accountStatus} />
+                  {canManage &&
+                    user.id !== currentUserId &&
+                    user.accountStatus === "ACTIVE" && (
+                      <button
+                        className="min-h-11 rounded-lg border border-slate-300 px-3 text-sm font-semibold"
+                        disabled={busy}
+                        onClick={() => {
+                          setCourierUser(user);
+                          setCourierName(user.full_name || "");
+                          setCourierActive(true);
+                          setMessage("");
+                        }}
+                      >
+                        Courier access
+                      </button>
+                    )}
                   {canManage && user.id !== currentUserId && (
                     <button
                       disabled={busy}
