@@ -3,7 +3,6 @@ import { persisted, writeTenantState } from "./persist";
 import { audit } from "@/store/useAudit";
 import { MODULES, PRODUCTS, ALWAYS_ON_ROUTES, moduleForRoute, submoduleForRoute, type ProductKey } from "./entitlements";
 import { useIsLiveEmr } from "@/emr-live/session";
-import { isEmrRoute } from "@/emr-live/routes";
 
 export type OrgProfile = {
   id: string;
@@ -176,8 +175,9 @@ export function useRouteGate() {
   void products; void modules; void submodules;
   const s = useEntitlements.getState();
   return {
-    // A live hospital is licensed for the EMR product (verified by the backend): list its screens.
-    isRouteAllowed: (path: string) => (live ? isEmrRoute(path) : s.isRouteAllowed(path)),
+    // A live hospital: every screen stays in the menu; one not yet connected to the hospital's live
+    // records opens on a "not connected yet" notice (LiveRouteBoundary), never on sample data.
+    isRouteAllowed: (path: string) => (live ? true : s.isRouteAllowed(path)),
     routeBlockReason: (path: string) => s.routeBlockReason(path),
     isModuleEnabled: (key: string) => s.isModuleEnabled(key),
     accessMode,

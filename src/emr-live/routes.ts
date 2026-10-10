@@ -1,5 +1,3 @@
-import { moduleForRoute } from "@/platform/entitlements";
-
 // Which EMR screens read and write the live hospital backend. Every other screen shows a
 // "not connected yet" notice in live mode, so demo records are never shown as a hospital's data.
 // Each entry names the permission the backend requires to read that screen's data (any one of a list).
@@ -32,6 +30,3 @@ export function liveRouteState(path: string, permissions: readonly string[]): Li
   if (!required) return "not-connected";
   return [required].flat().some((permission) => permissions.includes(permission)) ? "connected" : "no-permission";
 }
-
-/** Screens that belong to the EMR product — the only ones listed in a live hospital's navigation. */
-export const isEmrRoute = (path: string) => moduleForRoute(path)?.product === "emr";
