@@ -9,6 +9,8 @@ describe("Sabi deployment surfaces", () => {
     expect(surfaceForPath("/command-center/login")).toBe("command-center");
     expect(surfaceForPath("/workspace")).toBe("emr");
     expect(surfaceForPath("/pharmacy-portal")).toBe("pharmacy");
+    expect(surfaceForPath("/rider/login")).toBe("pharmacy");
+    expect(surfaceForPath("/rider/delivery/assignment")).toBe("pharmacy");
     expect(surfaceForPath("/access")).toBe("health");
     expect(surfaceForPath("/emr/login")).toBe("emr");
     expect(surfaceForPath("/login")).toBe("shared");
@@ -19,6 +21,8 @@ describe("Sabi deployment surfaces", () => {
   it("redirects cross-surface paths only when an actual origin is configured", () => {
     const origins = { health: "https://www.example.test", emr: "https://emr.example.test", pharmacy: "https://pharmacy.example.test", "command-center": "https://command.example.test", telemedicine: "https://care.example.test" };
     expect(otherSurfaceUrl("/pharmacy/login", "", "health", origins)).toBe("https://pharmacy.example.test/pharmacy/login");
+    expect(otherSurfaceUrl("/rider/login", "", "health", origins)).toBe("https://pharmacy.example.test/rider/login");
+    expect(otherSurfaceUrl("/rider/history", "", "pharmacy", origins)).toBeNull();
     expect(otherSurfaceUrl("/workspace", "?tab=queue", "health", origins)).toBe("https://emr.example.test/workspace?tab=queue");
     expect(otherSurfaceUrl("/command-center/packages", "", "health", origins)).toBe("https://command.example.test/command-center/packages");
     expect(otherSurfaceUrl("/command-center/login", "", "health", origins)).toBe("https://command.example.test/command-center/login");

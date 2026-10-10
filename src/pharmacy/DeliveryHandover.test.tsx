@@ -30,6 +30,15 @@ const assignment = {
     contactPhone: "0123",
   },
 };
+const overview = {
+  profile: {
+    id: "partner",
+    userId: "courier",
+    displayName: "Courier",
+    isActive: true,
+  },
+  stats: { pending: 0, active: 1, completed: 0 },
+};
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.restore.mockResolvedValue({ user: { roles: ["DELIVERY_PARTNER"] } });
@@ -105,11 +114,13 @@ describe("courier code entry", () => {
   it("submits pickup proof with leading zeros, then opens delivery proof only after starting delivery", async () => {
     let current = { ...assignment };
     mocks.get.mockImplementation(async (path) =>
-      path.endsWith("/assignments")
-        ? current.assignmentStatus === "COMPLETED"
-          ? []
-          : [current]
-        : current,
+      path.endsWith("/me")
+        ? overview
+        : path.endsWith("/assignments")
+          ? current.assignmentStatus === "COMPLETED"
+            ? []
+            : [current]
+          : current,
     );
     mocks.write.mockImplementation(async (_path, body) => {
       current = {
@@ -118,7 +129,10 @@ describe("courier code entry", () => {
         assignmentStatus:
           body.status === "DELIVERED" ? "COMPLETED" : "ACCEPTED",
       };
-      return {};
+      return {
+        assignmentStatus: current.assignmentStatus,
+        fulfilmentStatus: current.fulfilmentStatus,
+      };
     });
     const input = await select();
     expect(
@@ -140,7 +154,11 @@ describe("courier code entry", () => {
   });
   it("does not advance a rejected code and prevents duplicate submission while verifying", async () => {
     mocks.get.mockImplementation(async (path) =>
-      path.endsWith("/assignments") ? [assignment] : assignment,
+      path.endsWith("/me")
+        ? overview
+        : path.endsWith("/assignments")
+          ? [assignment]
+          : assignment,
     );
     let reject: (e: Error) => void = () => {};
     mocks.write.mockReturnValue(
@@ -163,7 +181,9 @@ describe("courier code entry", () => {
     ).not.toBeInTheDocument();
   });
   it("renders empty assignments without demo deliveries or secrets", async () => {
-    mocks.get.mockResolvedValue([]);
+    mocks.get.mockImplementation(async (path) =>
+      path.endsWith("/me") ? overview : [],
+    );
     mount(<CourierPortal />);
     expect(
       await screen.findByText(/No active assignments/),

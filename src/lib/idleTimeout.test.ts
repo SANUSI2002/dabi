@@ -62,6 +62,8 @@ describe("idle sign-out timer", () => {
 describe("idle sign-in destination", () => {
   it("returns people to the sign-in page for the area they were in, and leaves public pages alone", () => {
     expect(idleSignInPath("/pharmacy-portal")).toBe("/pharmacy/login");
+    expect(idleSignInPath("/rider/delivery/assignment")).toBe("/rider/login");
+    expect(idleSignInPath("/pharmacy/courier")).toBe("/rider/login");
     expect(idleSignInPath("/command-center/tenants")).toBe("/command-center/login");
     expect(idleSignInPath("/inpatient")).toBe("/login");
     expect(idleSignInPath("/products/emr")).toBeNull();

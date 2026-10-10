@@ -10,7 +10,7 @@ export const isSignedIn = () => useAuth.getState().authed || hasLiveSession();
 
 /** Where to send someone who timed out on `pathname`; public pages stay where they are. */
 export function idleSignInPath(pathname: string): string | null {
-  if (pathname.startsWith('/pharmacy/courier')) return '/pharmacy/courier/login';
+  if (pathname.startsWith('/pharmacy/courier') || pathname === '/rider' || pathname.startsWith('/rider/')) return '/rider/login';
   const surface = surfaceForPath(pathname);
   if (surface === "health") return null;
   if (surface === "pharmacy") return "/pharmacy/login";

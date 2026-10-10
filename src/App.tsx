@@ -303,8 +303,20 @@ export default function App() {
         <Route path="/accept-invite/:id" element={<InvitePage />} />
         <Route path="/patient" element={<PatientPortalPage />} />
         <Route path="/pharmacy/login" element={<PharmacyLoginPage />} />
-        <Route path="/pharmacy/courier/login" element={<CourierPortal />} />
-        <Route path="/pharmacy/courier" element={<CourierPortal />} />
+        <Route path="/pharmacy/courier/login" element={<Navigate to="/rider/login" replace />} />
+        <Route path="/pharmacy/courier" element={<Navigate to="/rider/dashboard" replace />} />
+        <Route path="/rider" element={<Navigate to="/rider/dashboard" replace />} />
+        <Route path="/rider/login" element={<CourierPortal />} />
+        <Route path="/rider/join" element={<CourierPortal />} />
+        <Route path="/rider/signup" element={<Navigate to="/rider/join" replace />} />
+        <Route path="/rider/forgot-password" element={<Navigate to="/forgot-password" replace />} />
+        <Route path="/rider/dashboard" element={<CourierPortal />} />
+        <Route path="/rider/offers" element={<CourierPortal />} />
+        <Route path="/rider/delivery/:assignmentId" element={<CourierPortal />} />
+        <Route path="/rider/history" element={<CourierPortal />} />
+        <Route path="/rider/history/:assignmentId" element={<CourierPortal />} />
+        <Route path="/rider/profile" element={<CourierPortal />} />
+        <Route path="/rider/support" element={<CourierPortal />} />
         <Route path="/pharmacy/register" element={<PharmacyRegistrationPage />} />
         <Route path="/pharmacy/verify-email/:uid" element={<PharmacyVerifyEmailPage />} />
         <Route path="/pharmacy-portal/login" element={<PharmacyLoginPage />} />

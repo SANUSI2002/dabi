@@ -108,6 +108,18 @@ Automated tests use fake people, synthetic files and embedded PostgreSQL, never 
 - These codes record an authenticated handover acknowledgement, not guaranteed package condition, identity verification or executed financial settlement. Returns, disputes, courier-provider callbacks, photos/signatures and offline proof are separate work.
 - Acceptance coverage: 38 isolated delivery HTTP tests, four embedded-PostgreSQL handover cases, nine frontend handover cases and phone/landscape visual QA with fake packages. No real package or account was assigned, activated or delivered during testing. The existing local-storage demo cannot verify real codes; use an API-connected deployment.
 
+### Connected Sabi Rider portal
+
+The supplied rider ZIP is a visual reference, not an imported standalone authentication application. `/rider/login`, `/rider/dashboard`, `/rider/offers`, `/rider/delivery/:assignmentId`, `/rider/history`, `/rider/history/:assignmentId`, `/rider/profile` and `/rider/support` run on the existing pharmacy surface. Legacy `/pharmacy/courier` and `/pharmacy/courier/login` links redirect to this portal. The landing page includes `/#riders` with sign-in and operations-contact entry points.
+
+Riders use Sabi Identity, memory-held access tokens, refresh sessions, existing MFA and idle sign-out. Both the identity role and active server-owned delivery partner profile are required. Counts and paginated assignment/history data are server-owned; recipient contact is available only for the rider's accepted assignment and is removed after completion. UI success follows the confirmed mutation, even if a subsequent refresh fails. Different pickup and patient codes remain mandatory. Desktop sidebar and phone bottom navigation share Sabi's green/cream visual language, Sora/Inter typography and accessible feedback.
+
+`GET /api/v1/delivery/me` returns the active rider's profile and counts. `GET /api/v1/delivery/history` returns only that rider's completed/declined summaries with bounded pagination and no recipient, medicines, codes or financial details. These are additive APIs; no migration is needed for the portal integration.
+
+Self-service rider registration/document review, availability publishing, earnings/payouts, GPS tracking and returns/disputes from the ZIP are not connected or claimed complete. `/rider/join` contacts operations rather than fabricating an application. Activate an existing eligible account through the already-authorized Command Center workflow; no anonymous rider role grant is introduced.
+
+Verification: 461 frontend tests, 857 backend tests and five embedded-PostgreSQL handover/profile/history cases passed. Synthetic browser checks cover leading-zero codes, rejected codes, successful pickup/delivery, completion privacy and responsive layouts. No real account, package, payment or email was changed by these tests.
+
 ### Remaining work
 
 Do not equate this implementation with complete commercial/regulatory certification. Remaining work:

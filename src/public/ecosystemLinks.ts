@@ -16,4 +16,6 @@ const commandCenterOrigin = import.meta.env.VITE_SABI_COMMAND_CENTER_URL?.trim()
 
 export const EMR_SIGN_IN_URL = emrOrigin ? `${emrOrigin}/login` : "/emr/login";
 export const PHARMACY_SIGN_IN_URL = pharmacyOrigin ? `${pharmacyOrigin}/pharmacy/login` : "/pharmacy/login";
+export const RIDER_SIGN_IN_URL = pharmacyOrigin ? `${pharmacyOrigin}/rider/login` : "/rider/login";
+export const RIDER_JOIN_URL = pharmacyOrigin ? `${pharmacyOrigin}/rider/join` : "/rider/join";
 export const COMMAND_CENTER_SIGN_IN_URL = commandCenterOrigin ? `${commandCenterOrigin}/command-center/login` : "/command-center/login";

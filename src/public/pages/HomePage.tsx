@@ -20,6 +20,7 @@ import teamFamily from "@/assets/landing/team-family.webp";
 import providerHospital from "@/assets/landing/provider-hospital.webp";
 import providerProfessional from "@/assets/landing/provider-professional.webp";
 import ctaWellness from "@/assets/landing/cta-wellness.webp";
+import RiderSection from "@/public/RiderSection";
 
 const helpWith = [
   { icon: Stethoscope, tone: "bg-brand-50 text-brand-700", title: "Everyday health worries", copy: "A cough that won't settle, a rash, a fever at night — talk it through with a qualified clinician." },
@@ -129,6 +130,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <RiderSection />
 
       <section aria-labelledby="start-heading" className="relative overflow-hidden bg-brand-800 text-white">
         <div aria-hidden className="absolute -left-16 -top-16 h-40 w-40 rounded-full bg-white/10" /><div aria-hidden className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/5" />

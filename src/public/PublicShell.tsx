@@ -46,7 +46,9 @@ export default function PublicShell() {
     // Read the preference here rather than subscribing: re-running this effect when it resolves
     // would yank the page back to the top after a page has scrolled itself (e.g. /solutions/:type).
     const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+    const anchor = location.hash && document.getElementById(location.hash.slice(1));
+    if (anchor) anchor.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    else window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
     const pageMeta = meta[location.pathname] ?? (location.pathname.startsWith("/solutions/") ? meta["/solutions"] : undefined) ?? ["Sabi Health — Intelligent Healthcare. Connected.", "Connected digital healthcare infrastructure for healthcare organizations and patients."];
     document.title = pageMeta[0];
     let description = document.querySelector('meta[name="description"]');
@@ -56,7 +58,7 @@ export default function PublicShell() {
       document.head.appendChild(description);
     }
     description.setAttribute("content", pageMeta[1]);
-  }, [location.pathname]);
+  }, [location.pathname, location.hash, location.key]);
 
   return (
     <div className="min-h-full bg-[#f8fbf9] text-slate-900">
@@ -97,7 +99,7 @@ export default function PublicShell() {
           <div className="grid gap-10 border-b border-white/10 pb-12 md:grid-cols-[1.4fr_repeat(4,1fr)]">
             <div><Brand inverse /><p className="mt-5 max-w-xs text-sm leading-6 text-emerald-50/60">Building connected healthcare infrastructure for organizations, professionals and patients.</p><div className="mt-6"><p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-brand-300">Call or WhatsApp</p><ContactLines light /><ContactEmails light className="mt-5" /></div></div>
             <FooterGroup title="Products" links={[["Sabi EMR", "/products/emr"], ["Sabi Health telemedicine", "/products/telemedicine"], ["Sabi AI", "/ai"], ["Pricing", "/pricing"], ["Roadmap", "/roadmap"]]} />
-            <FooterGroup title="Solutions" links={[["Hospitals", "/solutions/hospitals"], ["Clinics", "/solutions/clinics"], ["Hospital groups", "/solutions/hospital-groups"], ["Professionals", "/solutions/professionals"]]} />
+            <FooterGroup title="Solutions" links={[["Hospitals", "/solutions/hospitals"], ["Clinics", "/solutions/clinics"], ["Hospital groups", "/solutions/hospital-groups"], ["Professionals", "/solutions/professionals"], ["Sabi riders", "/#riders"]]} />
             <FooterGroup title="Company" links={[["About", "/about"], ["Team", "/about#team"], ["Careers", "/resources#careers"], ["Contact", "/book-demo"]]} />
             <FooterGroup title="Resources" links={[["Resources", "/resources"], ["Documentation", "/resources#documentation"], ["Help Centre", "/resources#help-centre"], ["System Status", "/resources#system-status"]]} />
           </div>

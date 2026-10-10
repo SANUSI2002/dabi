@@ -11,6 +11,7 @@ export function deploymentSurface(value: string | undefined): DeploymentSurface 
 export function surfaceForPath(pathname: string): Exclude<DeploymentSurface, "all"> | "shared" {
   if (pathname.startsWith("/reset-password/")) return "shared";
   if (pathname.startsWith("/accept-invite/")) return "shared";
+  if (pathname === "/rider" || pathname.startsWith("/rider/")) return "pharmacy";
   if (pathname.startsWith("/pharmacy/") || pathname.startsWith("/pharmacy-portal")) return "pharmacy";
   if (pathname === "/telemedicine" || pathname.startsWith("/telemedicine/")) return "telemedicine";
   if (pathname === "/command-center" || pathname.startsWith("/command-center/")) return "command-center";
