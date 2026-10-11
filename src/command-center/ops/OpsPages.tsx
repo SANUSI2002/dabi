@@ -1,6 +1,6 @@
 // Background jobs (with safe, audited retries), integrations (status only — never a key or token) and
 // system health: alerts evaluated live with where to act.
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { AlertOctagon, AlertTriangle, CheckCircle2, Info, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/cn';
@@ -9,17 +9,19 @@ import { alerts, integrations, jobSummary, listJobs, retryJob, type Integration,
 import { ActionDialog, Empty, ErrorBox, Field, FilterBar, Gate, Loading, Note, Pagination, Table, Tabs, Td, human, useCc, useFormat, useLoad, type ActionDialogProps } from './kit';
 import { drillTo } from './routes';
 
-const TYPES: { value: JobType; label: string }[] = [{ value: 'notification', label: 'Notifications' }, { value: 'reminder', label: 'Medicine reminders' }, { value: 'pharmacy-email', label: 'Pharmacy emails' }, { value: 'emr-webhook', label: 'Hospital webhooks' }];
+const TYPES: { value: JobType; label: string }[] = [{ value: 'notification', label: 'Notifications' }, { value: 'reminder', label: 'Medicine reminders' }, { value: 'pharmacy-email', label: 'Pharmacy emails' }, { value: 'emr-webhook', label: 'Hospital webhooks' }, { value: 'document-scan', label: 'Malware scans' }];
 const STATUS_OPTIONS: Record<JobType, string[]> = {
   notification: ['PENDING', 'SENT', 'DELIVERED', 'READ', 'FAILED', 'SKIPPED', 'CANCELLED'],
   reminder: ['SCHEDULED', 'SENT', 'FAILED', 'CANCELLED', 'SKIPPED'],
   'pharmacy-email': ['QUEUED', 'SENT', 'FAILED', 'CANCELLED'],
   'emr-webhook': ['PENDING', 'DELIVERED', 'DEAD'],
+  'document-scan': ['PENDING', 'FAILED', 'INFECTED', 'REJECTED'],
 };
 
 function jobCells(type: JobType, j: JobRow, f: ReturnType<typeof useFormat>) {
   const s = (k: string) => (j[k] === null || j[k] === undefined ? '—' : String(j[k]));
   if (type === 'notification') return [<>{s('recipient')}<span className="block text-[11px] text-slate-500">{human(s('channel'))}</span></>, <>{human(s('category'))}<span className="block text-[11px] text-slate-500">{s('eventType')}</span></>, s('attempts'), <span key="k22-261" className="text-xs text-red-700">{j.lastError ? s('lastError') : ''}</span>, f.dateTime(j.updatedAt as string)];
+  if (type === 'document-scan') return [<Fragment key="file">{s('source')}<span className="block text-[11px] text-slate-500">{human(s('what'))}</span></Fragment>, s('owner'), j.attempts === null ? '—' : s('attempts'), <span key="problem" className="text-xs text-red-700">{j.error ? human(s('error')) : j.status === 'PENDING' ? 'Waiting for the scanner' : ''}</span>, <Fragment key="since">{f.dateTime(j.since as string)}{j.retryOn ? <span className="block text-[11px] text-slate-500">Retry from the {String(j.retryOn)} review page</span> : null}</Fragment>];
   if (type === 'reminder') return [s('recipient'), f.dateTime(j.dueAt as string), s('snoozeCount'), <span key="k23-102" className="text-xs text-red-700">{j.lastError ? s('lastError') : ''}</span>, f.dateTime(j.processedAt as string)];
   if (type === 'pharmacy-email') return [<>{(j.pharmacy as { name: string } | null)?.name ?? '—'}<span className="block text-[11px] text-slate-500">{s('recipient')}</span></>, human(s('kind')), s('attempts'), <span key="k24-213" className="text-xs text-red-700">{j.lastErrorCode ? human(s('lastErrorCode')) : ''}</span>, f.dateTime((j.sentAt ?? j.createdAt) as string)];
   return [s('organization'), <span key="k25-31" className="font-mono text-[11px]">{s('eventId').slice(0, 8)}</span>, s('attempts'), <span key="k25-121" className="text-xs text-red-700">{[j.lastStatusCode && `HTTP ${s('lastStatusCode')}`, j.lastError && s('lastError')].filter(Boolean).join(' · ')}</span>, f.dateTime((j.deliveredAt ?? j.createdAt) as string)];
@@ -29,6 +31,7 @@ const HEADS: Record<JobType, string[]> = {
   reminder: ['Patient', 'Due', 'Snoozes', 'Last error', 'Processed'],
   'pharmacy-email': ['Pharmacy', 'Email', 'Attempts', 'Last error', 'Sent / created'],
   'emr-webhook': ['Hospital', 'Event', 'Attempts', 'Last response', 'Delivered / created'],
+  'document-scan': ['File', 'Owner', 'Attempts', 'Problem', 'Since'],
 };
 
 export function JobsPage({ defaultType = 'notification' }: { defaultType?: JobType }) {

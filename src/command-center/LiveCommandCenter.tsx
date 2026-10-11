@@ -28,6 +28,8 @@ import AuditPage from './ops/AuditPage';
 import DeliveryPricingPage from './ops/DeliveryPricingPage';
 import PharmacyExceptionsPage from './ops/PharmacyExceptionsPage';
 import { LiveSearchResults } from './ops/LiveSearch';
+import { EmrUsagePage, HospitalsPage, LaboratoriesPage, PrescriptionsPage, QuotesPage, VerificationPage, WaitlistPage, WellnessPage } from './ops/ProductPages';
+import { AccessPage, AnalyticsPage, isNotBuilt, NotBuiltPage, SecurityPage, SessionsPage, TenantsPage, type TenantView } from './ops/PlatformPages';
 
 const PRODUCTS: { value: ProductContext; label: string }[] = [
   { value: 'all', label: 'All Sabi' },
@@ -175,6 +177,34 @@ export default function LiveCommandCenter() {
     content = <PatientsPage key={path} path={path} />;
   } else if (path === '/command-center/sabi-health/orders' || path.startsWith('/command-center/sabi-health/orders/')) {
     content = <OrdersPage key={path} path={path} />;
+  } else if (path === '/command-center/sabi-health/prescriptions' || path.startsWith('/command-center/sabi-health/prescriptions/')) {
+    content = <PrescriptionsPage key={path} path={path} />;
+  } else if (path === '/command-center/sabi-health/quotes') {
+    content = <QuotesPage />;
+  } else if (path === '/command-center/sabi-health/wellness') {
+    content = <WellnessPage />;
+  } else if (path === '/command-center/sabi-health/hospitals') {
+    content = <HospitalsPage />;
+  } else if (path === '/command-center/sabi-health/laboratories') {
+    content = <LaboratoriesPage />;
+  } else if (path === '/command-center/sabi-health/verification') {
+    content = <VerificationPage />;
+  } else if (path === '/command-center/waitlist') {
+    content = <WaitlistPage />;
+  } else if (path === '/command-center/emr-usage') {
+    content = <EmrUsagePage />;
+  } else if (path === '/command-center/roles') {
+    content = <AccessPage />;
+  } else if (path === '/command-center/sessions') {
+    content = <SessionsPage />;
+  } else if (path === '/command-center/security') {
+    content = <SecurityPage />;
+  } else if (path === '/command-center/analytics') {
+    content = <AnalyticsPage />;
+  } else if (['/command-center/provisioning', '/command-center/setup', '/command-center/subscriptions', '/command-center/licenses', '/command-center/entitlements', '/command-center/documents'].includes(path)) {
+    content = <TenantsPage key={path} view={path.split('/').pop() as TenantView} />;
+  } else if (isNotBuilt(path)) {
+    content = <NotBuiltPage path={path} />;
   } else if (path === '/command-center/sabi-health/pharmacy-exceptions') {
     content = <PharmacyExceptionsPage />;
   } else if (path === '/command-center/sabi-health/deliveries') {

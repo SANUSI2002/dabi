@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Download, ShieldAlert } from 'lucide-react';
-import { CommandButton, CommandInput, CommandPageHeader, CommandSelect, Panel, PanelHeader, StatusPill } from '../components/ui';
+import { CommandButton, CommandInput, CommandPageHeader, CommandSelect, Panel, StatusPill } from '../components/ui';
 import { endEmergencyAccess, exportAudit, listAudit, listEmergencyAccess, reviewEmergencyAccess, type EmergencyGrant } from './api';
 import { ActionDialog, Empty, ErrorBox, Field, FilterBar, Gate, Loading, Note, Pagination, Table, Tabs, Td, human, useCc, useFormat, useLoad, type ActionDialogProps } from './kit';
 import { R } from './routes';

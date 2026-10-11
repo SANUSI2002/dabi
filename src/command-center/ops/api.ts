@@ -186,7 +186,7 @@ export const updateCase = (id: string, body: Record<string, string | number | nu
 
 // ---- Ops --------------------------------------------------------------------------------------
 export type Integration = { key: string; name: string; purpose: string; status: 'CONFIGURED' | 'NOT_CONFIGURED' | 'SANDBOX' | 'DEGRADED'; detail: string; activity: Record<string, unknown> | null };
-export type JobType = 'notification' | 'reminder' | 'pharmacy-email' | 'emr-webhook';
+export type JobType = 'notification' | 'reminder' | 'pharmacy-email' | 'emr-webhook' | 'document-scan';
 export type JobSummary = Record<JobType, { window: string; counts: Record<string, number>; retryable: boolean; note?: string; outbox?: { pending: number; oldestPendingAt: string | null } }>;
 export type JobRow = Record<string, unknown> & { id: string; status: string; retryable: boolean };
 export type Alert = { key: string; severity: 'critical' | 'warning' | 'info'; category: string; title: string; detail: string; at?: string; drill?: Drill };
