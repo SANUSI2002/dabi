@@ -69,6 +69,33 @@ beforeEach(() => {
   mocks.api.mockResolvedValue({});
 });
 describe("rider registration and automatic documents", () => {
+  it("uses the shared rider access layout and an accessible password toggle", async () => {
+    mount("/rider/register");
+    await screen.findByRole("button", { name: "Create rider account" });
+    expect(document.querySelector(".rider-access-register")).toBeInTheDocument();
+    const password = screen.getByLabelText("Password");
+    expect(password).toHaveAttribute("type", "password");
+    expect(password).toHaveAttribute("autocomplete", "new-password");
+    fireEvent.click(screen.getByRole("button", { name: "Show password" }));
+    expect(password).toHaveAttribute("type", "text");
+    expect(screen.getByRole("button", { name: "Hide password" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("link", { name: "Contact support" })).toHaveAttribute("href", "mailto:support@sabihealth.org");
+  });
+  it("keeps registration connected to the existing API after the visual update", async () => {
+    mocks.write.mockResolvedValue({ emailSent: true });
+    mount("/rider/register");
+    await screen.findByRole("button", { name: "Create rider account" });
+    for (const [label, value] of Object.entries({
+      "Email address": "rider@synthetic.test", Password: "Synthetic-password-2002!", "Full name": "Synthetic Rider",
+      "Phone number": "08000000000", State: "Lagos", City: "Ikeja", "Driving licence expiry": "2099-01-01", "Insurance expiry": "2099-01-01",
+    })) fireEvent.change(screen.getByLabelText(label), { target: { value } });
+    fireEvent.click(screen.getByRole("checkbox", { name: /I consent/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Create rider account" }));
+    expect(await screen.findByRole("heading", { name: "Account created. Check your email." })).toBeInTheDocument();
+    expect(mocks.write).toHaveBeenCalledWith("/api/v1/riders/register", expect.objectContaining({
+      fullName: "Synthetic Rider", email: "rider@synthetic.test", vehicleType: "MOTORCYCLE", consent: true, consentVersion: config.consentVersion,
+    }));
+  });
   it("shows signup without granting access and respects disabled registration", async () => {
     mocks.get.mockResolvedValue({ ...config, enabled: false });
     mount("/rider/register");

@@ -12,8 +12,6 @@ import {
   CheckCircle2,
   ChevronRight,
   ClipboardList,
-  Eye,
-  EyeOff,
   Headphones,
   HeartPulse,
   History,
@@ -44,6 +42,7 @@ import {
   type RiderOverview,
 } from "./types";
 import "./rider.css";
+import { RiderAuthLayout, RiderPasswordField } from "./RiderAuthLayout";
 
 const nav = [
   { path: "/rider/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -91,8 +90,7 @@ export default function RiderPortal() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [email, setEmail] = useState(""),
-    [password, setPassword] = useState(""),
-    [showPassword, setShowPassword] = useState(false);
+    [password, setPassword] = useState("");
   const load = useCallback(async () => {
     const [summary, assignments] = await Promise.all([
       getLive<RiderOverview>(`${root}/me`),
@@ -291,10 +289,7 @@ export default function RiderPortal() {
     );
   if (!identity)
     return (
-      <div className="sabi-rider rider-auth">
-        <div className="rider-auth-form-panel">
-          <Brand />
-          <div className="rider-auth-inner">
+      <RiderAuthLayout>
             <p className="rider-eyebrow">Your next delivery starts here</p>
             <h1>Welcome back.</h1>
             <p className="rider-muted">
@@ -343,7 +338,7 @@ export default function RiderPortal() {
                   });
                 }}
               >
-                <label htmlFor="rider-email">Email address</label>
+                <div className="rider-access-field"><label htmlFor="rider-email">Email address</label>
                 <input
                   className="rider-input"
                   id="rider-email"
@@ -353,30 +348,8 @@ export default function RiderPortal() {
                   disabled={busy}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                />
-                <label htmlFor="rider-password">Password</label>
-                <div className="rider-password">
-                  <input
-                    className="rider-input"
-                    id="rider-password"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="current-password"
-                    required
-                    disabled={busy}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="rider-eye"
-                    aria-label={
-                      showPassword ? "Hide password" : "Show password"
-                    }
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
+                /></div>
+                <RiderPasswordField id="rider-password" value={password} onChange={setPassword} disabled={busy} />
                 <Link
                   className="rider-text-link rider-forgot"
                   to="/forgot-password"
@@ -391,15 +364,10 @@ export default function RiderPortal() {
             )}
             <p className="rider-auth-footer">
               New to the rider network?{" "}
-              <Link to="/rider/join">Join the network</Link>
+              <Link to="/rider/register">Create an account</Link>
             </p>
-            <a className="rider-text-link" href={SABI_HEALTH_URL}>
-              Back to Sabi Health
-            </a>
-          </div>
-        </div>
-        <AuthStory />
-      </div>
+            <Link className="rider-text-link" to="/rider/application">Already applied? View your application <ArrowRight size={16} aria-hidden="true" /></Link>
+      </RiderAuthLayout>
     );
   const displayName =
     overview?.profile.displayName || identity.user.fullName || "Rider";

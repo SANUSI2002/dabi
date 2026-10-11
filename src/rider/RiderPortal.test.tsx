@@ -72,6 +72,17 @@ beforeEach(() => {
   );
 });
 describe("connected rider portal", () => {
+  it("shares the registration visual shell and keeps both entry links available", async () => {
+    mocks.restore.mockResolvedValue(null);
+    mount("/rider/login");
+    await screen.findByRole("button", { name: "Sign in" });
+    expect(document.querySelector(".rider-access")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Create an account" })).toHaveAttribute("href", "/rider/register");
+    expect(screen.getByRole("link", { name: /Already applied/ })).toHaveAttribute("href", "/rider/application");
+    fireEvent.click(screen.getByRole("button", { name: "Show password" }));
+    expect(screen.getByLabelText("Password")).toHaveAttribute("type", "text");
+    expect(mocks.login).not.toHaveBeenCalled();
+  });
   it("uses server counts and the uploaded sidebar structure without fabricated ratings or earnings", async () => {
     mount();
     expect(

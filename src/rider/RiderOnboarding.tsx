@@ -21,8 +21,10 @@ import type {
   RiderRegistrationConfig,
 } from "./onboardingTypes";
 import "./rider.css";
+import { RiderAuthLayout, RiderPasswordField } from "./RiderAuthLayout";
 const root = "/api/v1/riders";
-function Frame({ children }: { children: ReactNode }) {
+function Frame({ children, auth = false, registration = false }: { children: ReactNode; auth?: boolean; registration?: boolean }) {
+  if (auth) return <RiderAuthLayout registration={registration}>{children}</RiderAuthLayout>;
   return (
     <div className="sabi-rider rider-application">
       <header>
@@ -275,7 +277,7 @@ export default function RiderOnboarding() {
       "APPROVED",
     ].includes(application.status);
   return (
-    <Frame>
+    <Frame auth={registering || !!verifyRoute || !identity} registration={registering || (!!identity && !application)}>
       <p className="rider-eyebrow">Your next chapter, on the move</p>
       <h1>
         {verifyRoute
@@ -284,10 +286,7 @@ export default function RiderOnboarding() {
             ? "Join the Sabi rider network"
             : "Your rider application"}
       </h1>
-      <p className="rider-muted">
-        Deliver with care. Upload your credentials once; we handle security
-        screening and operations review in the background.
-      </p>
+      <p className="rider-muted">{registering ? "Start with your details. Verify your email, then add your rider documents for review." : verifyRoute ? "One quick confirmation to secure your rider account." : "Manage your details, documents and application status in one place."}</p>
       {error && (
         <p className="rider-alert" role="alert">
           {error}
@@ -384,7 +383,8 @@ export default function RiderOnboarding() {
           }}
         >
           {registering && (
-            <>
+            <fieldset className="rider-access-account-fields">
+              <legend>Your account</legend>
               <label>
                 Email address
                 <input
@@ -395,22 +395,8 @@ export default function RiderOnboarding() {
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </label>
-              <label>
-                Password
-                <input
-                  required
-                  type="password"
-                  autoComplete="new-password"
-                  minLength={12}
-                  maxLength={128}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <small>
-                  At least 12 characters, including a number and a symbol.
-                </small>
-              </label>
-            </>
+              <RiderPasswordField id="rider-signup-password" value={password} onChange={setPassword} disabled={busy} newPassword />
+            </fieldset>
           )}
           <ProfileFields values={profile} set={setProfile} disabled={busy} />
           <label className="rider-consent">
@@ -474,16 +460,7 @@ export default function RiderOnboarding() {
                 onChange={(e) => setEmail(e.target.value)}
               />
             </label>
-            <label>
-              Password
-              <input
-                required
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </label>
+            <RiderPasswordField id="rider-application-password" value={password} onChange={setPassword} disabled={busy} />
             <button className="rider-button" disabled={busy}>
               {busy ? "Signing in…" : "Sign in"}
             </button>
