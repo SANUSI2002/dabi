@@ -161,7 +161,7 @@ export async function authorizedRequest(path, { method = 'GET', body, query, sig
   const parsed = await response.json().catch(() => ({}));
   if (!response.ok) {
     const message = parsed.message || parsed.error?.message || (response.status === 401 ? 'Your session has expired. Please sign in again.' : 'The Sabi Health service could not complete that request.');
-    throw Object.assign(new Error(message), { status: response.status, code: parsed.error?.code || parsed.code, errors: parsed.errors });
+    throw Object.assign(new Error(message), { status: response.status, code: parsed.error?.code || parsed.code, errors: parsed.errors, details: parsed.details || parsed.error?.details });
   }
   return parsed;
 }

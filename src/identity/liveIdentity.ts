@@ -11,7 +11,7 @@ export type LivePlatformOrganization = { id: string; type: string; name: string;
 export type LiveInvitation = { id: string; email: string; scope: 'PLATFORM' | 'ORGANIZATION'; roleCode: string; organizationId: string | null; organizationName: string | null; expiresAt: string; createdAt: string; status: 'PENDING' | 'ACCEPTED' | 'EXPIRED' | 'REVOKED'; existingAccount?: boolean };
 
 /** A failed API call: HTTP status, the service's error code, and per-field problems when it sends them. */
-export type LiveApiError = Error & { status: number; code?: string; details?: Array<{ field?: string; message: string }> };
+export type LiveApiError = Error & { status: number; code?: string; details?: Array<{ field?: string; message: string }>; info?: Record<string, unknown> };
 
 let accessToken: string | null = null;
 let identity: LiveIdentity | null = null;
@@ -31,6 +31,7 @@ async function requestApi<T>(path: string, options: RequestInit = {}): Promise<T
     error.status = response.status;
     error.code = body.error?.code;
     if (Array.isArray(body.error?.details)) error.details = body.error.details;
+    else if (body.error?.details && typeof body.error.details === 'object') error.info = body.error.details;
     throw error;
   }
   return body as T;
@@ -51,6 +52,24 @@ export async function liveApiCsvRequest(path: string): Promise<string> {
   }
   if (!response.headers.get('Content-Type')?.startsWith('text/csv')) throw new Error('The service did not return a valid CSV export.');
   return response.text();
+}
+
+/** Authenticated POST that returns a text file (e.g. a CSV export that needs a reason in its body). */
+export async function liveApiTextPost(path: string, payload: unknown): Promise<{ text: string; filename: string | null }> {
+  if (!apiBaseUrl) throw new Error('Sabi API is not configured.');
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    method: 'POST', credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(30000), body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json', Accept: 'text/csv', 'X-Sabi-Client': 'browser', ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    const error = new Error(body.error?.message || body.message || 'Export failed. Please sign in again or retry.') as LiveApiError;
+    error.status = response.status;
+    error.code = body.error?.code ?? body.code;
+    throw error;
+  }
+  const filename = /filename="([^"]+)"/.exec(response.headers.get('Content-Disposition') ?? '')?.[1] ?? null;
+  return { text: await response.text(), filename };
 }
 
 const request = <T,>(path: string, options: RequestInit = {}) => requestApi<T>(`/api/v1/auth${path}`, options);

@@ -41,6 +41,20 @@ const RESERVATION_ERRORS = {
   INVALID: "One of these quotes has expired or changed. Check the latest quotes and try again",
 };
 
+// Delivery pricing is set by Sabi and calculated on the server; these explain why it could not be.
+const NOT_SERVICEABLE = {
+  TIER_RADIUS: "This pharmacy does not deliver that far. Choose a closer address, pick up instead, or choose another pharmacy.",
+  MAX_DISTANCE: "This address is beyond Sabi's delivery range for this pharmacy. Choose a closer address or pick up instead.",
+  ZONE_PAUSED: "Delivery to this area is paused right now. Choose pickup or another address.",
+  OUTSIDE_ZONES: "Sabi does not deliver to this area yet. Choose pickup or another address.",
+};
+function pricingMessage(err) {
+  if (err.code === "NOT_SERVICEABLE") return NOT_SERVICEABLE[err.details?.reason] || err.message;
+  if (err.code === "INVALID_ORIGIN") return "This pharmacy has not set its location, so delivery cannot be priced. Choose pickup or another pharmacy.";
+  if (err.code === "ROUTE_DISTANCE_UNAVAILABLE") return "We couldn't work out the road distance just now. Please try again in a minute.";
+  return null;
+}
+
 const fulfilmentMethod = (group) => (group.lines[0]?.product.deliveryMode === "pickup" ? "PICKUP" : "DELIVERY");
 
 function buildGroups(cart) {
@@ -176,21 +190,44 @@ export function CheckoutPage() {
       setPrepared({ reservationId: reservation.id, preview: nextPreview });
       setStep(3);
     } catch (err) {
-      notify(RESERVATION_ERRORS[err.code] || err.message);
+      notify(RESERVATION_ERRORS[err.code] || pricingMessage(err) || err.message);
     } finally {
       setPreparing(false);
     }
+  };
+
+  const fulfilmentsFor = () => groups.map((group) => ({ pharmacyId: group.pharmacy.id, fulfilmentMethod: fulfilmentMethod(group) }));
+  // A fresh quote for the same held stock (when the old one expired or Sabi changed pricing).
+  const requote = async () => {
+    const nextPreview = await previewCheckout(prepared.reservationId, {
+      fulfilments: fulfilmentsFor(),
+      deliveryCoordinates: needsDelivery ? { latitude: selectedAddress.lat, longitude: selectedAddress.lng } : undefined,
+    });
+    setPrepared({ reservationId: prepared.reservationId, preview: nextPreview });
+    return nextPreview;
   };
 
   // Creates the order from the held stock, then hands over to Paystack to pay.
   const handlePlaceOrder = async () => {
     if (!groups.length || !prepared) return;
     setPlacing(true);
+    let shown = prepared.preview;
     try {
+      // An expired quote is refreshed first; if the total moved, the patient sees it before paying.
+      if (shown.quote?.expiresAt && new Date(shown.quote.expiresAt) <= new Date()) {
+        const fresh = await requote();
+        if (fresh.totalPayableMinor !== shown.totalPayableMinor) {
+          notify(`Prices were updated: your total is now ${formatNaira(naira(fresh.totalPayableMinor))}. Check it, then tap Pay again.`);
+          setPlacing(false);
+          return;
+        }
+        shown = fresh;
+      }
       const order = await createOrder({
+        expectedTotalPayableMinor: shown.totalPayableMinor,
         reservationId: prepared.reservationId,
         idempotencyKey: keys.order,
-        fulfilments: groups.map((group) => ({ pharmacyId: group.pharmacy.id, fulfilmentMethod: fulfilmentMethod(group) })),
+        fulfilments: fulfilmentsFor(),
         delivery: needsDelivery
           ? {
               recipientName: selectedAddress.recipient || getCurrentUser()?.fullName || "Patient",
@@ -205,7 +242,16 @@ export function CheckoutPage() {
       clearCart();
       window.location.assign(payment.authorizationUrl);
     } catch (err) {
-      notify(err.message);
+      if (err.code === "PRICE_CHANGED") {
+        try {
+          const fresh = await requote();
+          notify(`Delivery pricing changed: your total is now ${formatNaira(naira(fresh.totalPayableMinor))}. Check it, then tap Pay again.`);
+        } catch (requoteError) {
+          notify(pricingMessage(requoteError) || requoteError.message);
+        }
+      } else {
+        notify(pricingMessage(err) || err.message);
+      }
       setPlacing(false);
     }
   };
@@ -402,6 +448,22 @@ export function CheckoutPage() {
               <span>Delivery fee</span>
               <span>{deliveryFee == null ? (needsDelivery ? "Calculated at review" : formatNaira(0)) : formatNaira(deliveryFee)}</span>
             </div>
+            {preview?.pharmacies?.filter((p) => p.fulfilmentMethod === "DELIVERY" && p.deliveryBreakdown?.length).map((p) => (
+              <div key={p.pharmacy.id} style={{ margin: "-4px 0 8px", padding: "6px 10px", borderRadius: 8, background: "var(--sabi-surface-muted, #f4f7f5)", fontSize: "0.76rem", color: "var(--sabi-text-secondary)" }}>
+                <div style={{ fontWeight: 600, marginBottom: 2 }}>{p.pharmacy.name} · {p.distanceKm} km{p.distanceMethod === "ROAD" ? " by road" : ""}</div>
+                {p.deliveryBreakdown.map((line) => (
+                  <div key={line.code} style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                    <span>{line.label}</span>
+                    <span>{line.amountMinor < 0 ? "−" : ""}{formatNaira(naira(Math.abs(line.amountMinor)))}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+            {preview?.quote?.expiresAt && (
+              <p style={{ fontSize: "0.72rem", color: "var(--sabi-text-secondary)", margin: "0 0 8px" }}>
+                Prices held until {new Date(preview.quote.expiresAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}.
+              </p>
+            )}
             {platformFee > 0 && (
               <div className="sabi-cart-summary-row">
                 <span>Service fee</span>

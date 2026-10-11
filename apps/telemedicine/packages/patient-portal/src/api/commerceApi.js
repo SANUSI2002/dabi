@@ -45,8 +45,12 @@ export const releaseReservation = (id) => authorizedRequest(`/api/v1/reservation
 export const previewCheckout = (reservationId, { fulfilments, deliveryCoordinates }) =>
   post(`/api/v1/checkout-pricing/preview/reservations/${reservationId}`, { fulfilments, ...(deliveryCoordinates ? { deliveryCoordinates } : {}) });
 
-export const createOrder = ({ reservationId, idempotencyKey, fulfilments, delivery }) =>
-  post("/api/v1/orders", { reservationId, idempotencyKey, fulfilments, ...(delivery ? { delivery } : {}) });
+/**
+ * `expectedTotalPayableMinor` is the total the patient was shown; the server refuses the order
+ * (PRICE_CHANGED) if pricing changed since, so nobody pays an amount they did not see.
+ */
+export const createOrder = ({ reservationId, idempotencyKey, fulfilments, delivery, expectedTotalPayableMinor }) =>
+  post("/api/v1/orders", { reservationId, idempotencyKey, fulfilments, ...(delivery ? { delivery } : {}), ...(expectedTotalPayableMinor != null ? { expectedTotalPayableMinor } : {}) });
 
 export async function listOrders() {
   const result = await get("/api/v1/orders");

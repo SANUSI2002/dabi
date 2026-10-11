@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, Building2, Check, ChevronDown, Database, Loader2, LogOut, Menu, Search, ShieldCheck, Users, X } from 'lucide-react';
+import { ArrowRight, Building2, Check, ChevronDown, Database, Loader2, Lock, LogOut, Menu, Search, ShieldCheck, Users, X } from 'lucide-react';
 import { liveListPlatformOrganizations, liveSignOut, restoreLiveIdentity, type LiveIdentity, type LivePlatformOrganization } from '@/identity/liveIdentity';
 import InvitationManager from '@/identity/components/InvitationManager';
 import { COMMAND_ITEMS, navForProduct } from './navigation';
@@ -15,6 +15,18 @@ import LiveRidersPage from './LiveRidersPage';
 import LiveUsersPage from './LiveUsersPage';
 import LivePharmaciesPage from './LivePharmaciesPage';
 import { livePlatformApplications, type LivePlatformApplication } from '@/registration/livePlatform';
+import { getMe, type CcMe } from './ops/api';
+import { CcProvider } from './ops/kit';
+import OverviewPanels from './ops/OverviewPanels';
+import PatientsPage from './ops/PatientsPage';
+import OrdersPage, { DeliveriesPage } from './ops/OrdersPage';
+import FinancePage from './ops/FinancePage';
+import CasesPage from './ops/CasesPage';
+import { ConsultationsPage, CredentialsPage } from './ops/OversightPages';
+import { HealthPage, IntegrationsPage, JobsPage } from './ops/OpsPages';
+import AuditPage from './ops/AuditPage';
+import DeliveryPricingPage from './ops/DeliveryPricingPage';
+import { LiveSearchResults } from './ops/LiveSearch';
 
 const PRODUCTS: { value: ProductContext; label: string }[] = [
   { value: 'all', label: 'All Sabi' },
@@ -22,7 +34,7 @@ const PRODUCTS: { value: ProductContext; label: string }[] = [
   { value: 'sabi-health', label: 'Sabi Health' },
 ];
 
-function LiveSidebar({ email, close }: { email: string; close?: () => void }) {
+function LiveSidebar({ email, close, permissions }: { email: string; close?: () => void; permissions?: string[] }) {
   const product = useProductContext((state) => state.product);
   const setProduct = useProductContext((state) => state.setProduct);
   const [switcherOpen, setSwitcherOpen] = useState(false);
@@ -41,7 +53,7 @@ function LiveSidebar({ email, close }: { email: string; close?: () => void }) {
     <nav aria-label="Command Center" className="flex-1 space-y-4 overflow-y-auto px-2.5 py-4 [scrollbar-width:thin]">
       {navForProduct(product).map((group) => <div key={group.title || 'overview'}>
         {group.title && <p className="mb-1 px-2.5 text-[9px] font-bold uppercase tracking-[.18em] text-slate-600">{group.title}</p>}
-        <div className="space-y-0.5">{group.items.map((item) => <NavLink key={item.to} to={item.to} end={item.to === '/command-center'} onClick={close} className={({ isActive }) => cn('group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[12px] font-medium transition', isActive ? 'bg-emerald-400/12 text-emerald-300 ring-1 ring-inset ring-emerald-400/15' : 'text-slate-400 hover:bg-white/[0.05] hover:text-slate-200')}><item.icon size={15} className="shrink-0" /><span className="truncate">{item.label}</span></NavLink>)}</div>
+        <div className="space-y-0.5">{group.items.map((item) => <NavLink key={item.to} to={item.to} end={item.to === '/command-center'} onClick={close} className={({ isActive }) => cn('group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[12px] font-medium transition', isActive ? 'bg-emerald-400/12 text-emerald-300 ring-1 ring-inset ring-emerald-400/15' : 'text-slate-400 hover:bg-white/[0.05] hover:text-slate-200')}><item.icon size={15} className="shrink-0" /><span className="truncate">{item.label}</span>{permissions && item.live && !item.live.some((code) => permissions.includes(code)) && <Lock size={11} className="ml-auto shrink-0 text-slate-600" aria-label="Not included in your role" />}</NavLink>)}</div>
       </div>)}
     </nav>
     <div className="border-t border-white/[0.07] px-4 py-3"><p className="truncate text-xs font-semibold text-slate-200">{email}</p><p className="truncate text-[10px] text-emerald-400">Verified platform session</p></div>
@@ -74,6 +86,7 @@ export default function LiveCommandCenter() {
   const [search, setSearch] = useState('');
   const [applications, setApplications] = useState<LivePlatformApplication[]>([]);
   const [applicationsError, setApplicationsError] = useState('');
+  const [me, setMe] = useState<CcMe | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -94,6 +107,13 @@ export default function LiveCommandCenter() {
   }, []);
 
   useEffect(() => { document.title = 'Sabi Command Center'; }, []);
+  // Command Centre roles and permissions, used to show only usable actions (the server enforces them).
+  useEffect(() => {
+    if (!identity?.platform) return;
+    let active = true;
+    getMe().then((result) => { if (active) setMe(result); }).catch(() => { if (active) setMe({ id: identity.user.id, name: null, email: identity.user.email, twoStepVerification: true, roles: identity.platform?.roles ?? [], permissions: identity.platform?.permissions ?? [] }); });
+    return () => { active = false; };
+  }, [identity]);
   useEffect(() => {
     if (!identity?.platform?.permissions.includes('platform.onboarding.review')) return;
     let active = true;
@@ -123,6 +143,7 @@ export default function LiveCommandCenter() {
   if (path === '/command-center') {
     content = <>
       <CommandPageHeader eyebrow="Executive operations" title="Platform overview" description="Live test-environment operations across Sabi Health and Sabi OS." actions={<Link to="/command-center/organizations" className="inline-flex h-9 items-center gap-2 rounded-lg bg-slate-950 px-3 text-sm font-semibold text-white">Open organizations <ArrowRight size={15} /></Link>} />
+      <OverviewPanels />
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
         <MetricCard label="Organizations" value={hasRegistry ? `${organizations.length}${nextPage ? '+' : ''}` : '—'} hint={nextPage ? 'loaded so far' : 'live registry'} icon={<Building2 size={15} />} />
         <MetricCard label="Platform access" value="Verified" hint="MFA-protected session" icon={<ShieldCheck size={15} />} />
@@ -147,6 +168,36 @@ export default function LiveCommandCenter() {
     content = <><CommandPageHeader eyebrow="Administration" title="Internal users" description="Invite Command Center staff by email with a server-enforced role." />{hasInvites ? <InvitationManager title="Command Center staff invitations" /> : <Panel><p className="p-5 text-sm text-slate-600">Your platform role does not permit staff invitations.</p></Panel>}</>;
   } else if (path === '/command-center/sabi-health/riders' || path.startsWith('/command-center/sabi-health/riders/')) {
     content = hasRegistry ? <LiveRidersPage key={path} canApprove={!!identity?.platform?.permissions.includes('platform.onboarding.approve')} userId={identity?.user.id || ''} /> : <UnavailableSection title="Rider applications" />;
+  } else if (path === '/command-center/sabi-health') {
+    content = <><CommandPageHeader eyebrow="Sabi Health" title="Sabi Health overview" description="Live metrics and work queues for patients, consultations, pharmacy orders, deliveries and payments." /><OverviewPanels /></>;
+  } else if (path === '/command-center/sabi-health/patients' || path.startsWith('/command-center/sabi-health/patients/')) {
+    content = <PatientsPage key={path} path={path} />;
+  } else if (path === '/command-center/sabi-health/orders' || path.startsWith('/command-center/sabi-health/orders/')) {
+    content = <OrdersPage key={path} path={path} />;
+  } else if (path === '/command-center/sabi-health/deliveries') {
+    content = <DeliveriesPage />;
+  } else if (path === '/command-center/sabi-health/consultations' || path.startsWith('/command-center/sabi-health/consultations/')) {
+    content = <ConsultationsPage key={path} path={path} />;
+  } else if (path === '/command-center/sabi-health/payments') {
+    content = <FinancePage />;
+  } else if (path === '/command-center/sabi-health/delivery-pricing') {
+    content = <DeliveryPricingPage />;
+  } else if (path === '/command-center/sabi-health/credentials') {
+    content = <CredentialsPage />;
+  } else if (path === '/command-center/cases' || path.startsWith('/command-center/cases/')) {
+    content = <CasesPage key={path} path={path} kind="SUPPORT" />;
+  } else if (path === '/command-center/incidents' || path.startsWith('/command-center/incidents/')) {
+    content = <CasesPage key={path} path={path} kind="INCIDENT" />;
+  } else if (path === '/command-center/jobs') {
+    content = <JobsPage />;
+  } else if (path === '/command-center/notifications') {
+    content = <JobsPage key="notifications" defaultType="notification" />;
+  } else if (path === '/command-center/integrations') {
+    content = <IntegrationsPage />;
+  } else if (path === '/command-center/health' || path === '/command-center/alerts') {
+    content = <HealthPage />;
+  } else if (path === '/command-center/audit') {
+    content = <AuditPage />;
   } else if (path === '/command-center/sabi-health/doctors' || path.startsWith('/command-center/sabi-health/doctors/')) {
     content = hasRegistry ? <LiveDoctorsPage key={path} canApprove={!!identity?.platform?.permissions.includes('platform.onboarding.approve')} userId={identity?.user.id || ''} /> : <UnavailableSection title="Doctor applications" />;
   } else {
@@ -156,17 +207,17 @@ export default function LiveCommandCenter() {
   if (loading) return <div role="status" className="flex min-h-screen items-center justify-center gap-2 bg-[#f4f7f5] text-sm text-slate-600"><Loader2 className="animate-spin" size={18} /> Checking platform access…</div>;
   if (!identity || !identity.platform) return <main className="min-h-screen bg-[#f4f7f5] p-6"><div className="mx-auto mt-16 max-w-lg rounded-xl border border-slate-200 bg-white p-6"><ShieldCheck className="text-emerald-700" size={22} /><h1 className="mt-3 font-display text-xl font-bold">{!identity ? 'Sign in required' : !identity.platformAssigned ? 'Platform access not assigned' : 'Authenticator verification required'}</h1><p className="mt-2 text-sm text-slate-600">{!identity ? 'Use a Sabi ID with an assigned platform role.' : !identity.platformAssigned ? 'A Sabi platform administrator must invite or assign your staff identity.' : 'Set up or verify your authenticator to open live Command Center data.'}</p><Link className="mt-5 inline-flex rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white" to={!identity || !identity.platformAssigned ? '/command-center/login' : '/identity/mfa?next=command-center'}>Continue</Link></div></main>;
 
-  return <div className="flex min-h-screen bg-[#f4f7f5] text-slate-900">
-    <div className="hidden lg:block"><LiveSidebar email={identity.user.email} /></div>
-    <AnimatePresence>{mobile && <><motion.button aria-label="Close navigation" className="fixed inset-0 z-40 bg-slate-950/50 lg:hidden" onClick={() => setMobile(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} /><motion.div className="fixed inset-y-0 left-0 z-50 lg:hidden" initial={{ x: -260 }} animate={{ x: 0 }} exit={{ x: -260 }}><LiveSidebar email={identity.user.email} close={() => setMobile(false)} /></motion.div></>}</AnimatePresence>
+  return <CcProvider me={me}><div className="flex min-h-screen bg-[#f4f7f5] text-slate-900">
+    <div className="hidden lg:block"><LiveSidebar email={identity.user.email} permissions={me?.permissions} /></div>
+    <AnimatePresence>{mobile && <><motion.button aria-label="Close navigation" className="fixed inset-0 z-40 bg-slate-950/50 lg:hidden" onClick={() => setMobile(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} /><motion.div className="fixed inset-y-0 left-0 z-50 lg:hidden" initial={{ x: -260 }} animate={{ x: 0 }} exit={{ x: -260 }}><LiveSidebar email={identity.user.email} permissions={me?.permissions} close={() => setMobile(false)} /></motion.div></>}</AnimatePresence>
     <div className="min-w-0 flex-1"><header className="sticky top-0 z-30 flex h-[68px] items-center gap-3 border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-xl lg:px-6">
       <button onClick={() => setMobile(true)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden" aria-label="Open navigation"><Menu size={18} /></button>
-      <div className="relative flex h-9 min-w-0 max-w-xl flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-500"><Search size={15} className="shrink-0" /><input aria-label="Search Command Center sections" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search Command Center sections…" className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-400" />{search && <button onClick={() => setSearch('')} aria-label="Clear search"><X size={15} /></button>}
-        {search && <div className="absolute left-0 right-0 top-11 z-40 max-h-72 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-lg">{searchResults.length ? searchResults.map((item) => <button key={item.to} onClick={() => { navigate(item.to); setSearch(''); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-50"><item.icon size={15} className="text-emerald-700" />{item.label}</button>) : <p className="px-3 py-2 text-xs text-slate-500">No matching sections</p>}</div>}
+      <div className="relative flex h-9 min-w-0 max-w-xl flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-500"><Search size={15} className="shrink-0" /><input aria-label="Search Command Center sections and records" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search sections, patients, orders, pharmacies…" className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-400" />{search && <button onClick={() => setSearch('')} aria-label="Clear search"><X size={15} /></button>}
+        {search && <div className="absolute left-0 right-0 top-11 z-40 max-h-72 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-lg">{searchResults.length ? searchResults.map((item) => <button key={item.to} onClick={() => { navigate(item.to); setSearch(''); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-50"><item.icon size={15} className="text-emerald-700" />{item.label}</button>) : <p className="px-3 py-2 text-xs text-slate-500">No matching sections</p>}<LiveSearchResults q={search} onPick={(href) => { navigate(href); setSearch(''); }} /></div>}
       </div>
       <span className="ml-auto hidden rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-200 sm:inline">Live test session</span>
       <button onClick={async () => { await liveSignOut(); navigate('/command-center/login', { replace: true }); }} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="Sign out of Command Center"><LogOut size={17} /></button>
     </header>
     <main className="min-h-[calc(100vh-68px)]"><div className="mx-auto max-w-[1560px] px-4 py-5 lg:px-7 lg:py-6"><motion.div key={location.pathname} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .18 }}>{content}{error && <p role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p>}</motion.div></div></main></div>
-  </div>;
+  </div></CcProvider>;
 }

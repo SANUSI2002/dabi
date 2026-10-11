@@ -3,13 +3,15 @@ import {
   ClipboardCheck, DatabaseZap, FileCheck2, FileKey2, FileText, Fingerprint, FlaskConical,
   Flag, Gauge, HandCoins, Headphones, HeartPulse, KeyRound, Layers3, LockKeyhole,
   PackageCheck, Palette, Pill, ReceiptText, ScrollText, ServerCog, Settings2, ShieldCheck,
-  Sparkles, Stethoscope, Users, WalletCards, Rocket, Map, HeartHandshake,
+  Sparkles, Stethoscope, Users, WalletCards, Rocket, Map, HeartHandshake, Truck, Calculator, IdCard, LifeBuoy, Siren,
   type LucideIcon,
 } from "lucide-react";
 import type { PlatformPermission } from "./domain";
 import type { ProductContext } from "./useProductContext";
 
-export type CommandNavItem = { to: string; label: string; icon: LucideIcon; permission?: PlatformPermission };
+/** `live`: the server-side platform permissions (any of) a live page needs. Items are never hidden;
+ *  the sidebar marks the ones the signed-in role cannot use. */
+export type CommandNavItem = { to: string; label: string; icon: LucideIcon; permission?: PlatformPermission; live?: string[] };
 /** `product: "all"` groups (Overview, Identity, Platform, Administration, Product Management) are
  *  ecosystem-wide infrastructure and stay visible regardless of the selected product context —
  *  see the FINAL TARGET "shared platform" layer. PHASE 8 note: "System health", "Incidents",
@@ -21,7 +23,7 @@ export type CommandNavItem = { to: string; label: string; icon: LucideIcon; perm
 export type CommandNavGroup = { title: string; product: ProductContext; items: CommandNavItem[] };
 
 export const COMMAND_NAV: CommandNavGroup[] = [
-  { title: "", product: "all", items: [{ to: "/command-center", label: "Ecosystem overview", icon: Gauge, permission: "platform.view" }] },
+  { title: "", product: "all", items: [{ to: "/command-center", label: "Ecosystem overview", icon: Gauge, permission: "platform.view", live: ["platform.ops.read", "platform.finance.read"] }] },
   { title: "Sabi OS · Customers", product: "sabi-os", items: [
     { to: "/command-center/organizations", label: "Organizations", icon: Building2, permission: "platform.view" },
     { to: "/command-center/onboarding", label: "Verification center", icon: ClipboardCheck, permission: "platform.view" },
@@ -31,16 +33,19 @@ export const COMMAND_NAV: CommandNavGroup[] = [
     { to: "/command-center/support", label: "Support access", icon: Headphones, permission: "support.access.request" },
   ] },
   { title: "Sabi Health", product: "sabi-health", items: [
-    { to: "/command-center/sabi-health", label: "Overview", icon: HeartHandshake, permission: "platform.view" },
+    { to: "/command-center/sabi-health", label: "Overview", icon: HeartHandshake, permission: "platform.view", live: ["platform.ops.read", "platform.finance.read"] },
     { to: "/command-center/sabi-health/verification", label: "Verification center", icon: ClipboardCheck, permission: "platform.view" },
-    { to: "/command-center/sabi-health/consultations", label: "Telemedicine operations", icon: HeartPulse, permission: "platform.view" },
+    { to: "/command-center/sabi-health/consultations", label: "Telemedicine operations", icon: HeartPulse, permission: "platform.view", live: ["platform.ops.read"] },
     { to: "/command-center/sabi-health/prescriptions", label: "Prescriptions", icon: FileText, permission: "platform.view" },
-    { to: "/command-center/sabi-health/orders", label: "Pharmacy operations", icon: Boxes, permission: "platform.view" },
-    { to: "/command-center/sabi-health/payments", label: "Payments", icon: WalletCards, permission: "platform.view" },
-    { to: "/command-center/sabi-health/patients", label: "Patients", icon: Users, permission: "platform.view" },
+    { to: "/command-center/sabi-health/orders", label: "Pharmacy operations", icon: Boxes, permission: "platform.view", live: ["platform.ops.read", "platform.finance.read"] },
+    { to: "/command-center/sabi-health/deliveries", label: "Deliveries", icon: Truck, permission: "platform.view", live: ["platform.ops.read", "platform.delivery.manage"] },
+    { to: "/command-center/sabi-health/delivery-pricing", label: "Delivery pricing", icon: Calculator, permission: "platform.view", live: ["platform.pricing.manage", "platform.finance.read", "platform.ops.read"] },
+    { to: "/command-center/sabi-health/payments", label: "Payments", icon: WalletCards, permission: "platform.view", live: ["platform.finance.read", "platform.finance.manage", "platform.finance.approve"] },
+    { to: "/command-center/sabi-health/patients", label: "Patients", icon: Users, permission: "platform.view", live: ["platform.patients.read"] },
     { to: "/command-center/sabi-health/doctors", label: "Healthcare professionals", icon: Stethoscope, permission: "platform.view" },
     { to: "/command-center/sabi-health/riders", label: "Riders", icon: Bike, permission: "platform.view" },
     { to: "/command-center/sabi-health/pharmacies", label: "Pharmacies", icon: Pill, permission: "platform.view" },
+    { to: "/command-center/sabi-health/credentials", label: "Credentials & expiry", icon: IdCard, permission: "platform.view", live: ["platform.ops.read", "platform.providers.manage"] },
     { to: "/command-center/sabi-health/laboratories", label: "Laboratories", icon: FlaskConical, permission: "platform.view" },
   ] },
   { title: "Product Management", product: "all", items: [
@@ -66,14 +71,18 @@ export const COMMAND_NAV: CommandNavGroup[] = [
   { title: "Platform", product: "all", items: [
     { to: "/command-center/entitlements", label: "Entitlements", icon: Layers3, permission: "platform.view" },
     { to: "/command-center/feature-flags", label: "Feature flags", icon: Flag, permission: "platform.view" },
-    { to: "/command-center/integrations", label: "Integrations", icon: DatabaseZap, permission: "platform.view" },
-    { to: "/command-center/notifications", label: "Notifications", icon: BellRing, permission: "platform.view" },
+    { to: "/command-center/integrations", label: "Integrations", icon: DatabaseZap, permission: "platform.view", live: ["platform.ops.read", "platform.jobs.manage"] },
+    { to: "/command-center/notifications", label: "Notifications", icon: BellRing, permission: "platform.view", live: ["platform.ops.read", "platform.jobs.manage"] },
   ] },
-  { title: "Sabi OS · Operations", product: "sabi-os", items: [
+  // Live operations across products: support cases, incidents, alerts, jobs and health read the
+  // Command Centre API (Sabi Health data today), so this group shows in every product context.
+  { title: "Operations", product: "all", items: [
+    { to: "/command-center/cases", label: "Support cases", icon: LifeBuoy, permission: "platform.view", live: ["platform.support.manage", "platform.ops.read"] },
+    { to: "/command-center/incidents", label: "Incidents", icon: Activity, permission: "platform.view", live: ["platform.support.manage", "platform.ops.read"] },
+    { to: "/command-center/alerts", label: "Alerts", icon: Siren, permission: "platform.view", live: ["platform.ops.read", "platform.audit.read", "platform.jobs.manage"] },
+    { to: "/command-center/health", label: "System health", icon: HeartPulse, permission: "platform.view", live: ["platform.ops.read", "platform.audit.read", "platform.jobs.manage"] },
+    { to: "/command-center/jobs", label: "Jobs & sync", icon: ServerCog, permission: "platform.view", live: ["platform.ops.read", "platform.jobs.manage"] },
     { to: "/command-center/analytics", label: "Usage analytics", icon: ChartNoAxesCombined, permission: "platform.view" },
-    { to: "/command-center/health", label: "System health", icon: HeartPulse, permission: "platform.view" },
-    { to: "/command-center/incidents", label: "Incidents", icon: Activity, permission: "platform.view" },
-    { to: "/command-center/jobs", label: "Jobs & sync", icon: ServerCog, permission: "platform.view" },
   ] },
   { title: "Sabi OS · Customization", product: "sabi-os", items: [
     { to: "/command-center/branding", label: "Branding", icon: Palette, permission: "branding.manage" },
@@ -85,7 +94,7 @@ export const COMMAND_NAV: CommandNavGroup[] = [
     { to: "/command-center/pharmacy-tiers", label: "Pharmacy tier policies", icon: Layers3, permission: "platform.view" },
     { to: "/command-center/pharmacy-listings", label: "Marketplace review", icon: PackageCheck, permission: "platform.view" },
     { to: "/command-center/internal-users", label: "Internal users", icon: CircleUserRound, permission: "identity.manage" },
-    { to: "/command-center/audit", label: "Audit logs", icon: ScrollText, permission: "audit.view" },
+    { to: "/command-center/audit", label: "Audit logs", icon: ScrollText, permission: "audit.view", live: ["platform.audit.read", "platform.emergency.access"] },
     { to: "/command-center/security", label: "Security", icon: LockKeyhole, permission: "security.manage" },
     { to: "/command-center/settings", label: "Global settings", icon: Settings2, permission: "organizations.manage" },
   ] },
