@@ -95,7 +95,7 @@ export default function OverviewPanels() {
     <ErrorBox error={error} retry={reload} />
     {!data && loading ? <Panel><Loading label="Reading live metrics…" /></Panel> : data && <>
       <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">{data.metrics.map((m) => <MetricTile key={m.key} m={m} />)}</div>
-      <div className="grid gap-4 xl:grid-cols-[1.5fr_1fr]"><DailyChart daily={data.daily} /><Queues items={data.queues} /></div>
+      <div className="grid gap-4 [&>*]:min-w-0 xl:grid-cols-[1.5fr_1fr]"><DailyChart daily={data.daily} /><Queues items={data.queues} /></div>
     </>}
   </section>;
 }

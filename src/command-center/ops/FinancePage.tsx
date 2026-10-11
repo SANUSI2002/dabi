@@ -18,7 +18,7 @@ function Summary() {
   const { data, error, loading, reload } = useLoad(() => financeSummary(period.range), [period.range.from, period.range.to, period.range.tz]);
   const s = data;
   const tile = (label: string, value: number, def?: string, strong = false) => <div className={cn('rounded-xl p-4 ring-1 ring-slate-200', strong ? 'bg-slate-950 text-white ring-slate-950' : 'bg-white')}><p className={cn('flex items-center gap-1 text-[10px] font-bold uppercase tracking-[.1em]', strong ? 'text-emerald-300' : 'text-slate-500')}>{label}{def && <Definition text={def} />}</p><p className="mt-1 font-display text-xl font-bold [font-variant-numeric:tabular-nums]">{naira(value)}</p></div>;
-  return <div className="grid gap-4">
+  return <div className="grid gap-4 [&>*]:min-w-0">
     <PeriodControls period={period} generatedAt={s?.generatedAt} loading={loading} />
     <ErrorBox error={error} retry={reload} />
     {!s ? <Panel><Loading /></Panel> : <>
@@ -28,7 +28,7 @@ function Summary() {
         {tile('Owed to pharmacies', s.breakdown.pharmacyEarningsMinor, s.definitions.pharmacyEarnings)}
         {tile('Unsettled (all time)', s.unsettled.netPayableMinor, s.definitions.unsettled)}
       </div>
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-2">
         <Panel><PanelHeader title="How the money splits" description={`${s.collected.count} paid order${s.collected.count === 1 ? '' : 's'} in the period`} />
           <ul className="divide-y divide-slate-100 text-sm">{[['Medicines (paid to pharmacies, less commission)', s.breakdown.medicinesMinor], ['Commission (Sabi)', s.breakdown.commissionMinor], ['Delivery fees (Sabi)', s.breakdown.deliveryFeesMinor], ['Platform fees (Sabi)', s.breakdown.platformFeesMinor]].map(([l, v]) => <li key={l as string} className="flex justify-between px-4 py-2.5"><span className="text-slate-600">{l}</span><span className="font-semibold [font-variant-numeric:tabular-nums]">{naira(v as number)}</span></li>)}</ul>
         </Panel>

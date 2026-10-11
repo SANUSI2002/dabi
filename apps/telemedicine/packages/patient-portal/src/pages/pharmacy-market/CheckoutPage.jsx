@@ -55,7 +55,9 @@ function pricingMessage(err) {
   return null;
 }
 
-const fulfilmentMethod = (group) => (group.lines[0]?.product.deliveryMode === "pickup" ? "PICKUP" : "DELIVERY");
+const defaultMethod = (group) => (group.lines[0]?.product.deliveryMode === "pickup" ? "PICKUP" : "DELIVERY");
+/** The pharmacy offers both, so the patient chooses. */
+const offersBoth = (group) => Boolean(group.lines[0]?.product.deliveryAvailable && group.lines[0]?.product.pickupAvailable);
 
 function buildGroups(cart) {
   return Object.entries(cart)
@@ -84,6 +86,9 @@ export function CheckoutPage() {
   // checkout, routed to each pharmacy's own order (per the Shopping
   // Cart PRD section).
   const groups = useMemo(() => buildGroups(cart), [cart]);
+  // Delivery or pickup per pharmacy: the patient's choice where the pharmacy offers both.
+  const [methods, setMethods] = useState({});
+  const fulfilmentMethod = (group) => methods[group.pharmacy.id] ?? defaultMethod(group);
   const itemsTotal = groups.reduce((sum, group) => sum + group.subtotal, 0);
   const needsDelivery = groups.some((group) => fulfilmentMethod(group) === "DELIVERY");
   const prescriptionIds = [...new Set(groups.flatMap((group) => group.lines.map((l) => l.product.prescriptionId)))];
@@ -294,6 +299,19 @@ export function CheckoutPage() {
                 <div className="sabi-fam-section-head">
                   <h2 style={{ fontSize: "1rem" }}><MapPin size={16} style={{ verticalAlign: "-3px", marginRight: 6 }} />Where should we deliver this?</h2>
                 </div>
+
+                {groups.filter(offersBoth).map((group) => (
+                  <div key={group.pharmacy.id} role="radiogroup" aria-label={`How to receive your order from ${group.pharmacy.name}`} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, margin: "0 0 12px" }}>
+                    <span style={{ fontSize: "0.84rem", fontWeight: 600 }}>{group.pharmacy.name}:</span>
+                    {[["DELIVERY", "Deliver to me"], ["PICKUP", "I'll pick it up"]].map(([value, label]) => (
+                      <button key={value} type="button" role="radio" aria-checked={fulfilmentMethod(group) === value}
+                        className={fulfilmentMethod(group) === value ? "sabi-btn-primary" : "sabi-btn-outline"} style={{ padding: "6px 12px", fontSize: "0.8rem" }}
+                        onClick={() => { setMethods((m) => ({ ...m, [group.pharmacy.id]: value })); setPrepared((p) => (p ? { reservationId: p.reservationId, preview: null } : p)); }}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                ))}
 
                 {!needsDelivery && (
                   <p style={{ margin: "0 0 12px", fontSize: "0.84rem", color: "var(--sabi-text-secondary)" }}>

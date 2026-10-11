@@ -15,10 +15,11 @@ const ORDER_STATUSES = ['PENDING_PAYMENT', 'PAID', 'PAYMENT_FAILED', 'CANCELLED'
 const FULFILMENT_STATUSES = ['AWAITING_PAYMENT', 'AWAITING_PHARMACIST_REVIEW', 'APPROVED_FOR_DISPENSING', 'PREPARING', 'READY_FOR_PICKUP', 'PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CLARIFICATION_REQUIRED', 'REJECTED', 'UNABLE_TO_FULFILL', 'CANCELLED'];
 
 export function QuoteBreakdown({ quote }: { quote: DeliveryQuote }) {
+  const f = useFormat();
   return <div className="text-sm">
     <ul className="divide-y divide-slate-100">{quote.lines.map((l, i) => <li key={i} className="flex justify-between gap-3 py-1.5"><span className="text-slate-600">{l.label}</span><span className="font-medium [font-variant-numeric:tabular-nums]">{l.amountMinor < 0 ? '−' : ''}{naira(Math.abs(l.amountMinor))}</span></li>)}</ul>
     <p className="mt-1 flex justify-between border-t border-slate-200 pt-1.5 font-semibold"><span>Delivery fee</span><span>{naira(quote.feeMinor)}</span></p>
-    <p className="mt-1 text-[11px] text-slate-500">{quote.distanceKm} km {quote.method === 'ROAD' ? 'by road' : 'straight-line'} · pricing version {quote.pricingVersion} · quoted {new Date(quote.quotedAt).toLocaleString()}{quote.zone && ` · zone ${quote.zone.name}`}{quote.methodFallback && ` · road distance unavailable (${quote.methodFallback.reason}), straight-line used`}</p>
+    <p className="mt-1 text-[11px] text-slate-500">{quote.distanceKm} km {quote.method === 'ROAD' ? 'by road' : 'straight-line'} · pricing version {quote.pricingVersion} · quoted {f.dateTime(quote.quotedAt)}{quote.zone && ` · zone ${quote.zone.name}`}{quote.methodFallback && ` · road distance unavailable (${quote.methodFallback.reason}), straight-line used`}</p>
   </div>;
 }
 
@@ -57,8 +58,8 @@ function OrderList() {
 
 function Trace({ o }: { o: OrderTrace }) {
   const f = useFormat();
-  return <div className="grid gap-4 xl:grid-cols-[1fr_400px]">
-    <div className="grid gap-4 self-start">
+  return <div className="grid gap-4 [&>*]:min-w-0 xl:grid-cols-[1fr_400px]">
+    <div className="grid gap-4 [&>*]:min-w-0 self-start">
       <Panel><PanelHeader title="Money" description={`Priced with delivery pricing version ${o.money.pricingVersion}`} /><KeyValues items={[['Medicines', naira(o.money.subtotalMinor)], ['Delivery', naira(o.money.deliveryFeeMinor)], ['Platform fee', naira(o.money.platformFeeMinor)], ['Total paid', <b key="k62-300">{naira(o.money.totalPayableMinor)}</b>], ['Delivery details on file', o.deliveryDetailsOnFile ? 'Yes (encrypted, not shown here)' : 'No']]} /></Panel>
       {o.fulfilments.map((x) => <Panel key={x.id}>
         <PanelHeader title={`${x.pharmacy.name} · ${human(x.method)}`} description={`${x.pharmacy.city}, ${x.pharmacy.state}`} action={<StatusPill status={human(x.status)} />} />
@@ -73,7 +74,7 @@ function Trace({ o }: { o: OrderTrace }) {
         {o.webhooks.length > 0 && <div className="border-t border-slate-100 px-4 py-3 text-xs text-slate-600">Webhooks received: {o.webhooks.map((w) => `${w.eventType ?? 'unknown'} (${human(w.outcome).toLowerCase()})`).join(', ')}</div>}
       </Panel>
     </div>
-    <div className="grid gap-4 self-start">
+    <div className="grid gap-4 [&>*]:min-w-0 self-start">
       <Panel><PanelHeader title="Timeline" /><Timeline events={o.timeline} /></Panel>
       <Panel><PanelHeader title="Cases" action={<NewCaseButton orderId={o.id} subjectUserId={o.patient.id} />} />{o.cases.length ? <ul className="divide-y divide-slate-100">{o.cases.map((c) => <li key={c.id} className="px-4 py-2.5 text-sm"><Link className="font-semibold text-emerald-700" to={`${R.cases}/${c.id}`}>{c.reference}</Link> {c.title} <StatusPill status={human(c.status)} /></li>)}</ul> : <Empty title="No cases on this order" />}</Panel>
     </div>
@@ -82,11 +83,12 @@ function Trace({ o }: { o: OrderTrace }) {
 
 function OrderView({ id }: { id: string }) {
   const { can } = useCc();
+  const f = useFormat();
   const { data, error, loading, reload } = useLoad(() => getOrder(id), [id]);
   return <>
     <Link to={R.orders} className="mb-3 inline-flex items-center gap-1 text-sm font-semibold text-slate-600 hover:text-slate-900"><ArrowLeft size={14} />All orders</Link>
     {loading && !data ? <Loading /> : !data ? <ErrorBox error={error} retry={reload} /> : <>
-      <CommandPageHeader eyebrow="Order trace" title={data.reference} description={`${data.patient.name ?? 'Patient'} (${data.patient.patientId}) · placed ${new Date(data.createdAt).toLocaleString()}`} actions={<><StatusPill status={human(data.status)} />{can('platform.patients.read') && <Link to={`${R.patients}/${data.patient.id}`} className="text-sm font-semibold text-emerald-700">Open patient</Link>}</>} />
+      <CommandPageHeader eyebrow="Order trace" title={data.reference} description={`${data.patient.name ?? 'Patient'} (${data.patient.patientId}) · placed ${f.dateTime(data.createdAt)}`} actions={<><StatusPill status={human(data.status)} />{can('platform.patients.read') && <Link to={`${R.patients}/${data.patient.id}`} className="text-sm font-semibold text-emerald-700">Open patient</Link>}</>} />
       <Trace o={data} />
     </>}
   </>;
@@ -123,7 +125,7 @@ export function DeliveriesPage() {
   return <Gate any={['platform.ops.read', 'platform.delivery.manage']} what="Deliveries">
     <CommandPageHeader eyebrow="Sabi Health · Logistics" title="Deliveries" description="Every paid delivery: who has it, where it is in the handover chain, and what it was priced at." />
     {flash && <p role="status" className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{flash}</p>}
-    <div className="grid gap-4 xl:grid-cols-[1fr_300px]">
+    <div className="grid gap-4 [&>*]:min-w-0 xl:grid-cols-[1fr_300px]">
       <Panel>
         <FilterBar><Field label="Show"><CommandSelect value={state} onChange={(e) => setState(e.target.value)}>{STATES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}</CommandSelect></Field></FilterBar>
         <ErrorBox error={error} retry={reload} />

@@ -168,7 +168,7 @@ export function ActionDialog({ title, description, confirm, tone = 'primary', re
   return <div className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-950/50 p-0 sm:items-center sm:p-4" onMouseDown={(e) => { if (e.target === e.currentTarget && !busy) onClose(); }}>
     <div ref={box} role="dialog" aria-modal="true" aria-labelledby={titleId} className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl">
       <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-5 py-4"><h2 id={titleId} className="font-display text-lg font-bold text-slate-950">{title}</h2><button onClick={onClose} disabled={busy} aria-label="Close" className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X size={18} /></button></div>
-      <form className="grid gap-4 px-5 py-4" onSubmit={(e) => { e.preventDefault(); if (reasonOk && fieldsOk && (mfa === 'none' || code.trim())) void submit(); }}>
+      <form className="grid gap-4 [&>*]:min-w-0 px-5 py-4" onSubmit={(e) => { e.preventDefault(); if (reasonOk && fieldsOk && (mfa === 'none' || code.trim())) void submit(); }}>
         {description && <div className="text-sm leading-6 text-slate-600">{description}</div>}
         {fields.map((f) => <Field key={f.name} label={`${f.label}${f.required ? '' : ' (optional)'}`}>
           {f.type === 'select'

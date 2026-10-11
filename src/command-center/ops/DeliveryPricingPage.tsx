@@ -74,7 +74,7 @@ function Editor({ state, onSaved }: { state: { active: PricingVersion; routing: 
     run: (v) => createPricingVersion({ ...rulesFrom(d), reason: v.reason, ...(v.when === 'later' && v.effectiveAt ? { effectiveAt: new Date(v.effectiveAt).toISOString() } : {}) }),
     onClose: () => setDialog(null), onDone: () => { setDialog(null); onSaved(); },
   });
-  return <div className="grid gap-4">
+  return <div className="grid gap-4 [&>*]:min-w-0">
     <Panel><PanelHeader title="Distance pricing" description="What a delivery costs. All amounts in naira." />
       <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-4">
         <Field label="Rate per km"><Num prefix="₦" suffix="/km" value={d.rate} onChange={(e) => set('rate', e.target.value)} disabled={!editable} /></Field>
@@ -92,7 +92,7 @@ function Editor({ state, onSaved }: { state: { active: PricingVersion; routing: 
       </div>
       {d.method === 'ROAD' && !state.routing.roadConfigured && <div className="px-4 pb-4"><Note tone="warning">Road distance is not configured on the server (no Google Routes key). {d.fallback ? 'Every quote will fall back to straight-line distance and say so.' : 'Publishing will be refused unless you allow the straight-line fallback.'}</Note></div>}
     </Panel>
-    <div className="grid gap-4 xl:grid-cols-2">
+    <div className="grid gap-4 [&>*]:min-w-0 xl:grid-cols-2">
       <Panel><PanelHeader title="Distance bands" description="A different rate per km by distance (used when the address is not in a priced zone)." action={editable && <CommandButton variant="secondary" className="h-8" onClick={() => set('bands', [...d.bands, { fromKm: d.bands.at(-1)?.toKm || '0', toKm: '', rate: d.rate }])}><Plus size={13} />Band</CommandButton>} />
         {d.bands.length ? <div className="grid gap-2 p-4">{d.bands.map((b, i) => <div key={i} className="grid grid-cols-[1fr_1fr_1.2fr_auto] items-end gap-2"><Field label="From"><Num suffix="km" value={b.fromKm} disabled={!editable} onChange={(e) => set('bands', d.bands.map((x, j) => (j === i ? { ...x, fromKm: e.target.value } : x)))} /></Field><Field label="To"><Num suffix="km" placeholder="and beyond" value={b.toKm} disabled={!editable} onChange={(e) => set('bands', d.bands.map((x, j) => (j === i ? { ...x, toKm: e.target.value } : x)))} /></Field><Field label="Rate"><Num prefix="₦" suffix="/km" value={b.rate} disabled={!editable} onChange={(e) => set('bands', d.bands.map((x, j) => (j === i ? { ...x, rate: e.target.value } : x)))} /></Field>{editable && <CommandButton variant="quiet" aria-label="Remove band" onClick={() => set('bands', d.bands.filter((_, j) => j !== i))}><Trash2 size={14} /></CommandButton>}</div>)}</div> : <Empty title="No bands" hint="Every km is charged at the base rate." />}
       </Panel>

@@ -48,14 +48,14 @@ function PatientList() {
 }
 
 /** Asks why the record is being opened before anything is loaded. */
-function PurposeGate({ title, description, confirm, onOpen, busy, error }: { title: string; description: string; confirm: string; onOpen: (reason: string) => void; busy: boolean; error: LiveApiError | null }) {
+function PurposeGate({ title, description, confirm, onOpen, busy, error, notice }: { title: string; description: string; confirm: string; onOpen: (reason: string) => void; busy: boolean; error: LiveApiError | null; notice: string }) {
   const [reason, setReason] = useState('');
   return <Panel><div className="max-w-2xl p-5">
     <h2 className="text-base font-bold text-slate-900">{title}</h2><p className="mt-1 text-sm leading-6 text-slate-600">{description}</p>
     <div className="mt-3 flex flex-wrap gap-1.5">{PURPOSES.map((p) => <button key={p} type="button" onClick={() => setReason(p)} className="rounded-full border border-slate-200 px-2.5 py-1 text-xs text-slate-600 hover:border-emerald-400 hover:text-emerald-800">{p}</button>)}</div>
     <form className="mt-3 grid gap-2" onSubmit={(e) => { e.preventDefault(); if (reason.trim().length >= 5) onOpen(reason.trim()); }}>
       <Field label="Purpose (recorded and visible in audit review)"><textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-normal" placeholder="e.g. Patient called about order SHP-… not arriving" /></Field>
-      <div className="flex items-center gap-2"><CommandButton type="submit" disabled={busy || reason.trim().length < 5}>{busy ? 'Opening…' : confirm}</CommandButton><span className="text-[11px] text-slate-500">The patient sees “Sabi staff opened your account details” in their activity log.</span></div>
+      <div className="flex items-center gap-2"><CommandButton type="submit" disabled={busy || reason.trim().length < 5}>{busy ? 'Opening…' : confirm}</CommandButton><span className="text-[11px] text-slate-500">The patient sees “{notice}” in their activity log.</span></div>
     </form>
     {error && <div className="mt-3"><ErrorBox error={error} /></div>}
   </div></Panel>;
@@ -71,7 +71,7 @@ function AccountTabs({ data, patientId }: { data: PatientAccount; patientId: str
       { value: 'circle', label: 'Care circle', count: data.careCircle.caregivers.length + data.careCircle.doctors.length + data.careCircle.dependents.length },
       { value: 'orders', label: 'Orders & payments', count: data.orders.length }, { value: 'consents', label: 'Consents' }, { value: 'cases', label: 'Cases', count: data.cases.length },
     ]} />
-    {tab === 'overview' && <div className="grid gap-4">
+    {tab === 'overview' && <div className="grid gap-4 [&>*]:min-w-0">
       <Panel><PanelHeader title="Account" /><KeyValues items={[
         ['Name', a.name], ['Sabi patient ID', <span key="k76-48" className="font-mono text-xs">{a.patientId}</span>], ['Status', <StatusPill key="k76-118" status={human(a.accountStatus)} />],
         ['Email', <>{a.email ?? '—'} {a.emailVerifiedAt && <span className="text-[11px] text-emerald-700">verified</span>}</>], ['Phone', <>{a.phone ?? '—'} {a.phoneVerifiedAt && <span className="text-[11px] text-emerald-700">verified</span>}</>],
@@ -84,17 +84,17 @@ function AccountTabs({ data, patientId }: { data: PatientAccount; patientId: str
       </Panel>
     </div>}
     {tab === 'addresses' && <Panel><PanelHeader title="Addresses and contacts" description="Each with where it came from and when it was recorded" />{data.addresses.length ? <ul className="divide-y divide-slate-100">{data.addresses.map((d, i) => <li key={i} className="grid gap-1 px-4 py-3 text-sm sm:grid-cols-[1fr_auto]"><div>{d.kind === 'EMERGENCY_CONTACT' ? <p className="font-semibold text-slate-900">Emergency contact: {d.recipientName ?? '—'} {d.relation && <span className="font-normal text-slate-500">({d.relation})</span>} · {d.recipientPhone ?? '—'}</p> : d.unavailable ? <p className="text-amber-700">{d.source}</p> : <><p className="font-semibold text-slate-900">{d.address}</p><p className="text-xs text-slate-500">Recipient: {d.recipientName} · {d.recipientPhone}</p></>}<p className="mt-0.5 text-[11px] text-slate-500">Source: {d.source}</p></div><div className="text-xs text-slate-500 sm:text-right">{f.dateTime(d.recordedAt)}{d.recordedAtNote && <span className="block text-[11px]">{d.recordedAtNote}</span>}{d.orderId && <Link to={`${R.orders}/${d.orderId}`} className="block font-semibold text-emerald-700">Open order</Link>}</div></li>)}</ul> : <Empty title="No addresses on file" hint="Addresses are recorded when the patient checks out a delivery order." />}</Panel>}
-    {tab === 'circle' && <div className="grid gap-4 lg:grid-cols-2">
+    {tab === 'circle' && <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-2">
       <Panel><PanelHeader title="Caregivers" />{data.careCircle.caregivers.length ? <ul className="divide-y divide-slate-100">{data.careCircle.caregivers.map((c) => <li key={c.id} className="px-4 py-3 text-sm"><div className="flex justify-between gap-2"><span className="font-semibold">{c.name ?? c.invitedEmail}</span><StatusPill status={human(c.status)} /></div><p className="text-xs text-slate-500">{c.relationship} · since {f.date(c.since)}{c.accessExpiresAt && ` · until ${f.date(c.accessExpiresAt)}`}</p>{c.permissions.length > 0 && <p className="mt-1 text-[11px] text-slate-500">Can: {c.permissions.map(human).join(', ')}</p>}</li>)}</ul> : <Empty title="No caregivers" />}</Panel>
       <Panel><PanelHeader title="Doctors with access" />{data.careCircle.doctors.length ? <ul className="divide-y divide-slate-100">{data.careCircle.doctors.map((d) => <li key={d.id} className="flex justify-between gap-2 px-4 py-3 text-sm"><span><span className="font-semibold">{d.doctor}</span><span className="block text-xs text-slate-500">{d.specialty ?? 'General'} · requested {f.date(d.requestedAt)}</span></span><StatusPill status={human(d.status)} /></li>)}</ul> : <Empty title="No doctor relationships" />}</Panel>
       <Panel><PanelHeader title="Cares for" />{data.careCircle.caresFor.length ? <ul className="divide-y divide-slate-100">{data.careCircle.caresFor.map((c) => <li key={c.id} className="flex justify-between px-4 py-3 text-sm"><span>{c.name} <span className="text-xs text-slate-500">({c.relationship})</span></span><StatusPill status={human(c.status)} /></li>)}</ul> : <Empty title="Not a caregiver for anyone" />}</Panel>
       <Panel><PanelHeader title="Dependents and hospitals" /><ul className="divide-y divide-slate-100">{data.careCircle.dependents.map((d) => <li key={d.id} className="px-4 py-3 text-sm">Dependent: <span className="font-semibold">{d.name}</span> <span className="text-xs text-slate-500">added {f.date(d.addedAt)}</span></li>)}{data.careCircle.hospitals.map((h) => <li key={h.id} className="flex justify-between px-4 py-3 text-sm"><span>Hospital: <span className="font-semibold">{h.hospital}</span></span><StatusPill status={human(h.status)} /></li>)}</ul>{!data.careCircle.dependents.length && !data.careCircle.hospitals.length && <Empty title="None" />}</Panel>
     </div>}
-    {tab === 'orders' && <div className="grid gap-4">
+    {tab === 'orders' && <div className="grid gap-4 [&>*]:min-w-0">
       <Panel><PanelHeader title="Orders" />{data.orders.length ? <Table head={['Order', 'Placed', 'Status', 'Pharmacies', 'Delivery', 'Total']}>{data.orders.map((o) => <tr key={o.id}><Td><Link className="font-semibold text-emerald-700" to={`${R.orders}/${o.id}`}>{o.reference}</Link></Td><Td>{f.dateTime(o.createdAt)}</Td><Td><StatusPill status={human(o.status)} /></Td><Td>{o.fulfilments.map((x) => `${x.pharmacy} (${human(x.status)})`).join('; ')}</Td><Td>{naira(o.deliveryFeeMinor)}</Td><Td className="font-semibold">{naira(o.totalPayableMinor)}</Td></tr>)}</Table> : <Empty title="No orders" />}</Panel>
       <Panel><PanelHeader title="Payment attempts" />{data.payments.length ? <Table head={['When', 'Order', 'Provider reference', 'Status', 'Amount']}>{data.payments.map((p) => <tr key={p.id}><Td>{f.dateTime(p.createdAt)}</Td><Td>{p.orderReference}</Td><Td className="font-mono text-xs">{p.providerReference}</Td><Td><StatusPill status={human(p.status)} /></Td><Td>{naira(p.amountMinor)}</Td></tr>)}</Table> : <Empty title="No payments" />}</Panel>
     </div>}
-    {tab === 'consents' && <div className="grid gap-4 lg:grid-cols-2">
+    {tab === 'consents' && <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-2">
       <Panel><PanelHeader title="Sabi consents" /><ul className="divide-y divide-slate-100">{data.consents.platform.map((c) => <li key={c.key} className="flex items-center justify-between gap-2 px-4 py-3 text-sm"><span>{c.label}<span className="block text-[11px] text-slate-500">{c.at ? `Recorded ${f.dateTime(c.at)}` : 'No timestamp recorded'}</span></span><StatusPill status={c.given ? 'Given' : 'Not given'} /></li>)}</ul>{!data.consents.platform.length && <Empty title="No profile consents recorded" />}</Panel>
       <Panel><PanelHeader title="Access the patient granted" /><ul className="divide-y divide-slate-100">{data.consents.professionals.map((c) => <li key={c.id} className="flex justify-between gap-2 px-4 py-3 text-sm"><span>{c.professional} <span className="text-xs text-slate-500">({human(c.professionType)}) · {f.date(c.grantedAt)}</span></span><StatusPill status={c.active ? 'Active' : 'Revoked'} /></li>)}{data.consents.documentShares.map((s) => <li key={s.id} className="flex justify-between gap-2 px-4 py-3 text-sm"><span>Shared {human(s.documentKind)} with {s.recipient} <span className="text-xs text-slate-500">until {f.date(s.expiresAt)}</span></span><StatusPill status={s.revokedAt ? 'Revoked' : new Date(s.expiresAt) < new Date() ? 'Expired' : 'Active'} /></li>)}</ul>{!data.consents.professionals.length && !data.consents.documentShares.length && <Empty title="No access granted to professionals" />}</Panel>
     </div>}
@@ -105,7 +105,7 @@ function AccountTabs({ data, patientId }: { data: PatientAccount; patientId: str
 function ClinicalView({ data }: { data: PatientClinical }) {
   const f = useFormat();
   const m = data.medicines;
-  return <div className="grid gap-4">
+  return <div className="grid gap-4 [&>*]:min-w-0">
     {data.access.kind === 'EMERGENCY' && <Note tone="warning">You are using emergency access until {f.dateTime(data.access.expiresAt)}. It will be reviewed by compliance.</Note>}
     <Panel><PanelHeader title="Allergies" description="Source and verification shown for each" />
       {data.allergies.reported.length ? <ul className="divide-y divide-slate-100">{data.allergies.reported.map((a, i) => <li key={i} className="flex flex-wrap items-start justify-between gap-2 px-4 py-3 text-sm"><span><span className="font-semibold text-slate-900">{a.text}</span><span className="block text-[11px] text-slate-500">{a.source} · {f.dateTime(a.recordedAt)}{a.recordedAtNote && ` (${a.recordedAtNote.toLowerCase()})`}</span></span><StatusPill status="Unverified" /></li>)}</ul> : <Empty title="No allergies reported to Sabi" />}
@@ -120,7 +120,7 @@ function ClinicalView({ data }: { data: PatientClinical }) {
     <Panel><PanelHeader title="Patient-reported medicines" description={m.definitions.patientReported} />
       {m.patientReported.length ? <ul className="divide-y divide-slate-100">{m.patientReported.map((r, i) => <li key={i} className="flex flex-wrap justify-between gap-2 px-4 py-3 text-sm"><span><span className="font-semibold">{r.name}</span>{r.dosage && <span className="text-slate-500"> · {r.dosage}</span>}<span className="block text-[11px] text-slate-500">{r.source} · {f.date(r.recordedAt)}</span></span>{r.status && <StatusPill status={human(r.status)} />}</li>)}</ul> : <Empty title="Nothing reported by the patient" />}
     </Panel>
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-2">
       <Panel><PanelHeader title="Conditions and health details" /><KeyValues items={[['Blood type', data.health.bloodType], ['Genotype', data.health.genotype], ['Conditions (self-reported)', data.conditions.map((c) => c.text).join('; ') || '—']]} />
         {data.health.recentVitals.length > 0 && <Table head={['Vital', 'Value', 'Recorded', 'Source']}>{data.health.recentVitals.map((v, i) => <tr key={i}><Td>{human(v.type)}</Td><Td>{v.value} {v.unit}</Td><Td>{f.dateTime(v.recordedAt)}</Td><Td>{v.source}</Td></tr>)}</Table>}
       </Panel>
@@ -193,10 +193,10 @@ function PatientDetail({ id }: { id: string }) {
       </>} />
     {flash && <p role="status" className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{flash}</p>}
     <Tabs label="Patient record" value={view} onChange={setView} tabs={[{ value: 'account', label: 'Account' }, { value: 'health', label: 'Health information' }, { value: 'access', label: 'Access history' }]} />
-    {view === 'account' && (account ? <AccountTabs data={account} patientId={id} /> : <PurposeGate title="Why are you opening this account?" description="You will see identity, sessions, sign-in locations, addresses, care circle, orders, payments and consents. Health information is separate." confirm="Open account" onOpen={open} busy={busy} error={error} />)}
+    {view === 'account' && (account ? <AccountTabs data={account} patientId={id} /> : <PurposeGate title="Why are you opening this account?" description="You will see identity, sessions, sign-in locations, addresses, care circle, orders, payments and consents. Health information is separate." confirm="Open account" onOpen={open} busy={busy} error={error} notice="Sabi staff opened your account details" />)}
     {view === 'health' && (clinical ? <ClinicalView data={clinical} /> : <>
       {!canAny('platform.clinical.read', 'platform.emergency.access') ? <Panel><div className="flex items-start gap-3 p-5"><ShieldCheck size={18} className="mt-0.5 text-slate-400" /><p className="text-sm text-slate-600">Health information needs the clinical oversight role, or emergency access. Your role has neither.</p></div></Panel> : <>
-        <PurposeGate title="Why do you need this patient’s health information?" description="Medicines (prescribed, purchased, handed over, self-reported), allergies with their source, conditions, consultations and documents. Opening it is recorded and shown to the patient." confirm="Open health information" onOpen={openHealth} busy={busy} error={clinicalError} />
+        <PurposeGate title="Why do you need this patient’s health information?" description="Medicines (prescribed, purchased, handed over, self-reported), allergies with their source, conditions, consultations and documents. Opening it is recorded and shown to the patient." confirm="Open health information" onOpen={openHealth} busy={busy} error={clinicalError} notice="Sabi staff opened your health information" />
         {!can('platform.clinical.read') && can('platform.emergency.access') && <Panel className="mt-4"><div className="flex flex-wrap items-center gap-3 p-5"><ShieldAlert size={18} className="text-red-600" /><p className="min-w-0 flex-1 text-sm text-slate-700">Your role cannot open health information routinely. In an emergency you can start time-limited access, which compliance will review.</p><CommandButton variant="danger" onClick={emergency}><AlertTriangle size={14} />Emergency access</CommandButton></div></Panel>}
       </>}
     </>)}

@@ -171,7 +171,7 @@ export type Integration = { key: string; name: string; purpose: string; status: 
 export type JobType = 'notification' | 'reminder' | 'pharmacy-email' | 'emr-webhook';
 export type JobSummary = Record<JobType, { window: string; counts: Record<string, number>; retryable: boolean; note?: string; outbox?: { pending: number; oldestPendingAt: string | null } }>;
 export type JobRow = Record<string, unknown> & { id: string; status: string; retryable: boolean };
-export type Alert = { key: string; severity: 'critical' | 'warning' | 'info'; category: string; title: string; detail: string; drill?: Drill };
+export type Alert = { key: string; severity: 'critical' | 'warning' | 'info'; category: string; title: string; detail: string; at?: string; drill?: Drill };
 
 export const integrations = () => ccGet<{ generatedAt: string; items: Integration[] }>('/ops/integrations');
 export const jobSummary = () => ccGet<{ generatedAt: string; types: JobSummary }>('/ops/jobs/summary');

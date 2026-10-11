@@ -136,8 +136,8 @@ function CaseView({ id, kind }: { id: string; kind: 'SUPPORT' | 'INCIDENT' }) {
     <Link to={base} className="mb-3 inline-flex items-center gap-1 text-sm font-semibold text-slate-600 hover:text-slate-900"><ArrowLeft size={14} />{kind === 'INCIDENT' ? 'All incidents' : 'All cases'}</Link>
     <CommandPageHeader eyebrow={`${c.reference} · ${human(c.kind)}`} title={c.title} actions={<><PriorityBadge p={c.priority} /><StatusPill status={human(c.status)} /></>} />
     {c.overdue && <p className="mb-3 flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700"><Clock size={14} />Past its response target ({f.dateTime(c.dueAt)}).</p>}
-    <div className="grid gap-4 xl:grid-cols-[1fr_380px]">
-      <div className="grid gap-4 self-start">
+    <div className="grid gap-4 [&>*]:min-w-0 xl:grid-cols-[1fr_380px]">
+      <div className="grid gap-4 [&>*]:min-w-0 self-start">
         <Panel><PanelHeader title="History" />
           <ol className="divide-y divide-slate-100">{c.events.map((e) => <li key={e.id} className="px-4 py-3 text-sm"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{human(e.kind)} · {e.actor} · {f.dateTime(e.createdAt)}</p>{e.kind === 'STATUS' && <p className="font-semibold text-slate-800">{human(e.fromStatus)} → {human(e.toStatus)}</p>}{e.body && <p className="mt-0.5 whitespace-pre-wrap text-slate-700">{e.body}</p>}</li>)}</ol>
         </Panel>

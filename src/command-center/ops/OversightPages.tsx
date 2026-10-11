@@ -50,7 +50,7 @@ function ConsultationView({ id }: { id: string }) {
     <Link to={R.consultations} className="mb-3 inline-flex items-center gap-1 text-sm font-semibold text-slate-600 hover:text-slate-900"><ArrowLeft size={14} />All consultations</Link>
     {loading && !c ? <Loading /> : !c ? <ErrorBox error={error} retry={reload} /> : <>
       <CommandPageHeader eyebrow="Consultation" title={`${c.doctor.name ?? 'Doctor'} with ${c.patient.name ?? 'patient'}`} description={`${c.type === 'VIRTUAL' ? 'Video' : 'In person'} · ${f.dateTime(c.startsAt)}`} actions={<StatusPill status={human(c.status)} />} />
-      <div className="grid gap-4 xl:grid-cols-[1fr_380px]">
+      <div className="grid gap-4 [&>*]:min-w-0 xl:grid-cols-[1fr_380px]">
         <Panel className="self-start"><PanelHeader title="Timeline" /><Timeline events={c.timeline} /></Panel>
         <Panel className="self-start"><PanelHeader title="Details" /><KeyValues items={[
           ['Patient', can('platform.patients.read') ? <Link key="k56-56" className="text-emerald-700" to={`${R.patients}/${c.patient.id}`}>{c.patient.name} ({c.patient.patientId})</Link> : c.patient.patientId], ['Doctor', `${c.doctor.name} · ${c.doctor.specialty ?? 'General'}`],
