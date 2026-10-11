@@ -1,13 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, Building2, Check, ChevronDown, Database, Loader2, Lock, LogOut, Menu, Search, ShieldCheck, Users, X } from 'lucide-react';
+import { ArrowRight, Building2, Database, Loader2, LogOut, Menu, Search, ShieldCheck, Users, X } from 'lucide-react';
 import { liveListPlatformOrganizations, liveSignOut, restoreLiveIdentity, type LiveIdentity, type LivePlatformOrganization } from '@/identity/liveIdentity';
 import InvitationManager from '@/identity/components/InvitationManager';
-import { COMMAND_ITEMS, navForProduct } from './navigation';
-import { useProductContext, type ProductContext } from './useProductContext';
+import { COMMAND_ITEMS } from './navigation';
 import { CommandPageHeader, MetricCard, Panel, PanelHeader, StatusPill } from './components/ui';
-import { cn } from '@/lib/cn';
 import LivePackagesPage from './LivePackagesPage';
 import LiveApplicationsPage from './LiveApplicationsPage';
 import LiveDoctorsPage from './LiveDoctorsPage';
@@ -28,39 +26,13 @@ import AuditPage from './ops/AuditPage';
 import DeliveryPricingPage from './ops/DeliveryPricingPage';
 import PharmacyExceptionsPage from './ops/PharmacyExceptionsPage';
 import { LiveSearchResults } from './ops/LiveSearch';
+import { AlertBell, Breadcrumb, Sidebar, SkipLink, useAlertCount, useNavBadges, useSearchShortcut } from './ops/Shell';
 import { EmrUsagePage, HospitalsPage, LaboratoriesPage, PrescriptionsPage, QuotesPage, VerificationPage, WaitlistPage, WellnessPage } from './ops/ProductPages';
 import { AccessPage, AnalyticsPage, isNotBuilt, NotBuiltPage, SecurityPage, SessionsPage, TenantsPage, type TenantView } from './ops/PlatformPages';
 
-const PRODUCTS: { value: ProductContext; label: string }[] = [
-  { value: 'all', label: 'All Sabi' },
-  { value: 'sabi-os', label: 'Sabi OS' },
-  { value: 'sabi-health', label: 'Sabi Health' },
-];
 
-function LiveSidebar({ email, close, permissions }: { email: string; close?: () => void; permissions?: string[] }) {
-  const product = useProductContext((state) => state.product);
-  const setProduct = useProductContext((state) => state.setProduct);
-  const [switcherOpen, setSwitcherOpen] = useState(false);
-  return <aside className="flex h-full w-[252px] shrink-0 flex-col border-r border-white/[0.07] bg-[#09130f] text-slate-300">
-    <div className="flex h-[68px] items-center gap-3 border-b border-white/[0.07] px-4">
-      <div className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-400 text-slate-950 shadow-[0_0_24px_rgba(52,211,153,.22)]"><ShieldCheck size={19} /></div>
-      <div className="leading-tight"><p className="font-display text-sm font-extrabold tracking-tight text-white">SABI</p><p className="text-[10px] font-semibold uppercase tracking-[.14em] text-emerald-400">Command Center</p></div>
-      {close && <button onClick={close} className="ml-auto rounded-lg p-1.5 text-slate-400 hover:bg-white/10 lg:hidden" aria-label="Close navigation"><X size={18} /></button>}
-    </div>
-    <div className="relative border-b border-white/[0.07] px-3 py-3">
-      <button aria-expanded={switcherOpen} onClick={() => setSwitcherOpen((open) => !open)} className="flex w-full items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-2 text-left text-[12px] font-semibold text-slate-200 hover:bg-white/[0.07]">
-        <Building2 size={14} className="text-emerald-400" /><span className="flex-1">{PRODUCTS.find((option) => option.value === product)?.label}</span><ChevronDown size={13} className={cn('text-slate-500 transition', switcherOpen && 'rotate-180')} />
-      </button>
-      {switcherOpen && <div className="absolute inset-x-3 top-[calc(100%-8px)] z-20 overflow-hidden rounded-lg border border-white/10 bg-[#0d1a15] shadow-xl">{PRODUCTS.map((option) => <button key={option.value} onClick={() => { setProduct(option.value); setSwitcherOpen(false); }} className="flex w-full items-center gap-2 px-2.5 py-2 text-left text-[12px] font-medium text-slate-300 hover:bg-white/[0.06]"><span className="w-3.5">{option.value === product && <Check size={13} className="text-emerald-400" />}</span>{option.label}</button>)}</div>}
-    </div>
-    <nav aria-label="Command Center" className="flex-1 space-y-4 overflow-y-auto px-2.5 py-4 [scrollbar-width:thin]">
-      {navForProduct(product).map((group) => <div key={group.title || 'overview'}>
-        {group.title && <p className="mb-1 px-2.5 text-[9px] font-bold uppercase tracking-[.18em] text-slate-600">{group.title}</p>}
-        <div className="space-y-0.5">{group.items.map((item) => <NavLink key={item.to} to={item.to} end={item.to === '/command-center'} onClick={close} className={({ isActive }) => cn('group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[12px] font-medium transition', isActive ? 'bg-emerald-400/12 text-emerald-300 ring-1 ring-inset ring-emerald-400/15' : 'text-slate-400 hover:bg-white/[0.05] hover:text-slate-200')}><item.icon size={15} className="shrink-0" /><span className="truncate">{item.label}</span>{permissions && item.live && !item.live.some((code) => permissions.includes(code)) && <Lock size={11} className="ml-auto shrink-0 text-slate-600" aria-label="Not included in your role" />}</NavLink>)}</div>
-      </div>)}
-    </nav>
-    <div className="border-t border-white/[0.07] px-4 py-3"><p className="truncate text-xs font-semibold text-slate-200">{email}</p><p className="truncate text-[10px] text-emerald-400">Verified platform session</p></div>
-  </aside>;
+function LiveSidebar({ email, close, me, badges }: { email: string; close?: () => void; me: CcMe | null; badges: Record<string, number> }) {
+  return <Sidebar email={email} name={me?.name} roles={me?.roles} permissions={me?.permissions} badges={badges} close={close} />;
 }
 
 function Registry({ hasAccess, organizations, nextPage, busy, loadMore, compact = false }: { hasAccess: boolean; organizations: LivePlatformOrganization[]; nextPage: number | null; busy: boolean; loadMore: () => void; compact?: boolean }) {
@@ -90,6 +62,10 @@ export default function LiveCommandCenter() {
   const [applications, setApplications] = useState<LivePlatformApplication[]>([]);
   const [applicationsError, setApplicationsError] = useState('');
   const [me, setMe] = useState<CcMe | null>(null);
+  const searchInput = useRef<HTMLInputElement>(null);
+  useSearchShortcut(searchInput);
+  const badges = useNavBadges(me?.permissions);
+  const alertCount = useAlertCount(me?.permissions);
 
   useEffect(() => {
     let active = true;
@@ -241,16 +217,19 @@ export default function LiveCommandCenter() {
   if (!identity || !identity.platform) return <main className="min-h-screen bg-[#f4f7f5] p-6"><div className="mx-auto mt-16 max-w-lg rounded-xl border border-slate-200 bg-white p-6"><ShieldCheck className="text-emerald-700" size={22} /><h1 className="mt-3 font-display text-xl font-bold">{!identity ? 'Sign in required' : !identity.platformAssigned ? 'Platform access not assigned' : 'Authenticator verification required'}</h1><p className="mt-2 text-sm text-slate-600">{!identity ? 'Use a Sabi ID with an assigned platform role.' : !identity.platformAssigned ? 'A Sabi platform administrator must invite or assign your staff identity.' : 'Set up or verify your authenticator to open live Command Center data.'}</p><Link className="mt-5 inline-flex rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white" to={!identity || !identity.platformAssigned ? '/command-center/login' : '/identity/mfa?next=command-center'}>Continue</Link></div></main>;
 
   return <CcProvider me={me}><div className="flex min-h-screen bg-[#f4f7f5] text-slate-900">
-    <div className="hidden lg:block"><LiveSidebar email={identity.user.email} permissions={me?.permissions} /></div>
-    <AnimatePresence>{mobile && <><motion.button aria-label="Close navigation" className="fixed inset-0 z-40 bg-slate-950/50 lg:hidden" onClick={() => setMobile(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} /><motion.div className="fixed inset-y-0 left-0 z-50 lg:hidden" initial={{ x: -260 }} animate={{ x: 0 }} exit={{ x: -260 }}><LiveSidebar email={identity.user.email} permissions={me?.permissions} close={() => setMobile(false)} /></motion.div></>}</AnimatePresence>
-    <div className="min-w-0 flex-1"><header className="sticky top-0 z-30 flex h-[68px] items-center gap-3 border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-xl lg:px-6">
+    <SkipLink />
+    <div className="hidden lg:block lg:sticky lg:top-0 lg:h-screen"><LiveSidebar email={identity.user.email} me={me} badges={badges} /></div>
+    <AnimatePresence>{mobile && <><motion.button aria-label="Close navigation" className="fixed inset-0 z-40 bg-slate-950/50 lg:hidden" onClick={() => setMobile(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} /><motion.div className="fixed inset-y-0 left-0 z-50 lg:hidden" initial={{ x: -260 }} animate={{ x: 0 }} exit={{ x: -260 }}><LiveSidebar email={identity.user.email} me={me} badges={badges} close={() => setMobile(false)} /></motion.div></>}</AnimatePresence>
+    <div className="min-w-0 flex-1"><header className="sticky top-0 z-30 flex h-[64px] items-center gap-3 border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-xl lg:px-6">
       <button onClick={() => setMobile(true)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden" aria-label="Open navigation"><Menu size={18} /></button>
-      <div className="relative flex h-9 min-w-0 max-w-xl flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-500"><Search size={15} className="shrink-0" /><input aria-label="Search Command Center sections and records" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search sections, patients, orders, pharmacies…" className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-400" />{search && <button onClick={() => setSearch('')} aria-label="Clear search"><X size={15} /></button>}
+      <div className="relative flex h-9 min-w-0 max-w-xl flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-500"><Search size={15} className="shrink-0" /><input ref={searchInput} aria-label="Search Command Center sections and records" aria-keyshortcuts="/ Control+K" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search sections, patients, orders, pharmacies…" className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-400" />{search ? <button onClick={() => setSearch('')} aria-label="Clear search"><X size={15} /></button> : <kbd className="hidden rounded border border-slate-200 bg-white px-1.5 text-[10px] font-semibold text-slate-400 sm:inline">/</kbd>}
         {search && <div className="absolute left-0 right-0 top-11 z-40 max-h-72 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-lg">{searchResults.length ? searchResults.map((item) => <button key={item.to} onClick={() => { navigate(item.to); setSearch(''); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-50"><item.icon size={15} className="text-emerald-700" />{item.label}</button>) : <p className="px-3 py-2 text-xs text-slate-500">No matching sections</p>}<LiveSearchResults q={search} onPick={(href) => { navigate(href); setSearch(''); }} /></div>}
       </div>
-      <span className="ml-auto hidden rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-200 sm:inline">Live test session</span>
+      <div className="ml-auto flex min-w-0 items-center gap-2"><Breadcrumb /></div>
+      <span className="hidden rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-200 xl:inline">Live test session</span>
+      <AlertBell count={alertCount} />
       <button onClick={async () => { await liveSignOut(); navigate('/command-center/login', { replace: true }); }} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="Sign out of Command Center"><LogOut size={17} /></button>
     </header>
-    <main className="min-h-[calc(100vh-68px)]"><div className="mx-auto max-w-[1560px] px-4 py-5 lg:px-7 lg:py-6"><motion.div key={location.pathname} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .18 }}>{content}{error && <p role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p>}</motion.div></div></main></div>
+    <main id="cc-main" tabIndex={-1} className="min-h-[calc(100vh-64px)] focus:outline-none"><div className="mx-auto max-w-[1560px] px-4 py-5 lg:px-7 lg:py-6"><motion.div key={location.pathname} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .18 }}>{content}{error && <p role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p>}</motion.div></div></main></div>
   </div></CcProvider>;
 }

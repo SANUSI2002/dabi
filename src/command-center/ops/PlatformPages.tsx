@@ -154,7 +154,7 @@ export function AnalyticsPage() {
   };
   const series = (title: string, rows: Record<string, number | string>[], keys: [string, string][]) => <Panel><PanelHeader title={title} />
     <div className="grid gap-4 p-4 sm:grid-cols-2 xl:grid-cols-3">{keys.map(([k, label]) => <div key={k}><p className="text-xs font-semibold text-slate-600">{label}</p><p className="font-display text-lg font-bold">{rows.at(-1)?.[k] ?? 0} <span className="text-xs font-normal text-slate-500">this week</span></p>{bars(rows, k)}</div>)}</div>
-    <table className="sr-only"><caption>{title}</caption><thead><tr><th>Week</th>{keys.map(([, l]) => <th key={l}>{l}</th>)}</tr></thead><tbody>{rows.map((r) => <tr key={String(r.week)}><td>{r.week}</td>{keys.map(([k]) => <td key={k}>{r[k]}</td>)}</tr>)}</tbody></table>
+    <div className="sr-only"><table><caption>{title}</caption><thead><tr><th>Week</th>{keys.map(([, l]) => <th key={l}>{l}</th>)}</tr></thead><tbody>{rows.map((r) => <tr key={String(r.week)}><td>{r.week}</td>{keys.map(([k]) => <td key={k}>{r[k]}</td>)}</tr>)}</tbody></table></div>
   </Panel>;
   return <Gate any={['platform.ops.read']} what="Usage analytics">
     <CommandPageHeader eyebrow="Platform operations" title="Usage analytics" description="Weekly active people by what they are on Sabi, and weekly activity across products." actions={<Field label="Weeks"><CommandSelect value={weeks} onChange={(e) => setWeeks(Number(e.target.value))}>{[4, 8, 12, 26].map((w) => <option key={w} value={w}>{w}</option>)}</CommandSelect></Field>} />

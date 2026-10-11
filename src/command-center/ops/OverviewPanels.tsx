@@ -79,7 +79,7 @@ function DailyChart({ daily }: { daily: Overview['daily'] }) {
   return <Panel><PanelHeader title="Paid orders per day" description="Value of paid orders by local day in the selected time zone" />
     {daily.length ? <><div className="flex h-44 items-end gap-1 px-4 pb-2 pt-4" aria-hidden>{daily.map((d) => <div key={d.day} className="group relative flex h-full flex-1 flex-col justify-end"><div className="rounded-t bg-emerald-500/85 transition group-hover:bg-emerald-600" style={{ height: `${Math.max(2, (d.paidValueMinor / max) * 100)}%` }} /><span className="pointer-events-none absolute -top-1 left-1/2 hidden -translate-x-1/2 -translate-y-full whitespace-nowrap rounded bg-slate-900 px-2 py-1 text-[10px] text-white group-hover:block">{d.day}: {naira(d.paidValueMinor)} · {d.paid}/{d.orders} paid</span></div>)}</div>
       <div className="flex justify-between px-4 pb-3 text-[10px] text-slate-400" aria-hidden><span>{daily[0].day}</span><span>{daily.at(-1)?.day}</span></div>
-      <table className="sr-only"><caption>Paid orders per day</caption><thead><tr><th>Day</th><th>Orders</th><th>Paid</th><th>Paid value</th></tr></thead><tbody>{daily.map((d) => <tr key={d.day}><td>{d.day}</td><td>{d.orders}</td><td>{d.paid}</td><td>{naira(d.paidValueMinor)}</td></tr>)}</tbody></table></>
+      <div className="sr-only"><table><caption>Paid orders per day</caption><thead><tr><th>Day</th><th>Orders</th><th>Paid</th><th>Paid value</th></tr></thead><tbody>{daily.map((d) => <tr key={d.day}><td>{d.day}</td><td>{d.orders}</td><td>{d.paid}</td><td>{naira(d.paidValueMinor)}</td></tr>)}</tbody></table></div></>
       : <p className="p-6 text-sm text-slate-500">No orders in this period.</p>}
   </Panel>;
 }
