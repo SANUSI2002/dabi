@@ -16,6 +16,7 @@ const api = vi.hoisted(() => ({
   patientAccessHistory: vi.fn(),
   listRefunds: vi.fn(),
   refundAction: vi.fn(),
+  listPharmacyExceptions: vi.fn(),
 }));
 vi.mock('./api', async (original) => ({ ...(await original<typeof import('./api')>()), ...api }));
 
@@ -25,7 +26,8 @@ import { zonedMidnight } from './OverviewPanels';
 import DeliveryPricingPage from './DeliveryPricingPage';
 import PatientsPage from './PatientsPage';
 import FinancePage from './FinancePage';
-import type { CcMe, PricingVersion } from './api';
+import PharmacyExceptionsPage from './PharmacyExceptionsPage';
+import type { CcMe, PharmacyExceptionRow, PharmacyExceptions, PricingVersion } from './api';
 
 const me = (permissions: string[], id = 'staff-1'): CcMe => ({ id, name: 'Staff', email: 'staff@example.test', twoStepVerification: true, roles: ['SABI_TEST'], permissions });
 const wrap = (node: ReactNode, permissions: string[], path = '/command-center') => render(<MemoryRouter initialEntries={[path]}><CcProvider me={me(permissions)}>{node}</CcProvider></MemoryRouter>);
@@ -129,5 +131,49 @@ describe('refund maker-checker', () => {
     const approve = await screen.findByRole('button', { name: /Approve/ });
     expect(approve).toBeDisabled();
     expect(approve).toHaveAttribute('title', 'You proposed this refund');
+  });
+});
+
+describe('pharmacy exceptions', () => {
+  const row = (id: string, overrides: Partial<PharmacyExceptionRow>): PharmacyExceptionRow => ({
+    id, types: ['OUT_OF_STOCK'], pharmacy: { id: 'ph-1', name: 'Synthetic Pharmacy', status: 'VERIFIED' }, branch: { id: 'br-1', name: 'Main branch', status: 'VERIFIED' },
+    medicationName: 'Synthetic thermometer', batchNumber: null, expiryDate: null, daysToExpiry: null, expiryBand: null, availableQuantity: 0, reorderPoint: 5, isActive: true,
+    listing: { id: `l-${id}`, status: 'PUBLISHED', reviewNote: null, reviewedAt: null, updatedAt: null }, ...overrides,
+  });
+  const result = (items: PharmacyExceptionRow[]): PharmacyExceptions => ({
+    items, total: items.length, page: 1, limit: 50, pages: 1, generatedAt: '2026-10-11T10:00:00.000Z', freshness: 'Live: read from the primary database.',
+    definitions: { OUT_OF_STOCK: 'No units.', LOW_STOCK: 'At or below reorder point.', EXPIRED: 'Past expiry.', EXPIRING: 'Expires soon.', WITHDRAWN: 'Withdrawn.', REJECTED: 'Rejected.' },
+    summary: { outOfStock: 1, lowStock: 0, expired: 1, expiring30: 0, expiring60: 0, expiring90: 0, withdrawn: 0, rejected: 1, pharmacies: 2 },
+    groups: [
+      { pharmacy: items[0].pharmacy, branch: items[0].branch, counts: { items: 2, outOfStock: 1, lowStock: 0, expired: 1, expiring: 0, withdrawn: 0, rejected: 0 } },
+      { pharmacy: { id: 'ph-2', name: 'Other Pharmacy', status: 'VERIFIED' }, branch: null, counts: { items: 1, outOfStock: 0, lowStock: 0, expired: 0, expiring: 0, withdrawn: 0, rejected: 1 } },
+    ],
+  });
+
+  it('groups exceptions by pharmacy and branch, links to the pharmacy and filters from the tiles', async () => {
+    api.listPharmacyExceptions.mockResolvedValue(result([
+      row('i-1', {}),
+      row('i-2', { types: ['EXPIRED'], medicationName: 'Synthetic syrup', batchNumber: 'B-EXP', expiryDate: '2026-10-01', daysToExpiry: -10, expiryBand: 'EXPIRED', availableQuantity: 12, listing: null }),
+      row('i-3', { types: ['REJECTED'], pharmacy: { id: 'ph-2', name: 'Other Pharmacy', status: 'VERIFIED' }, branch: null, availableQuantity: 4, listing: { id: 'l-3', status: 'REJECTED', reviewNote: 'Image does not match', reviewedAt: '2026-10-10T10:00:00.000Z', updatedAt: null } }),
+    ]));
+    wrap(<PharmacyExceptionsPage />, ['platform.ops.read']);
+    const main = await screen.findByRole('region', { name: 'Synthetic Pharmacy Main branch' });
+    expect(within(main).getByText('1 out of stock · 1 expired')).toBeInTheDocument();
+    expect(within(main).getByText('Expired 10 day(s) ago')).toBeInTheDocument();
+    expect(within(main).getByRole('link', { name: /Open pharmacy/ })).toHaveAttribute('href', '/command-center/sabi-health/pharmacies/ph-1');
+    const other = screen.getByRole('region', { name: 'Other Pharmacy' });
+    expect(within(other).getByText('No branch assigned')).toBeInTheDocument();
+    expect(within(other).getByText('“Image does not match”')).toBeInTheDocument();
+    expect(api.listPharmacyExceptions).toHaveBeenLastCalledWith(expect.objectContaining({ within: 90, page: 1 }));
+
+    fireEvent.click(screen.getByRole('button', { name: /Expiring ≤ 30 days/ }));
+    await waitFor(() => expect(api.listPharmacyExceptions).toHaveBeenLastCalledWith(expect.objectContaining({ type: 'EXPIRING', within: 30 })));
+    expect(screen.getByRole('button', { name: /Expiring ≤ 30 days/ })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('explains when the role cannot see operations', async () => {
+    wrap(<PharmacyExceptionsPage />, ['platform.finance.read']);
+    expect(await screen.findByText(/Pharmacy exceptions is not part of your role/)).toBeInTheDocument();
+    expect(api.listPharmacyExceptions).not.toHaveBeenCalled();
   });
 });

@@ -2,7 +2,7 @@ import {
   Activity, BadgeDollarSign, BellRing, Bike, Boxes, Building2, ChartNoAxesCombined, CircleUserRound,
   ClipboardCheck, DatabaseZap, FileCheck2, FileKey2, FileText, Fingerprint, FlaskConical,
   Flag, Gauge, HandCoins, Headphones, HeartPulse, KeyRound, Layers3, LockKeyhole,
-  PackageCheck, Palette, Pill, ReceiptText, ScrollText, ServerCog, Settings2, ShieldCheck,
+  PackageCheck, PackageX, Palette, Pill, ReceiptText, ScrollText, ServerCog, Settings2, ShieldCheck,
   Sparkles, Stethoscope, Users, WalletCards, Rocket, Map, HeartHandshake, Truck, Calculator, IdCard, LifeBuoy, Siren,
   type LucideIcon,
 } from "lucide-react";
@@ -38,6 +38,7 @@ export const COMMAND_NAV: CommandNavGroup[] = [
     { to: "/command-center/sabi-health/consultations", label: "Telemedicine operations", icon: HeartPulse, permission: "platform.view", live: ["platform.ops.read"] },
     { to: "/command-center/sabi-health/prescriptions", label: "Prescriptions", icon: FileText, permission: "platform.view" },
     { to: "/command-center/sabi-health/orders", label: "Pharmacy operations", icon: Boxes, permission: "platform.view", live: ["platform.ops.read", "platform.finance.read"] },
+    { to: "/command-center/sabi-health/pharmacy-exceptions", label: "Pharmacy exceptions", icon: PackageX, permission: "platform.view", live: ["platform.ops.read"] },
     { to: "/command-center/sabi-health/deliveries", label: "Deliveries", icon: Truck, permission: "platform.view", live: ["platform.ops.read", "platform.delivery.manage"] },
     { to: "/command-center/sabi-health/delivery-pricing", label: "Delivery pricing", icon: Calculator, permission: "platform.view", live: ["platform.pricing.manage", "platform.finance.read", "platform.ops.read"] },
     { to: "/command-center/sabi-health/payments", label: "Payments", icon: WalletCards, permission: "platform.view", live: ["platform.finance.read", "platform.finance.manage", "platform.finance.approve"] },

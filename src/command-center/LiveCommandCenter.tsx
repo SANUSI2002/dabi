@@ -26,6 +26,7 @@ import { ConsultationsPage, CredentialsPage } from './ops/OversightPages';
 import { HealthPage, IntegrationsPage, JobsPage } from './ops/OpsPages';
 import AuditPage from './ops/AuditPage';
 import DeliveryPricingPage from './ops/DeliveryPricingPage';
+import PharmacyExceptionsPage from './ops/PharmacyExceptionsPage';
 import { LiveSearchResults } from './ops/LiveSearch';
 
 const PRODUCTS: { value: ProductContext; label: string }[] = [
@@ -174,6 +175,8 @@ export default function LiveCommandCenter() {
     content = <PatientsPage key={path} path={path} />;
   } else if (path === '/command-center/sabi-health/orders' || path.startsWith('/command-center/sabi-health/orders/')) {
     content = <OrdersPage key={path} path={path} />;
+  } else if (path === '/command-center/sabi-health/pharmacy-exceptions') {
+    content = <PharmacyExceptionsPage />;
   } else if (path === '/command-center/sabi-health/deliveries') {
     content = <DeliveriesPage />;
   } else if (path === '/command-center/sabi-health/consultations' || path.startsWith('/command-center/sabi-health/consultations/')) {

@@ -14,6 +14,7 @@ export const R = {
   credentials: `${CC}/sabi-health/credentials`,
   doctors: `${CC}/sabi-health/doctors`,
   pharmacies: `${CC}/sabi-health/pharmacies`,
+  pharmacyExceptions: `${CC}/sabi-health/pharmacy-exceptions`,
   listings: `${CC}/pharmacy-listings`,
   cases: `${CC}/cases`,
   incidents: `${CC}/incidents`,

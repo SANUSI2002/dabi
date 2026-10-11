@@ -124,6 +124,24 @@ export const listCredentials = (p: { within?: number; kind?: string }) => ccGet<
 export const providerSummary = () => ccGet<Record<'doctors' | 'pharmacies' | 'organisations' | 'riders', Record<string, number>>>('/providers/summary');
 export const setDoctorStatus = (profileId: string, action: 'suspend' | 'reinstate', reason: string) => ccPost<{ id: string; verificationStatus: string }>(`/providers/doctors/${profileId}/${action}`, { reason });
 
+// ---- Pharmacy exceptions (marketplace stock, expiry and listings) -----------------------------
+export type PharmacyExceptionType = 'OUT_OF_STOCK' | 'LOW_STOCK' | 'EXPIRED' | 'EXPIRING' | 'WITHDRAWN' | 'REJECTED';
+type PharmacyRef = { id: string; name: string; status: string };
+type BranchRef = { id: string; name: string | null; status: string | null } | null;
+export type PharmacyExceptionRow = {
+  id: string; types: PharmacyExceptionType[]; pharmacy: PharmacyRef; branch: BranchRef;
+  medicationName: string; batchNumber: string | null; expiryDate: string | null; daysToExpiry: number | null; expiryBand: 'EXPIRED' | '30' | '60' | '90' | null;
+  availableQuantity: number; reorderPoint: number; isActive: boolean;
+  listing: { id: string; status: string; reviewNote: string | null; reviewedAt: string | null; updatedAt: string | null } | null;
+};
+export type PharmacyExceptionGroup = { pharmacy: PharmacyRef; branch: BranchRef; counts: { items: number; outOfStock: number; lowStock: number; expired: number; expiring: number; withdrawn: number; rejected: number } };
+export type PharmacyExceptions = Paged<PharmacyExceptionRow> & {
+  generatedAt: string; freshness: string; definitions: Record<PharmacyExceptionType, string>;
+  summary: { outOfStock: number; lowStock: number; expired: number; expiring30: number; expiring60: number; expiring90: number; withdrawn: number; rejected: number; pharmacies: number };
+  groups: PharmacyExceptionGroup[];
+};
+export const listPharmacyExceptions = (p: { type?: PharmacyExceptionType; within?: number; lowStockAt?: number; pharmacyId?: string; branchId?: string; search?: string; page?: number; limit?: number }) => ccGet<PharmacyExceptions>(`/pharmacy-exceptions${qs(p)}`);
+
 // ---- Finance ----------------------------------------------------------------------------------
 export type FinanceSummary = {
   period: { from: string; to: string; timeZone: string }; generatedAt: string; definitions: Record<string, string>;
