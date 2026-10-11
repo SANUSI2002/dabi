@@ -760,6 +760,7 @@ export default function RiderPortal() {
                       Request an account update{" "}
                       <ArrowRight size={17} aria-hidden="true" />
                     </a>
+                    <Link className="rider-button-secondary" to="/rider/application">Manage rider credentials</Link>
                   </section>
                 </>
               )}

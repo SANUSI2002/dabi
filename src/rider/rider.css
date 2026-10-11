@@ -1,4 +1,19 @@
 /* Scoped to the rider portal: the uploaded portal's visual rhythm, Sabi's shared type. */
+.rider-application > header { display:flex;justify-content:space-between;align-items:center;gap:16px;padding:24px clamp(20px,5vw,72px);border-bottom:1px solid #dce6df;background:#fff; }
+.rider-application > main { max-width:1000px;margin:auto;padding:48px 24px;display:grid;gap:24px; }
+.rider-application-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px; }
+.rider-application fieldset {border:0;padding:0;}
+.rider-application legend {font-weight:700;padding:0 0 16px;}
+.rider-application label {display:grid;gap:8px;font-weight:600;font-size:0.9rem;}
+.rider-application :is(input,select) {width:100%;padding:12px;border:1px solid #dce6df;border-radius:10px;background:white;min-height:48px;color:#143d31;}
+.rider-application input[type=checkbox] {width:20px;min-height:20px;}
+.rider-application .rider-consent {display:flex;align-items:flex-start;gap:12px;}
+.rider-application small {font-weight:400;color:#536b61;}
+.rider-application .rider-alert {background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:16px;border-radius:12px;}
+.rider-application .rider-notice {background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;padding:16px;border-radius:12px;}
+.rider-application .rider-card {padding:24px;display:grid;gap:16px;}
+.rider-application .rider-row {display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;}
+@media(max-width:640px){.rider-application-grid {grid-template-columns:1fr;}.rider-application > main {padding:32px 20px;}.rider-application > header {padding:20px;}}
 .sabi-rider {
   --r-ink: #143d31;
   --r-muted: #536b61;

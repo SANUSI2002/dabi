@@ -1,5 +1,5 @@
 import {
-  Activity, BadgeDollarSign, BellRing, Boxes, Building2, ChartNoAxesCombined, CircleUserRound,
+  Activity, BadgeDollarSign, BellRing, Bike, Boxes, Building2, ChartNoAxesCombined, CircleUserRound,
   ClipboardCheck, DatabaseZap, FileCheck2, FileKey2, FileText, Fingerprint, FlaskConical,
   Flag, Gauge, HandCoins, Headphones, HeartPulse, KeyRound, Layers3, LockKeyhole,
   PackageCheck, Palette, Pill, ReceiptText, ScrollText, ServerCog, Settings2, ShieldCheck,
@@ -39,6 +39,7 @@ export const COMMAND_NAV: CommandNavGroup[] = [
     { to: "/command-center/sabi-health/payments", label: "Payments", icon: WalletCards, permission: "platform.view" },
     { to: "/command-center/sabi-health/patients", label: "Patients", icon: Users, permission: "platform.view" },
     { to: "/command-center/sabi-health/doctors", label: "Healthcare professionals", icon: Stethoscope, permission: "platform.view" },
+    { to: "/command-center/sabi-health/riders", label: "Riders", icon: Bike, permission: "platform.view" },
     { to: "/command-center/sabi-health/pharmacies", label: "Pharmacies", icon: Pill, permission: "platform.view" },
     { to: "/command-center/sabi-health/laboratories", label: "Laboratories", icon: FlaskConical, permission: "platform.view" },
   ] },

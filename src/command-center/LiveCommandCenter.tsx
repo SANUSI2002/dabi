@@ -11,6 +11,7 @@ import { cn } from '@/lib/cn';
 import LivePackagesPage from './LivePackagesPage';
 import LiveApplicationsPage from './LiveApplicationsPage';
 import LiveDoctorsPage from './LiveDoctorsPage';
+import LiveRidersPage from './LiveRidersPage';
 import LiveUsersPage from './LiveUsersPage';
 import LivePharmaciesPage from './LivePharmaciesPage';
 import { livePlatformApplications, type LivePlatformApplication } from '@/registration/livePlatform';
@@ -144,6 +145,8 @@ export default function LiveCommandCenter() {
     content = identity?.platform?.permissions.includes('platform.pharmacy.manage') ? <LivePharmaciesPage key={path}/> : <UnavailableSection title="Pharmacy operations"/>;
   } else if (path === '/command-center/internal-users') {
     content = <><CommandPageHeader eyebrow="Administration" title="Internal users" description="Invite Command Center staff by email with a server-enforced role." />{hasInvites ? <InvitationManager title="Command Center staff invitations" /> : <Panel><p className="p-5 text-sm text-slate-600">Your platform role does not permit staff invitations.</p></Panel>}</>;
+  } else if (path === '/command-center/sabi-health/riders' || path.startsWith('/command-center/sabi-health/riders/')) {
+    content = hasRegistry ? <LiveRidersPage key={path} canApprove={!!identity?.platform?.permissions.includes('platform.onboarding.approve')} userId={identity?.user.id || ''} /> : <UnavailableSection title="Rider applications" />;
   } else if (path === '/command-center/sabi-health/doctors' || path.startsWith('/command-center/sabi-health/doctors/')) {
     content = hasRegistry ? <LiveDoctorsPage key={path} canApprove={!!identity?.platform?.permissions.includes('platform.onboarding.approve')} userId={identity?.user.id || ''} /> : <UnavailableSection title="Doctor applications" />;
   } else {

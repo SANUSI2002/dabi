@@ -36,6 +36,8 @@ const PharmacyRegistrationPage = lazy(() => import("@/pharmacy/PharmacyRegistrat
 const PharmacyVerifyEmailPage = lazy(() => import("@/pharmacy/PharmacyRegistrationPage").then(m=>({default:m.PharmacyVerifyEmailPage})));
 const PharmacyLoginPage = lazy(() => import("@/pharmacy/PharmacyLoginPage"));
 const CourierPortal = lazy(() => import("@/pharmacy/CourierPortal"));
+const RiderOnboarding = lazy(() => import("@/rider/RiderOnboarding"));
+const RiderReview = lazy(() => import("@/command-center/LiveRidersPage"));
 
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const ClinicalQueue = lazy(() => import("@/pages/clinical/ClinicalQueue"));
@@ -307,7 +309,10 @@ export default function App() {
         <Route path="/pharmacy/courier" element={<Navigate to="/rider/dashboard" replace />} />
         <Route path="/rider" element={<Navigate to="/rider/dashboard" replace />} />
         <Route path="/rider/login" element={<CourierPortal />} />
-        <Route path="/rider/join" element={<CourierPortal />} />
+        <Route path="/rider/join" element={<Navigate to="/rider/register" replace />} />
+        <Route path="/rider/register" element={<RiderOnboarding key="register" />} />
+        <Route path="/rider/application" element={<RiderOnboarding key="application" />} />
+        <Route path="/rider/verify-email/:uid" element={<RiderOnboarding key="verify" />} />
         <Route path="/rider/signup" element={<Navigate to="/rider/join" replace />} />
         <Route path="/rider/forgot-password" element={<Navigate to="/forgot-password" replace />} />
         <Route path="/rider/dashboard" element={<CourierPortal />} />
@@ -346,6 +351,8 @@ export default function App() {
           <Route path="sabi-health/patients/:patientId" element={<SabiHealthPatientDetail />} />
           <Route path="sabi-health/doctors" element={<SabiHealthDoctors />} />
           <Route path="sabi-health/doctors/:doctorId" element={<SabiHealthDoctorDetail />} />
+          <Route path="sabi-health/riders" element={<RiderReview canApprove={false} userId="" />} />
+          <Route path="sabi-health/riders/:riderId" element={<RiderReview canApprove={false} userId="" />} />
           <Route path="sabi-health/pharmacies" element={<SabiHealthPharmacies />} />
           <Route path="sabi-health/pharmacies/:pharmacyId" element={<SabiHealthPharmacyDetail />} />
           <Route path="sabi-health/laboratories" element={<SabiHealthLaboratories />} />
