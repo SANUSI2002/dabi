@@ -10,6 +10,7 @@ import { useShellTenant } from "@/emr-live/shellData";
 import { useIsLiveEmr } from "@/emr-live/session";
 import { useRevenueCycle } from "@/billing/useRevenueCycle";
 import { EmrRouteLoadingScreen } from "./AppLoadingScreen";
+import RuntimePresentation from '@/emr-live/RuntimePresentation';
 import "@/store/accounting/bootstrap";
 
 function TimedRouteLoader({ pathname, tenantName }: { pathname: string; tenantName: string }) {
@@ -78,6 +79,7 @@ export function AppShell() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar onMenu={() => setMobileNav(true)} />
+        {live && <RuntimePresentation />}
         <main className="relative flex-1 overflow-y-auto bg-mesh">
           <TimedRouteLoader key={loc.key} pathname={loc.pathname} tenantName={tenantName} />
           <div className="mx-auto max-w-[1400px] px-4 py-6 lg:px-8">

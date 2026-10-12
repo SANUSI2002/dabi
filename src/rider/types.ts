@@ -14,6 +14,7 @@ export type RiderAssignment = {
   pickedUpAt?: string | null;
   outForDeliveryAt?: string | null;
   deliveredAt?: string | null;
+  earningOfferMinor?: number | null;
 };
 export type RiderOverview = {
   profile: {

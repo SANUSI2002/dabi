@@ -9,8 +9,11 @@ import { alerts, integrations, jobSummary, listJobs, retryJob, type Integration,
 import { ActionDialog, Empty, ErrorBox, Field, FilterBar, Gate, Loading, Note, Pagination, Table, Tabs, Td, human, useCc, useFormat, useLoad, type ActionDialogProps } from './kit';
 import { drillTo } from './routes';
 
-const TYPES: { value: JobType; label: string }[] = [{ value: 'notification', label: 'Notifications' }, { value: 'reminder', label: 'Medicine reminders' }, { value: 'pharmacy-email', label: 'Pharmacy emails' }, { value: 'emr-webhook', label: 'Hospital webhooks' }, { value: 'document-scan', label: 'Malware scans' }];
+const TYPES: { value: JobType; label: string }[] = [{ value: 'notification', label: 'Notifications' }, { value: 'reminder', label: 'Medicine reminders' }, { value: 'pharmacy-email', label: 'Pharmacy emails' }, { value: 'emr-webhook', label: 'Hospital webhooks' }, { value: 'document-scan', label: 'Malware scans' }, { value: 'subscription-email', label: 'Subscription emails' }, { value: 'rider-email', label: 'Rider emails' }, { value: 'rider-transfer', label: 'Rider transfer checks' }];
 const STATUS_OPTIONS: Record<JobType, string[]> = {
+  'subscription-email': ['QUEUED', 'SENDING', 'SENT', 'FAILED'],
+  'rider-email': ['PENDING', 'SENT', 'FAILED', 'CANCELLED'],
+  'rider-transfer': ['SUBMITTED', 'UNKNOWN', 'NEEDS_PROVIDER_AUTH', 'PAID', 'FAILED', 'REVERSED'],
   notification: ['PENDING', 'SENT', 'DELIVERED', 'READ', 'FAILED', 'SKIPPED', 'CANCELLED'],
   reminder: ['SCHEDULED', 'SENT', 'FAILED', 'CANCELLED', 'SKIPPED'],
   'pharmacy-email': ['QUEUED', 'SENT', 'FAILED', 'CANCELLED'],
@@ -20,6 +23,7 @@ const STATUS_OPTIONS: Record<JobType, string[]> = {
 
 function jobCells(type: JobType, j: JobRow, f: ReturnType<typeof useFormat>) {
   const s = (k: string) => (j[k] === null || j[k] === undefined ? '—' : String(j[k]));
+  if (type === 'subscription-email' || type === 'rider-email' || type === 'rider-transfer') return [s('recipient'), s('reference') === '—' ? human(s('kind')) : s('reference'), s(type === 'rider-transfer' ? 'number' : 'attempts'), s('errorCode') === '—' ? s('lastErrorCode') : s('errorCode'), f.dateTime((j.sentAt ?? j.createdAt) as string)];
   if (type === 'notification') return [<>{s('recipient')}<span className="block text-[11px] text-slate-500">{human(s('channel'))}</span></>, <>{human(s('category'))}<span className="block text-[11px] text-slate-500">{s('eventType')}</span></>, s('attempts'), <span key="k22-261" className="text-xs text-red-700">{j.lastError ? s('lastError') : ''}</span>, f.dateTime(j.updatedAt as string)];
   if (type === 'document-scan') return [<Fragment key="file">{s('source')}<span className="block text-[11px] text-slate-500">{human(s('what'))}</span></Fragment>, s('owner'), j.attempts === null ? '—' : s('attempts'), <span key="problem" className="text-xs text-red-700">{j.error ? human(s('error')) : j.status === 'PENDING' ? 'Waiting for the scanner' : ''}</span>, <Fragment key="since">{f.dateTime(j.since as string)}{j.retryOn ? <span className="block text-[11px] text-slate-500">Retry from the {String(j.retryOn)} review page</span> : null}</Fragment>];
   if (type === 'reminder') return [s('recipient'), f.dateTime(j.dueAt as string), s('snoozeCount'), <span key="k23-102" className="text-xs text-red-700">{j.lastError ? s('lastError') : ''}</span>, f.dateTime(j.processedAt as string)];
@@ -27,6 +31,9 @@ function jobCells(type: JobType, j: JobRow, f: ReturnType<typeof useFormat>) {
   return [s('organization'), <span key="k25-31" className="font-mono text-[11px]">{s('eventId').slice(0, 8)}</span>, s('attempts'), <span key="k25-121" className="text-xs text-red-700">{[j.lastStatusCode && `HTTP ${s('lastStatusCode')}`, j.lastError && s('lastError')].filter(Boolean).join(' · ')}</span>, f.dateTime((j.deliveredAt ?? j.createdAt) as string)];
 }
 const HEADS: Record<JobType, string[]> = {
+  'subscription-email': ['Recipient', 'Email', 'Attempts', 'Last error', 'Sent / created'],
+  'rider-email': ['Recipient (not exposed)', 'Email', 'Attempts', 'Last error', 'Sent / created'],
+  'rider-transfer': ['Recipient (not exposed)', 'Reference', 'Attempt', 'Last error', 'Created'],
   notification: ['Recipient', 'What', 'Attempts', 'Last error', 'Updated'],
   reminder: ['Patient', 'Due', 'Snoozes', 'Last error', 'Processed'],
   'pharmacy-email': ['Pharmacy', 'Email', 'Attempts', 'Last error', 'Sent / created'],

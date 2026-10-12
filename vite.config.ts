@@ -42,9 +42,13 @@ export default defineConfig(({ mode }) => {
       },
     },
     resolve: {
+      // Workspaces have their own React version. A root app must render through one runtime,
+      // including linked/shared components; otherwise React 18/19 elements cannot interoperate.
+      dedupe: ['react', 'react-dom'],
       alias: {
         "@": fileURLToPath(new URL("./src", import.meta.url)),
       },
     },
+    optimizeDeps: { entries: ['index.html'] },
   };
 });

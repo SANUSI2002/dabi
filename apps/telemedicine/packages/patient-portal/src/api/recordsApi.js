@@ -121,6 +121,9 @@ export const toDocument = (d) => ({
   byteSize: d.byteSize,
   medicalRecordId: d.medicalRecordId,
   createdAt: d.createdAt,
+  contentType: d.validatedContentType || d.declaredContentType,
+  scanErrorCode: d.scanErrorCode,
+  scanAttempts: d.scanAttempts,
 });
 
 export async function listDocuments() {
@@ -129,27 +132,35 @@ export async function listDocuments() {
 }
 
 /**
- * Three-step upload: reserve the document, PUT the bytes straight to private storage with the
- * short-lived signed URL, then ask the API to verify the stored object and queue the scan.
+ * Selecting a document sends bounded bytes to the authenticated API. It privately stores the
+ * immutable file and queues screening; the patient never has to run a separate upload action.
  */
+const uploadAttempts = new WeakMap();
 export async function uploadDocument(file, { kind, medicalRecordId } = {}) {
   if (!DOCUMENT_TYPES.includes(file.type)) throw new Error("Only PDF, JPEG or PNG files can be uploaded.");
-  if (file.size > MAX_DOCUMENT_BYTES) throw new Error("Files must be 10 MB or smaller.");
-  const reserved = await send("POST", "/api/v1/medical-documents/uploads", {
-    filename: file.name,
-    contentType: file.type,
-    byteSize: file.size,
-    kind,
-    ...(medicalRecordId ? { medicalRecordId } : {}),
-  });
-  const { document, upload } = reserved;
-  const put = await fetch(upload.url, { method: upload.method || "PUT", headers: upload.headers, body: file }).catch(() => null);
-  if (!put?.ok) {
-    await deleteDocument(document.id).catch(() => {});
-    throw new Error("The file could not be sent to secure storage. Please try again.");
-  }
-  return send("POST", `/api/v1/medical-documents/${document.id}/complete-upload`);
+  const config = await documentConfig();
+  if (!config.enabled) throw new Error('Secure document intake is temporarily unavailable. Please try again later.');
+  if (!file.size || file.size > config.maxBytes) throw new Error(`Choose a file no larger than ${(config.maxBytes / 1000000).toFixed(1)} MB.`);
+  const scope = `${kind}:${medicalRecordId || ''}`;
+  let attempt = uploadAttempts.get(file);
+  if (!attempt || attempt.scope !== scope) { attempt = { scope, key: crypto.randomUUID() }; uploadAttempts.set(file, attempt); }
+  const result = await data(authorizedRequest('/api/v1/medical-documents/uploads/receive', {
+    method: 'POST', rawBody: file,
+    headers: { 'Content-Type': file.type, 'X-Document-Filename': encodeURIComponent(file.name), 'Idempotency-Key': attempt.key },
+    query: { kind, ...(medicalRecordId ? { medicalRecordId } : {}) },
+    signal: AbortSignal.timeout(60000),
+  }));
+  uploadAttempts.delete(file);
+  return result;
 }
+
+export const documentConfig = () => get('/api/v1/medical-documents/config');
+export const documentPage = (page = 1, kind) => get('/api/v1/medical-documents', { page, limit: 12, ...(kind ? { kind } : {}) });
+export const documentRecipients = () => get('/api/v1/medical-documents/recipients');
+export const documentShares = (id) => get(`/api/v1/medical-documents/${id}/shares`);
+export const shareDocument = (id, recipientId, expiresAt) => send('POST', `/api/v1/medical-documents/${id}/shares`, { recipientId, expiresAt });
+export const revokeDocumentShare = (id, shareId) => send('POST', `/api/v1/medical-documents/${id}/shares/${shareId}/revoke`);
+export const retryDocumentScan = (id) => send('POST', `/api/v1/medical-documents/${id}/retry-scan`);
 
 /** Returns a short-lived signed URL; open it straight away. */
 export const documentDownloadUrl = (id) => send("POST", `/api/v1/medical-documents/${id}/download`).then((r) => r.url);

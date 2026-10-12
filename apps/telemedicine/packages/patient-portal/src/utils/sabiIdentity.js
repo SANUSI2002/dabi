@@ -138,7 +138,7 @@ export const updateCurrentUser = (patch) => {
  * the server's message, `status` and `code`.
  */
 // `raw: true` returns the response body as a Blob (for PDFs and other files) instead of parsing JSON.
-export async function authorizedRequest(path, { method = 'GET', body, query, signal, raw = false } = {}) {
+export async function authorizedRequest(path, { method = 'GET', body, rawBody, headers = {}, query, signal, raw = false } = {}) {
   if (!apiConfigured) throw Object.assign(new Error('The Sabi Health service is not configured.'), { code: 'API_NOT_CONFIGURED' });
   if (!accessToken) await restoreSession();
   const search = query ? `?${new URLSearchParams(Object.entries(query).filter(([, v]) => v !== undefined && v !== null && v !== '')).toString()}` : '';
@@ -147,8 +147,8 @@ export async function authorizedRequest(path, { method = 'GET', body, query, sig
     cache: 'no-store',
     signal,
     credentials: 'include',
-    headers: { 'X-Sabi-Client': 'browser', ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    headers: { 'X-Sabi-Client': 'browser', ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...headers, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    ...(rawBody !== undefined ? { body: rawBody } : body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
   let used = accessToken;
   let response = await send(used);

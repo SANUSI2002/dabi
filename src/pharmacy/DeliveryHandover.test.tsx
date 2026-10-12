@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   signOut: vi.fn(),
 }));
 vi.mock("./liveApi", () => ({ getLive: mocks.get, writeLive: mocks.write }));
+vi.mock("@/rider/riderApi", () => ({ getLive: mocks.get, writeLive: mocks.write }));
 vi.mock("@/identity/liveIdentity", () => ({
   restoreLiveIdentity: mocks.restore,
   liveSignIn: mocks.signIn,

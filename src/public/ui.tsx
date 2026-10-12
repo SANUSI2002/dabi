@@ -4,6 +4,7 @@ import { ArrowRight, Mail, Phone, X } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/cn";
 import { CONTACT_EMAILS, CONTACT_LINES, telUrl, whatsappUrl } from "@/public/contact";
+import { apiBaseUrl } from '@/config/runtime';
 
 // The public site's shared look: forest ink, sage surfaces and brand green, taken from the
 // portal artwork. Every marketing page builds from these pieces so the pages rhyme.
@@ -74,7 +75,18 @@ export function ContactLines({ light = false }: { light?: boolean }) {
 
 /** Public email links, labelled by purpose and allowed to wrap on small screens. */
 export function ContactEmails({ light = false, className }: { light?: boolean; className?: string }) {
-  return <ul className={cn("space-y-2", className)}>{CONTACT_EMAILS.map(({ label, address }) => <li key={address}>
+  const [emails, setEmails] = useState<readonly { label: string; address: string }[]>(CONTACT_EMAILS);
+  useEffect(() => {
+    if (!apiBaseUrl) return;
+    const abort = new AbortController();
+    void fetch(`${apiBaseUrl}/api/v1/public/runtime/contact`, { credentials: 'omit', signal: AbortSignal.any([abort.signal, AbortSignal.timeout(10000)]) }).then((r) => r.ok ? r.json() : null).then((r) => {
+      if (abort.signal.aborted || !r?.data) return;
+      const valid = (s: unknown): s is string => typeof s === 'string' && /^[^\s<>\r\n?]+@[^\s<>\r\n?]+\.[^\s<>\r\n?]+$/.test(s);
+      if (valid(r.data.supportEmail) && valid(r.data.infoEmail)) setEmails([{ label: 'Support', address: r.data.supportEmail }, { label: 'General enquiries', address: r.data.infoEmail }]);
+    }).catch(() => { /* Public contact remains available if configuration cannot be refreshed. */ });
+    return () => abort.abort();
+  }, []);
+  return <ul className={cn("space-y-2", className)}>{emails.map(({ label, address }) => <li key={address}>
     <a href={`mailto:${address}`} className={cn("flex min-h-11 min-w-0 items-center gap-3 rounded-lg py-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400", light ? "text-white hover:text-brand-200" : "text-[#0b2b20] hover:text-brand-700")}>
       <Mail size={16} className="shrink-0" aria-hidden />
       <span className="min-w-0"><span className={cn("block text-xs", light ? "text-brand-200" : MUTED)}>{label}</span>{" "}<span className="block text-sm font-semibold [overflow-wrap:anywhere]">{address}</span></span>

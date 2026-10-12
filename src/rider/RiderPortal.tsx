@@ -34,6 +34,8 @@ import { IdleSignOutNotice } from "@/identity/IdleSessionGuard";
 import { SABI_HEALTH_URL } from "@/public/ecosystemLinks";
 import { getLive, writeLive } from "@/pharmacy/liveApi";
 import RiderDelivery from "./RiderDelivery";
+import { RiderAvailability, RiderEarnings } from './RiderOperations';
+import RiderOfferNotifications from './RiderOfferNotifications';
 import {
   riderDate,
   riderStatus,
@@ -62,6 +64,8 @@ export default function RiderPortal() {
   const joined = pathname === "/rider/join" || pathname === "/rider/signup";
   const page = pathname.startsWith("/rider/history")
     ? "history"
+    : pathname === '/rider/earnings'
+      ? 'earnings'
     : pathname === "/rider/profile"
       ? "profile"
       : pathname === "/rider/support"
@@ -123,6 +127,18 @@ export default function RiderPortal() {
       active = false;
     };
   }, [load]);
+  useEffect(() => {
+    if (!identity) return;
+    let active = true, polling = false;
+    const timer = setInterval(async () => {
+      if (!active || polling || gate.current || document.hidden) return;
+      polling = true;
+      try { await load(); }
+      catch (cause) { if (active) setError(cause instanceof Error ? cause.message : 'Could not refresh delivery offers.'); }
+      finally { polling = false; }
+    }, 20000);
+    return () => { active = false; clearInterval(timer); };
+  }, [identity, load]);
   async function run(work: () => Promise<void>) {
     if (gate.current) return;
     gate.current = true;
@@ -374,6 +390,8 @@ export default function RiderPortal() {
   const title =
     page === "history"
       ? "Delivery history"
+      : page === 'earnings'
+        ? 'Your earnings'
       : page === "profile"
         ? "My account"
         : page === "support"
@@ -401,7 +419,7 @@ export default function RiderPortal() {
               key={path}
               to={path}
               className={({ isActive }) =>
-                `rider-nav-link${isActive || (path === "/rider/offers" && deliveryRoute) ? " is-active" : ""}`
+                `rider-nav-link${isActive || (path === "/rider/offers" && deliveryRoute) || (path === '/rider/profile' && page === 'earnings') ? " is-active" : ""}`
               }
             >
               <Icon size={20} aria-hidden="true" />
@@ -436,6 +454,7 @@ export default function RiderPortal() {
             {title}
           </span>
           <div className="rider-topbar-actions">
+            <RiderOfferNotifications />
             <span className="rider-status">
               <CheckCircle2 size={15} aria-hidden="true" /> Activated rider
             </span>
@@ -504,6 +523,7 @@ export default function RiderPortal() {
             <>
               {page === "dashboard" && (
                 <>
+                  <RiderAvailability />
                   <div className="rider-page-heading">
                     <div>
                       <p className="rider-eyebrow">Your day, connected</p>
@@ -609,6 +629,7 @@ export default function RiderPortal() {
                   </section>
                 </>
               )}
+              {page === 'earnings' && <RiderEarnings />}
               {page === "offers" && (
                 <>
                   <div className="rider-page-heading">
@@ -687,6 +708,7 @@ export default function RiderPortal() {
               )}
               {page === "profile" && (
                 <>
+                  <Link className="rider-button-secondary" to="/rider/earnings">View earnings and payout account <ArrowRight size={17} aria-hidden="true" /></Link>
                   <div className="rider-page-heading">
                     <div>
                       <p className="rider-eyebrow">Sabi ID</p>
@@ -775,7 +797,7 @@ export default function RiderPortal() {
             key={path}
             to={path}
             className={({ isActive }) =>
-              isActive || (path === "/rider/offers" && deliveryRoute)
+              isActive || (path === "/rider/offers" && deliveryRoute) || (path === '/rider/profile' && page === 'earnings')
                 ? "is-active"
                 : ""
             }
@@ -876,6 +898,7 @@ function AssignmentList({
             </small>
           </span>
           <span className="rider-status">{riderStatus(item)}</span>
+          {item.earningOfferMinor != null && <strong className="rider-offer-price">You earn {new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(item.earningOfferMinor / 100)}</strong>}
           <ChevronRight size={19} aria-hidden="true" />
         </button>
       ))}

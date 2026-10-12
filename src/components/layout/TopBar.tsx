@@ -159,7 +159,8 @@ export function TopBar({ onMenu }: { onMenu?: () => void }) {
                 </div>
                 <Link to={live ? "/identity/account" : "/account/sessions"} onClick={() => setMenu(false)} className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-mist-600 hover:bg-mist-50"><MonitorSmartphone size={15}/> Sessions & devices</Link>
                 {canSwitch && <Link to={live ? "/identity/account" : "/choose-organization"} onClick={() => setMenu(false)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-mist-600 hover:bg-mist-50"><Building2 size={15}/> Switch organization</Link>}
-                <button
+                  {live && <Link to="/subscription" onClick={() => setMenu(false)} className="flex min-h-11 w-full items-center rounded-lg px-3 py-2 text-sm font-medium text-mist-600 hover:bg-mist-50">Hospital subscription</Link>}
+                  <button
                   onClick={() => { void signOut(); }}
                   className="mt-1 flex w-full items-center gap-2 rounded-lg border-t border-mist-100 px-3 py-2 text-sm font-medium text-action-600 hover:bg-action-50"
                 >

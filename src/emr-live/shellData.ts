@@ -1,6 +1,7 @@
 import { useTenant } from "@/store/useTenant";
 import { liveRouteState } from "./routes";
 import { useIsLiveEmr, useLiveEmr } from "./session";
+import { useTenantPresentation } from './RuntimePresentation';
 
 // Shell data for live mode: the hospital shown in the sidebar/top bar, and where a live user lands.
 
@@ -14,8 +15,10 @@ export function useShellTenant(): ShellTenant {
   const live = useIsLiveEmr();
   const access = useLiveEmr((state) => state.access);
   const tenant = useTenant((state) => state.tenant);
+  const presentation = useTenantPresentation();
   if (live && access) {
-    return { name: access.organizationName, facilityCode: facilityCodeOf(access.organizationName), tenantId: access.organizationId, location: "" };
+    const name = presentation?.displayName || access.organizationName;
+    return { name, facilityCode: facilityCodeOf(name), tenantId: access.organizationId, location: "" };
   }
   return { name: tenant.name, facilityCode: tenant.facilityCode, tenantId: tenant.tenantId, location: [tenant.state, tenant.country].filter(Boolean).join(", ") };
 }

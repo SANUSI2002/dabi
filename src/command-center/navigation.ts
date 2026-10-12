@@ -49,6 +49,7 @@ export const COMMAND_NAV: CommandNavGroup[] = [
     { to: "/command-center/sabi-health/doctors", label: "Healthcare professionals", icon: Stethoscope, permission: "platform.view" },
     { to: "/command-center/sabi-health/pharmacies", label: "Pharmacies", icon: Pill, permission: "platform.view" },
     { to: "/command-center/sabi-health/riders", label: "Riders", icon: Bike, permission: "platform.view" },
+    { to: '/command-center/sabi-health/rider-operations', label: 'Rider operations', icon: Bike, permission: 'platform.view', live: ['platform.ops.read', 'platform.delivery.manage', 'platform.finance.read', 'platform.pricing.manage'] },
     { to: "/command-center/sabi-health/laboratories", label: "Laboratories", icon: FlaskConical, permission: "platform.view", live: ["platform.ops.read"] },
     { to: "/command-center/sabi-health/credentials", label: "Credentials & expiry", icon: IdCard, permission: "platform.view", live: ["platform.ops.read", "platform.providers.manage"], badge: ["licencesExpiring"] },
   ] },

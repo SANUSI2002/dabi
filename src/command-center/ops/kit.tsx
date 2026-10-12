@@ -125,7 +125,7 @@ export function Timeline({ events }: { events: TimelineEvent[] }) {
 }
 
 // ---- Reason dialog (with two-step re-verification) ----------------------------------------------
-type DialogField = { name: string; label: string; placeholder?: string; type?: 'text' | 'select' | 'number' | 'datetime-local'; options?: { value: string; label: string }[]; required?: boolean; defaultValue?: string; pattern?: string; hint?: string };
+type DialogField = { name: string; label: string; placeholder?: string; type?: 'text' | 'select' | 'number' | 'date' | 'email' | 'datetime-local' | 'textarea'; options?: { value: string; label: string }[]; required?: boolean; defaultValue?: string; pattern?: string; hint?: string };
 export type ActionDialogProps = {
   title: string; description?: ReactNode; confirm: string; tone?: 'primary' | 'danger';
   reasonLabel?: string | null; reasonMin?: number; fields?: DialogField[];
@@ -173,6 +173,7 @@ export function ActionDialog({ title, description, confirm, tone = 'primary', re
         {fields.map((f) => <Field key={f.name} label={`${f.label}${f.required ? '' : ' (optional)'}`}>
           {f.type === 'select'
             ? <select value={values[f.name]} onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))} className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal text-slate-800">{f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
+            : f.type === 'textarea' ? <textarea rows={3} maxLength={500} disabled={busy} value={values[f.name]} placeholder={f.placeholder} onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))} className="min-h-24 rounded-lg border border-slate-200 px-3 py-2 text-sm font-normal text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15" />
             : <CommandInput type={f.type ?? 'text'} value={values[f.name]} placeholder={f.placeholder} pattern={f.pattern} onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))} className="font-normal" />}
           {f.hint && <span className="text-[11px] font-normal text-slate-500">{f.hint}</span>}
         </Field>)}

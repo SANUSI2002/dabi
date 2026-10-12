@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { riderDate, riderStatus, type RiderAssignment } from "./types";
+import { RiderLocationAndIssues } from './RiderOperations';
 
 type Props = {
   assignment: RiderAssignment;
@@ -72,6 +73,8 @@ export default function RiderDelivery({
           </li>
         ))}
       </ol>
+      <RiderLocationAndIssues assignment={item} />
+      <p className="rider-muted">{item.earningOfferMinor != null ? `Your earning on successful delivery: ${new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(item.earningOfferMinor / 100)}.` : 'Contact operations for this assignment’s earning offer.'}</p>
       <div className="rider-delivery-grid">
         <section
           className="rider-card rider-addresses"

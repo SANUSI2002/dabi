@@ -13,6 +13,7 @@ vi.mock("@/pharmacy/liveApi", () => ({
   getLive: mocks.get,
   writeLive: mocks.write,
 }));
+vi.mock("./riderApi", () => ({ getLive: mocks.get, writeLive: mocks.write }));
 vi.mock("@/identity/liveIdentity", () => ({
   restoreLiveIdentity: mocks.restore,
   liveSignIn: mocks.login,
@@ -62,7 +63,11 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.restore.mockResolvedValue(identity);
   mocks.get.mockImplementation(async (path) =>
-    path.endsWith("/me")
+    path.endsWith("/availability")
+      ? { isAvailable: false, availabilityVersion: 1, availableUntil: null }
+      : path.includes("/offer-notifications")
+        ? { items: [] }
+      : path.endsWith("/me")
       ? overview
       : path.includes("/history?")
         ? { items: [], nextOffset: null }

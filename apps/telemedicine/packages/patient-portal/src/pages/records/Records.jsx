@@ -8,6 +8,7 @@ import { pageVars } from "../../pageVars";
 import { useZoom } from "../../hooks/useZoom";
 import "../dashboard/Dashboard.css";
 import "./Records.css";
+import DocumentLibrary from './components/DocumentLibrary';
 
 const loadRecords = async () => (await listRecords()).map(toUiRecord);
 const loadCategories = async () => sortCategories((await listCategories()).map(toUiCategory));
@@ -63,6 +64,7 @@ export function Records() {
 
         <div className="sabi-grid sabi-records-grid">
           <div className="sabi-col">
+            <DocumentLibrary />
             <RecordsSection records={timelineRecords} />
             <OrganizedRecords
               categories={categories}
