@@ -204,7 +204,7 @@ function EverydayHealth() {
         <div className="hidden h-[600px] overflow-hidden rounded-[32px] border border-[#e6e0d3] md:block">
           <WorksWheel items={EVERYDAY} label="Everyday health" className="font-display" />
         </div>
-        <p className={cn("mt-3 hidden text-center text-xs md:block", SOFT)}>Scroll, drag or use the arrow keys to turn the wheel.</p>
+        <p className={cn("mt-3 hidden text-center text-xs md:block", SOFT)}>Drag sideways, choose a topic or use the arrow keys to turn the wheel.</p>
         <ul className="-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 [scrollbar-width:none] md:hidden [&::-webkit-scrollbar]:hidden" aria-label="What Sabi can help you understand">
           {EVERYDAY.map((item) => <li key={item.title} className="w-[78%] shrink-0 snap-start overflow-hidden rounded-[22px] border border-[#e6e0d3] bg-white">
             <img src={item.image} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover" />

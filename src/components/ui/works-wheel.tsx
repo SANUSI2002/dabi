@@ -3,10 +3,11 @@
 // A portfolio index built as a wheel you turn.
 //
 // At rest the work sits in a ring around a title, each card tangent to the
-// circle. The first notch of scroll blows the ring open into a vertical drum:
+// circle. Selecting a topic or dragging sideways opens a vertical drum:
 // the card at the front lies flat and full size, the ones above and below
 // rotate away into hard perspective and run off the top and bottom of the
 // frame. Keep turning and the drum carries the next piece round to the front.
+// Normal page scrolling never controls or gets captured by this decoration.
 //
 // The whole thing is one number - `turn` - read by a single rAF pass that writes
 // transforms straight to the DOM. 0 is the ring, 1 is the drum with item 0 at
@@ -18,6 +19,7 @@
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { useAnimationVisibility } from "./use-animation-visibility";
 
 export interface WorksWheelItem {
   /** Project name. Shown beside the front card and in the index. */
@@ -65,10 +67,7 @@ const INDEX = 0.04; // the index down the right-hand side
 const CULL = 1.6;
 
 /** How much of a wheel-notch or a dragged pixel counts as one item. */
-const WHEEL_UNITS = 900;
 const DRAG_UNITS = 420;
-/** Quiet time after the last wheel event before the wheel settles on an item. */
-const SETTLE = 140;
 /** Fraction of the remaining distance closed each frame. 1 = no smoothing. */
 const EASE = 0.12;
 
@@ -116,6 +115,9 @@ export function WorksWheel({
   const cardRefs = React.useRef<(HTMLElement | null)[]>([]);
   const labelRef = React.useRef<HTMLDivElement>(null);
   const titleRef = React.useRef<HTMLDivElement>(null);
+  const awake = useAnimationVisibility(stageRef);
+  const requestDraw = React.useRef<() => void>(() => {});
+  const activeRef = React.useRef(0);
 
   // The wheel's position, and where it is heading. Only `active` is state -
   // everything else is written to the DOM, so turning the wheel is not a render.
@@ -173,14 +175,14 @@ export function WorksWheel({
     };
   }, [stage, count]);
 
-  // One pass per frame: ease toward the target, then write every transform.
+  // Animate only while moving and on screen. An idle wheel queues no frames.
   React.useEffect(() => {
-    if (!stage.h) return;
+    if (!stage.h || !awake) return;
     let frame = 0;
     const { ringR, ringScale, drumR, bow } = metrics;
 
     const draw = () => {
-      frame = requestAnimationFrame(draw);
+      frame = 0;
       const gap = target.current - turn.current;
       if (Math.abs(gap) < 0.0005) turn.current = target.current;
       else turn.current += gap * (reduced ? 1 : EASE);
@@ -222,49 +224,30 @@ export function WorksWheel({
       if (labelRef.current) labelRef.current.style.opacity = String(1 - m);
       if (titleRef.current) titleRef.current.style.opacity = String(m);
       const near = clamp(Math.round(pos), 0, last);
-      setActive((prev) => (prev === near ? prev : near));
+      if (activeRef.current !== near) {
+        activeRef.current = near;
+        setActive(near);
+      }
+      if (Math.abs(target.current - turn.current) >= 0.0005) frame = requestAnimationFrame(draw);
     };
 
-    frame = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(frame);
-  }, [metrics, stage.h, count, last, reduced]);
+    requestDraw.current = () => { if (!frame) frame = requestAnimationFrame(draw); };
+    draw();
+    return () => {
+      cancelAnimationFrame(frame);
+      requestDraw.current = () => {};
+    };
+  }, [metrics, stage.h, count, last, reduced, awake]);
 
   const to = React.useCallback(
     (next: number) => {
       target.current = clamp(next, 0, last + 1);
+      requestDraw.current();
     },
     [last],
   );
 
   const drag = React.useRef<number | null>(null);
-  const settling = React.useRef(0);
-
-  // Native listener, because the wheel has to be cancellable - and it only
-  // cancels while it still has somewhere to go, so the page scrolls on at
-  // either end instead of trapping the reader.
-  React.useEffect(() => {
-    const el = stageRef.current;
-    if (!el) return;
-    const onWheel = (event: WheelEvent) => {
-      const next = target.current + event.deltaY / WHEEL_UNITS;
-      if (next > 0 && next < last + 1) event.preventDefault();
-      to(next);
-      // A wheel gesture arrives as a burst of events with no end of its own, so
-      // the rest position is whatever notch it happened to stop on. Left there
-      // the drum sits between two cards - nothing at the front, and the pair
-      // either side of the gap both turned half away. Settle onto an item.
-      window.clearTimeout(settling.current);
-      settling.current = window.setTimeout(
-        () => to(Math.round(target.current)),
-        SETTLE,
-      );
-    };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => {
-      el.removeEventListener("wheel", onWheel);
-      window.clearTimeout(settling.current);
-    };
-  }, [to, last]);
 
   return (
     <section
@@ -281,23 +264,27 @@ export function WorksWheel({
         role="listbox"
         aria-label={label}
         aria-activedescendant={`works-wheel-${active}`}
-        className="focus-visible:outline-foreground absolute inset-0 cursor-grab touch-pan-x outline-none focus-visible:outline-2 focus-visible:-outline-offset-4 active:cursor-grabbing"
+        className="focus-visible:outline-foreground absolute inset-0 cursor-grab touch-pan-y outline-none focus-visible:outline-2 focus-visible:-outline-offset-4 active:cursor-grabbing"
         style={{ perspective: `${metrics.depth}px` }}
         onPointerDown={(event) => {
-          drag.current = event.clientY;
+          if (event.button !== 0) return;
+          drag.current = event.clientX;
           event.currentTarget.setPointerCapture(event.pointerId);
         }}
         onPointerMove={(event) => {
           if (drag.current === null) return;
-          to(target.current + (drag.current - event.clientY) / DRAG_UNITS);
-          drag.current = event.clientY;
+          to(target.current + (drag.current - event.clientX) / DRAG_UNITS);
+          drag.current = event.clientX;
         }}
         onPointerUp={() => {
           // Land on an item rather than between two.
           drag.current = null;
           if (target.current > 1) to(Math.round(target.current));
         }}
+        onPointerCancel={() => { drag.current = null; }}
+        onLostPointerCapture={() => { drag.current = null; }}
         onKeyDown={(event) => {
+          if (event.target !== event.currentTarget) return;
           if (event.key === "ArrowDown") to(Math.round(target.current) + 1);
           else if (event.key === "ArrowUp") to(Math.round(target.current) - 1);
           else return;
@@ -333,6 +320,8 @@ export function WorksWheel({
                       src={item.image}
                       alt={item.title}
                       draggable={false}
+                      loading="lazy"
+                      decoding="async"
                       className="size-full object-cover"
                     />
                     {action && item.href ? (

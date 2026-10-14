@@ -14,6 +14,7 @@ import {
   useState,
   type CSSProperties,
 } from "react";
+import { useAnimationVisibility } from "./use-animation-visibility";
 
 type NeuformMode = "dark" | "light";
 type NeuformModePreference = NeuformMode | "auto";
@@ -164,15 +165,27 @@ const gatewayFlowSource = `<!DOCTYPE html>
 
             let width, height;
             let explosions = [];
+            let frame = 0, lastPaint = -Infinity, lastTick = null;
+            const pathLayer = document.createElement('canvas');
+            const pathCtx = pathLayer.getContext('2d');
+            let pathsDirty = true;
+            const controls = () => window.__SF_CONTROLS || {};
+            const speed = () => controls().speed == null ? 1 : controls().speed;
 
             function resize() {
-                const dpr = window.devicePixelRatio || 1;
                 width = window.innerWidth;
                 height = window.innerHeight;
+                // Bound memory/fill-rate on high-DPI phones and large desktop sections.
+                const dpr = Math.min(window.devicePixelRatio || 1, 1.5, Math.sqrt(1500000 / Math.max(1, width * height)));
                 canvas.width = width * dpr;
                 canvas.height = height * dpr;
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
                 ctx.scale(dpr, dpr);
+                pathLayer.width = canvas.width;
+                pathLayer.height = canvas.height;
+                pathCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                pathsDirty = true;
+                if (window.__SF_WAKE) window.__SF_WAKE();
             }
             window.addEventListener('resize', resize);
             resize();
@@ -203,37 +216,55 @@ const gatewayFlowSource = `<!DOCTYPE html>
                 };
             }
 
-            function render() {
+            function render(timestamp = performance.now()) {
+                frame = 0;
+                if (document.hidden || controls().active === false) return;
+                if (speed() > 0 && timestamp - lastPaint < 1000 / 30) {
+                    frame = requestAnimationFrame(render);
+                    return;
+                }
+                const step = lastTick == null ? 1 : Math.min(3, (timestamp - lastTick) / (1000 / 60));
+                lastTick = timestamp;
+                lastPaint = timestamp;
                 ctx.clearRect(0, 0, width, height);
                 const centerX = width / 2;
                 const centerY = height / 2;
 
                 explosions.forEach(exp => {
-                    exp.radius += 15;
-                    exp.life -= 0.015;
+                    exp.radius += 15 * step * speed();
+                    exp.life -= 0.015 * step * speed();
                 });
                 explosions = explosions.filter(exp => exp.life > 0);
 
+                // Dotted curves are static geometry: rasterise once, not every animation frame.
+                if (pathsDirty) {
+                    pathCtx.clearRect(0, 0, width, height);
+                    paths.forEach((path, index) => {
+                        path.startY = (index / numPaths) * height * 1.4 - height * 0.2;
+                        const p0 = { x: path.isLeft ? 0 : width, y: path.startY };
+                        const p1 = { x: path.isLeft ? centerX * 0.5 : width - centerX * 0.5, y: path.startY };
+                        const p2 = { x: path.isLeft ? centerX * 0.8 : width - centerX * 0.8, y: centerY };
+                        pathCtx.beginPath();
+                        pathCtx.moveTo(p0.x, p0.y);
+                        pathCtx.bezierCurveTo(p1.x, p1.y, p2.x, p2.y, centerX, centerY);
+                        pathCtx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+                        pathCtx.lineWidth = 1.2;
+                        pathCtx.setLineDash([1, 4]);
+                        pathCtx.stroke();
+                    });
+                    pathsDirty = false;
+                }
+                ctx.drawImage(pathLayer, 0, 0, width, height);
                 paths.forEach(path => {
                     const p0 = { x: path.isLeft ? 0 : width, y: path.startY };
                     const p1 = { x: path.isLeft ? centerX * 0.5 : width - centerX * 0.5, y: path.startY };
                     const p2 = { x: path.isLeft ? centerX * 0.8 : width - centerX * 0.8, y: centerY };
                     const p3 = { x: centerX, y: centerY };
 
-                    ctx.beginPath();
-                    ctx.moveTo(p0.x, p0.y);
-                    ctx.bezierCurveTo(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
-                    ctx.lineWidth = 1.2;
-                    ctx.setLineDash([1, 4]);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-
                     path.particles.forEach(p => {
-                        p.t += p.speed;
+                        p.t += p.speed * speed() * step;
                         if (p.t > 1) {
                             p.t = 0;
-                            path.startY += (Math.random() - 0.5) * 10;
                         }
 
                         let pos = getBezierPoint(p.t, p0, p1, p2, p3);
@@ -243,7 +274,7 @@ const gatewayFlowSource = `<!DOCTYPE html>
                             let dx = pos.x - exp.x;
                             let dy = pos.y - exp.y;
                             let dist = Math.hypot(dx, dy);
-                            if (dist < exp.radius + 120 && dist > exp.radius - 120) {
+                            if (dist > 0 && dist < exp.radius + 120 && dist > exp.radius - 120) {
                                 let force = (1 - Math.abs(dist - exp.radius) / 120) * exp.life;
                                 dxTotal += (dx / dist) * force * 80;
                                 dyTotal += (dy / dist) * force * 80;
@@ -258,10 +289,18 @@ const gatewayFlowSource = `<!DOCTYPE html>
                     });
                 });
 
-                requestAnimationFrame(render);
+                if (speed() > 0) frame = requestAnimationFrame(render);
             }
-
-            render();
+            function wake() {
+                cancelAnimationFrame(frame);
+                frame = 0;
+                lastTick = null;
+                lastPaint = -Infinity;
+                render();
+            }
+            window.__SF_WAKE = wake;
+            document.addEventListener('visibilitychange', wake);
+            wake();
         });
     </script>
 </body>
@@ -280,18 +319,14 @@ const GATEWAY_FLOW_DEFINITION: EffectDefinition = {
         `const numPaths = ${scaleCount(80, density, 12)};`,
       )
       .replace(
-        "p.t += p.speed;",
-        "p.t += p.speed * ((window.__SF_CONTROLS&&window.__SF_CONTROLS.speed)||1);",
-      )
-      .replace(
-        "ctx.lineWidth = 1.2;",
-        `ctx.lineWidth = ${Number((1.2 * size).toFixed(2))};`,
+        "pathCtx.lineWidth = 1.2;",
+        `pathCtx.lineWidth = ${Number((1.2 * size).toFixed(2))};`,
       );
     if (ink && /^\d{1,3},\s*\d{1,3},\s*\d{1,3}$/.test(ink)) {
       next = next
         .replace(
-          "ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';",
-          `ctx.strokeStyle = 'rgba(${ink}, 0.4)';`,
+          "pathCtx.strokeStyle = 'rgba(255, 255, 255, 0.35)';",
+          `pathCtx.strokeStyle = 'rgba(${ink}, 0.4)';`,
         )
         .replace(
           "ctx.fillStyle = `rgba(255, 255, 255, 0.7)`;",
@@ -300,8 +335,8 @@ const GATEWAY_FLOW_DEFINITION: EffectDefinition = {
     } else if (mode === "light") {
       next = next
         .replace(
-          "ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';",
-          "ctx.strokeStyle = 'rgba(26, 31, 42, 0.4)';",
+          "pathCtx.strokeStyle = 'rgba(255, 255, 255, 0.35)';",
+          "pathCtx.strokeStyle = 'rgba(26, 31, 42, 0.4)';",
         )
         .replace(
           "ctx.fillStyle = `rgba(255, 255, 255, 0.7)`;",
@@ -323,6 +358,7 @@ function buildFocusedDocument(
     "\\u003c",
   );
   const controlsJson = JSON.stringify({
+    active: false,
     mode,
     speed: knobs.speed,
     size: knobs.size,
@@ -357,27 +393,6 @@ ${definition.focusCss ?? ""}
 (function () {
   var controls = ${controlsJson};
   window.__SF_CONTROLS = controls;
-  var origin = performance.now();
-  var virtual = 0;
-  var last = origin;
-  var performanceNow = performance.now.bind(performance);
-  var dateNow = Date.now.bind(Date);
-  var dateOrigin = dateNow();
-  performance.now = function () {
-    var real = performanceNow();
-    virtual += (real - last) * (controls.speed || 1);
-    last = real;
-    return origin + virtual;
-  };
-  Date.now = function () {
-    return dateOrigin + (performance.now() - origin);
-  };
-  var raf = window.requestAnimationFrame.bind(window);
-  window.requestAnimationFrame = function (callback) {
-    return raf(function () {
-      callback(performance.now());
-    });
-  };
   function applyVisual() {
     var opacity = controls.opacity == null ? 1 : controls.opacity;
     var size = controls.size == null ? 1 : controls.size;
@@ -390,10 +405,11 @@ ${definition.focusCss ?? ""}
     });
   }
   window.addEventListener('message', function (event) {
-    if (!event.data || event.data.type !== 'threeui-controls') return;
+    if (event.source !== window.parent || !event.data || event.data.type !== 'threeui-controls') return;
     var next = event.data.controls || {};
     Object.keys(next).forEach(function (key) { controls[key] = next[key]; });
     applyVisual();
+    if (window.__SF_WAKE) window.__SF_WAKE();
   });
   window.__SF_APPLY_CONTROLS = applyVisual;
 })();
@@ -455,6 +471,7 @@ function GatewayFlowFrame({
   ink,
 }: GatewayFlowProps & { definition: EffectDefinition }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const active = useAnimationVisibility(iframeRef);
   const requestedMode =
     mode ?? definition.defaultMode ?? GATEWAY_FLOW_DEFAULTS.mode;
   const automaticMode = useAutomaticMode(requestedMode === "auto");
@@ -509,6 +526,7 @@ function GatewayFlowFrame({
       {
         type: "threeui-controls",
         controls: {
+          active,
           mode: resolvedMode,
           speed: safeSpeed,
           size: safeSize,
@@ -522,6 +540,7 @@ function GatewayFlowFrame({
       "*",
     );
   }, [
+    active,
     resolvedMode,
     safeDensity,
     safeGap,
@@ -545,13 +564,13 @@ function GatewayFlowFrame({
       title={definition.title}
       srcDoc={source}
       sandbox="allow-scripts"
-      loading="eager"
+      loading="lazy"
       // Decorative: keep it out of the tab order and the accessibility tree.
       tabIndex={-1}
       aria-hidden="true"
       onLoad={(event) =>
         event.currentTarget.contentWindow?.postMessage(
-          { type: "threeui-controls", controls: { speed: safeSpeed, opacity: safeOpacity } },
+          { type: "threeui-controls", controls: { active, speed: safeSpeed, opacity: safeOpacity } },
           "*",
         )
       }
