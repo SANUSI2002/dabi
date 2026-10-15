@@ -71,8 +71,9 @@ beforeEach(() => {
 describe("rider registration and automatic documents", () => {
   it("uses the shared rider access layout and an accessible password toggle", async () => {
     mount("/rider/register");
-    await screen.findByRole("button", { name: "Create rider account" });
+    await screen.findByRole("button", { name: /Continue/ });
     expect(document.querySelector(".rider-access-register")).toBeInTheDocument();
+    expect(screen.getByText("Step 1 of 4")).toBeInTheDocument();
     const password = screen.getByLabelText("Password");
     expect(password).toHaveAttribute("type", "password");
     expect(password).toHaveAttribute("autocomplete", "new-password");
@@ -81,14 +82,28 @@ describe("rider registration and automatic documents", () => {
     expect(screen.getByRole("button", { name: "Hide password" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("link", { name: "Contact support" })).toHaveAttribute("href", "mailto:support@sabihealth.org");
   });
-  it("keeps registration connected to the existing API after the visual update", async () => {
+  it("walks through short steps and keeps registration connected to the existing API", async () => {
     mocks.write.mockResolvedValue({ emailSent: true });
     mount("/rider/register");
-    await screen.findByRole("button", { name: "Create rider account" });
-    for (const [label, value] of Object.entries({
-      "Email address": "rider@synthetic.test", Password: "Synthetic-password-2002!", "Full name": "Synthetic Rider",
-      "Phone number": "08000000000", State: "Lagos", City: "Ikeja", "Driving licence expiry": "2099-01-01", "Insurance expiry": "2099-01-01",
-    })) fireEvent.change(screen.getByLabelText(label), { target: { value } });
+    const fill = (values: Record<string, string>) => { for (const [label, value] of Object.entries(values)) fireEvent.change(screen.getByLabelText(label), { target: { value } }); };
+    const next = () => fireEvent.click(screen.getByRole("button", { name: /Continue/ }));
+    await screen.findByRole("button", { name: /Continue/ });
+    fill({ "Email address": "rider@synthetic.test", Password: "weak" });
+    expect(screen.getByRole("button", { name: /Continue/ })).toBeDisabled();
+    fill({ Password: "Synthetic-password-2002!" });
+    next();
+    expect(await screen.findByRole("heading", { name: "Tell us about you" })).toBeInTheDocument();
+    fill({ "Full name": "Synthetic Rider", "Phone number": "08000000000", State: "Lagos", City: "Ikeja" });
+    next();
+    expect(await screen.findByRole("heading", { name: "Your vehicle" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Back/ }));
+    expect(await screen.findByLabelText("Full name")).toHaveValue("Synthetic Rider");
+    next();
+    fill({ "Driving licence expiry": "2099-01-01", "Insurance expiry": "2099-01-01" });
+    next();
+    expect(await screen.findByRole("heading", { name: "Check and confirm" })).toBeInTheDocument();
+    expect(screen.getByText("Motorcycle")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create rider account" })).toBeDisabled();
     fireEvent.click(screen.getByRole("checkbox", { name: /I consent/ }));
     fireEvent.click(screen.getByRole("button", { name: "Create rider account" }));
     expect(await screen.findByRole("heading", { name: "Account created. Check your email." })).toBeInTheDocument();
@@ -99,12 +114,8 @@ describe("rider registration and automatic documents", () => {
   it("shows signup without granting access and respects disabled registration", async () => {
     mocks.get.mockResolvedValue({ ...config, enabled: false });
     mount("/rider/register");
-    expect(
-      await screen.findByRole("button", { name: "Create rider account" }),
-    ).toBeDisabled();
-    expect(
-      screen.getByText(/Registration is temporarily unavailable/),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /Continue/ })).toBeDisabled();
+    expect(screen.getByText(/Registration is temporarily unavailable/)).toBeInTheDocument();
     expect(mocks.write).not.toHaveBeenCalled();
   });
   it("automatically uploads the selected file with a deadline and no separate private upload button", async () => {
@@ -227,7 +238,8 @@ describe("rider registration and automatic documents", () => {
           },
     );
     mount();
-    expect(await screen.findByText("SUSPENDED")).toBeInTheDocument();
+    expect(await screen.findByText("Paused")).toBeInTheDocument();
+    expect(screen.getByText(/Operations review/)).toBeInTheDocument();
     expect(screen.queryByLabelText(/Choose document/)).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Submit application" }),

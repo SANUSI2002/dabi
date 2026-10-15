@@ -322,6 +322,7 @@ export default function App() {
         <Route path="/rider/delivery/:assignmentId" element={<CourierPortal />} />
         <Route path="/rider/history" element={<CourierPortal />} />
         <Route path="/rider/history/:assignmentId" element={<CourierPortal />} />
+        <Route path="/rider/earnings" element={<CourierPortal />} />
         <Route path="/rider/profile" element={<CourierPortal />} />
         <Route path="/rider/support" element={<CourierPortal />} />
         <Route path="/pharmacy/register" element={<PharmacyRegistrationPage />} />
