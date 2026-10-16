@@ -183,12 +183,20 @@ describe("courier code entry", () => {
   });
   it("renders empty assignments without demo deliveries or secrets", async () => {
     mocks.get.mockImplementation(async (path) =>
-      path.endsWith("/me") ? overview : [],
+      path.endsWith("/me")
+        ? { ...overview, stats: { pending: 0, active: 0, completed: 0 } }
+        : path.endsWith("/availability")
+          ? { isAvailable: false, availabilityVersion: 1, availableUntil: null }
+          : path.includes("/offer-notifications")
+            ? { items: [] }
+            : [],
     );
     mount(<CourierPortal />);
     expect(
-      await screen.findByText(/No active assignments/),
+      await screen.findByText("No active deliveries. Accepted deliveries will appear here."),
     ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /SABI-ORDER-/ })).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Six-digit/)).not.toBeInTheDocument();
+    expect(mocks.write).not.toHaveBeenCalled();
   });
 });
