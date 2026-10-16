@@ -11,6 +11,7 @@ import { getLive, writeLive } from "./riderApi";
 import type { RiderApplication, RiderCredential, RiderRegistrationConfig } from "./onboardingTypes";
 import "./rider.css";
 import { RiderAuthLayout, RiderPasswordField, strongPassword } from "./RiderAuthLayout";
+import { RiderApplicationSkeleton, RiderFormSkeleton } from "./RiderLoading";
 
 const root = "/api/v1/riders";
 type Profile = { fullName: string; phone: string; state: string; city: string; vehicleType: string; licenceExpiresAt: string; insuranceExpiresAt: string };
@@ -429,6 +430,9 @@ export default function RiderOnboarding() {
   const signOut = () => run(async () => { await liveSignOut(); setIdentity(null); setApplication(null); });
 
   // ---- signed-in with an application -----------------------------------------------------------
+  // The application page could open either signed in or not; show its outline until we know.
+  if (loading && !registering && !verifyRoute) return <RiderApplicationSkeleton />;
+
   if (!loading && identity && application && !registering && !verifyRoute) {
     return (
       <ApplicationFrame onSignOut={signOut} busy={busy}>
@@ -459,7 +463,7 @@ export default function RiderOnboarding() {
         {lead && <p className="rider-muted">{lead}</p>}
       </div>
       <Messages error={error} notice={notice} />
-      {loading ? <p role="status" className="rider-loading"><LoaderCircle aria-hidden="true" /> Loading…</p>
+      {loading ? <RiderFormSkeleton fields={verifyRoute ? 0 : 2} />
         : verifyRoute ? (
           <section className="rider-celebrate">
             {verified ? <>

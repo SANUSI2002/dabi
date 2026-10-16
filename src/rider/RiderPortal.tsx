@@ -15,6 +15,7 @@ import RiderOfferNotifications from "./RiderOfferNotifications";
 import { riderDate, riderStatus, type RiderAssignment, type RiderHistory, type RiderOverview } from "./types";
 import "./rider.css";
 import { RiderAuthLayout, RiderPasswordField } from "./RiderAuthLayout";
+import { RiderDeliverySkeleton, RiderFormSkeleton, RiderListSkeleton, RiderWorkspaceSkeleton, riderSkeletonPage } from "./RiderLoading";
 
 // The mobile bar holds the five everyday destinations; Earnings is added to the sidebar and reached
 // from the dashboard and account pages on mobile, so the bar stays readable at five items.
@@ -191,6 +192,9 @@ export default function RiderPortal() {
       </RiderAuthLayout>
     );
 
+  // ---- checking an existing session: show the page that is coming, not the sign-in form ----
+  if (!identity && restoring && pathname !== "/rider/login") return <RiderWorkspaceSkeleton page={riderSkeletonPage(pathname)} />;
+
   // ---- sign in -----------------------------------------------------------------------------------
   if (!identity)
     return (
@@ -203,7 +207,7 @@ export default function RiderPortal() {
         <IdleSignOutNotice />
         {error && <p role="alert" className="rider-alert rider-alert-error">{error}</p>}
         {restoring ? (
-          <div role="status" className="rider-loading"><LoaderCircle aria-hidden="true" /> Restoring your session…</div>
+          <RiderFormSkeleton />
         ) : !apiConfigured ? (
           <div className="rider-alert rider-alert-warn">
             <div><h2>API connection required</h2><p>This local-storage preview cannot verify real collection or delivery codes. Connect the Sabi API to sign in.</p></div>
@@ -303,7 +307,7 @@ export default function RiderPortal() {
             ) : error ? (
               <Link className="rider-text-link" to="/rider/offers">Back to deliveries</Link>
             ) : (
-              <p role="status" className="rider-loading"><LoaderCircle aria-hidden="true" /> Loading delivery…</p>
+              <RiderDeliverySkeleton />
             )
           ) : (
             <>
@@ -400,7 +404,7 @@ export default function RiderPortal() {
                     <RefreshButton busy={busy} onClick={() => run(refresh)} />
                   </div>
                   {!historyLoaded && !error ? (
-                    <p role="status" className="rider-loading"><LoaderCircle aria-hidden="true" /> Loading delivery history…</p>
+                    <RiderListSkeleton count={4} label="Loading delivery history" />
                   ) : (
                     <AssignmentList items={history.items} busy={busy} onSelect={(id) => navigate(`/rider/history/${id}`)} empty="No delivery history yet. Completed deliveries will appear here." />
                   )}

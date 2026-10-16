@@ -1,6 +1,7 @@
 import { Activity, ShieldPlus } from "lucide-react";
 import { motion } from "framer-motion";
 import { routeLabel } from "./loadingRoutes";
+import { isRiderPath, RiderRouteLoader } from "@/rider/RiderLoading";
 
 function BrandLoader({ compact = false }: { compact?: boolean }) {
   return (
@@ -27,6 +28,8 @@ function BrandLoader({ compact = false }: { compact?: boolean }) {
 }
 
 export function AppLoadingScreen({ pathname }: { pathname: string }) {
+  // Riders get a loader shaped like their own portal, not the clinical workspace screen.
+  if (isRiderPath(pathname)) return <RiderRouteLoader pathname={pathname} />;
   const isEmr = !pathname.startsWith("/command-center") && !pathname.startsWith("/register") && !pathname.startsWith("/products") && pathname !== "/";
 
   return (
