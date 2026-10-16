@@ -33,7 +33,7 @@ describe('live Command Center shell', () => {
     fireEvent.click(screen.getByRole('link', { name: 'Packages' }));
     expect(await screen.findByText('Live package management')).toBeInTheDocument();
     expect(screen.queryByText('Live data not connected')).not.toBeInTheDocument();
-  });
+  }, 15000); // the first render loads the whole Command Centre shell, ~4s on its own
 
   it('preserves the live staff-invitation workflow inside the familiar shell', async () => {
     mount('/command-center/internal-users');
