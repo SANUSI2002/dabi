@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, Bike, Check, Eye, EyeOff, Radio, ShieldCheck, Wallet, X } from "lucide-react";
 import { SABI_HEALTH_URL } from "@/public/ecosystemLinks";
+import RiderPwa from './RiderPwa';
 
 /** One calm shell for rider sign-in, sign-up and email verification. The side panel only says what
  *  the rider network really does. */
@@ -17,6 +18,7 @@ export function RiderAuthLayout({ children, registration = false }: { children: 
       </header>
       <main className="rider-access-grid">
         <section className="rider-access-content" aria-label={registration ? "Rider registration" : "Rider account access"}>
+          <RiderPwa />
           {children}
           <p className="rider-access-help">Need a hand? <a href="mailto:support@sabihealth.org">Contact support</a></p>
         </section>

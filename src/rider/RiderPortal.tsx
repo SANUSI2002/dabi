@@ -15,6 +15,7 @@ import RiderOfferNotifications from "./RiderOfferNotifications";
 import { riderDate, riderStatus, type RiderAssignment, type RiderHistory, type RiderOverview } from "./types";
 import "./rider.css";
 import { RiderAuthLayout, RiderPasswordField } from "./RiderAuthLayout";
+import RiderPwa from './RiderPwa';
 import { RiderDeliverySkeleton, RiderFormSkeleton, RiderListSkeleton, RiderWorkspaceSkeleton, riderSkeletonPage } from "./RiderLoading";
 
 // The mobile bar holds the five everyday destinations; Earnings is added to the sidebar and reached
@@ -299,6 +300,7 @@ export default function RiderPortal() {
           </div>
         </header>
         <main id="rider-main" className="rider-content">
+          <RiderPwa />
           {message && <p role="status" className="rider-alert rider-alert-success"><CheckCircle2 size={18} aria-hidden="true" />{message}</p>}
           {error && !selected && <p role="alert" className="rider-alert rider-alert-error">{error}</p>}
           {assignmentId ? (

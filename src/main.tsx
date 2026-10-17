@@ -4,12 +4,16 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./index.css";
 import { registerPwa } from "../apps/telemedicine/packages/shared-portal/pwa/registerPwa.ts";
+import { initializeRiderPwa } from './rider/riderAppState';
+import { RiderPwaRoute } from './rider/RiderPwa';
 
+initializeRiderPwa();
 registerPwa();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
+      <RiderPwaRoute />
       <App />
     </BrowserRouter>
   </StrictMode>,

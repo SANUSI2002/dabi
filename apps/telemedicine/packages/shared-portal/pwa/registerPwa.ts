@@ -14,6 +14,8 @@ function showUpdateNotice(reload: () => Promise<void>) {
   notice.id = NOTICE_ID;
   notice.setAttribute("role", "status");
   notice.style.cssText = "position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:2147483000;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;max-width:calc(100vw - 32px);padding:10px 12px 10px 16px;border-radius:12px;background:#0a2e22;color:#fff;box-shadow:0 10px 30px rgba(6,29,21,.3);font:500 14px/1.4 system-ui,-apple-system,'Segoe UI',sans-serif";
+  // Do not cover the rider's fixed phone navigation or home indicator.
+  if (/^\/rider(?:\/|$)/.test(window.location.pathname)) notice.style.bottom = 'calc(80px + env(safe-area-inset-bottom, 0px))';
   const text = document.createElement("span");
   text.textContent = "A new version of Sabi is ready. Save any unsaved work, then reload.";
   const button = (label: string, primary: boolean) => {

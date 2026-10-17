@@ -377,7 +377,7 @@
 .rider-address > div { display: grid; gap: 4px; }
 .rider-address h2 { font-size: 1.02rem; }
 .rider-address-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
-.rider-address-actions a { min-height: 40px; padding: 0 12px; font-size: .85rem; }
+.rider-address-actions a { min-height: 44px; padding: 0 12px; font-size: .85rem; }
 .rider-private-note { display: flex; gap: 10px; align-items: flex-start; padding: 16px 18px; border-bottom: 1px solid var(--r-border); background: var(--r-sunken); font-size: .9rem; color: var(--r-muted); }
 .rider-private-note svg { color: var(--r-primary); flex: none; }
 .rider-timeline { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin: 0; padding: 14px 18px; }
@@ -427,6 +427,49 @@
 .rider-auth-inner { max-width: 560px; display: grid; gap: 16px; }
 .rider-join-note { display: grid; gap: 12px; }
 .rider-auth-story { display: none; }
+
+/* Installed rider app: retain room for phone notches, gesture bars and the keyboard. */
+.rider-pwa { display: grid; gap: 10px; }
+.rider-pwa:empty { display: none; }
+.rider-install { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px; border: 1px solid var(--r-primary-line); border-radius: var(--r-radius); background: var(--r-primary-soft); }
+.rider-install > div { flex: 1 1 160px; }
+.rider-install strong { color: var(--r-ink); font-size: .9rem; }
+.rider-install p, .rider-install-help { color: var(--r-muted); font-size: .85rem; }
+.rider-install button { min-height: 44px; }
+.rider-install-help { display: grid; gap: 8px; padding: 0 4px; }
+.rider-install-help svg { display: inline; vertical-align: text-bottom; }
+.rider-access-header, .rider-application-header, .rider-topbar {
+  padding-top: calc(12px + env(safe-area-inset-top, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.rider-content, .rider-application-main {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.rider-access-content { padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px)); }
+.rider-bottom-nav {
+  padding-left: max(4px, env(safe-area-inset-left, 0px));
+  padding-right: max(4px, env(safe-area-inset-right, 0px));
+}
+.rider-bottom-nav a { color: var(--r-muted); }
+.sabi-rider :is(input, select, textarea, button, a) { scroll-margin-block: 110px; }
+.rider-assignment-info strong, .rider-address p, .rider-doc-head strong, .rider-ledger strong { overflow-wrap: anywhere; }
+.rider-avatar { width: 44px; height: 44px; flex: none; }
+.rider-segment button { min-height: 44px; }
+@media (max-width: 479.98px) {
+  .rider-card-head, .rider-doc-head { flex-wrap: wrap; }
+  .rider-assignment { grid-template-columns: 40px minmax(0, 1fr); gap: 10px; padding: 14px; }
+  .rider-assignment-side { grid-column: 2; justify-items: start; grid-template-columns: auto auto; align-items: center; gap: 8px; }
+  .rider-assignment-side .rider-status { white-space: normal; }
+  .rider-actions > :is(button, a) { white-space: normal; text-align: center; }
+  .rider-topbar { gap: 8px; }
+  .rider-topbar-label { font-size: .85rem; }
+  .rider-topbar-actions { gap: 2px; }
+  .rider-access-home { font-size: .8rem; }
+  .rider-code-input { font-size: 1.6rem !important; letter-spacing: .32em; }
+  .rider-ledger article { flex-wrap: wrap; }
+}
 @media (min-width: 980px) {
   .rider-auth { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); }
   .rider-auth-form-panel { padding: 32px 48px; }

@@ -12,6 +12,7 @@ import type { RiderApplication, RiderCredential, RiderRegistrationConfig } from 
 import "./rider.css";
 import { RiderAuthLayout, RiderPasswordField, strongPassword } from "./RiderAuthLayout";
 import { RiderApplicationSkeleton, RiderFormSkeleton } from "./RiderLoading";
+import RiderPwa from './RiderPwa';
 
 const root = "/api/v1/riders";
 type Profile = { fullName: string; phone: string; state: string; city: string; vehicleType: string; licenceExpiresAt: string; insuranceExpiresAt: string };
@@ -57,7 +58,7 @@ function ApplicationFrame({ children, onSignOut, busy }: { children: ReactNode; 
         </Link>
         <button type="button" className="rider-button-ghost" disabled={busy} onClick={onSignOut}><LogOut size={17} aria-hidden="true" />Sign out</button>
       </header>
-      <main className="rider-application-main">{children}</main>
+      <main className="rider-application-main"><RiderPwa />{children}</main>
     </div>
   );
 }
