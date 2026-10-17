@@ -65,6 +65,39 @@ export async function registerPatient({ firstName, lastName, phoneNumber, email,
   });
 }
 
+// ---- Google / Apple ----------------------------------------------------------------------------
+/** Which providers the server has switched on: { google: { clientId } | null, apple: { clientId, redirectUri } | null }. */
+export const socialProviders = () => request('/social/providers').then((body) => body.data ?? { google: null, apple: null });
+export const socialNonce = () => request('/social/nonce', { method: 'POST', body: '{}' }).then((body) => body.data.nonce);
+
+// Shared last step: new person → { signupRequired }, two-step on → { mfaRequired }, else signed in.
+async function finishSocialSignIn(result, { responder = false } = {}) {
+  if (result.status === 'signup_required') return { signupRequired: true, signupToken: result.signupToken, profile: result.profile };
+  responderSignIn = responder;
+  endedElsewhere = false;
+  if (result.status === 'mfa_required' && result.challengeToken) {
+    pendingChallenge = result.challengeToken;
+    return { mfaRequired: true };
+  }
+  if (!result.accessToken) throw new Error('The identity service returned an invalid sign-in response.');
+  accessToken = result.accessToken;
+  const me = await request('/me');
+  if (!responder && !mayUsePatientPortal(me.user)) {
+    await signOut();
+    throw new Error('This account does not have patient portal access.');
+  }
+  currentUser = me.user;
+  return { user: currentUser, accountCreated: !!result.accountCreated };
+}
+const consent = (options) => (options.consentGiven ? { consentGiven: true } : {});
+export const signInWithGoogleCode = (code, options = {}) =>
+  request('/social/google', { method: 'POST', body: JSON.stringify({ code, ...consent(options) }) }).then((result) => finishSocialSignIn(result, options));
+export const signInWithAppleToken = ({ idToken, nonce, firstName, lastName }, options = {}) =>
+  request('/social/apple', { method: 'POST', body: JSON.stringify({ idToken, nonce, ...(firstName ? { firstName } : {}), ...(lastName ? { lastName } : {}), ...consent(options) }) }).then((result) => finishSocialSignIn(result, options));
+/** After the person accepts the terms for a `signupRequired` result. */
+export const completeSocialSignup = (signupToken, options = {}) =>
+  request('/social/complete', { method: 'POST', body: JSON.stringify({ signupToken, consentGiven: true }) }).then((result) => finishSocialSignIn(result, options));
+
 export const requestEmailVerification = (email) => request('/email-verification/request', { method: 'POST', body: JSON.stringify({ email }) });
 export const confirmEmailVerification = (uid, token) => request('/email-verification/confirm', { method: 'POST', body: JSON.stringify({ uid, token }) });
 

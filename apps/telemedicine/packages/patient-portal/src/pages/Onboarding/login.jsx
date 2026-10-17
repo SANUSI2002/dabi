@@ -9,7 +9,8 @@ import {
   ShieldCheck,
   HeartPulse,
 } from "lucide-react";
-import { restoreSession, signIn, verifyMfaLogin, mayUsePatientPortal } from "../../utils/sabiIdentity";
+import { completeSocialSignup, restoreSession, signIn, verifyMfaLogin, mayUsePatientPortal } from "../../utils/sabiIdentity";
+import { useSocialSignIn } from "../../utils/socialSignIn";
 import { useEffect } from "react";
 import { DOCTOR_PORTAL_URL } from "../../ecosystemLinks";
 import { signedOutForInactivity } from "../../../../shared-portal/idleTimeout.js";
@@ -25,9 +26,35 @@ export default function SabiHealthLogin({ responder = false, onSignedIn } = {}) 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [verificationRequired, setVerificationRequired] = useState(false);
-  const [mfaRequired, setMfaRequired] = useState(false);
+  // Sign-up started with Google/Apple elsewhere may hand over a pending two-step check.
+  const [mfaRequired, setMfaRequired] = useState(!!location.state?.mfaPending);
   const [mfaValue, setMfaValue] = useState("");
   const [useRecovery, setUseRecovery] = useState(false);
+  const social = useSocialSignIn({ responder });
+  const [socialBusy, setSocialBusy] = useState(null);
+  const [signupOffer, setSignupOffer] = useState(null);
+  const [offerAgreed, setOfferAgreed] = useState(false);
+  const providerName = (p) => (p === "apple" || p === "APPLE" ? "Apple" : "Google");
+  const missingProviders = social.checked ? ["google", "apple"].filter((p) => !social.configured[p]) : [];
+
+  const signedIn = (user) => { if (responder) onSignedIn?.(user); else navigate("/dashboard", { replace: true }); };
+  const handleSocialResult = (result) => {
+    if (result.signupRequired) { setSignupOffer(result); setOfferAgreed(false); }
+    else if (result.mfaRequired) { setSignupOffer(null); setMfaRequired(true); }
+    else signedIn(result.user);
+  };
+  const handleSocial = async (provider) => {
+    setError(""); setVerificationRequired(false); setSignupOffer(null); setSocialBusy(provider);
+    try { handleSocialResult(await social.start(provider)); }
+    catch (cause) { if (!cause?.cancelled) setError(cause instanceof Error ? cause.message : `${providerName(provider)} sign-in failed.`); }
+    finally { setSocialBusy(null); }
+  };
+  const confirmSocialSignup = async () => {
+    setError(""); setSocialBusy(signupOffer.profile?.provider === "APPLE" ? "apple" : "google");
+    try { handleSocialResult(await completeSocialSignup(signupOffer.signupToken, { responder })); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "We could not create your account right now."); if (cause?.code === "SOCIAL_SIGNUP_EXPIRED") setSignupOffer(null); }
+    finally { setSocialBusy(null); }
+  };
   useEffect(() => { restoreSession().then((user) => { if (user && responder) onSignedIn?.(user); else if (mayUsePatientPortal(user)) navigate('/dashboard', { replace: true }); }, () => { /* server busy: stay on the sign-in page */ }); }, [navigate, responder, onSignedIn]);
 
   const handleSubmit = async (e) => {
@@ -160,29 +187,49 @@ export default function SabiHealthLogin({ responder = false, onSignedIn } = {}) 
           </div>
 
           <div className="grid grid-cols-2 gap-2.5">
-            <button
-              type="button"
-              disabled
-              title="Available when Sabi Identity OIDC is configured"
-              aria-describedby="patient-login-social-note"
-              className="flex items-center justify-center gap-2 min-h-[44px] rounded-xl border border-gray-200 bg-white opacity-60 cursor-not-allowed"
-            >
-              <GoogleIcon />
-              <span className="font-semibold text-sm text-gray-800">Google</span>
-            </button>
-            <button
-              type="button"
-              disabled
-              title="Available when Sabi Identity OIDC is configured"
-              aria-describedby="patient-login-social-note"
-              className="flex items-center justify-center gap-2 min-h-[44px] rounded-xl border border-gray-200 bg-white opacity-60 cursor-not-allowed"
-            >
-              <AppleIcon />
-              <span className="font-semibold text-sm text-gray-800">Apple</span>
-            </button>
+            {["google", "apple"].map((provider) => {
+              const ready = social.available[provider];
+              return (
+                <button
+                  key={provider}
+                  type="button"
+                  disabled={!ready || busy || !!socialBusy}
+                  onClick={() => handleSocial(provider)}
+                  title={ready ? undefined : social.configured[provider] ? "Loading…" : "Available when Sabi Identity OIDC is configured"}
+                  aria-describedby={missingProviders.length ? "patient-login-social-note" : undefined}
+                  className={`flex items-center justify-center gap-2 min-h-[44px] rounded-xl border border-gray-200 bg-white transition-colors ${ready ? "hover:bg-gray-50" : "opacity-60 cursor-not-allowed"} disabled:cursor-not-allowed`}
+                >
+                  {provider === "google" ? <GoogleIcon /> : <AppleIcon />}
+                  <span className="font-semibold text-sm text-gray-800">{socialBusy === provider ? "Connecting…" : providerName(provider)}</span>
+                </button>
+              );
+            })}
           </div>
 
-          <p id="patient-login-social-note" className="text-center text-xs text-gray-500 mt-2">Google and Apple sign-in are coming soon. Use your email and password for now.</p>
+          {signupOffer && (
+            <div role="region" aria-label="Create your account" className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 text-sm">
+              <p className="font-semibold text-gray-900">Create your Sabi Health account?</p>
+              <p className="mt-1 text-gray-600">
+                There&apos;s no Sabi Health account for <strong className="font-semibold text-gray-800">{signupOffer.profile?.email}</strong> yet. We&apos;ll create one using your {providerName(signupOffer.profile?.provider)} details.
+              </p>
+              <label className="mt-2 flex items-start gap-2 text-gray-700 cursor-pointer">
+                <input type="checkbox" checked={offerAgreed} onChange={(e) => setOfferAgreed(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-gray-300 text-emerald-700 focus:ring-emerald-600" />
+                <span>I agree to the Terms of Service and Privacy Policy.</span>
+              </label>
+              <div className="mt-3 flex gap-2">
+                <button type="button" disabled={!offerAgreed || !!socialBusy} onClick={confirmSocialSignup} className="flex-1 py-2 rounded-xl bg-emerald-800 text-white font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                  {socialBusy ? "Creating account…" : "Create account"}
+                </button>
+                <button type="button" disabled={!!socialBusy} onClick={() => setSignupOffer(null)} className="px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700">Cancel</button>
+              </div>
+            </div>
+          )}
+
+          {missingProviders.length > 0 && (
+            <p id="patient-login-social-note" className="text-center text-xs text-gray-500 mt-2">
+              {missingProviders.length === 2 ? "Google and Apple sign-in are coming soon." : `${providerName(missingProviders[0])} sign-in is coming soon.`} Use your email and password for now.
+            </p>
+          )}
 
           <p className="text-center text-sm text-gray-500 mt-4">
             Don&apos;t have an account?{" "}
