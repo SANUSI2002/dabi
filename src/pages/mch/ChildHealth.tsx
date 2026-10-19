@@ -10,6 +10,10 @@ import { PatientPicker } from "@/components/ui/PatientPicker";
 import { PatientLink } from "@/components/ui/PatientLink";
 import { useEmr } from "@/store/useEmr";
 import { shortDate, ageFromDob } from "@/lib/format";
+import type { Patient } from "@/data/types";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { describeEmrError } from "@/emr-live/client";
+import { newIdempotencyKey, useLiveNutrition, useLiveNutritionLoad } from "@/emr-live/nutrition";
 
 function classify(muac: number): "Normal" | "MAM" | "SAM" {
   if (muac < 11.5) return "SAM";
@@ -18,7 +22,20 @@ function classify(muac: number): "Normal" | "MAM" | "SAM" {
 }
 
 export default function ChildHealth() {
-  const { childVisits, cmamScreenings, patientById, addChildVisit, addCmamScreening } = useEmr();
+  const { childVisits: demoVisits, cmamScreenings: demoScreenings, patientById, addChildVisit, addCmamScreening } = useEmr();
+  // A live hospital's growth visits come from its EMR, which also does the CMAM enrolment (src/emr-live/nutrition.ts).
+  const live = useIsLiveEmr();
+  useLiveNutritionLoad(live);
+  const liveVisits = useLiveNutrition((st) => st.visits);
+  const liveScreenings = useLiveNutrition((st) => st.screenings);
+  const liveError = useLiveNutrition((st) => st.error);
+  const childVisits: ((typeof demoVisits)[number] & { patient?: Patient })[] = live ? liveVisits : demoVisits;
+  const cmamScreenings = live ? liveScreenings : demoScreenings;
+  const patientOf = (v: { patientId: string; patient?: Patient }) => (live ? v.patient : patientById(v.patientId));
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [saveKey, setSaveKey] = useState(newIdempotencyKey);
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({ patientId: "", weight: 0, height: 0, muac: 0, waz: 0, feeding: "Exclusive breastfeeding", date: "" });
   const status = classify(f.muac || 13);
@@ -28,10 +45,12 @@ export default function ChildHealth() {
       <PageHeader
         title="Child Health"
         subtitle="Growth monitoring & nutrition surveillance for under-5s"
-        actions={<Button onClick={() => setOpen(true)}><Plus size={15} /> Record Visit</Button>}
+        actions={<Button onClick={() => { setSaveKey(newIdempotencyKey()); setActionError(""); setNotice(""); setOpen(true); }}><Plus size={15} /> Record Visit</Button>}
       />
 
       <GuidelineBanner guidelineKey="imci-2014" className="mb-5" />
+      {live && (actionError || liveError) && !open && <p role="alert" className="mb-4 rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError || liveError}</p>}
+      {live && notice && <p role="status" className="mb-4 rounded-xl bg-brand-50 px-3 py-2 text-sm text-brand-800">{notice}</p>}
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Under-5 Visits" value={childVisits.length} tone="brand" icon={<Baby size={18} />} />
         <StatCard label="Normal" value={childVisits.filter((v) => v.status === "Normal").length} tone="brand" delay={0.05} />
@@ -44,7 +63,7 @@ export default function ChildHealth() {
           t === "Growth Monitoring" ? (
             <Table columns={["Child", "Age", "Visit date", "Weight", "Height", "MUAC", "WAZ", "Status", "Feeding"]}>
               {childVisits.map((v, i) => {
-                const p = patientById(v.patientId);
+                const p = patientOf(v);
                 return (
                   <Row key={v.id} index={i}>
                     <Cell className="font-semibold"><PatientLink patient={p} /></Cell>
@@ -83,7 +102,17 @@ export default function ChildHealth() {
         onClose={() => setOpen(false)}
         title="Record Growth Visit"
         footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button disabled={!f.patientId || !f.date} onClick={() => {
+          <Button disabled={!f.patientId || !f.date || busy} onClick={async () => {
+            if (live) {
+              setBusy(true); setActionError("");
+              try {
+                const saved = await useLiveNutrition.getState().recordGrowth(f, saveKey);
+                setNotice(saved.enrolledInCmam ? `Saved as ${saved.status} — enrolled in CMAM.` : `Saved as ${saved.status}.`);
+                setOpen(false);
+              } catch (cause) { setActionError(describeEmrError(cause)); }
+              finally { setBusy(false); }
+              return;
+            }
             addChildVisit({ ...f, status } as never);
             if (status !== "Normal") {
               addCmamScreening({
@@ -92,9 +121,10 @@ export default function ChildHealth() {
               });
             }
             setOpen(false);
-          }}>Save Visit</Button></>}
+          }}>{busy ? "Saving…" : "Save Visit"}</Button></>}
       >
         <div className="space-y-4">
+          {live && actionError && <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError}</p>}
           <Field label="Child (under 5)"><PatientPicker value={f.patientId} onChange={(id) => setF({ ...f, patientId: id })} /></Field>
           <Grid cols={2}>
             <Field label="Visit date"><Input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
