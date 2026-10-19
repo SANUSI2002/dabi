@@ -133,3 +133,18 @@
 .sh-submission-success { margin: 22px 0; padding: 20px; border: 1px solid #9dd8b9; border-radius: 12px; background: #eaf8ef; color: #075b43; }
 .sh-submission-success h2 { margin: 0 0 10px; font-size: 18px; }
 .sh-submission-success p { font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+
+/* Google / Apple (SocialSignIn.jsx) */
+.sh-social { display: grid; gap: 12px; margin: 4px 0 18px; }
+.sh-social-divider { display: flex; align-items: center; gap: 12px; color: #8a9a8e; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+.sh-social-divider::before, .sh-social-divider::after { content: ""; flex: 1; height: 1px; background: #dce4dd; }
+.sh-social-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.sh-social-button { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 44px; padding: 10px 16px; border: 1px solid #dce4dd; border-radius: 7px; background: #fff; color: #1f3326; font-size: 12px; font-weight: 600; cursor: pointer; }
+.sh-social-button:hover:not(:disabled) { background: #f4f8f5; border-color: #0c7659; }
+.sh-social-button:disabled { opacity: .55; cursor: not-allowed; }
+.sh-social-button:focus-visible { outline: 2px solid #0c7659; outline-offset: 2px; }
+.sh-social-linked { display: flex; gap: 12px; align-items: flex-start; padding: 14px; margin: 0 0 18px; border: 1px solid #bfe3d3; border-radius: 9px; background: #effaf5; color: #1f3326; }
+.sh-social-linked > svg { color: #0c7659; flex: none; margin-top: 2px; }
+.sh-social-linked strong { font-size: 13px; }
+.sh-social-linked p { margin: 4px 0 8px; font-size: 11px; line-height: 1.6; color: #476052; }
+.sh-social-offer { display: grid; gap: 10px; padding: 14px; margin: 0 0 18px; border: 1px solid #f2e5c9; border-radius: 9px; background: #fff8e9; font-size: 12px; color: #4b3f24; }

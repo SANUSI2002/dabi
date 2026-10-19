@@ -1,34 +1,42 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {Link, useNavigate} from 'react-router-dom';
+import {Link, useLocation, useNavigate} from 'react-router-dom';
 import {ArrowLeft, ArrowRight} from 'lucide-react';
 import DoctorRegistrationPage, {LegalNotice} from './DoctorRegistrationPage';
 import AuthLayout from './AuthLayout';
 import {getRegistrationConfig, registerProfessional} from '../../services/doctorAuth';
 import './AuthPages.css';
+import {useSocialSignIn} from '../../services/socialSignIn';
+import {SocialAccountChoice, providerName, routeSignedIn} from './SocialSignIn';
 
 import RegistrationProgress, {REGISTRATION_STEPS as STEPS} from "./RegistrationProgress";
 const label=v => v?.replaceAll('_',' ').toLowerCase().replace(/^./,c => c.toUpperCase());
 const freshForm=() => ({country:'NG',consentVersion:'professional-registration-v1'});
+// Google/Apple fill the name (when given) and the confirmed email; there is no password to choose.
+export const withProfile=(values,linked) => linked ? {...values,firstName:values.firstName || linked.profile?.firstName || '',lastName:values.lastName || linked.profile?.lastName || '',email:linked.profile?.email || '',password:'',confirmPassword:''} : values;
 const limits={firstName:80,lastName:80,email:254,phone:16,password:128,confirmPassword:128,qualification:100,university:200,specialty:100,services:1000,registrationNumber:100,practiceState:100,city:100,hospital:160};
 
 export default function ProfessionalRegistrationPage() {
-  const navigate=useNavigate(), heading=useRef(null), submitting=useRef(false);
+  const navigate=useNavigate(), location=useLocation(), heading=useRef(null), submitting=useRef(false);
+  const social=useSocialSignIn(), [linked,setLinked]=useState(() => location.state?.social || null);
   const [catalog,setCatalog]=useState([]), [config,setConfig]=useState(null), [type,setType]=useState('');
   const [form,setForm]=useState(freshForm), [step,setStep]=useState(0), [error,setError]=useState(''), [busy,setBusy]=useState(false), [legal,setLegal]=useState(null);
   useEffect(() => {let active=true; getRegistrationConfig().then(r => {if (!active) return; const c=r.data || r; setConfig(c); setCatalog(c.professions || []);}).catch(e => active && setError(e.message)); return () => {active=false;};},[]);
   const profession=catalog.find(p => p.type===type);
   const licensed=['REGISTERED_NURSE','COMMUNITY_HEALTH_PRACTITIONER'].includes(form.discipline);
   const update=(name,value) => setForm(f => ({...f,[name]:value}));
-  function choose(value) {setType(value); setStep(0); setError(''); setForm({...freshForm(),professionType:value,discipline:catalog.find(p => p.type===value)?.disciplines[0]});}
+  function choose(value) {setType(value); setStep(0); setError(''); setForm(withProfile({...freshForm(),professionType:value,discipline:catalog.find(p => p.type===value)?.disciplines[0]},linked));}
+  function link(result) {setLinked(result); setForm(f => withProfile(f,result)); setError('');}
+  function unlink() {setLinked(null); setForm(f => ({...f,email:''}));}
+  function signedIn(result) {if (result.mfaRequired) navigate('/login',{state:{challengeId:result.challengeId}}); else setError(routeSignedIn(navigate,result));}
   function go(next) {setStep(next); setError(''); requestAnimationFrame(() => heading.current?.focus());}
   function validate(index) {
-    const required=index===0 ? ['firstName','lastName','email','phone','password','confirmPassword'] : index===1 ? ['qualification','university','graduationYear','yearsOfExperience','specialty','services'] : index===2 ? ['practiceState','city',...(licensed ? ['registrationNumber','licenceType','licenceExpiry'] : [])] : [];
+    const required=index===0 ? (linked ? ['firstName','lastName','phone'] : ['firstName','lastName','email','phone','password','confirmPassword']) : index===1 ? ['qualification','university','graduationYear','yearsOfExperience','specialty','services'] : index===2 ? ['practiceState','city',...(licensed ? ['registrationNumber','licenceType','licenceExpiry'] : [])] : [];
     if (required.some(key => !String(form[key] ?? '').trim())) return 'Please complete all required fields in this step.';
     if (index===0) {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return 'Enter a valid email address.';
+      if (!linked && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return 'Enter a valid email address.';
       if (!/^\+[1-9]\d{7,14}$/.test(form.phone)) return 'Use international phone format, for example +2348012345678, with no spaces.';
-      if (form.password.length<15) return 'Use a password with at least 15 characters.';
-      if (form.password!==form.confirmPassword) return 'Your passwords do not match.';
+      if (!linked && form.password.length<15) return 'Use a password with at least 15 characters.';
+      if (!linked && form.password!==form.confirmPassword) return 'Your passwords do not match.';
     }
     if (index===1) {
       const year=Number(form.graduationYear), experience=Number(form.yearsOfExperience);
@@ -45,11 +53,11 @@ export default function ProfessionalRegistrationPage() {
     if (step<3) {go(step+1); return;}
     for (let index=0;index<4;index++) {const problem=validate(index); if (problem) {go(index); setError(problem); return;}}
     submitting.current=true; setBusy(true); setError('');
-    try {const {confirmPassword,...payload}=form; const data=await registerProfessional(payload); setForm(freshForm()); navigate('/registration/status',{state:data});}
-    catch(e) {setError(e.message || 'We could not create your account. Please try again.');}
+    try {const {confirmPassword,password,email,...rest}=form; const payload=linked ? {...rest,socialSignupToken:linked.signupToken} : {...rest,email,password}; const data=await registerProfessional(payload); setForm(freshForm()); setLinked(null); navigate('/registration/status',{state:{...data,email:data.email || email}});}
+    catch(e) {if (e.code==='SOCIAL_SIGNUP_EXPIRED') {setLinked(null); go(0); setError(`Your ${providerName(linked?.profile?.provider)} confirmation expired. Choose it again below — your details are kept.`);} else setError(e.message || 'We could not create your account. Please try again.');}
     finally {submitting.current=false; setBusy(false);}
   }
-  if (type==='DOCTOR') return <DoctorRegistrationPage onChooseProfession={() => choose('')}/>;
+  if (type==='DOCTOR') return <DoctorRegistrationPage onChooseProfession={() => choose('')} social={social} linked={linked} onLinked={setLinked} onClear={() => setLinked(null)} onSignedIn={signedIn}/>;
   const field=(name,title,kind='text',required=true) => <div className="sh-auth-field" key={name}><label htmlFor={'professional-'+name}>{title}{!required && <span> · Optional</span>}</label><input id={'professional-'+name} type={kind} required={required} value={form[name] ?? ''} maxLength={limits[name]} min={kind==='number' ? name==='graduationYear' ? 1940 : 0 : undefined} max={kind==='number' ? name==='graduationYear' ? new Date().getFullYear() : 70 : undefined} autoComplete={name.includes('Password') || name==='password' ? 'new-password' : name==='email' ? 'email' : name==='phone' ? 'tel' : name==='firstName' ? 'given-name' : name==='lastName' ? 'family-name' : undefined} onChange={e => update(name,e.target.value)}/></div>;
   return <AuthLayout><div className="sh-login-content sh-register-content">
     <div className="sh-auth-topline"><span className="sh-auth-kicker">PROFESSIONAL REGISTRATION</span><Link to="/login">Already registered? Sign in</Link></div>
@@ -62,12 +70,12 @@ export default function ProfessionalRegistrationPage() {
     <form className="sh-register-form" onSubmit={submit} noValidate>
       <h2 ref={heading} tabIndex={-1}>{STEPS[step]}</h2><p>Step {step+1} of 4 · {profession.label}</p>
       {error && <p className="sh-form-notice" role="alert">{error}</p>}
-      {step===0 && <><div className="sh-auth-grid">{field('firstName','First name')}{field('lastName','Last name')}</div>{field('email','Email address','email')}{field('phone','Phone (+234…)','tel')}{field('password','Password (at least 15 characters)','password')}{field('confirmPassword','Confirm password','password')}<p className="sh-field-help">Choose a long, unique passphrase. Your password is never saved in a browser draft.</p></>}
+      {step===0 && <><SocialAccountChoice social={social} linked={linked} onLinked={link} onClear={unlink} onSignedIn={signedIn} onNotice={setError} disabled={busy || !config?.enabled}/><div className="sh-auth-grid">{field('firstName','First name')}{field('lastName','Last name')}</div>{linked ? <div className="sh-auth-field"><label htmlFor="professional-email">Email address</label><input id="professional-email" type="email" readOnly value={form.email || ''}/></div> : field('email','Email address','email')}{field('phone','Phone (+234…)','tel')}{!linked && <>{field('password','Password (at least 15 characters)','password')}{field('confirmPassword','Confirm password','password')}<p className="sh-field-help">Choose a long, unique passphrase. Your password is never saved in a browser draft.</p></>}</>}
       {step===1 && <>{field('qualification','Relevant qualification')}{field('university','Training institution')}<div className="sh-auth-grid">{field('graduationYear','Qualification year','number')}{field('yearsOfExperience','Years of experience','number')}</div>{field('specialty','Specialisation')}{field('services','Services you provide')}</>}
       {step===2 && <><p className="sh-form-notice">{profession.regulator}. {profession.regulated ? 'Statutory registration applies to this profession.' : 'Evidence is reviewed against your discipline, not a shared medical licence.'}</p>{field('registrationNumber',licensed ? 'Regulator registration number' : 'Professional registration / membership number','text',licensed)}
       {licensed && <><label className="sh-auth-field">Licence type<select aria-label="Licence type" required value={form.licenceType || ''} onChange={e => update('licenceType',e.target.value)}><option value="">Select licence type</option><option value="annual">Current dated licence</option></select></label>{field('licenceExpiry','Current licence expiry','date')}</>}
-      <div className="sh-auth-grid">{field('practiceState','Practice state')}{field('city','City')}</div>{field('hospital','Practice / organisation','text',false)}<p className="sh-field-help">After account creation, verify your email and upload the required credentials. Upload and security screening run in the background; staff review qualifications before practice access is enabled. Do not upload patient records.</p></>}
-      {step===3 && <><div className="sh-review-card"><h3>Review your application</h3><dl><dt>Account</dt><dd>{form.firstName} {form.lastName}<br/>{form.email}<br/>{form.phone}</dd><dt>Practice</dt><dd>{label(form.discipline)} · {form.specialty}<br/>{form.qualification}, {form.university} ({form.graduationYear})<br/>{form.yearsOfExperience} years of experience</dd><dt>Location</dt><dd>{form.city}, {form.practiceState}{form.hospital && <><br/>{form.hospital}</>}</dd>{form.registrationNumber && <><dt>Registration</dt><dd>{form.registrationNumber}{licensed && <> · Expires {form.licenceExpiry}</>}</dd></>}</dl><div className="sh-review-actions">{STEPS.slice(0,3).map((title,index) => <button type="button" key={title} onClick={() => go(index)}>Edit {title.toLowerCase()}</button>)}</div></div>
+      <div className="sh-auth-grid">{field('practiceState','Practice state')}{field('city','City')}</div>{field('hospital','Practice / organisation','text',false)}<p className="sh-field-help">{linked ? 'Right after account creation you upload the required credentials — no email verification step.' : 'After account creation, verify your email and upload the required credentials.'} Upload and security screening run in the background; staff review qualifications before practice access is enabled. Do not upload patient records.</p></>}
+      {step===3 && <><div className="sh-review-card"><h3>Review your application</h3><dl><dt>Account</dt><dd>{form.firstName} {form.lastName}<br/>{form.email}<br/>{form.phone}{linked && <><br/>Signs in with {providerName(linked.profile?.provider)}</>}</dd><dt>Practice</dt><dd>{label(form.discipline)} · {form.specialty}<br/>{form.qualification}, {form.university} ({form.graduationYear})<br/>{form.yearsOfExperience} years of experience</dd><dt>Location</dt><dd>{form.city}, {form.practiceState}{form.hospital && <><br/>{form.hospital}</>}</dd>{form.registrationNumber && <><dt>Registration</dt><dd>{form.registrationNumber}{licensed && <> · Expires {form.licenceExpiry}</>}</dd></>}</dl><div className="sh-review-actions">{STEPS.slice(0,3).map((title,index) => <button type="button" key={title} onClick={() => go(index)}>Edit {title.toLowerCase()}</button>)}</div></div>
       <label className="sh-checkbox-row"><input type="checkbox" checked={!!form.declaration} onChange={e => update('declaration',e.target.checked)}/><span>I confirm my details and qualifications are accurate.</span></label><label className="sh-checkbox-row"><input type="checkbox" checked={!!form.termsAccepted} onChange={e => update('termsAccepted',e.target.checked)}/><span>I accept the registration conditions and privacy information, including credential review and screening.</span></label><div><button type="button" className="sh-inline-link" onClick={() => setLegal('terms')}>Registration conditions</button> · <button type="button" className="sh-inline-link" onClick={() => setLegal('privacy')}>Privacy information</button></div></>}
       <div className="sh-register-actions">{step>0 && <button type="button" className="sh-secondary-button" disabled={busy} onClick={() => go(step-1)}><ArrowLeft size={16}/> Back</button>}<button type="submit" className="sh-primary-button" disabled={busy || !config?.enabled}>{busy ? 'Creating your account…' : step===3 ? 'Create professional account' : <>Continue <ArrowRight size={16}/></>}</button></div>
     </form></>}

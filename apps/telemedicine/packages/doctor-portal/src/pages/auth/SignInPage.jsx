@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import AuthLayout from "./AuthLayout";
 import { PREVIEW_ENABLED, signInDoctor, requestPasswordReset, verifySignIn } from "../../services/doctorAuth";
-import { activateDoctorSession } from "../../store/doctorSession";
+import { useSocialSignIn } from "../../services/socialSignIn";
+import { SocialButtons, providerName, routeSignedIn } from "./SocialSignIn";
 import { canonicalEmail } from "./registrationModel";
 import { signedOutForInactivity } from "../../../../shared-portal/idleTimeout.js";
 import { ELSEWHERE_NOTICE, signedOutElsewhere } from "../../../../shared-portal/sessionWatch.js";
@@ -12,11 +13,16 @@ const IDLE_NOTICE = "For your security, you were signed out after 5 minutes of i
 
 export default function SignInPage({ recovery = false }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const social = useSocialSignIn();
+  const [socialBusy, setSocialBusy] = useState(null);
+  const [socialOffer, setSocialOffer] = useState(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [code, setCode] = useState("");
-  const [challenge, setChallenge] = useState(null);
+  // Registration with Google/Apple hands over a two-step check when the account already exists.
+  const [challenge, setChallenge] = useState(() => location.state?.challengeId || null);
   const [useRecovery, setUseRecovery] = useState(false);
   const [notice, setNotice] = useState(() => recovery ? "" : signedOutForInactivity(window.location.search) ? IDLE_NOTICE : signedOutElsewhere(window.location.search) ? ELSEWHERE_NOTICE : "");
   const [busy, setBusy] = useState(false);
@@ -31,19 +37,23 @@ export default function SignInPage({ recovery = false }) {
       const result = challenge ? await verifySignIn(challenge, code, useRecovery) : await signInDoctor(canonicalEmail(email), password);
       setPassword(""); setCode("");
       if (result.mfaRequired && result.challengeId) { setChallenge(result.challengeId); return; }
-      if (result.doctor?.verificationStatus === "SUSPENDED" || result.doctor?.accountStatus !== "active") {
-        setNotice("Your doctor account is not active. Please contact Sabi Health support."); return;
-      }
-      if (!result.doctor?.emailVerified || !result.doctor?.licenceVerified) {
-        navigate("/registration/status", { state: { mode: "account", status: result.doctor?.emailVerified ? "review_pending" : "email_pending", email } }); return;
-      }
-      activateDoctorSession(result.doctor); navigate("/dashboard", { replace: true });
+      setNotice(routeSignedIn(navigate, result, email));
     } catch (error) {
       setPassword("");
       if (error.code === "EMAIL_VERIFICATION_REQUIRED") navigate("/registration/status", { state: { email, status: "email_pending" } });
       else setNotice(error.name === "TimeoutError" ? "This request took too long. Please try again." : error.message);
     }
     finally { setBusy(false); }
+  }
+  async function chooseSocial(provider) {
+    setNotice(""); setSocialOffer(null); setSocialBusy(provider);
+    try {
+      const result = await social.start(provider);
+      if (result.signupRequired) setSocialOffer(result);
+      else if (result.mfaRequired) setChallenge(result.challengeId);
+      else setNotice(routeSignedIn(navigate, result));
+    } catch (error) { if (!error.cancelled) setNotice(error.message); }
+    finally { setSocialBusy(null); }
   }
   return <AuthLayout compact>
     <div className="sh-auth-topline"><span>PROFESSIONAL PORTAL</span><div>New to Sabi Health? <Link to="/register">Register</Link></div></div>
@@ -68,6 +78,11 @@ export default function SignInPage({ recovery = false }) {
         <button className="sh-primary-button sh-full-button" disabled={busy}>{busy ? "Please wait…" : recovery ? "Send reset instructions" : challenge ? "Verify and sign in" : "Sign in"}<ArrowRight size={17} /></button>
         {challenge && <button type="button" className="sh-inline-link" onClick={() => { setChallenge(null); setCode(""); setNotice(""); }}>Back to sign in</button>}
       </form>
+      {!recovery && !challenge && <SocialButtons social={social} busy={socialBusy || (busy ? "form" : null)} onChoose={chooseSocial} />}
+      {socialOffer && <div className="sh-social-offer" role="status">
+        <span>No professional account uses <strong>{socialOffer.profile?.email}</strong> yet. Register with {providerName(socialOffer.profile?.provider)} — your name and email are filled in, and there's no password to create.</span>
+        <button type="button" className="sh-primary-button" onClick={() => navigate("/register", { state: { social: socialOffer } })}>Register as a professional</button>
+      </div>}
       {recovery && <Link className="sh-inline-link" to="/login">Back to sign in</Link>}
       {PREVIEW_ENABLED && <p className="sh-preview-disclosure">Local preview · <Link to="/preview">Explore the doctor workspace</Link></p>}
     </div>

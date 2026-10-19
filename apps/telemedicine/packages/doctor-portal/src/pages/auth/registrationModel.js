@@ -20,17 +20,20 @@ export function documentError(file, maxBytes = 5 * 1024 * 1024) {
   if (file.size === 0 || file.size > maxBytes) return `Choose a file between 1 byte and ${(maxBytes / 1000000).toFixed(1)} MB.`;
   return "";
 }
-export function validateRegistrationStep(step, values, documents, today = new Date(), requireDocuments = true) {
+// `social`: the account comes from Google/Apple, whose confirmed email is used and which needs no password.
+export function validateRegistrationStep(step, values, documents, today = new Date(), requireDocuments = true, { social = false } = {}) {
   const errors = {};
   const require = (key, message) => { if (!String(values[key] ?? "").trim()) errors[key] = message; };
   if (step === 0) {
     require("firstName", "Enter your first name as it appears on your licence.");
     require("lastName", "Enter your last name as it appears on your licence.");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) errors.email = "Enter a valid email address.";
+    if (!social && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) errors.email = "Enter a valid email address.";
     if (!/^\+[1-9]\d{7,14}$/.test(values.phone.replace(/[\s()-]/g, ""))) errors.phone = "Include the country code, for example +2348012345678.";
-    const password = passwordError(values.password);
-    if (password) errors.password = password;
-    if (values.password !== values.confirmPassword || !values.confirmPassword) errors.confirmPassword = "Your passwords must match.";
+    if (!social) {
+      const password = passwordError(values.password);
+      if (password) errors.password = password;
+      if (values.password !== values.confirmPassword || !values.confirmPassword) errors.confirmPassword = "Your passwords must match.";
+    }
   }
   if (step === 1) {
     for (const key of ["specialty", "qualification", "university", "registrationNumber", "practiceState", "city"]) require(key, "Complete this field.");
@@ -67,7 +70,7 @@ export function loadRegistrationDraft() {
     return { ...EMPTY_REGISTRATION, ...clean };
   } catch { return { ...EMPTY_REGISTRATION }; }
 }
-export function registrationPayload(values) {
-  const { confirmPassword, otherSpecialty, otherQualification, ...payload } = values;
-  return { ...payload, email: canonicalEmail(values.email), phone: values.phone.replace(/[\s()-]/g, ""), specialty: values.specialty === "Other" ? values.otherSpecialty.trim() : values.specialty, qualification: values.qualification === "Other medical degree" ? values.otherQualification.trim() : values.qualification, country: "NG", regulator: "MDCN", consentVersion: "doctor-registration-v1" };
+export function registrationPayload(values, socialSignupToken = null) {
+  const { confirmPassword, otherSpecialty, otherQualification, email, password, ...payload } = values;
+  return { ...payload, ...(socialSignupToken ? { socialSignupToken } : { email: canonicalEmail(email), password }), phone: values.phone.replace(/[\s()-]/g, ""), specialty: values.specialty === "Other" ? values.otherSpecialty.trim() : values.specialty, qualification: values.qualification === "Other medical degree" ? values.otherQualification.trim() : values.qualification, country: "NG", regulator: "MDCN", consentVersion: "doctor-registration-v1" };
 }

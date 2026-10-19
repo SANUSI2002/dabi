@@ -14,17 +14,23 @@ export const signOutAccount = auth.signOut;
 export const requestPasswordReset = auth.requestPasswordReset;
 export const doctorRequest = auth.authenticated;
 export const doctorOnboardingRequest = auth.onboarding;
+export const socialProviders = auth.socialProviders;
+export const socialNonce = auth.socialNonce;
+export const socialGoogle = auth.socialGoogle;
+export const socialApple = auth.socialApple;
 export const getRegistrationConfig = async () => (await auth.publicRequest("/doctors/registration-config")).data;
 
 async function registrationRequest(path, options) {
   if (!REGISTRATION_CONFIGURED) throw new Error("Doctor credential submission is not available yet. Existing approved doctors can sign in. Your application has not been submitted.");
   return auth.publicRequest(path, options);
 }
-export async function registerDoctor(payload) {
-  return (await registrationRequest("/doctors/register", { method: "POST", body: JSON.stringify(payload) })).data;
+// A Google/Apple registration comes back signed in, so the new professional can upload credentials at once.
+async function register(path, payload) {
+  const result = await registrationRequest(path, { method: "POST", body: JSON.stringify(payload) });
+  if (result.accessToken) await auth.adoptSession(result);
+  return { ...result.data, signedIn: !!result.accessToken };
 }
-export async function registerProfessional(payload) {
-  return (await registrationRequest('/doctors/register-professional', { method: 'POST', body: JSON.stringify(payload) })).data;
-}
+export const registerDoctor = (payload) => register("/doctors/register", payload);
+export const registerProfessional = (payload) => register("/doctors/register-professional", payload);
 export const resendVerification = (email) => registrationRequest("/doctors/resend-verification", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
 export const verifyEmail = (uid, token) => registrationRequest("/doctors/verify-email", { method: "POST", body: JSON.stringify({ uid, token }) });

@@ -31,6 +31,27 @@ export function createDoctorAuthClient({ base, onSignedInElsewhere = () => {}, f
       hospital: professional.practiceName || "Independent practice", hospitalId: null, memberships: me.organizations || [],
     };
   }
+  // Sign-in results that carry a session (password, Google, Apple, or a Google/Apple registration).
+  async function adoptSession(result) {
+    if (!result?.accessToken) throw new Error("Sabi Identity returned an invalid sign-in response.");
+    accessToken = result.accessToken;
+    try { sessionDoctor = await doctorForSession(); }
+    catch (error) {
+      if (error.code !== "DOCTOR_ACCESS_REQUIRED") throw error;
+      // A Google/Apple account that belongs to a patient: end that session here, it has no use in this portal.
+      try { await request("/auth/logout", { method: "POST", body: "{}" }); } catch { /* best effort */ }
+      accessToken = null; sessionDoctor = null;
+      throw Object.assign(new Error("This account is a Sabi patient account. Use the patient portal, or register as a professional with a different email."), { code: error.code, status: 403 });
+    }
+    return { doctor: sessionDoctor };
+  }
+  async function socialSignIn(path, body) {
+    accessToken = null; sessionDoctor = null; endedElsewhere = false;
+    const result = await request(path, { method: "POST", body: JSON.stringify({ ...body, intent: "professional" }) });
+    if (result.status === "signup_required") return { signupRequired: true, signupToken: result.signupToken, profile: result.profile };
+    if (result.status === "mfa_required" && result.challengeToken) return { mfaRequired: true, challengeId: result.challengeToken };
+    return adoptSession(result);
+  }
   function approved(doctor) { return doctor?.accountStatus === "active" && doctor.emailVerified && doctor.licenceVerified; }
   async function restore() {
     if (!base) return { doctor: null };
@@ -117,6 +138,11 @@ export function createDoctorAuthClient({ base, onSignedInElsewhere = () => {}, f
       return { doctor: sessionDoctor };
     },
     signOut: async () => { try { await request("/auth/logout", { method: "POST", body: "{}" }); } finally { accessToken = null; sessionDoctor = null; endedElsewhere = false; } },
+    adoptSession,
+    socialProviders: async () => (await request("/auth/social/providers")).data,
+    socialNonce: async () => (await request("/auth/social/nonce", { method: "POST", body: "{}" })).data.nonce,
+    socialGoogle: (code) => socialSignIn("/auth/social/google", { code }),
+    socialApple: ({ idToken, nonce, firstName, lastName }) => socialSignIn("/auth/social/apple", { idToken, nonce, ...(firstName ? { firstName } : {}), ...(lastName ? { lastName } : {}) }),
     requestPasswordReset: (email) => request("/auth/password-reset/request", { method: "POST", body: JSON.stringify({ email }) }),
   };
 }

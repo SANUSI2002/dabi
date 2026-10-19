@@ -6,7 +6,7 @@ import ProfessionalCareWorkspace from '../../apps/telemedicine/packages/doctor-p
 import {DieticianTablePage} from '../../apps/telemedicine/packages/patient-portal/src/pages/prescriptions/DieticianTablePage';
 import ProfessionalRegistrationPage from '../../apps/telemedicine/packages/doctor-portal/src/pages/auth/ProfessionalRegistrationPage';
 const mocks=vi.hoisted(()=>({doctorRequest:vi.fn(),authorizedRequest:vi.fn(),getRegistrationConfig:vi.fn(),registerProfessional:vi.fn()}));
-vi.mock('../../apps/telemedicine/packages/doctor-portal/src/services/doctorAuth',()=>({...mocks,AUTH_CONFIGURED:true,PREVIEW_ENABLED:false,REGISTRATION_CONFIGURED:true,TERMS_URL:'',PRIVACY_URL:''}));
+vi.mock('../../apps/telemedicine/packages/doctor-portal/src/services/doctorAuth',()=>({...mocks,AUTH_CONFIGURED:true,PREVIEW_ENABLED:false,REGISTRATION_CONFIGURED:true,TERMS_URL:'',PRIVACY_URL:'',socialProviders:async()=>({google:null,apple:null}),socialNonce:async()=>'',socialGoogle:async()=>({}),socialApple:async()=>({})}));
 vi.mock('../../apps/telemedicine/packages/patient-portal/src/utils/sabiIdentity',()=>({authorizedRequest:mocks.authorizedRequest}));
 vi.mock('../../apps/telemedicine/packages/patient-portal/src/pages/hospitals/hospitalShared',()=>({PageShell:({children})=><main>{children}</main>}));
 vi.mock('../../apps/telemedicine/packages/doctor-portal/src/pages/auth/AuthLayout',()=>({default:({children})=><main>{children}</main>}));
