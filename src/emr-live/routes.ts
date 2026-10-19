@@ -32,6 +32,7 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   "/nutrition": "nutrition.read",
   "/ncd": "programme.read",
   "/malaria": "programme.read",
+  "/referrals": "referral.read",
 };
 
 export type LiveRouteState = "connected" | "no-permission" | "not-connected";
