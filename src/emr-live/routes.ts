@@ -27,6 +27,7 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   "/pnc": "pnc.read",
   "/immunization": "immunization.read",
   "/surveillance": "surveillance.read",
+  "/family-planning": "fp.read",
 };
 
 export type LiveRouteState = "connected" | "no-permission" | "not-connected";
