@@ -4,6 +4,8 @@ import { PageHeader, Button, Badge, StatCard } from "@/components/ui/primitives"
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { useAudit } from "@/store/useAudit";
 import { dateTime, timeAgo } from "@/lib/format";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { useLiveAudit, useLiveReports } from "@/emr-live/reports";
 
 function fmtVal(v: unknown): string {
   if (v === null || v === undefined || v === "") return "—";
@@ -13,7 +15,14 @@ function fmtVal(v: unknown): string {
 }
 
 export default function AuditLog() {
-  const events = useAudit((s) => s.events);
+  const demoEvents = useAudit((s) => s.events);
+  // A live hospital sees its EMR audit trail: who, what and when (network addresses are not recorded).
+  const live = useIsLiveEmr();
+  useLiveAudit(live);
+  const liveEvents = useLiveReports((s) => s.audit);
+  const moreCursor = useLiveReports((s) => s.auditCursor);
+  const liveError = useLiveReports((s) => s.error);
+  const events = live ? liveEvents : demoEvents;
   const [action, setAction] = useState("All");
   const [openId, setOpenId] = useState<string | null>(null);
   const actions = useMemo(() => ["All", ...new Set(events.map((e) => e.action))].slice(0, 14), [events]);
@@ -37,8 +46,9 @@ export default function AuditLog() {
         <StatCard label="Events logged" value={events.length} tone="brand" icon={<ScrollText size={18} />} />
         <StatCard label="Users" value={new Set(events.map((e) => e.user)).size} tone="mist" delay={0.05} />
         <StatCard label="Distinct actions" value={new Set(events.map((e) => e.action)).size} tone="mist" delay={0.1} />
-        <StatCard label="Data exports" value={events.filter((e) => e.action.includes("REPORT")).length} tone="action" delay={0.15} />
+        <StatCard label="Data exports" value={events.filter((e) => /report/i.test(e.action)).length} tone="action" delay={0.15} />
       </div>
+      {live && liveError && <p role="alert" className="mb-4 rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{liveError}</p>}
 
       <div className="mb-4 flex flex-wrap gap-1.5">
         {actions.map((a) => (
@@ -103,6 +113,11 @@ export default function AuditLog() {
           );
         })}
       </Table>
+      {live && moreCursor && (
+        <div className="mt-4 text-center">
+          <Button variant="ghost" onClick={() => void useLiveReports.getState().loadAudit(true)}>Load older events</Button>
+        </div>
+      )}
     </div>
   );
 }

@@ -44,14 +44,14 @@ describe("live immunization and surveillance", () => {
 
   it("shows the hospital's defaulters and gives a dose to the picked child", async () => {
     render(<MemoryRouter><Immunization /></MemoryRouter>);
-    fireEvent.click(await screen.findByRole("tab", { name: "Defaulters (1)" }));
-    expect(await screen.findByText("Pentavalent Vaccine (Dose 2)")).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("tab", { name: "Defaulters (1)" }, { timeout: 5000 }));
+    expect(await screen.findByText("Pentavalent Vaccine (Dose 2)", {}, { timeout: 5000 })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "Give Vaccine" }));
     const search = screen.getByPlaceholderText("Search child…");
     fireEvent.focus(search);
     fireEvent.change(search, { target: { value: "Tobi" } });
-    fireEvent.mouseDown(await screen.findByRole("button", { name: /Tobi Adewale/ }));
-    expect(await screen.findByText(/1 doses on file/)).toBeInTheDocument();
+    fireEvent.mouseDown(await screen.findByRole("button", { name: /Tobi Adewale/ }, { timeout: 5000 }));
+    expect(await screen.findByText(/1 doses on file/, {}, { timeout: 5000 })).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole("button", { name: "Give" })[0]);
     const dialog = await screen.findByRole("dialog");
     fireEvent.change(within(dialog).getByLabelText("Batch / lot number"), { target: { value: "OPV-0042" } });

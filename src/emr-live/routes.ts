@@ -35,6 +35,10 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   "/referrals": "referral.read",
   "/transfers": "transfer.read",
   "/outreach": "outreach.read",
+  "/reports": "report.view",
+  "/nhmis-sync": "report.view",
+  "/msf-report": "report.view",
+  "/audit-log": "audit.view",
 };
 
 export type LiveRouteState = "connected" | "no-permission" | "not-connected";
