@@ -591,7 +591,7 @@ function SocialButton({ label, children, onClick, disabled=false, pending=false 
       type="button"
       onClick={onClick}
       disabled={disabled}
-      title={disabled ? (pending ? undefined : "Available when Sabi Identity OIDC is configured") : undefined}
+      title={disabled ? (pending ? undefined : `${label} sign-in is coming soon`) : undefined}
       className="disabled:opacity-50 disabled:cursor-not-allowed flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
     >
       {children}

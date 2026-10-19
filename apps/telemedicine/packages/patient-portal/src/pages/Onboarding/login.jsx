@@ -195,7 +195,7 @@ export default function SabiHealthLogin({ responder = false, onSignedIn } = {}) 
                   type="button"
                   disabled={!ready || busy || !!socialBusy}
                   onClick={() => handleSocial(provider)}
-                  title={ready ? undefined : social.configured[provider] ? "Loading…" : "Available when Sabi Identity OIDC is configured"}
+                  title={ready ? undefined : social.configured[provider] ? "Loading…" : `${providerName(provider)} sign-in is coming soon`}
                   aria-describedby={missingProviders.length ? "patient-login-social-note" : undefined}
                   className={`flex items-center justify-center gap-2 min-h-[44px] rounded-xl border border-gray-200 bg-white transition-colors ${ready ? "hover:bg-gray-50" : "opacity-60 cursor-not-allowed"} disabled:cursor-not-allowed`}
                 >
