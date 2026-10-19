@@ -332,8 +332,13 @@ export type AncRecord = {
   bloodGroup?: string;
   hb?: number;
   ttDoses: number;
-  status: "Active" | "Delivered" | "Transferred";
-  visits: { date: string; weeks: number; weight: number; bp: string; hb?: number; fhr?: number; next: string }[];
+  status: "Active" | "Delivered" | "Transferred" | "Ended";
+  visits: { id?: string; date: string; weeks: number; weight?: number; bp: string; hb?: number; fhr?: number; next: string; recordedBy?: string }[];
+  // Live EMR only (src/emr-live/antenatal.ts): worked out by the hospital's record.
+  gestationalWeeksToday?: number;
+  riskFlags?: { code: string; label: string }[];
+  /** Lab orders since the LMP; null when this user may not read lab orders. */
+  labs?: { id: string; testName: string; orderedAt: string; status: "Pending" | "Resulted" | "Verified"; result?: string }[] | null;
 };
 
 export type FpVisitType = "New Visit" | "Revisit" | "Resupply" | "Switch method" | "Removal";

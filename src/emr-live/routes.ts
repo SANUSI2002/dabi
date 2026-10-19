@@ -20,6 +20,8 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   "/appointments": "appointment.read",
   "/radiology": "imaging.read",
   "/procedures": "procedure.read",
+  // Antenatal care (Maternal & Child Health): doctors and nurses; admins may look.
+  "/anc": "anc.read",
 };
 
 export type LiveRouteState = "connected" | "no-permission" | "not-connected";
