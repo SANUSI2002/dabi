@@ -34,6 +34,7 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   "/malaria": "programme.read",
   "/referrals": "referral.read",
   "/transfers": "transfer.read",
+  "/outreach": "outreach.read",
 };
 
 export type LiveRouteState = "connected" | "no-permission" | "not-connected";
