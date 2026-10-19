@@ -8,11 +8,14 @@ import type { Patient } from "@/data/types";
 export function PatientPicker({
   value,
   onChange,
+  onPick,
   filter,
   placeholder = "Search by name, MRN, phone…",
 }: {
   value?: string | null;
   onChange: (id: string) => void;
+  /** The chosen patient record (a live search result is not kept anywhere else). */
+  onPick?: (patient: Patient) => void;
   filter?: (p: Patient) => boolean;
   placeholder?: string;
 }) {
@@ -47,6 +50,7 @@ export function PatientPicker({
               onMouseDown={() => {
                 setPicked(p);
                 onChange(p.id);
+                onPick?.(p);
                 setOpen(false);
                 setQ("");
               }}
