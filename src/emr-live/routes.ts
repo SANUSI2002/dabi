@@ -24,6 +24,7 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   "/anc": "anc.read",
   // Labour & delivery and the birth register.
   "/labour": "delivery.read",
+  "/pnc": "pnc.read",
 };
 
 export type LiveRouteState = "connected" | "no-permission" | "not-connected";
