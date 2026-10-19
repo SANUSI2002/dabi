@@ -91,6 +91,51 @@ export function BirthCertificateDoc({ patient, open, onClose }: { patient: Patie
   );
 }
 
+/* ---------------- Birth notification (live birth register entry) ---------------- */
+// Printed from the hospital's register entry: its notification number, the civil registration number
+// recorded from NPopC, and the people who actually notified and registered the birth.
+export function BirthNotificationDoc({ entry, open, onClose }: {
+  entry: { babyName: string; sex: Patient["sex"]; bornAt: string; weight: number; placeOfBirth: string; deliveryMode: string; motherName: string; fatherName?: string;
+    informantName: string; informantRelation: string; npopcNo: string; regNo?: string; notifiedAt: string; notifiedBy?: string; registeredAt?: string; registeredBy?: string; certIssuedAt?: string };
+  open: boolean; onClose: () => void;
+}) {
+  return (
+    <PrintDoc open={open} onClose={onClose} docTitle="Notification of Birth">
+      <p className="mb-6 text-center text-sm text-mist-500">
+        This is to certify that the birth described below was notified at this health facility.
+      </p>
+      <Section title="Child's Details">
+        <div className="grid grid-cols-2 gap-x-8">
+          <Line label="Name" value={entry.babyName || "Not yet named"} />
+          <Line label="Sex" value={entry.sex === "M" ? "Male" : "Female"} />
+          <Line label="Date and time of birth" value={dateTime(entry.bornAt)} />
+          <Line label="Birth weight" value={`${entry.weight} kg`} />
+          <Line label="Place of birth" value={entry.placeOfBirth} />
+          <Line label="Mode of delivery" value={entry.deliveryMode} />
+        </div>
+      </Section>
+      <Section title="Parents and Informant">
+        <div className="grid grid-cols-2 gap-x-8">
+          <Line label="Mother" value={entry.motherName} />
+          <Line label="Father" value={entry.fatherName ?? "—"} />
+          <Line label="Informant" value={entry.informantName} />
+          <Line label="Relationship" value={entry.informantRelation} />
+        </div>
+      </Section>
+      <Section title="Register">
+        <div className="grid grid-cols-2 gap-x-8">
+          <Line label="Notification no." value={entry.npopcNo} />
+          <Line label="Notified" value={`${dateTime(entry.notifiedAt)}${entry.notifiedBy ? ` · ${entry.notifiedBy}` : ""}`} />
+          <Line label="Civil registration no. (NPopC)" value={entry.regNo ?? "Not yet registered"} />
+          <Line label="Registered" value={entry.registeredAt ? `${dateTime(entry.registeredAt)}${entry.registeredBy ? ` · ${entry.registeredBy}` : ""}` : "—"} />
+          <Line label="Certificate issued" value={entry.certIssuedAt ? dateTime(entry.certIssuedAt) : "—"} />
+        </div>
+      </Section>
+      <SignRow roles={["Informant's signature", "Certifying officer", "Facility stamp"]} />
+    </PrintDoc>
+  );
+}
+
 /* ---------------- Lab Report ---------------- */
 export function LabReportDoc({
   patient,

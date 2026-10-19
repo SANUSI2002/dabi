@@ -22,6 +22,8 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   "/procedures": "procedure.read",
   // Antenatal care (Maternal & Child Health): doctors and nurses; admins may look.
   "/anc": "anc.read",
+  // Labour & delivery and the birth register.
+  "/labour": "delivery.read",
 };
 
 export type LiveRouteState = "connected" | "no-permission" | "not-connected";
