@@ -159,7 +159,7 @@ export default function AiAllocationPanel() {
       title: "Publish AI allocation settings?",
       confirm: "Publish allocation policy",
       fields: [],
-      description: `Personal: ${settings.personalTokenAllowance} tokens, ${settings.personalDailyRequests} requests/day. Professional: ${settings.professionalTokenAllowance} tokens, ${settings.professionalDailyRequests} requests/day. Token reset: ${settings.tokenResetCadence} at ${settings.resetTime} (${settings.timeZone}). Existing usage and open reset boundaries are preserved. New schedules take effect on renewal. No payment is charged.`,
+      description: `Personal: ${settings.personalTokenAllowance} tokens, ${settings.personalDailyRequests} requests/day. Professional: ${settings.professionalTokenAllowance} tokens, ${settings.professionalDailyRequests} requests/day. Token reset: ${settings.tokenResetCadence}${settings.tokenResetCadence === 'MONTHLY' ? ` on day ${settings.monthlyResetDay}` : ''} at ${settings.resetTime} (${settings.timeZone}). Existing usage and open reset boundaries are preserved. New schedules take effect on renewal. No payment is charged.`,
       run: (v) =>
         ccPost("/ai/allowances/policy", {
           expectedVersion,
@@ -177,7 +177,7 @@ export default function AiAllocationPanel() {
     });
   }
   return (
-    <div className="mt-5 space-y-5">
+    <div id="ai-allocations" className="mt-5 scroll-mt-20 space-y-5">
       <Panel>
         <PanelHeader
           title="Token allocations & reset schedules"
