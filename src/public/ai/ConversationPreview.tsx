@@ -2,9 +2,10 @@ import { useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowUp, FileText, Paperclip, Sparkles } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { AI_WORKSPACE_URL } from "./links";
 
 // Scripted, clearly labelled sample conversations. Every name, value and history is fictional.
-// Nothing here calls a model: Sabi AI is not open yet.
+// Nothing in this marketing example calls a model; the standalone app is separate.
 
 type Sample = { prompt: string; attachment?: string; reply: ReactNode };
 
@@ -117,7 +118,7 @@ const FOLLOW_UPS: { question: string; answer: ReactNode }[] = [
 ];
 
 /** "Ask. Share. Explore." — a sample thread with real, clickable follow-ups and a clearly inactive composer. */
-export function InteractionDemo({ waitlistHref = "#waitlist" }: { waitlistHref?: string }) {
+export function InteractionDemo() {
   const reduce = useReducedMotion();
   const [turns, setTurns] = useState<Turn[]>(OPENING);
   const asked = new Set(turns.filter((t) => t.from === "you").map((t) => String(t.body)));
@@ -139,9 +140,9 @@ export function InteractionDemo({ waitlistHref = "#waitlist" }: { waitlistHref?:
         {turns.length > 2 && <button type="button" onClick={() => setTurns(OPENING)} className="px-2 py-1.5 text-[12.5px] font-semibold text-[#55685f] underline underline-offset-4 hover:text-[#0b2b20]">Start over</button>}
       </div>
       <div className="flex items-center gap-2 rounded-2xl border border-[#e0d9cb] bg-[#fbf9f4] p-2">
-        <span title="Uploads arrive when Sabi AI opens" className="grid h-10 w-10 shrink-0 cursor-not-allowed place-items-center rounded-xl text-[#9aa59f]" aria-label="Attach a document (available when Sabi AI opens)"><Paperclip size={18} /></span>
-        <span className="min-w-0 flex-1 truncate text-sm text-[#8a958e]">Sabi AI is opening soon — this is a preview.</span>
-        <a href={waitlistHref} className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-[#0b2b20] px-3.5 text-[13px] font-semibold text-white hover:bg-[#123d2e]">Join the waitlist <ArrowUp size={14} className="rotate-45" aria-hidden /></a>
+        <span title="Attachments are disabled in this fictional example" className="grid h-10 w-10 shrink-0 cursor-not-allowed place-items-center rounded-xl text-[#9aa59f]" aria-label="Attach a document (disabled in this sample)"><Paperclip size={18} /></span>
+        <span className="min-w-0 flex-1 truncate text-sm text-[#8a958e]">Fictional example — open Sabi AI to chat.</span>
+        <a href={AI_WORKSPACE_URL} className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-[#0b2b20] px-3.5 text-[13px] font-semibold text-white hover:bg-[#123d2e]">Open Sabi AI <ArrowUp size={14} className="rotate-45" aria-hidden /></a>
       </div>
     </div>
   </div>;
