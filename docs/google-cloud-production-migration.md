@@ -21,7 +21,15 @@ The old Firebase project is staging. Firebase added to the **official** Google p
 
 Keep frontend source in `SANUSI2002/dabi` and backend source in `SANUSI2002/dabi-backend`. Infrastructure changes belong with the service they deploy. Do not combine the repositories.
 
-## Cost constraint: cumulative, not monthly
+## Cost constraints: cumulative trial allowance and monthly baseline
+
+The later funding answer is **USD 60/month ongoing hosting**. It supersedes the earlier absence
+of a monthly amount, not the original cumulative trial-credit limit. There is no artificial
+30-day expiry. Keep the full ongoing baseline at or below USD 60/month under documented load,
+and the current total trial consumption strictly below USD 120 (operating target USD 90).
+Neither number is a provider-enforced hard cap or permission to upgrade billing. A dedicated
+SQL example near USD 49/month compute-only leaves little room for backups/storage/API/AI;
+the complete regional quote and operational headroom still need to be verified before creation.
 
 - User limit: strictly less than **USD 120 total** of the USD 300 trial credit.
 - User rejected a 30-day rollout expiry. There is no automatic 30-day shutdown or deletion. This does not waive the cumulative spending limit or authorise ongoing charges after trial credit ends. An indefinite paid service cannot be promised under a finite lifetime allowance; quote the sustainable baseline and obtain a funding decision before committing to it.
@@ -65,6 +73,12 @@ At the USD 70 warning, review the full remaining-duration forecast before additi
 9. Remove production trust/secrets from staging deliberately, without destroying the retained environment. Re-run staging tests with its own accounts and sandbox settings. Production promotions must be explicit; an arbitrary developer push should not deploy an unverified change to live.
 
 ## Current status
+
+JEV update: official-project Secret Manager is enabled; the user-approved backend-only TypeSafe
+key is stored as `typesafe-api-key`, version 1. No runtime IAM access to this secret has been
+granted, no real patient request sent and no live cutover performed. JEV/EMDEX backend adapters
+and one durable documentation-assessment workflow have been tested locally; clinical policies,
+provider smoke verification and the other module-specific workflows remain outstanding.
 
 Completed here: environment boundary recorded; cumulative USD 90 alerts saved and verified; backend container packaging and opt-in Firebase cookie compatibility prepared locally (see backend migration notes).
 

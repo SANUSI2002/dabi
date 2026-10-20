@@ -30,9 +30,43 @@ Updated 20 October 2026. User instruction: finish AI first, then migrate product
 
 The supplied spec is a full multi-phase product, not just a chat page. These remain in scope, not silently removed: licensed reference registry/publication, semantic retrieval and book viewer; delegated patient page context; professional/EMR encounter drafts and domain-authorised writeback; reviewed tool proposals and domain receipts; WhatsApp AI integration; escalation ownership/acknowledgement; speech/languages/avatar; configurable entitlements and immutable monetary usage; clinical evaluation and restore drills. Personal document ingestion/extraction and bounded lexical retrieval now exist; do not describe that as a licensed global medical reference service.
 
-The supplied ZIP has no JEV adapter/model contract or licensed reference collections. The user explicitly replied **“jev later”** on 20 October: defer JEV, do not use its absence to block independent work. Authorised Standing Orders/EMDEX content is still not supplied. Do not invent licensed content, clinical thresholds, model credentials, provider success or clinical approval.
+The later 20 October JEV and EMDEX specifications supersede the earlier **“jev later”** decision.
+The backend now has a typed TypeSafe adapter, versioned documentation question set, durable
+tenant-scoped assessment jobs, source/policy staleness checks and append-only human dispositions.
+The first non-blocking review panel is mounted beside saved live-EMR consultation drafts. It queues
+an explicit review, tracks status, hides findings for unsaved edits, and records reasoned dispositions
+without changing note-signing or prescribing. This is the medicine-history documentation subset
+of C12, not all 35 JEV modules. EMDEX has a
+tested server-only request transport, but no licensed account or verified response contract has
+been supplied; no fake catalogue or prescribing capability is exposed. The complete 35-module
+traceability map and remaining EMDEX requirements are in backend `docs/jev-emdex-implementation.md`.
+Authorised Standing Orders/EMDEX content is still not supplied. Do not invent licensed content,
+clinical thresholds, provider success or clinical approval.
+
+Additional checkpoint verification: **934 backend tests in 94 files passed**, including **32 JEV/EMDEX
+adapter tests**. **50 embedded PostgreSQL AI tests passed**, including **13 JEV workflow cases**
+(cross-tenant access, duplicates, stale notes, policy revocation, removed membership, shadow mode,
+immutable reviews, unavailable provider, interrupted claims and persisted allowance). These are
+synthetic fixtures, not claims of clinical validation or live provider execution.
+
+Frontend checkpoint: 20 focused tests across four files passed, including six JEV panel cases and
+existing consultation/marketing/Command Centre tests; TypeScript passed. Browser accessibility state
+confirmed the synthetic panel rendered, but browser debugger timeouts prevented completing screenshot
+and mobile visual verification. Do not report that visual check as passed.
+
+The EMR production build completed successfully, including service-worker generation; existing
+large-chunk warnings remain. These are local build results, not a declaration of live deployment.
 
 ## Release and migration state
+
+Secret Manager API is enabled in the official project. The approved TypeSafe backend key is stored
+as `typesafe-api-key`, version 1; no key was printed, committed or saved in this workspace. No
+runtime secret-access IAM permission, live provider invocation or clinical activation is implied.
+
+The user subsequently approved **USD 60/month ongoing hosting**, without a 30-day expiry. Retain
+the original cumulative trial-credit cap and USD 90 operating target too; this is not approval for
+a paid-billing upgrade or unquoted resources. Quote all database/backup/API/worker/storage/AI costs
+against both constraints before provisioning.
 
 Verified checkpoints were committed and pushed to **`codex/sabi-ai-foundation` in both existing repositories** (frontend initial checkpoint `65ec4d4`, backend `60d541a`). They are not merged or deployed live. The frontend checkpoint used an isolated Git index, leaving the user's active master branch/index and unrelated EMR/`.claude` work unchanged. AI working files remain present locally for continued development.
 
