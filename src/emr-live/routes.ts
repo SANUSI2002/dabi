@@ -82,6 +82,15 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   "/accounting/general-ledger": "acct.view",
   "/accounting/trial-balance": "acct.view",
   "/accounting/consolidation": "acct.view",
+  // Accounting — sales & receivables
+  "/accounting/customers": "acct.view",
+  "/accounting/quotations": "acct.view",
+  "/accounting/sales-orders": "acct.view",
+  "/accounting/invoices": "acct.view",
+  "/accounting/receipts": "acct.view",
+  "/accounting/credit-notes": "acct.view",
+  "/accounting/sales-receipts": "acct.view",
+  "/accounting/delayed-charges": "acct.view",
 };
 
 export type LiveRouteState = "connected" | "no-permission" | "not-connected";
