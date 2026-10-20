@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
+import { create } from "zustand";
 import type { FieldDef } from "@/pages/admin/settingsConfig";
 import { liveApiRequest, liveCreateInvitation, liveInvitationRoles } from "@/identity/liveIdentity";
 import { emrRequest } from "./client";
@@ -206,36 +207,40 @@ function loaderFor(key: string, organizationId: string): Loader {
   }
 }
 
+// Rows per loader (one per tab and hospital): the screen shows a tab's rows once its loader has fetched them.
+const useSettingsRows = create<{ loader: Loader | null; rows: LiveRow[]; error: string; roles: string[]; load: (loader: Loader) => Promise<void>; loadRoles: (organizationId: string) => Promise<void> }>((set) => ({
+  loader: null, rows: [], error: "", roles: [],
+  load: async (loader) => {
+    try { set({ loader, rows: await loader.load(), error: "" }); }
+    catch (cause) { set({ loader, rows: [], error: cause instanceof Error ? cause.message : "This catalog could not be loaded." }); }
+  },
+  loadRoles: async (organizationId) => {
+    try { set({ roles: (await liveInvitationRoles(organizationId)).data.roles }); }
+    catch { set({ roles: [] }); }
+  },
+}));
+
 /** The live catalog for one Settings tab (rows plus actions), reloading after every change. */
 export function useLiveSettingsCatalog(enabled: boolean, key: string): LiveCatalog {
   const organizationId = useLiveEmr((s) => s.access?.organizationId ?? "");
-  const [rows, setRows] = useState<LiveRow[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [roles, setRoles] = useState<string[]>([]);
   const loader = useMemo(() => (enabled && organizationId ? loaderFor(key, organizationId) : null), [enabled, key, organizationId]);
-
-  const reload = useCallback(async (current: Loader) => {
-    setLoading(true);
-    try { setRows(await current.load()); setError(""); }
-    catch (cause) { setRows([]); setError(cause instanceof Error ? cause.message : "This catalog could not be loaded."); }
-    finally { setLoading(false); }
-  }, []);
+  const state = useSettingsRows();
+  const mine = state.loader === loader && loader !== null;
 
   useEffect(() => {
     if (!loader) return;
-    void reload(loader);
-    if (key === "users") liveInvitationRoles(organizationId).then((r) => setRoles(r.data.roles)).catch(() => setRoles([]));
-  }, [loader, key, organizationId, reload]);
+    void useSettingsRows.getState().load(loader);
+    if (key === "users") void useSettingsRows.getState().loadRoles(organizationId);
+  }, [loader, key, organizationId]);
 
   const after = (work: (l: Loader) => Promise<void>) => async () => {
     if (!loader) return;
     await work(loader);
-    await reload(loader);
+    await useSettingsRows.getState().load(loader);
   };
-  const addFields = loader?.addFields?.map((f) => (key === "users" && f.key === "role" ? { ...f, options: roles, default: roles[0] ?? "" } : f));
+  const addFields = loader?.addFields?.map((f) => (key === "users" && f.key === "role" ? { ...f, options: state.roles, default: state.roles[0] ?? "" } : f));
   return {
-    rows, loading, error, readOnly: loader?.readOnly, addFields, editFields: loader?.editFields,
+    rows: mine ? state.rows : [], loading: Boolean(loader) && !mine, error: mine ? state.error : "", readOnly: loader?.readOnly, addFields, editFields: loader?.editFields,
     add: (form) => after((l) => l.add(form))(),
     update: (row, form) => after((l) => l.update(row, form))(),
     toggle: (row) => after((l) => l.toggle(row))(),
