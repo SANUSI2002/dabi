@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FieldDef } from "@/pages/admin/settingsConfig";
 import { liveApiRequest, liveCreateInvitation, liveInvitationRoles } from "@/identity/liveIdentity";
 import { emrRequest } from "./client";
@@ -213,7 +213,7 @@ export function useLiveSettingsCatalog(enabled: boolean, key: string): LiveCatal
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [roles, setRoles] = useState<string[]>([]);
-  const [loader, setLoader] = useState<Loader | null>(null);
+  const loader = useMemo(() => (enabled && organizationId ? loaderFor(key, organizationId) : null), [enabled, key, organizationId]);
 
   const reload = useCallback(async (current: Loader) => {
     setLoading(true);
@@ -223,12 +223,10 @@ export function useLiveSettingsCatalog(enabled: boolean, key: string): LiveCatal
   }, []);
 
   useEffect(() => {
-    if (!enabled || !organizationId) return;
-    const current = loaderFor(key, organizationId);
-    setLoader(current);
-    void reload(current);
+    if (!loader) return;
+    void reload(loader);
     if (key === "users") liveInvitationRoles(organizationId).then((r) => setRoles(r.data.roles)).catch(() => setRoles([]));
-  }, [enabled, key, organizationId, reload]);
+  }, [loader, key, organizationId, reload]);
 
   const after = (work: (l: Loader) => Promise<void>) => async () => {
     if (!loader) return;
