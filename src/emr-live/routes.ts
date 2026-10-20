@@ -60,6 +60,10 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   "/hr/branch-transfers": "hr.read",
   // Salary data is its own permission
   "/hr/payroll": "payroll.read",
+  // HR services: the asset register and discipline are HR's; everyone uses the helpdesk
+  "/hr/assets": "hr.read",
+  "/hr/policies-discipline": "hr.read",
+  "/hr/helpdesk": ["workforce.self", "hr.read"],
   // Workforce (time & attendance, leave, work)
   "/workforce": ["workforce.self", "workforce.approve", "workforce.manage"],
   // Approval workflows: everyone's inbox, and the Builder for workflow designers

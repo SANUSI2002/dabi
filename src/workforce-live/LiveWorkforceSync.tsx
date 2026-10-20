@@ -7,6 +7,7 @@ import { clearWorkflows, goLiveWorkflows, loadWorkflows } from "./workflows";
 import { clearHiring, goLiveHiring, loadHiring } from "./hiring";
 import { clearCareers, goLiveCareers, loadCareers } from "./careers";
 import { clearPayroll, goLivePayroll, loadPayroll } from "./payroll";
+import { clearServices, goLiveServices, loadServices } from "./services";
 import { useWorkforceSync } from "./sync";
 
 // Mounted once in the live shell. Each Workforce domain fills its stores from the organization's
@@ -26,6 +27,8 @@ const DOMAINS: Domain[] = [
   { permissions: ["hr.read", "workforce.self"], goLive: goLiveCareers, load: loadCareers, clear: clearCareers },
   // Salary data: payroll staff only.
   { permissions: ["payroll.read"], goLive: goLivePayroll, load: loadPayroll, clear: clearPayroll },
+  // Assets, helpdesk and queries: everyone's own requests and tickets; HR sees all.
+  { permissions: ["hr.read", "workforce.self"], goLive: goLiveServices, load: loadServices, clear: clearServices },
 ];
 const holds = (permissions: readonly string[], wanted: string[]) => wanted.some((p) => permissions.includes(p));
 

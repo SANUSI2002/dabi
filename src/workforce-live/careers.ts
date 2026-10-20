@@ -7,7 +7,7 @@ import { workforceRequest } from "@/emr-live/client";
 import type { EmployeeObjective, Feedback, KeyResult, Meeting, Objective, ReviewPeriod } from "@/data/performance";
 import type { Promotion } from "@/data/promotions";
 import type { BranchTransfer } from "@/data/branchTransfers";
-import { clean, isoDay, liveChange, uuid } from "./sync";
+import { adoptLiveIdentity, clean, isoDay, liveChange, uuid } from "./sync";
 import { loadPeople } from "./people";
 import { followWorkflows, loadWorkflows } from "./workflows";
 
@@ -30,6 +30,7 @@ export async function loadCareers() {
   usePerformance.setState({ periods: data.periods, keyResults: data.keyResults, objectives: data.objectives, employeeObjectives: data.employeeObjectives, feedbacks: data.feedbacks.map((f) => noNull(f)), meetings: data.meetings.map((m) => noNull(m)) });
   usePromotions.setState({ promotions: data.promotions.map((p) => noNull(p)) });
   useBranchTransfers.setState({ transfers: data.transfers.map((t) => noNull(t)) });
+  adoptLiveIdentity(data.selfEmployeeId);
 }
 
 const hr = () => useLiveEmr.getState().access?.permissions.includes("hr.read") ?? false;
