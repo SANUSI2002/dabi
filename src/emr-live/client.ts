@@ -26,11 +26,12 @@ export function describeEmrError(cause: unknown): string {
     const label = FIELD_LABELS[field.split(".")[0]] ?? field;
     return `${label}: ${detail.message}`;
   }
-  if (error.status === 403) return "Your role does not allow this action.";
+  // A refusal with its own reason ("Only the named manager writes the manager review.") says so.
+  if (error.status === 403) return error.message && error.message !== "Access denied." ? error.message : "Your role does not allow this action.";
   return error.message || "The EMR service could not complete this request.";
 }
 
-async function send<T>(path: string, request: EmrRequest, product: "emr" | "workforce" = "emr"): Promise<T> {
+async function send<T>(path: string, request: EmrRequest, product: "emr" | "workforce" | "org-config" = "emr"): Promise<T> {
   const organizationId = useLiveEmr.getState().access?.organizationId;
   if (!organizationId) throw new Error("No hospital is selected.");
   return liveApiRequest<T>(`/api/v1/${product}/organizations/${encodeURIComponent(organizationId)}${path}`, {
@@ -61,6 +62,17 @@ export async function workforceRequest<T>(path: string, request: EmrRequest = {}
     if ((cause as Partial<LiveApiError>).status !== 401) throw cause;
     await useLiveEmr.getState().reselect();
     return send<T>(path, request, "workforce");
+  }
+}
+
+/** The same, for the organization configuration API (/api/v1/org-config/...): master data, terminology, letters. */
+export async function orgConfigRequest<T>(path: string, request: EmrRequest = {}): Promise<T> {
+  try {
+    return await send<T>(path, request, "org-config");
+  } catch (cause) {
+    if ((cause as Partial<LiveApiError>).status !== 401) throw cause;
+    await useLiveEmr.getState().reselect();
+    return send<T>(path, request, "org-config");
   }
 }
 

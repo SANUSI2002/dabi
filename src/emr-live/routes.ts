@@ -72,12 +72,16 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   // Approval workflows: everyone's inbox, and the Builder for workflow designers
   "/workflows": ["workforce.self", "workflow.manage"],
   "/settings/workflows": "workflow.manage",
+  // Organization configuration shared by every product; each list is edited by its product's owner
+  "/settings/master-data": ["hr.manage", "catalog.manage", "platform.config"],
+  "/settings/terminology": ["platform.config", "hr.manage"],
+  "/settings/letters": ["hr.manage", "platform.config"],
 };
 
 export type LiveRouteState = "connected" | "no-permission" | "not-connected";
 
 /** Sub-pages that are separate tools, not part of the connected screen above them (platform tools under /settings). */
-const NOT_SUB_PAGES = ["/settings/letters", "/settings/master-data", "/settings/terminology"];
+const NOT_SUB_PAGES: string[] = [];
 
 /** The connected screen a path belongs to: the screen itself or one of its sub-pages (/billing/invoices/…). */
 const connectedScreen = (path: string) => {

@@ -9,6 +9,7 @@ import { clearCareers, goLiveCareers, loadCareers } from "./careers";
 import { clearPayroll, goLivePayroll, loadPayroll } from "./payroll";
 import { clearServices, goLiveServices, loadServices } from "./services";
 import { clearAudit, goLiveAudit, loadHrAudit } from "./audit";
+import { clearOrgConfig, goLiveOrgConfig, loadOrgConfig } from "./orgConfig";
 import { useWorkforceSync } from "./sync";
 
 // Mounted once in the live shell. Each Workforce domain fills its stores from the organization's
@@ -32,8 +33,10 @@ const DOMAINS: Domain[] = [
   { permissions: ["hr.read", "workforce.self"], goLive: goLiveServices, load: loadServices, clear: clearServices },
   // The HR audit trail for HR; the browser's own audit log is off for everyone (the server keeps it).
   { permissions: ["hr.read"], goLive: goLiveAudit, load: loadHrAudit, clear: clearAudit },
+  // Master data, terminology and letter templates: every member reads them (the server checks changes).
+  { permissions: ["*"], goLive: goLiveOrgConfig, load: loadOrgConfig, clear: clearOrgConfig },
 ];
-const holds = (permissions: readonly string[], wanted: string[]) => wanted.some((p) => permissions.includes(p));
+const holds = (permissions: readonly string[], wanted: string[]) => wanted.some((p) => p === "*" || permissions.includes(p));
 
 export function LiveWorkforceSync() {
   const permissions = useLiveEmr((s) => s.access?.permissions);

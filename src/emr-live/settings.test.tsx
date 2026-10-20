@@ -36,7 +36,8 @@ describe("live settings", () => {
     expect(liveRouteState("/settings", ["catalog.manage"])).toBe("connected");
     expect(liveRouteState("/settings/workflows", ["catalog.manage"])).toBe("no-permission"); // the Workflow Builder needs workflow.manage
     expect(liveRouteState("/settings/workflows", ["workflow.manage"])).toBe("connected");
-    expect(liveRouteState("/settings/letters", ["catalog.manage"])).toBe("not-connected");
+    expect(liveRouteState("/settings/letters", ["catalog.manage"])).toBe("no-permission"); // letter templates are HR's
+    expect(liveRouteState("/settings/master-data", ["catalog.manage"])).toBe("connected"); // EMR lists
   });
 
   it("lists and edits the hospital's formulary", async () => {
