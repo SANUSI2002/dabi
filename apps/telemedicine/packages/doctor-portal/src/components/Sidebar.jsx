@@ -21,6 +21,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   History,
+  Sparkles,
 } from "lucide-react";
 import "./Sidebar.css";
 import logo from '../../../patient-portal/src/assets/logo.jpeg';
@@ -28,6 +29,7 @@ import {getCurrentDoctor} from '../store/doctorSession';
 
 /* ─── Navigation items ───────────────────────────────────────── */
 const NAV_ITEMS = [
+  { to: "/sabi-ai", label: "Sabi AI", icon: Sparkles },
   { to: "/dashboard",          label: "Dashboard",          icon: LayoutGrid    },
   { to: "/calendar",           label: "Calendar",           icon: Calendar      },
   { to: "/availability",       label: "Manage Availability", icon: CalendarCheck },
@@ -54,7 +56,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
   const careLink = { to: '/care-workspace', label: professional?.capabilities?.nutrition ? 'Dietician Table' : professional?.professionType === 'COUNSELLOR' ? 'Counselling care' : professional?.professionType === 'PSYCHOLOGIST' ? 'Psychology care' : 'Care plans', icon: ClipboardEdit };
   const pick = (paths) => paths.map((to) => NAV_ITEMS.find((item) => item.to === to));
   const groups = professional?.isDemo ? [{ label: 'Your practice', items: NAV_ITEMS }] : [
-    { label: 'Your day', items: pick(['/dashboard', '/appointments', '/consultations', '/notifications']) },
+    { label: 'Your day', items: pick(['/dashboard', '/appointments', '/consultations', '/notifications', '/sabi-ai']) },
     { label: 'Schedule', items: pick(['/calendar', '/availability']) },
     { label: 'Patients & care', items: doctor ? pick(['/patients', '/prescriptions', '/reports']) : [careLink] },
     ...(doctor ? [{ label: 'Practice', items: pick(['/messages', '/hospital-workspace', '/earnings', '/reviews']) }] : []),

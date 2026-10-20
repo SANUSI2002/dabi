@@ -150,6 +150,7 @@ export function useLiveConsultation(activeQueueId: string | null, enabled: boole
   const [wards, setWards] = useState<ApiWard[]>([]);
   const encounterRef = useRef<ApiEncounter | null>(null);
   const noteRef = useRef<ApiNote | null>(null);
+  const [noteState, setNoteState] = useState<{ encounterId: string; note: ApiNote | null } | null>(null);
   const saved = useRef<Saved | null>(null);
   const draftListener = useRef(onDraftLoaded);
   useEffect(() => { draftListener.current = onDraftLoaded; });
@@ -175,6 +176,7 @@ export function useLiveConsultation(activeQueueId: string | null, enabled: boole
         // Only the author may continue a draft, so reopen the signed-in clinician's own.
         const note = notes.data.items.find((item) => item.kind === "CONSULTATION" && item.status === "DRAFT" && item.authorUserId === userId) ?? null;
         noteRef.current = note;
+        setNoteState({ encounterId, note });
         if (note || encounter.data.visitType || encounter.data.nhmisIndicators.length) {
           draftListener.current({
             subjective: note?.subjective ?? "", objective: note?.objective ?? "", assessment: note?.assessment ?? "", plan: note?.plan ?? "",
@@ -258,6 +260,7 @@ export function useLiveConsultation(activeQueueId: string | null, enabled: boole
     noteRef.current = note
       ? (await emrRequest<{ data: ApiNote }>(`/encounters/${encounter.id}/notes/${note.id}`, { method: "PATCH", version: note.version, body: content })).data
       : (await emrRequest<{ data: ApiNote }>(`/encounters/${encounter.id}/notes`, { method: "POST", body: { kind: "CONSULTATION", ...content } })).data;
+    setNoteState({ encounterId: encounter.id, note: noteRef.current });
     return noteRef.current;
   }
 
@@ -283,6 +286,7 @@ export function useLiveConsultation(activeQueueId: string | null, enabled: boole
       await emrRequest(`/encounters/${encounter.id}/notes/${note.id}/sign`, { method: "POST", body: {}, version: note.version });
       done().noteSigned = true;
       noteRef.current = null;
+      setNoteState({ encounterId: encounter.id, note: null });
     }
 
     for (const [index, diagnosis] of input.diagnoses.entries()) {
@@ -335,6 +339,7 @@ export function useLiveConsultation(activeQueueId: string | null, enabled: boole
 
   return {
     queue, entry, vitals, allergies, loadError, labPanels, wards, userName,
+    savedNote: noteState && noteState.encounterId === encounterId ? noteState.note : null,
     saveDraft, sign, admit,
     vitalReadings: vitals.map((set): VitalReading => ({
       at: set.takenAt, by: set.takenBy, bp: set.bp, temp: set.temp, pulse: set.pulse, resp: set.resp, spo2: set.spo2, glucose: set.glucose, painScore: set.painScore,

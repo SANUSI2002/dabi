@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, Route, Routes, useBlocker, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { CalendarDays, CalendarCheck, ClipboardList, Clock, FileText, RefreshCw, ShieldCheck, Stethoscope, Users, Video } from "lucide-react";
 import PortalLayout from "../components/PortalLayout";
+const SabiAiPage = React.lazy(() => import('../pages/ai/SabiAiPage'));
 import { getCurrentDoctor, signOutDoctor } from "../store/doctorSession";
 import { IDENTITY_UI_URL } from "../services/runtime";
 import * as api from "./doctorApi";
@@ -369,6 +370,7 @@ export default function LiveDoctorWorkspace() {
   const professional=getCurrentDoctor();
   const clinical=professional?.isDemo || professional?.professionType==='DOCTOR';
   return <Routes>
+    <Route path="/sabi-ai" element={<React.Suspense fallback={<LoadingState />}><SabiAiPage /></React.Suspense>} />
     <Route path="/" element={<Navigate to="/dashboard" replace />} />
     <Route path="/dashboard" element={<Dashboard />} />
     <Route path="/appointments" element={<Appointments />} />

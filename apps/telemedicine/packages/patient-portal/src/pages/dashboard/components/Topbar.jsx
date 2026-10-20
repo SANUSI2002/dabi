@@ -25,7 +25,7 @@ export function Topbar({
   const navigate = useNavigate();
   const location = useLocation();
   const pageTitles = {dashboard:"Overview",appointments:"Appointments",vitals:"My vitals",records:"Health records",prescriptions:"Prescriptions",wallet:"Sabi Wallet",profile:"My profile",family:"Family care","wellness-hub":"Wellness Hub","care-plans":"My care plans","pharmacy-market":"Pharmacy marketplace",hospitals:"Hospitals",insurance:"Insurance"};
-  const pageTitle = pageTitles[location.pathname.split("/")[1]] || "Your care space";
+  const pageTitle = location.pathname.split("/")[1] === "sabi-ai" ? "Sabi AI" : pageTitles[location.pathname.split("/")[1]] || "Your care space";
 
   // Close dropdown when clicking outside of it
   useEffect(() => {

@@ -27,6 +27,7 @@ import {
   LogOut,
   Salad,
   BellRing,
+  Sparkles,
 } from "lucide-react";
 
 // Placeholder content for the patient dashboard.
@@ -38,6 +39,7 @@ import {
 export const NAV_GROUPS = [
   { label: "Your care", items: [
     { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, to: "/dashboard" },
+    { key: "sabi-ai", label: "Sabi AI", icon: Sparkles, to: "/sabi-ai" },
     { key: "appointments", label: "Appointments", icon: Calendar, to: "/appointments" },
     { key: "doctors", label: "Doctors", icon: Stethoscope, to: "/doctor" },
     { key: "wellness-hub", label: "Wellness Hub", icon: HeartHandshake, to: "/wellness-hub" },

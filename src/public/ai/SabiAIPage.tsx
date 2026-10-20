@@ -16,8 +16,8 @@ import teamNutrition from "@/assets/landing/team-nutrition.webp";
 import teamFamily from "@/assets/landing/team-family.webp";
 import ctaWellness from "@/assets/landing/cta-wellness.webp";
 
-// Sabi AI — AI built for healthcare. Not open yet: every call to action is "Join the waitlist",
-// and every conversation on the page is a labelled, scripted sample with fictional details.
+// Marketing examples are labelled fictional samples. The separate authenticated
+// workspace uses the live API; server capability/availability is never simulated here.
 
 const PAPER = "bg-[#f7f4ee]";
 const INK = "text-[#0b2b20]";
@@ -89,7 +89,7 @@ function SubNav() {
         {SUBNAV.map(([label, href]) => <a key={href} href={href} className="shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium text-[#3d5a4d] transition hover:bg-[#0b2b20]/[0.05] hover:text-[#0b2b20]">{label}</a>)}
       </div>
       <div className="hidden shrink-0 items-center gap-2 sm:flex">
-        <Link to="/access" className="rounded-full px-3 py-1.5 text-[13px] font-semibold text-[#3d5a4d] hover:text-[#0b2b20]">Sign in</Link>
+        <Link to="/ai/workspace" className="rounded-full px-3 py-1.5 text-[13px] font-semibold text-[#3d5a4d] hover:text-[#0b2b20]">Open workspace</Link>
         <a href={WAITLIST} className="rounded-full bg-[#0b2b20] px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-[#123d2e]">Join the waitlist</a>
       </div>
     </div>
@@ -107,7 +107,8 @@ function Hero() {
         <h1 id="ai-hero-heading" className="text-balance font-display text-[clamp(2.9rem,7vw,5.6rem)] font-semibold leading-[0.98] tracking-[-0.055em]">Made for the way you care.</h1>
         <p className={cn("mt-7 max-w-[540px] text-[17px] leading-[1.75] sm:text-lg", SOFT)}>Explore medical knowledge, make sense of complex reports, and work through healthcare questions with Sabi — your AI companion for clearer understanding and more informed care.</p>
         <div className="mt-9 flex flex-wrap items-center gap-3">
-          <Pill href={WAITLIST}>Join the waitlist</Pill>
+          <Pill to="/ai/workspace">Open Sabi AI</Pill>
+          <Pill href={WAITLIST} variant="outline">Get product updates</Pill>
           <Pill href="#professionals" variant="outline">Explore Sabi</Pill>
         </div>
         <p className={cn("mt-6 text-sm", SOFT)}>For healthcare professionals first — and for patients and caregivers who want to understand their health.</p>
