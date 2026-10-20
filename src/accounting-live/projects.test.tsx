@@ -59,11 +59,11 @@ describe("live projects and notifications", () => {
     render(<MemoryRouter><Projects /></MemoryRouter>);
   });
 
-  it("alerts only on approvals the server says are mine, and never on the demo's stock", async () => {
+  it("alerts only on approvals the server says are mine", async () => {
     await ready();
     const alerts = useNotifications.getState().alerts();
     expect(alerts.filter((a) => a.key === "approvalPending").map((a) => a.id)).toEqual(["ap-b1"]);
-    expect(alerts.some((a) => a.key === "lowStock")).toBe(false);
+    expect(alerts.some((a) => a.key === "lowStock")).toBe(false); // the hospital's stores are empty here
     render(<MemoryRouter><Notifications /></MemoryRouter>);
   });
 

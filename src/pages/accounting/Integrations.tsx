@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { RefreshCw, Plug, Stethoscope, Users, Pill, CheckCircle2, AlertTriangle } from "lucide-react";
+import { RefreshCw, Plug, Stethoscope, Users, Pill, Package, CheckCircle2, AlertTriangle } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard, Card } from "@/components/ui/primitives";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Checkbox } from "@/components/ui/form";
@@ -7,17 +7,18 @@ import { timeAgo } from "@/lib/format";
 import { useIntegrations } from "@/store/useIntegrations";
 
 export default function Integrations() {
-  const { autoSync, lastSyncAt, results, setAutoSync, pendingCounts, syncAll, syncEmrBilling, syncPayroll, syncPharmacy } = useIntegrations();
+  const { autoSync, lastSyncAt, results, setAutoSync, pendingCounts, syncAll, syncEmrBilling, syncPayroll, syncPharmacy, syncStores } = useIntegrations();
   const [busy, setBusy] = useState(false);
   const pending = pendingCounts();
 
   const run = (fn: () => void) => { setBusy(true); fn(); setTimeout(() => setBusy(false), 250); };
-  const totalPending = pending.emrBilling + pending.payrollAccrual + pending.payrollSettlement + pending.pharmacy;
+  const totalPending = pending.emrBilling + pending.payrollAccrual + pending.payrollSettlement + pending.pharmacy + (pending.stores ?? 0);
 
   const connectors = [
     { name: "EMR — Patient Billing", icon: Stethoscope, desc: "Patient invoices → Accounts Receivable, revenue by service, receipts on payment", pending: pending.emrBilling, run: () => run(syncEmrBilling) },
     { name: "Workforce — Payroll", icon: Users, desc: "Confirmed payroll batches → salary expense, statutory payables, net-pay settlement", pending: pending.payrollAccrual + pending.payrollSettlement, run: () => run(syncPayroll) },
     { name: "EMR — Pharmacy", icon: Pill, desc: "Dispensed drugs → cost of goods sold, inventory relieved at FIFO / average cost", pending: pending.pharmacy, run: () => run(syncPharmacy) },
+    { name: "Inventory — Stores", icon: Package, desc: "Store issues, write-offs and count adjustments → inventory and cost of sales at batch cost (purchases arrive through their bills)", pending: pending.stores ?? 0, run: () => run(syncStores) },
   ];
 
   return (

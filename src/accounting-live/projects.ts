@@ -13,8 +13,8 @@ import { loadLedger } from "./ledger";
 // Projects and accounting notifications in live mode (GET /projects). Projects and time entries are the
 // organization's; billing time is an invoice (receivables marks the time invoiced on the server). The
 // alert feed is still derived from the live books, with two differences: "waiting for my approval" is
-// whatever the server says is yours to decide, and low-stock alerts are left out until inventory
-// accounting is connected (the demo stock is not the hospital's). Preferences are saved per user.
+// whatever the server says is yours to decide (low stock reads the hospital's stores, loaded with the
+// inventory). Preferences are saved per user.
 
 type Versioned = { version?: number };
 type ApiProjects = { projects: (Project & Versioned)[]; timeEntries: TimeEntry[]; notificationPrefs: Record<NotificationKey, boolean> | null };
@@ -41,7 +41,7 @@ const defined = (o: Record<string, unknown>) => Object.fromEntries(Object.entrie
 function liveAlerts(): Alert[] {
   const prefs = useNotifications.getState().prefsFor(useIdentity.getState().user.id);
   const mine = useAcctControl.getState().canDecide;
-  const out = demoAlerts().filter((a) => a.key !== "approvalPending" && a.key !== "lowStock");
+  const out = demoAlerts().filter((a) => a.key !== "approvalPending");
   if (prefs.approvalPending) {
     const ap = useAP.getState();
     for (const b of ap.bills.filter((x) => x.status === "Pending Approval" && mine(x.approval))) out.unshift({ id: `ap-${b.id}`, key: "approvalPending", severity: "urgent", title: `Bill ${b.number} needs your approval`, detail: ap.vendorById(b.vendorId)?.name ?? "", href: "/accounting/approvals" });

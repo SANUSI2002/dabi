@@ -7,15 +7,16 @@ import { loadLedger } from "./ledger";
 import { loadReceivables } from "./receivables";
 
 // Integrations in live mode (GET /integrations, POST /integrations/sync): the server reads the
-// organization's own EMR invoices and payments, payslips and pharmacy dispenses and posts each one to the
+// organization's own EMR invoices and payments, payslips, pharmacy dispenses and store movements and posts each one to the
 // books exactly once, so the screen shows what is still waiting and a sync can be run any number of times.
 // Auto-sync (the screen's checkbox) runs that sync when the books load.
 
-type Pending = { emrBilling: number; payrollAccrual: number; payrollSettlement: number; pharmacy: number };
+type Pending = { emrBilling: number; payrollAccrual: number; payrollSettlement: number; pharmacy: number; stores: number };
 type ApiStatus = { pending: Pending; lastSyncAt: string | null };
-type Module = "EMR Billing" | "Payroll" | "Pharmacy";
+type Module = "EMR Billing" | "Payroll" | "Pharmacy" | "Stores";
 
-const NONE: Pending = { emrBilling: 0, payrollAccrual: 0, payrollSettlement: 0, pharmacy: 0 };
+const ALL: Module[] = ["EMR Billing", "Payroll", "Pharmacy", "Stores"];
+const NONE: Pending = { emrBilling: 0, payrollAccrual: 0, payrollSettlement: 0, pharmacy: 0, stores: 0 };
 export const useLiveIntegrationsMeta = create<{ loaded: boolean; pending: Pending }>(() => ({ loaded: false, pending: NONE }));
 
 const adopt = (data: ApiStatus) => {
@@ -34,7 +35,7 @@ export async function loadIntegrations() {
   const waiting = Object.values(data.pending ?? NONE).some((n) => n > 0);
   if (waiting && useIntegrations.getState().autoSync && mayPost() && Date.now() - autoRanAt > AUTO_EVERY_MS) {
     autoRanAt = Date.now();
-    run(["EMR Billing", "Payroll", "Pharmacy"]);
+    run(ALL);
   }
 }
 
@@ -56,7 +57,8 @@ export function goLiveIntegrations() {
     syncEmrBilling: () => run(["EMR Billing"])[0],
     syncPayroll: () => run(["Payroll"])[0],
     syncPharmacy: () => run(["Pharmacy"])[0],
-    syncAll: () => run(["EMR Billing", "Payroll", "Pharmacy"]),
+    syncStores: () => run(["Stores"])[0],
+    syncAll: () => run(ALL),
   });
 }
 

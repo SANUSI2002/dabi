@@ -13,8 +13,8 @@ import { LiveWorkforceSync } from "@/workforce-live/LiveWorkforceSync";
 import { useWorkforceSync } from "@/workforce-live/sync";
 import { useLiveIntegrationsMeta } from "./integrations";
 
-const status = { pending: { emrBilling: 3, payrollAccrual: 1, payrollSettlement: 0, pharmacy: 2 }, lastSyncAt: null };
-const synced = { pending: { emrBilling: 0, payrollAccrual: 0, payrollSettlement: 0, pharmacy: 1 }, lastSyncAt: "2026-10-20T12:00:00.000Z",
+const status = { pending: { emrBilling: 3, payrollAccrual: 1, payrollSettlement: 0, pharmacy: 2, stores: 4 }, lastSyncAt: null };
+const synced = { pending: { emrBilling: 0, payrollAccrual: 0, payrollSettlement: 0, pharmacy: 1, stores: 0 }, lastSyncAt: "2026-10-20T12:00:00.000Z",
   results: [{ module: "EMR Billing", created: 3, skipped: 0, errors: [] }, { module: "Payroll", created: 1, skipped: 0, errors: [] }, { module: "Pharmacy", created: 1, skipped: 1, errors: ["Batch B-9 has no unit cost recorded; its dispense was not costed"] }] };
 
 const signIn = (permissions: string[]) => useLiveEmr.setState({
@@ -40,8 +40,9 @@ describe("live integrations", () => {
     await waitFor(() => expect(useLiveIntegrationsMeta.getState().loaded).toBe(true));
     render(<MemoryRouter><Integrations /></MemoryRouter>);
     expect(screen.getByText("3 pending")).toBeInTheDocument();
+    expect(screen.getByText("4 pending")).toBeInTheDocument(); // the stores connector
     fireEvent.click(screen.getByText("Sync now"));
-    await waitFor(() => expect(syncs()).toEqual([{ modules: ["EMR Billing", "Payroll", "Pharmacy"] }]));
+    await waitFor(() => expect(syncs()).toEqual([{ modules: ["EMR Billing", "Payroll", "Pharmacy", "Stores"] }]));
     expect(await screen.findByText(/has no unit cost recorded/)).toBeInTheDocument();
   });
 
@@ -54,6 +55,6 @@ describe("live integrations", () => {
     viewer.unmount();
     signIn(["acct.view", "acct.post"]);
     render(<LiveWorkforceSync />);
-    await waitFor(() => expect(syncs()).toEqual([{ modules: ["EMR Billing", "Payroll", "Pharmacy"] }]));
+    await waitFor(() => expect(syncs()).toEqual([{ modules: ["EMR Billing", "Payroll", "Pharmacy", "Stores"] }]));
   });
 });
