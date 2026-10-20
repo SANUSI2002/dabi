@@ -197,6 +197,10 @@ const TelemedicineProductPage = lazy(() => import("@/public/pages/ProductPages")
 const AIPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.AIPage })));
 const SabiAIPage = lazy(() => import("@/public/ai/SabiAIPage"));
 const AiEntry = lazy(() => import("@/ai/AiEntry"));
+const AiLogin = lazy(() => import("@/ai/AiAuth").then(m=>({default:m.AiLogin})));
+const AiSignup = lazy(() => import("@/ai/AiAuth").then(m=>({default:m.AiSignup})));
+const AiAccount = lazy(() => import("@/ai/AiAuth").then(m=>({default:m.AiAccountPage})));
+const AiVerifyEmail = lazy(() => import("@/ai/AiAuth").then(m=>({default:m.AiVerifyEmail})));
 const SecurityPage = lazy(() => import("@/public/pages/ProductPages").then((m) => ({ default: m.SecurityPage })));
 const AboutPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.AboutPage })));
 const PricingPage = lazy(() => import("@/public/pages/ProductPages").then((m) => ({ default: m.PricingPage })));
@@ -251,7 +255,8 @@ function PharmacyPortalGate() {
 export default function App() {
   const loc = useLocation();
   const surface = deploymentSurface(import.meta.env.VITE_DEPLOYMENT_SURFACE);
-  const crossSurfaceUrl = otherSurfaceUrl(loc.pathname, loc.search, surface, {
+  const standaloneAiHost = window.location.hostname === 'ai.sabihealth.org';
+  const crossSurfaceUrl = standaloneAiHost && ['/', '/login', '/signup'].includes(loc.pathname) ? null : otherSurfaceUrl(loc.pathname, loc.search, surface, {
     health: import.meta.env.VITE_SABI_HEALTH_URL,
     emr: import.meta.env.VITE_SABI_EMR_URL,
     pharmacy: import.meta.env.VITE_SABI_PHARMACY_URL,
@@ -271,8 +276,13 @@ export default function App() {
     <Suspense fallback={<AppLoadingScreen pathname={loc.pathname} />}>
       <Routes location={loc}>
         <Route path="/ai/workspace" element={<AiEntry />} />
+        <Route path="/ai/login" element={<AiLogin />} />
+        <Route path="/ai/signup" element={<AiSignup />} />
+        <Route path="/ai/account" element={<AiAccount />} />
+        <Route path="/ai/verify-email/:uid" element={<AiVerifyEmail />} />
+        <Route path="/signup" element={standaloneAiHost ? <Navigate to="/ai/signup" replace/> : <Navigate to="/register" replace/>}/>
         <Route element={<PublicShell />}>
-          <Route index element={<HomePage />} />
+          <Route index element={standaloneAiHost ? <Navigate to="/ai/workspace" replace/> : <HomePage />} />
           <Route path="products/emr" element={<EmrProductPage />} />
           <Route path="products/telemedicine" element={<TelemedicineProductPage />} />
           <Route path="products/sabi-os" element={<Navigate to="/products/emr" replace />} />
@@ -290,7 +300,7 @@ export default function App() {
           <Route path="register" element={<RegisterEntryPage />} />
           <Route path="book-demo" element={<BookDemoPage />} />
         </Route>
-        <Route path="/login" element={surface === "health" ? <AccessPage /> : <SignInPage intent={surface === "emr" ? "emr" : surface === "command-center" ? "platform" : "shared"} />} />
+        <Route path="/login" element={standaloneAiHost ? <AiLogin/> : surface === "health" ? <AccessPage /> : <SignInPage intent={surface === "emr" ? "emr" : surface === "command-center" ? "platform" : "shared"} />} />
         <Route path="/identity/account" element={<LiveIdentityPage />} />
         <Route path="/emr/workspace/:organizationId" element={apiConfigured ? <LiveEmrWorkspace /> : <Navigate to="/login" replace />} />
         <Route path="/emr/workspace/:organizationId/patients" element={apiConfigured ? <LiveEmrPatientsPage /> : <Navigate to="/login" replace />} />

@@ -5,3 +5,4 @@
 .sabi-ai-budget>div{display:flex;flex-wrap:wrap;gap:4px 14px}.sabi-ai-budget button{display:inline-flex;align-items:center;gap:6px}.sabi-ai-budget button:disabled{opacity:.6;cursor:wait}
 @media(max-width:650px){.sabi-ai-budget{padding-inline:16px}}
 @media(max-width:1000px) and (max-height:720px){.sabi-ai-workspace{height:auto;min-height:720px}.sabi-ai-feed{min-height:240px;max-height:60dvh;flex:1 0 240px}}
+.sabi-ai-book-reference{display:block;max-width:100%;padding:12px 14px;border:1px solid #c9d8ca;border-radius:12px;background:#f4f7ef;color:#254c3d;font-size:13px;line-height:1.65;overflow-wrap:anywhere}.sabi-ai-book-reference small{display:block;font-size:12px;color:#52675e}

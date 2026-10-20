@@ -54,6 +54,8 @@ export const COMMAND_NAV: CommandNavGroup[] = [
     { to: "/command-center/sabi-health/credentials", label: "Credentials & expiry", icon: IdCard, permission: "platform.view", live: ["platform.ops.read", "platform.providers.manage"], badge: ["licencesExpiring"] },
   ] },
   { title: "Operations", product: "all", items: [
+    { to: '/command-center/ai/knowledge', label: 'AI Knowledge Base', icon: DatabaseZap, permission: 'platform.view', live: ['platform.settings.manage'] },
+    { to: '/command-center/ai/accounts', label: 'AI accounts & access', icon: Sparkles, permission: 'platform.view', live: ['platform.settings.manage'] },
     { to: '/command-center/ai', label: 'AI operations', icon: Sparkles, permission: 'platform.view', live: ['platform.ops.read', 'platform.settings.manage'] },
     { to: "/command-center/cases", label: "Support cases", icon: LifeBuoy, permission: "platform.view", live: ["platform.support.manage", "platform.ops.read"], badge: ["supportOpen"] },
     { to: "/command-center/incidents", label: "Incidents", icon: Activity, permission: "platform.view", live: ["platform.support.manage", "platform.ops.read"], badge: ["incidentsOpen"] },
