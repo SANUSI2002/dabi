@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import AiWorkspace from '../../../../shared-portal/ai/AiWorkspace.jsx';
 import { authorizedRequest, getCurrentUser } from '../../utils/sabiIdentity';
 import { uploadDocument } from '../../api/recordsApi';
@@ -14,6 +15,10 @@ export default function SabiAiPage() {
     <Sidebar />
     <div className="sabi-main">
       <Topbar />
+      {user?.emailVerifiedAt === null && user?.roles?.includes('PATIENT') && <aside className="sabi-patient-ai-verification" aria-label="Email verification">
+        <p><strong>Confirm your email to use Sabi AI.</strong> Your account is signed in, but your email address has not been verified yet.</p>
+        <Link to="/verify-email" state={{ email: user.email }}>Request a verification link</Link>
+      </aside>}
       <div className="sabi-patient-ai-frame">
         <AiWorkspace key={user?.id || 'signed-out'} request={authorizedRequest} uploadDocument={upload}
           accountName={user?.fullName || user?.email || 'Your Sabi account'}
