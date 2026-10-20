@@ -4,6 +4,7 @@ import { useLiveEmr } from "@/emr-live/session";
 import { clearPeople, goLivePeople, loadPeople } from "./people";
 import { clearTime, goLiveTime, loadDirectory, loadTime } from "./time";
 import { clearWorkflows, goLiveWorkflows, loadWorkflows } from "./workflows";
+import { clearHiring, goLiveHiring, loadHiring } from "./hiring";
 import { useWorkforceSync } from "./sync";
 
 // Mounted once in the live shell. Each Workforce domain fills its stores from the organization's
@@ -17,6 +18,8 @@ const DOMAINS: Domain[] = [
   { permissions: ["workforce.self", "workforce.approve", "workforce.manage"], goLive: goLiveTime, load: loadTime, clear: clearTime },
   // Approval workflows: the Builder (workflow.manage) and everyone's Approvals inbox.
   { permissions: ["workforce.self", "workflow.manage"], goLive: goLiveWorkflows, load: loadWorkflows, clear: clearWorkflows },
+  // Hiring and exits for HR; vacancy requests for department heads.
+  { permissions: ["hr.read", "workforce.self"], goLive: goLiveHiring, load: loadHiring, clear: clearHiring },
 ];
 const holds = (permissions: readonly string[], wanted: string[]) => wanted.some((p) => permissions.includes(p));
 

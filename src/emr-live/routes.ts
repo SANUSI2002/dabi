@@ -48,6 +48,12 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   "/hr/departments": "hr.read",
   "/hr/org-chart": "hr.read",
   "/hris": "hr.read",
+  // Hiring and exits; department heads raise vacancy requests
+  "/hr/recruitment": "hr.read",
+  "/hr/talent-pool": "hr.read",
+  "/hr/onboarding": "hr.read",
+  "/hr/offboarding": "hr.read",
+  "/hr/vacancies": ["workforce.self", "hr.read"],
   // Workforce (time & attendance, leave, work)
   "/workforce": ["workforce.self", "workforce.approve", "workforce.manage"],
   // Approval workflows: everyone's inbox, and the Builder for workflow designers

@@ -3,7 +3,8 @@ import { useWorkforce } from "@/store/useWorkforce";
 import { useHr } from "@/store/useHr";
 import { workforceRequest } from "@/emr-live/client";
 import type { AttendanceInterval, Timesheet, TimesheetPeriod, TimePolicy, WeeklySchedule } from "@/data/workforce";
-import { clean, isoDay, liveChange, uuid } from "./sync";
+import { adoptLiveIdentity, clean, isoDay, liveChange, uuid } from "./sync";
+import { useOrg } from "@/store/useOrg";
 
 // Time & attendance, leave and work in live mode (GET /time): fills useWorkforce from the Workforce API
 // (scoped by the server to what the signed-in person may see) and makes its actions write to it.
@@ -30,6 +31,7 @@ const noNull = <T extends object>(row: T) => Object.fromEntries(Object.entries(r
 export async function loadTime() {
   const { data } = await workforceRequest<{ data: ApiTime }>("/time");
   useLiveTimeMeta.setState({ loaded: true, selfEmployeeId: data.selfEmployeeId, reportIds: data.reportIds, seesEveryone: data.seesEveryone, currentPeriodId: data.currentPeriodId, settingsVersion: data.settings.version });
+  adoptLiveIdentity(data.selfEmployeeId, data.reportIds);
   useWorkforce.setState({
     timeBlocks: data.timeBlocks, schedules: data.schedules, assignments: data.assignments, attendance: data.attendance.map((a) => noNull(a)), periods: data.periods.map((p) => noNull(p)),
     timesheets: data.timesheets.map((t) => noNull(t)), policies: data.policies, capabilities: data.settings.capabilities, breakRules: data.settings.breakRules,
@@ -41,7 +43,16 @@ export async function loadTime() {
 
 /** Colleagues' names and roles for people without HR access (rosters, schedules, approvals). */
 export async function loadDirectory() {
-  const { data } = await workforceRequest<{ data: { employees: { id: string; name: string; role: string; cadre: string; status: string; hireDate: string }[] } }>("/people/directory");
+  const { data } = await workforceRequest<{ data: {
+    employees: { id: string; name: string; role: string; cadre: string; status: string; hireDate: string }[];
+    departments?: { id: string; name: string; code: string; status: string; hodEmployeeId: string | null; deputyHodEmployeeId: string | null }[];
+    jobPositions?: { id: string; name: string; departmentId: string }[];
+  } }>("/people/directory");
+  // Department names and heads (for vacancy requests and rosters) — no people records beyond names.
+  useOrg.setState({
+    departments: (data.departments ?? []).map((d) => ({ id: d.id, name: d.name, code: d.code, companyIds: [], status: d.status as "Active", hodId: d.hodEmployeeId ?? undefined, deputyHodId: d.deputyHodEmployeeId ?? undefined, staffIds: [], createdAt: "" })),
+    jobPositions: data.jobPositions ?? [],
+  });
   useHr.setState({ staff: data.employees.map((e) => ({ id: e.id, name: e.name, role: e.role, cadre: e.cadre, hireDate: e.hireDate, status: e.status === "ACTIVE" ? "Active" : "Inactive", username: e.name.toLowerCase().replace(/[^a-z ]/g, "").trim().split(/\s+/).slice(-2).join(".") })) });
 }
 

@@ -3,7 +3,7 @@ import { useWorkflow } from "@/platform/workflow/useWorkflow";
 import { nodeById } from "@/platform/workflow/engine";
 import type { ActiveNode, WorkflowDef, WorkflowInstance, WorkflowNode } from "@/platform/workflow/model";
 import { workforceRequest } from "@/emr-live/client";
-import { liveChange, useWorkforceSync, uuid } from "./sync";
+import { adoptLiveIdentity, liveChange, useWorkforceSync, uuid } from "./sync";
 
 // Approval workflows in live mode (GET /workflows): the Workflow Builder edits the organization's own
 // definitions and the Approvals inbox decides real requests. Who may decide a step is worked out by
@@ -25,9 +25,13 @@ export async function loadWorkflows() {
   const { data } = await workforceRequest<{ data: ApiWorkflows }>("/workflows");
   useLiveWorkflowMeta.setState({ loaded: true, inbox: data.inbox, connectedTriggers: data.connectedTriggers, graphs: Object.fromEntries(data.instances.map((i) => [i.id, i.graph])) });
   useWorkflow.setState({ defs: data.defs, instances: data.instances });
+  adoptLiveIdentity(data.selfEmployeeId);
 }
 
-const reload = () => loadWorkflows();
+// Screens whose records a decision changes (a vacancy's status) reload with the workflows.
+const followers = new Set<() => Promise<void>>();
+export const followWorkflows = (load: () => Promise<void>) => { followers.add(load); };
+const reload = async () => { await Promise.all([loadWorkflows(), ...[...followers].map((load) => load())]); };
 const post = (path: string, body: unknown, version?: number) => workforceRequest(path, { method: "POST", body, ...(version !== undefined ? { version } : {}) });
 /** The graph an instance runs on: the snapshot it started with. */
 const graphOf = (inst: WorkflowInstance): Graph | undefined => useLiveWorkflowMeta.getState().graphs[inst.id] ?? useWorkflow.getState().defById(inst.defId);
