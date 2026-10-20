@@ -28,6 +28,7 @@ import { useIsLiveEmr } from "@/emr-live/session";
 import { useLiveConsultation, useLiveWardBeds, type LiveDraft } from "@/emr-live/consultation";
 import { describeEmrError } from "@/emr-live/client";
 import type { LiveQueueEntry } from "@/emr-live/mappers";
+import { JevNoteReview } from "@/components/clinical/JevNoteReview";
 
 const SEX_LABEL: Record<Sex, string> = { M: "Male", F: "Female", Other: "Other", Unknown: "Unknown" };
 
@@ -716,6 +717,15 @@ export default function Consultation() {
             {actionError && (
               <p role="alert" className="rounded-xl bg-action-50 px-4 py-3 text-sm font-medium text-action-800 ring-1 ring-action-200">{actionError}</p>
             )}
+
+            {live && entry?.encounterId && liveRoom.savedNote && <JevNoteReview
+              encounterId={entry.encounterId} noteId={liveRoom.savedNote.id} noteVersion={liveRoom.savedNote.version}
+              unsavedChanges={[
+                [soap.s, liveRoom.savedNote.subjective], [soap.o, liveRoom.savedNote.objective],
+                [soap.a, liveRoom.savedNote.assessment], [soap.p, liveRoom.savedNote.plan],
+                [followUp, liveRoom.savedNote.followUp], [instructions, liveRoom.savedNote.patientInstructions],
+              ].some(([draft, saved]) => (draft ?? "").trim() !== (saved ?? "").trim())}
+            />}
 
             {/* actions */}
             <div className="sticky bottom-3 z-20 flex flex-wrap items-center gap-3 rounded-2xl border border-mist-200 bg-white/95 p-3 shadow-pop backdrop-blur">
