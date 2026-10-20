@@ -1,4 +1,4 @@
-import { Activity, ShieldPlus } from "lucide-react";
+import { Activity, ShieldPlus, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { routeLabel } from "./loadingRoutes";
 import { isRiderPath, RiderRouteLoader } from "@/rider/RiderLoading";
@@ -28,6 +28,7 @@ function BrandLoader({ compact = false }: { compact?: boolean }) {
 }
 
 export function AppLoadingScreen({ pathname }: { pathname: string }) {
+  if(pathname==='/ai'||pathname.startsWith('/ai/'))return <main role="status" aria-label="Opening Sabi AI" className="grid min-h-dvh place-content-center gap-5 bg-[#f8f8f2] px-6 text-center text-[#173e32]"><Sparkles aria-hidden="true" size={36} className="mx-auto animate-pulse motion-reduce:animate-none"/><h1 className="font-display text-2xl font-semibold">Opening Sabi AI</h1><p className="text-sm text-[#566b61]">A little clarity is on its way.</p></main>;
   // Riders get a loader shaped like their own portal, not the clinical workspace screen.
   if (isRiderPath(pathname)) return <RiderRouteLoader pathname={pathname} />;
   const isEmr = !pathname.startsWith("/command-center") && !pathname.startsWith("/register") && !pathname.startsWith("/products") && pathname !== "/";

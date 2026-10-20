@@ -4,6 +4,7 @@ import { AppLoadingScreen, EmrRouteLoadingScreen } from "./AppLoadingScreen";
 import { routeLabel } from "./loadingRoutes";
 
 describe("Sabi OS loading experience", () => {
+  it('keeps standalone AI loading separate from EMR modules',()=>{render(<AppLoadingScreen pathname="/ai/login"/>);expect(screen.getByRole('status',{name:'Opening Sabi AI'})).toBeInTheDocument();expect(screen.queryByText('Secure clinical workspace')).not.toBeInTheDocument();});
   it.each([
     ["/workspace", "Workspace"],
     ["/billing/invoices/inv-1", "Billing"],
