@@ -34,7 +34,8 @@ afterEach(() => { cleanup(); useLiveEmr.setState({ status: "idle", access: null,
 describe("live settings", () => {
   it("connects Settings but leaves the platform tools under it alone", () => {
     expect(liveRouteState("/settings", ["catalog.manage"])).toBe("connected");
-    expect(liveRouteState("/settings/workflows", ["catalog.manage"])).toBe("not-connected");
+    expect(liveRouteState("/settings/workflows", ["catalog.manage"])).toBe("no-permission"); // the Workflow Builder needs workflow.manage
+    expect(liveRouteState("/settings/workflows", ["workflow.manage"])).toBe("connected");
     expect(liveRouteState("/settings/letters", ["catalog.manage"])).toBe("not-connected");
   });
 

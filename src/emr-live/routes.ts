@@ -50,12 +50,15 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   "/hris": "hr.read",
   // Workforce (time & attendance, leave, work)
   "/workforce": ["workforce.self", "workforce.approve", "workforce.manage"],
+  // Approval workflows: everyone's inbox, and the Builder for workflow designers
+  "/workflows": ["workforce.self", "workflow.manage"],
+  "/settings/workflows": "workflow.manage",
 };
 
 export type LiveRouteState = "connected" | "no-permission" | "not-connected";
 
 /** Sub-pages that are separate tools, not part of the connected screen above them (platform tools under /settings). */
-const NOT_SUB_PAGES = ["/settings/letters", "/settings/master-data", "/settings/terminology", "/settings/workflows"];
+const NOT_SUB_PAGES = ["/settings/letters", "/settings/master-data", "/settings/terminology"];
 
 /** The connected screen a path belongs to: the screen itself or one of its sub-pages (/billing/invoices/…). */
 const connectedScreen = (path: string) => {

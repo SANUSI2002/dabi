@@ -20,6 +20,8 @@ import EmployeeDirectory from "@/pages/hr/EmployeeDirectory";
 import OrgSetup from "@/pages/hr/OrgSetup";
 import OrgChart from "@/pages/hr/OrgChart";
 import Departments from "@/pages/hr/Departments";
+import WorkflowInbox from "@/pages/platform/WorkflowInbox";
+import WorkflowBuilder from "@/pages/platform/WorkflowBuilder";
 import { useLiveEmr } from "@/emr-live/session";
 import { LiveWorkforceSync } from "./LiveWorkforceSync";
 import { useLiveTimeMeta } from "./time";
@@ -47,15 +49,16 @@ const people = {
   employees: [{ id: "e1", userId: "u1", name: "Grace Nwangbo", role: "Nurse", cadre: "", phone: null, email: "grace@hospital.test", hireDate: "2024-03-01", license: null, status: "ACTIVE", companyId: HQ, tagIds: [], version: 1 }],
   documents: [], actionTypes: [], disciplinaryActions: [], notes: [], bonusPoints: [], qualifications: [], policies: [],
 };
-const SCREENS = { WorkforceDashboard, Schedules, Attendance, Timesheets, Approvals, HolidayLeave, WorkTasks, WorkforceReports, TimePolicy, Hris, EmployeeDirectory, OrgSetup, OrgChart, Departments };
+const workflows = { selfEmployeeId: "e1", canManage: true, connectedTriggers: [], defs: [], instances: [], inbox: [] };
+const SCREENS = { WorkforceDashboard, Schedules, Attendance, Timesheets, Approvals, HolidayLeave, WorkTasks, WorkforceReports, TimePolicy, Hris, EmployeeDirectory, OrgSetup, OrgChart, Departments, WorkflowInbox, WorkflowBuilder };
 
 beforeEach(() => {
   vi.stubGlobal("IntersectionObserver", class { observe() {} unobserve() {} disconnect() {} takeRecords() { return []; } });
   api.workforceRequest.mockReset();
-  api.workforceRequest.mockImplementation(async (path: string) => (path === "/time" ? { data: time } : path === "/people" ? { data: people } : { data: {} }));
+  api.workforceRequest.mockImplementation(async (path: string) => (path === "/time" ? { data: time } : path === "/people" ? { data: people } : path === "/workflows" ? { data: workflows } : { data: {} }));
   useLiveEmr.setState({
     status: "ready", error: "", user: { id: "u1", name: "HR Officer", email: "hr@hospital.test", role: "HR Officer" },
-    access: { organizationId: "11111111-1111-4111-8111-111111111111", facilityId: "f1", organizationName: "Sabi Test General Hospital", roles: ["HR_OFFICER"], permissions: ["hr.read", "hr.manage", "workforce.self", "workforce.approve", "workforce.manage", "workforce.directory"], clinicalApiConnected: true, patientRegistryEnabled: true } as never,
+    access: { organizationId: "11111111-1111-4111-8111-111111111111", facilityId: "f1", organizationName: "Sabi Test General Hospital", roles: ["HR_OFFICER"], permissions: ["hr.read", "hr.manage", "workforce.self", "workforce.approve", "workforce.manage", "workforce.directory", "workflow.manage"], clinicalApiConnected: true, patientRegistryEnabled: true } as never,
   });
 });
 afterEach(() => { cleanup(); useLiveEmr.setState({ status: "idle", access: null, user: null }); });
