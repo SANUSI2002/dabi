@@ -112,6 +112,7 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   "/accounting/reports": "acct.view",
   "/accounting/setup": "acct.view",
   "/accounting/period-end": "acct.view",
+  "/accounting/audit-trail": "acct.view",
 };
 
 export type LiveRouteState = "connected" | "no-permission" | "not-connected";
