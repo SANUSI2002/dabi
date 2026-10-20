@@ -37,6 +37,7 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   "/outreach": "outreach.read",
   "/equipment": "equipment.read",
   "/inventory": "stores.read",
+  "/settings": ["catalog.manage", "emr.formulary.manage", "lab.catalog.manage", "billing.price.manage", "membership.read"],
   "/reports": "report.view",
   "/nhmis-sync": "report.view",
   "/msf-report": "report.view",
@@ -45,8 +46,15 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
 
 export type LiveRouteState = "connected" | "no-permission" | "not-connected";
 
+/** Sub-pages that are separate tools, not part of the connected screen above them (platform tools under /settings). */
+const NOT_SUB_PAGES = ["/settings/letters", "/settings/master-data", "/settings/terminology", "/settings/workflows"];
+
 /** The connected screen a path belongs to: the screen itself or one of its sub-pages (/billing/invoices/…). */
-const connectedScreen = (path: string) => (LIVE_CONNECTED_ROUTES[path] ? path : Object.keys(LIVE_CONNECTED_ROUTES).find((screen) => path.startsWith(`${screen}/`)));
+const connectedScreen = (path: string) => {
+  if (LIVE_CONNECTED_ROUTES[path]) return path;
+  if (NOT_SUB_PAGES.some((tool) => path === tool || path.startsWith(`${tool}/`))) return undefined;
+  return Object.keys(LIVE_CONNECTED_ROUTES).find((screen) => path.startsWith(`${screen}/`));
+};
 
 export function liveRouteState(path: string, permissions: readonly string[]): LiveRouteState {
   const screen = connectedScreen(path);

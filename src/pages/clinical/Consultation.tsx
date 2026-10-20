@@ -15,7 +15,8 @@ import { useClinical } from "@/store/useClinical";
 import { useWards } from "@/store/useWards";
 import { useWardRound } from "@/store/useWardRound";
 import { DrugField } from "@/components/clinical/DrugField";
-import { DIAGNOSES, LAB_PANELS, STATIONS } from "@/data/catalog";
+import { LAB_PANELS, STATIONS } from "@/data/catalog";
+import { useDiagnosisCatalog } from "@/emr-live/catalogs";
 import { ENCOUNTER_TEMPLATES, templateByKey } from "@/data/encounterTemplates";
 import { icd11Concept } from "@/data/clinicalCoding";
 import { useHr } from "@/store/useHr";
@@ -190,9 +191,11 @@ export default function Consultation() {
     });
   }
 
+  // A live hospital searches its own diagnosis list (Settings → Diagnoses).
+  const diagnosisCatalog = useDiagnosisCatalog();
   const diagnosisMatches = useMemo(
-    () => (diagnosisQuery ? DIAGNOSES.filter((entry) => `${entry.code} ${entry.name}`.toLowerCase().includes(diagnosisQuery.toLowerCase())).slice(0, 6) : []),
-    [diagnosisQuery],
+    () => (diagnosisQuery ? diagnosisCatalog.filter((entry) => `${entry.code} ${entry.name}`.toLowerCase().includes(diagnosisQuery.toLowerCase())).slice(0, 6) : []),
+    [diagnosisQuery, diagnosisCatalog],
   );
 
   function applyTemplate(key: string) {

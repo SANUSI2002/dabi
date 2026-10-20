@@ -7,7 +7,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Grid, Checkbox } from "@/components/ui/form";
 import { useRegistrySource } from "@/emr-live/sources";
 import { describeEmrError } from "@/emr-live/client";
-import { PATIENT_CATEGORIES } from "@/data/catalog";
+import { usePatientCategories } from "@/emr-live/catalogs";
 import { ageFromDob, shortDate } from "@/lib/format";
 import { PatientCardDoc, BirthCertificateDoc } from "@/components/print/documents";
 import { PatientLink } from "@/components/ui/PatientLink";
@@ -50,7 +50,9 @@ export default function Registration() {
 
   const list = registry.list;
 
-  const categoryOf = (code: string) => PATIENT_CATEGORIES.find((entry) => entry.code === code);
+  // A live hospital uses its own patient categories (Settings → Patient Categories).
+  const categories = usePatientCategories();
+  const categoryOf = (code: string) => categories.find((entry) => entry.code === code);
   const duplicatePairs = registry.pairs;
 
   const matches = registry.matches;
@@ -302,7 +304,7 @@ export default function Registration() {
                 <Input value={form.allergies} onChange={(event) => setField("allergies", event.target.value)} placeholder="NKA" />
               </Field>
               <Field label="Patient category">
-                <Select value={form.category} onChange={(event) => setField("category", event.target.value)} options={PATIENT_CATEGORIES.map((entry) => ({ value: entry.code, label: `${entry.name}${entry.exempt ? " (fee-exempt)" : ""}` }))} />
+                <Select value={form.category} onChange={(event) => setField("category", event.target.value)} options={categories.filter((entry) => entry.active !== false || entry.code === form.category).map((entry) => ({ value: entry.code, label: `${entry.name}${entry.exempt ? " (fee-exempt)" : ""}` }))} />
               </Field>
               <Field label="Who is paying?">
                 <Select value={form.payer} onChange={(event) => setField("payer", event.target.value)} options={["Out of Pocket", "Government Scheme", "NHIS"]} />
