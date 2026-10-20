@@ -64,6 +64,9 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   "/hr/assets": "hr.read",
   "/hr/policies-discipline": "hr.read",
   "/hr/helpdesk": ["workforce.self", "hr.read"],
+  // HR dashboard and reports summarise the screens above
+  "/hr/dashboard": "hr.read",
+  "/hr/reports": "hr.read",
   // Workforce (time & attendance, leave, work)
   "/workforce": ["workforce.self", "workforce.approve", "workforce.manage"],
   // Approval workflows: everyone's inbox, and the Builder for workflow designers
