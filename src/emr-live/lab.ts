@@ -15,6 +15,7 @@ type Range = { low?: number; high?: number };
 export type LabAnalyte = {
   code: string; name: string; kind: "NUMERIC" | "CHOICE" | "TEXT"; unit?: string;
   low?: number; high?: number; female?: Range; male?: Range; options?: string[];
+  criticalLow?: number; criticalHigh?: number; normal?: string[];
 };
 
 /** The reference range the server flags against for this patient (sex-specific when defined). */
@@ -30,6 +31,9 @@ export type LabResultRow = {
 type ApiLabItem = {
   id: string; testCode: string; testName: string; specimenType: string; analytes: LabAnalyte[];
   status: "PENDING" | "RESULTED" | "VERIFIED"; version: number;
+  /** Bench phases between collection and result entry (result entry completes the last), and the target turnaround. */
+  phases?: string[]; phaseIndex?: number; turnaroundMinutes?: number;
+  phaseLog?: { position: number; phase: string; completedByName: string | null; completedAt: string }[];
   resultedAt: string | null; resultedByName: string | null; verifiedAt: string | null; verifiedByName: string | null;
   returnReason: string | null; returnedAt: string | null; returnedByName: string | null;
   acknowledgedAt: string | null; acknowledgedByName: string | null;
@@ -54,6 +58,8 @@ export type LiveLabTest = LabOrder & {
   analytes: LabAnalyte[];
   results: LabResultRow[];
   patient: Patient;
+  phases: string[];
+  turnaroundMinutes: number;
 };
 
 const FLAG_ORDER: Record<ApiFlag, number> = { NORMAL: 0, ABNORMAL: 1, LOW: 1, HIGH: 1, CRITICAL_LOW: 2, CRITICAL_HIGH: 2 };
@@ -105,8 +111,10 @@ export function liveLabTest(order: ApiLabOrder, item: ApiLabItem): LiveLabTest {
     sampleType: order.specimenNote ?? item.specimenType,
     sampleCollectedBy: order.collectedByName ?? undefined,
     sampleCollectedAt: order.collectedAt ?? undefined,
-    phaseIndex: 0,
-    phaseLog: [],
+    phases: item.phases ?? [],
+    turnaroundMinutes: item.turnaroundMinutes ?? 60,
+    phaseIndex: item.phaseIndex ?? 0,
+    phaseLog: (item.phaseLog ?? []).map((p) => ({ name: p.phase, by: p.completedByName ?? "Unknown staff member", at: p.completedAt })),
     resultFields: Object.fromEntries(current.map((r) => [r.analyteCode, resultValue(r)])),
     submittedBy: item.resultedByName ?? undefined,
     submittedAt: item.resultedAt ?? undefined,
@@ -134,6 +142,7 @@ type LiveLabState = {
   loadClinicians: () => Promise<void>;
   collect: (test: LiveLabTest, sampleType: string) => Promise<void>;
   reject: (test: LiveLabTest, reason: string) => Promise<void>;
+  completePhase: (test: LiveLabTest, phase: string) => Promise<void>;
   enterResults: (test: LiveLabTest, values: Record<string, string>) => Promise<void>;
   sendBack: (test: LiveLabTest, reason: string) => Promise<void>;
   verify: (test: LiveLabTest) => Promise<void>;
@@ -173,6 +182,7 @@ export const useLiveLab = create<LiveLabState>((set, get) => {
       method: "POST", version: test.orderVersion, body: { note: `Sample: ${sampleType}` },
     })),
     reject: (test, reason) => after(emrRequest(`/lab/orders/${test.orderId}/cancel`, { method: "POST", version: test.orderVersion, body: { reason } })),
+    completePhase: (test, phase) => after(emrRequest(`${itemPath(test)}/phase`, { method: "POST", version: test.itemVersion, body: { phase } })),
     enterResults: (test, values) => after(emrRequest(`${itemPath(test)}/results`, {
       method: "PUT",
       version: test.itemVersion,
@@ -205,4 +215,88 @@ export function useLiveLabRefresh(enabled: boolean, withClinicians: boolean) {
     const timer = window.setInterval(() => { void load(); }, REFRESH_MS);
     return () => window.clearInterval(timer);
   }, [enabled, withClinicians]);
+}
+
+// ---- Lab test settings: the hospital's catalog (GET /lab/tests, PATCH /lab/tests/:code) ----
+export type ApiLabTest = {
+  id: string; code: string; name: string; section: string; specimenType: string; analytes: LabAnalyte[];
+  turnaroundMinutes: number; phases: string[]; active: boolean; version: number;
+};
+type LabCatalogState = {
+  tests: ApiLabTest[];
+  error: string;
+  load: () => Promise<void>;
+  update: (test: ApiLabTest, changes: Partial<Pick<ApiLabTest, "turnaroundMinutes" | "phases" | "analytes">>) => Promise<void>;
+};
+export const useLiveLabCatalog = create<LabCatalogState>((set, get) => ({
+  tests: [],
+  error: "",
+  load: async () => {
+    try {
+      const result = await emrRequest<{ data: ApiLabTest[] | { items: ApiLabTest[] } }>("/lab/tests");
+      set({ tests: Array.isArray(result.data) ? result.data : result.data.items, error: "" });
+    } catch (cause) {
+      set({ error: cause instanceof Error ? cause.message : "The lab test catalog could not be loaded." });
+    }
+  },
+  update: async (test, changes) => {
+    await emrRequest(`/lab/tests/${encodeURIComponent(test.code)}`, { method: "PATCH", version: test.version, body: changes });
+    await get().load();
+  },
+}));
+export function useLiveLabCatalogLoad(enabled: boolean) {
+  useEffect(() => { if (enabled) void useLiveLabCatalog.getState().load(); }, [enabled]);
+}
+
+// The settings screen edits a test's result template as simple fields; these map them onto analytes,
+// keeping what the screen does not show (critical limits, sex-specific ranges, choice options).
+type TemplateField = { id: string; label: string; unit?: string; refRange?: string; type: "text" | "number" | "select"; options?: string[] };
+const KIND = { NUMERIC: "number", CHOICE: "select", TEXT: "text" } as const;
+const rangeText = (a: LabAnalyte) => (a.low !== undefined && a.high !== undefined ? `${a.low}–${a.high}` : a.low !== undefined ? `≥ ${a.low}` : a.high !== undefined ? `≤ ${a.high}` : "");
+export const templateFromAnalytes = (analytes: LabAnalyte[]): TemplateField[] =>
+  analytes.map((a) => ({ id: a.code, label: a.name, unit: a.unit, refRange: a.kind === "NUMERIC" ? rangeText(a) : (a.normal ?? []).join(" / ") || undefined, type: KIND[a.kind], options: a.options }));
+
+function parseRange(text: string, label: string): { low?: number; high?: number } {
+  const value = text.trim().replace(/\s+/g, "");
+  if (!value) return {};
+  const both = /^(-?\d+(?:\.\d+)?)[–-](-?\d+(?:\.\d+)?)$/.exec(value);
+  if (both) return { low: Number(both[1]), high: Number(both[2]) };
+  const atLeast = /^(?:≥|>=|>)(-?\d+(?:\.\d+)?)$/.exec(value);
+  if (atLeast) return { low: Number(atLeast[1]) };
+  const atMost = /^(?:≤|<=|<)(-?\d+(?:\.\d+)?)$/.exec(value);
+  if (atMost) return { high: Number(atMost[1]) };
+  throw new Error(`${label}: write the reference range as low–high (e.g. 4–11), ≥ low or ≤ high.`);
+}
+const codeFor = (label: string, taken: Set<string>) => {
+  const base = (label.toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^[^A-Z]+/, "").replace(/_+$/, "") || "FIELD").slice(0, 20);
+  let code = base; let n = 2;
+  while (taken.has(code)) code = `${base}_${n++}`.slice(0, 24);
+  taken.add(code);
+  return code;
+};
+
+export function analytesFromTemplate(fields: TemplateField[], existing: LabAnalyte[]): LabAnalyte[] {
+  const taken = new Set(fields.map((f) => f.id).filter((id) => existing.some((a) => a.code === id)));
+  return fields.map((field) => {
+    const label = field.label.trim();
+    const kind = field.type === "number" ? "NUMERIC" : field.type === "select" ? "CHOICE" : "TEXT";
+    const before = existing.find((a) => a.code === field.id);
+    const code = before?.code ?? codeFor(label, taken);
+    if (kind === "NUMERIC") {
+      const keep = before?.kind === "NUMERIC" ? before : undefined;
+      const range = parseRange(field.refRange ?? "", label);
+      return {
+        code, name: label, kind, ...(field.unit?.trim() ? { unit: field.unit.trim() } : {}), ...range,
+        ...(keep?.criticalLow !== undefined && (range.low === undefined || keep.criticalLow <= range.low) ? { criticalLow: keep.criticalLow } : {}),
+        ...(keep?.criticalHigh !== undefined && (range.high === undefined || keep.criticalHigh >= range.high) ? { criticalHigh: keep.criticalHigh } : {}),
+        ...(keep?.female ? { female: keep.female } : {}), ...(keep?.male ? { male: keep.male } : {}),
+      };
+    }
+    if (kind === "CHOICE") {
+      const options = before?.kind === "CHOICE" ? before.options : field.options;
+      if (!options || options.length < 2) throw new Error(`${label}: a select field needs its choices — add it as a text or number field instead.`);
+      return { code, name: label, kind, options, ...(before?.kind === "CHOICE" && before.normal ? { normal: before.normal } : {}) };
+    }
+    return { code, name: label, kind };
+  });
 }
