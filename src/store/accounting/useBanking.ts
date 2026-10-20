@@ -21,7 +21,7 @@ type BankingState = {
   reconciliationRules: ReconciliationRule[];
 
   metaFor: (accountNumber: number) => BankAccountMeta | undefined;
-  connectBank: (accountNumber: number, provider: BankConnection["provider"]) => void;
+  connectBank: (accountNumber: number, provider: BankConnection["provider"]) => { ok: boolean; error?: string } | void;
   disconnectBank: (id: string) => void;
   syncFeed: (connectionId: string) => { imported: number; autoMatched: number };
   addRule: (r: Omit<ReconciliationRule, "id" | "active">) => void;
@@ -169,7 +169,7 @@ export const useBanking = create<BankingState>((set, get) => ({
     const cutoff = asOf ? new Date(asOf).getTime() : Infinity;
     return useLedger
       .getState()
-      .entries.filter((e) => e.status === "Posted" && new Date(e.date).getTime() <= cutoff)
+      .entries.filter((e) => (e.status === "Posted" || e.status === "Reversed") && new Date(e.date).getTime() <= cutoff)
       .flatMap((e) =>
         e.lines
           .filter((l) => l.accountNumber === accountNumber)

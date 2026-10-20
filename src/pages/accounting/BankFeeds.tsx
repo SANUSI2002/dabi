@@ -105,7 +105,7 @@ export default function BankFeeds() {
       )}
 
       <Modal open={connect} onClose={() => setConnect(false)} title="Connect a Bank Feed"
-        footer={<><Button variant="ghost" onClick={() => setConnect(false)}>Cancel</Button><Button onClick={() => { connectBank(cf.account, cf.provider); setConnect(false); setMsg("Feed connected. Hit Sync to pull transactions."); }}>Authorise & connect</Button></>}>
+        footer={<><Button variant="ghost" onClick={() => setConnect(false)}>Cancel</Button><Button onClick={() => { const r = connectBank(cf.account, cf.provider); setConnect(false); setMsg(r && !r.ok ? r.error ?? "" : "Feed connected. Hit Sync to pull transactions."); }}>Authorise & connect</Button></>}>
         <div className="space-y-3">
           <p className="text-sm text-mist-600">Pick the account and open-banking provider. In production this opens the provider's consent screen; here it links a simulated feed.</p>
           <Field label="Bank account"><Select value={String(cf.account)} onChange={(e) => setCf({ ...cf, account: +e.target.value })} options={accounts.map((a) => ({ value: String(a.accountNumber), label: `${a.accountName} (${a.accountNo})` }))} /></Field>

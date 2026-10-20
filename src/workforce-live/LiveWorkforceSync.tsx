@@ -14,6 +14,7 @@ import { clearLedger, goLiveLedger, loadLedger } from "@/accounting-live/ledger"
 import { clearAcctSettings, goLiveAcctSettings, loadAcctSettings } from "@/accounting-live/settings";
 import { clearReceivables, goLiveReceivables, loadReceivables } from "@/accounting-live/receivables";
 import { clearPayables, goLivePayables, loadPayables } from "@/accounting-live/payables";
+import { clearBanking, clearExpenses, goLiveBanking, loadBanking, loadExpenses } from "@/accounting-live/banking";
 import { useWorkforceSync } from "./sync";
 
 // Mounted once in the live shell. Each Workforce domain fills its stores from the organization's
@@ -44,6 +45,8 @@ const DOMAINS: Domain[] = [
   { permissions: ["acct.view", "acct.control"], goLive: goLiveAcctSettings, load: loadAcctSettings, clear: clearAcctSettings },
   { permissions: ["acct.view", "acct.control"], goLive: goLiveReceivables, load: loadReceivables, clear: clearReceivables },
   { permissions: ["acct.view", "acct.control"], goLive: goLivePayables, load: loadPayables, clear: clearPayables },
+  { permissions: ["acct.view", "acct.control"], goLive: goLiveBanking, load: loadBanking, clear: clearBanking },
+  { permissions: ["acct.view", "acct.control"], goLive: () => {}, load: loadExpenses, clear: clearExpenses },
 ];
 const holds = (permissions: readonly string[], wanted: string[]) => wanted.some((p) => p === "*" || permissions.includes(p));
 

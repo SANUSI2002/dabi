@@ -99,6 +99,12 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   "/accounting/vendor-payments": "acct.view",
   "/accounting/vendor-credits": "acct.view",
   "/accounting/settings": "acct.view",
+  "/accounting/bank-accounts": "acct.view",
+  "/accounting/bank-transactions": "acct.view",
+  "/accounting/reconciliation": "acct.view",
+  "/accounting/bank-feeds": "acct.view",
+  "/accounting/expenses": "acct.view",
+  "/accounting/approvals": "acct.view",
 };
 
 export type LiveRouteState = "connected" | "no-permission" | "not-connected";
