@@ -6,6 +6,8 @@ import type { Account, AccountSubtype, AccountType } from "@/data/accounting/coa
 import type { JournalEntry } from "@/data/accounting/journal";
 import type { AccountingPeriod, FiscalYear } from "@/data/accounting/fiscal";
 import type { Branch, ConsolidationGroup } from "@/data/accounting/branches";
+import { useAcctControl } from "@/store/accounting/useAcctControl";
+import type { ApprovalRule } from "@/data/accounting/control";
 import { adoptLiveIdentity, liveChange, uuid } from "@/workforce-live/sync";
 
 // The general ledger in live mode (GET /ledger): the organization's chart, branches, fiscal calendar and
@@ -18,6 +20,7 @@ type ApiLedger = {
   accounts: (Account & Versioned)[]; branches: Branch[]; consolidationGroups: ConsolidationGroup[]; fiscalYears: FiscalYear[]; periods: AccountingPeriod[];
   booksLockedBefore: string | null; fxRates: ReturnType<typeof useLedger.getState>["fxRates"]; settingsVersion: number; entries: (JournalEntry & Versioned)[];
   recurringJournals: (ReturnType<typeof useLedger.getState>["recurringJournals"][number] & Versioned)[]; yearEndClosings: ReturnType<typeof useLedger.getState>["yearEndClosings"];
+  approvalRules: (ApprovalRule & Versioned)[];
 };
 
 export const useLiveLedgerMeta = create<{ loaded: boolean; settingsVersion: number }>(() => ({ loaded: false, settingsVersion: 1 }));
@@ -33,6 +36,7 @@ export async function loadLedger() {
     recurringJournals: data.recurringJournals.map((r) => noNull(r)), yearEndClosings: data.yearEndClosings,
     activeBranchId: data.branches.some((b) => b.id === active) ? active : data.branches.find((b) => b.isHeadOffice)?.id ?? data.branches[0]?.id ?? active,
   });
+  useAcctControl.setState({ rules: data.approvalRules }); // the approval rules are kept with the books
   adoptLiveIdentity(null); // the finance role the Accounting screens check comes from the live permissions
 }
 
@@ -160,4 +164,5 @@ export function goLiveLedger() {
 export function clearLedger() {
   useLiveLedgerMeta.setState({ loaded: false, settingsVersion: 1 });
   useLedger.setState({ entries: [], recurringJournals: [], yearEndClosings: [], consolidationGroups: [] });
+  useAcctControl.setState({ rules: [] });
 }
