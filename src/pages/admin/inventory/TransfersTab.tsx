@@ -3,16 +3,15 @@ import { ArrowRight, MoveRight } from "lucide-react";
 import { Button, Badge } from "@/components/ui/primitives";
 import { Table, Row, Cell, EmptyRow } from "@/components/ui/Table";
 import { Field, Input, Select } from "@/components/ui/form";
-import { useInventoryAccounting } from "@/store/accounting/useInventoryAccounting";
-import { useInventoryLocations } from "@/store/useInventoryLocations";
 import { useHr } from "@/store/useHr";
-import { DEFAULT_STORE_LOCATION_ID } from "@/data/accounting/inventory";
+import { useStoreLocationsSource, useStoresSource } from "@/emr-live/stores";
 import { dateTime, naira } from "@/lib/format";
 
 /** Move stock between two storage locations directly, with no requisition. Posts no ledger entry. */
 export function TransfersTab() {
-  const inv = useInventoryAccounting();
-  const locations = useInventoryLocations();
+  const inv = useStoresSource();
+  const locations = useStoreLocationsSource();
+  const DEFAULT_STORE_LOCATION_ID = locations.mainLocationId;
   const active = locations.activeLocations();
   const items = inv.items.filter((i) => i.active);
   const history = inv.locationTransfers;
@@ -28,10 +27,10 @@ export function TransfersTab() {
   const available = form.itemId ? inv.availableAtLocation(form.itemId, form.fromLocationId) : 0;
   const quantity = Number(form.quantity);
 
-  function submit() {
+  async function submit() {
     setError("");
     setDone("");
-    const res = inv.relocateStock({
+    const res = await inv.relocateStock({
       itemId: form.itemId, qty: quantity, fromLocationId: form.fromLocationId, toLocationId: form.toLocationId, date: new Date().toISOString(), reference: form.reference.trim() || undefined,
     });
     if (!res.ok) { setError(res.error ?? "The move could not be completed."); return; }
@@ -54,7 +53,7 @@ export function TransfersTab() {
           <Field label="Reference"><Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="Optional" /></Field>
         </div>
         <div className="flex justify-end">
-          <Button disabled={!form.itemId || !form.toLocationId || !(quantity > 0)} onClick={submit}>Move stock</Button>
+          <Button disabled={!form.itemId || !form.toLocationId || !(quantity > 0)} onClick={() => void submit()}>Move stock</Button>
         </div>
       </div>
 

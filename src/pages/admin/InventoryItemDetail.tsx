@@ -2,17 +2,19 @@ import { ArrowLeft, Boxes, Pill } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Badge, Button, PageHeader, StatCard } from "@/components/ui/primitives";
 import { Table, Row, Cell, EmptyRow } from "@/components/ui/Table";
-import { useInventoryAccounting } from "@/store/accounting/useInventoryAccounting";
-import { useInventoryLocations } from "@/store/useInventoryLocations";
 import { usePharmacy } from "@/store/usePharmacy";
-import { DEFAULT_STORE_LOCATION_ID, type CostLayer } from "@/data/accounting/inventory";
+import { type CostLayer } from "@/data/accounting/inventory";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { useStoreLocationsSource, useStoresSource } from "@/emr-live/stores";
 import { dateTime, naira, shortDate } from "@/lib/format";
 
 export default function InventoryItemDetail() {
   const { itemId } = useParams();
   const navigate = useNavigate();
-  const inv = useInventoryAccounting();
-  const locations = useInventoryLocations();
+  const inv = useStoresSource();
+  const locations = useStoreLocationsSource();
+  const DEFAULT_STORE_LOCATION_ID = locations.mainLocationId;
+  const isLive = useIsLiveEmr();
   const pharmacy = usePharmacy();
   const item = itemId ? inv.itemById(itemId) : undefined;
 
@@ -33,7 +35,8 @@ export default function InventoryItemDetail() {
   const untracked = Math.max(0, Math.round((item.currentQty - tracked) * 100) / 100);
   const available = inv.availableQtyOf(item.id);
   const held = Math.round((item.currentQty - available) * 100) / 100;
-  const drug = pharmacy.drugForItem(item.id);
+  // Live store items are separate from the pharmacy formulary, so there is no drug link to show.
+  const drug = isLive ? undefined : pharmacy.drugForItem(item.id);
   const master = drug ? pharmacy.drugMasterFor(drug.id) : undefined;
   const movements = inv.movementsFor(item.id).slice(0, 25);
 
