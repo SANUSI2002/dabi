@@ -9,13 +9,31 @@ import { useAssets, pmState, nextPmDue } from "@/store/useAssets";
 import { useIdentity } from "@/store/useIdentity";
 import { shortDate } from "@/lib/format";
 import type { AssetCategory } from "@/data/assets";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { describeEmrError } from "@/emr-live/client";
+import { useLiveEquipment, useLiveEquipmentLoad } from "@/emr-live/equipment";
 
 const CATEGORIES: AssetCategory[] = ["Cold chain", "Maternity", "Diagnostics", "Power", "IT", "General"];
 const pmTone = (l: string) => (l === "Overdue" ? "action" : l === "Due soon" ? "amber" : "mist");
 
 export default function Equipment() {
-  const { assets, jobs, addAsset, reportFault, setJobStatus, resolveJob, schedulePm, completePm, setAssetStatus } = useAssets();
+  const demo = useAssets();
+  // A live hospital works on its own asset register and maintenance jobs (see src/emr-live/equipment.ts).
+  const live = useIsLiveEmr();
+  useLiveEquipmentLoad(live);
+  const liveStore = useLiveEquipment();
+  const { assets, jobs, addAsset, reportFault, setJobStatus, resolveJob, schedulePm, completePm, setAssetStatus } = live ? liveStore : demo;
   const me = useIdentity((s) => s.user.name);
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState("");
+  /** Runs an action (async in live mode); closes the dialog only when it succeeds. */
+  async function run(work: () => unknown, after: () => void = () => {}) {
+    setBusy(true); setActionError("");
+    try { await work(); after(); }
+    catch (cause) { setActionError(describeEmrError(cause)); }
+    finally { setBusy(false); }
+  }
+  const errorLine = live && actionError ? <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError}</p> : null;
   const assetById = (id: string) => assets.find((a) => a.id === id);
 
   const [faultOpen, setFaultOpen] = useState(false);
@@ -42,12 +60,14 @@ export default function Equipment() {
         subtitle="Asset register, corrective jobs and the preventive-maintenance schedule"
         actions={
           <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => setAssetOpen(true)}><PackagePlus size={15} /> Add asset</Button>
-            <Button variant="action" onClick={() => { setFf({ assetId: "", summary: "", priority: "Medium" }); setFaultOpen(true); }}><Plus size={15} /> Report fault</Button>
+            <Button variant="ghost" onClick={() => { setActionError(""); setAssetOpen(true); }}><PackagePlus size={15} /> Add asset</Button>
+            <Button variant="action" onClick={() => { setActionError(""); setFf({ assetId: "", summary: "", priority: "Medium" }); setFaultOpen(true); }}><Plus size={15} /> Report fault</Button>
           </div>
         }
       />
 
+      {live && liveStore.error && <p role="alert" className="mb-4 rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{liveStore.error}</p>}
+      {!faultOpen && !assetOpen && !resolveFor && !pmFor && errorLine && <div className="mb-4">{errorLine}</div>}
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Assets" value={assets.length} tone="brand" icon={<Wrench size={18} />} />
         <StatCard label="Open jobs" value={openJobs.length} tone={openJobs.length ? "action" : "mist"} delay={0.05} />
@@ -77,8 +97,8 @@ export default function Equipment() {
                   </Cell>
                   <Cell>
                     <div className="flex justify-end gap-1.5">
-                      <button onClick={() => { setPmFor(a.id); setPmNote(""); }} className="btn-primary px-2.5 py-1 text-xs"><CircleCheck size={12} /> Log service</button>
-                      <button onClick={() => schedulePm(a.id)} className="btn-ghost px-2 py-1 text-xs">Raise job</button>
+                      <button onClick={() => { setActionError(""); setPmFor(a.id); setPmNote(""); }} className="btn-primary px-2.5 py-1 text-xs"><CircleCheck size={12} /> Log service</button>
+                      <button disabled={busy} onClick={() => void run(() => schedulePm(a.id))} className="btn-ghost px-2 py-1 text-xs">Raise job</button>
                     </div>
                   </Cell>
                 </Row>
@@ -102,8 +122,8 @@ export default function Equipment() {
                     <Cell><Badge tone={statusTone(j.status)}>{j.status}</Badge></Cell>
                     <Cell>
                       <div className="flex justify-end gap-1.5">
-                        {j.status === "Open" && <button onClick={() => setJobStatus(j.id, "In Progress")} className="btn-ghost px-2 py-1 text-xs">Start</button>}
-                        {j.status !== "Resolved" && <button onClick={() => { setResolveFor(j.id); setResNote(""); }} className="btn-primary px-2.5 py-1 text-xs">Resolve</button>}
+                        {j.status === "Open" && <button disabled={busy} onClick={() => void run(() => setJobStatus(j.id, "In Progress"))} className="btn-ghost px-2 py-1 text-xs">Start</button>}
+                        {j.status !== "Resolved" && <button onClick={() => { setActionError(""); setResolveFor(j.id); setResNote(""); }} className="btn-primary px-2.5 py-1 text-xs">Resolve</button>}
                       </div>
                     </Cell>
                   </Row>
@@ -122,7 +142,8 @@ export default function Equipment() {
                   <Cell>
                     <select
                       value={a.status}
-                      onChange={(e) => setAssetStatus(a.id, e.target.value as never)}
+                      disabled={busy}
+                      onChange={(e) => void run(() => setAssetStatus(a.id, e.target.value as never))}
                       className="input w-auto py-1 text-xs"
                     >
                       {["In service", "Under repair", "Out of service", "Retired"].map((s) => <option key={s}>{s}</option>)}
@@ -140,9 +161,10 @@ export default function Equipment() {
         onClose={() => setFaultOpen(false)}
         title="Report equipment fault"
         footer={<><Button variant="ghost" onClick={() => setFaultOpen(false)}>Cancel</Button>
-          <Button variant="action" disabled={!ff.assetId || !ff.summary.trim()} onClick={() => { reportFault(ff.assetId, { summary: ff.summary.trim(), reportedBy: me, priority: ff.priority }); setFaultOpen(false); }}>Submit</Button></>}
+          <Button variant="action" disabled={!ff.assetId || !ff.summary.trim() || busy} onClick={() => void run(() => reportFault(ff.assetId, { summary: ff.summary.trim(), reportedBy: me, priority: ff.priority }), () => setFaultOpen(false))}>{busy ? "Submitting…" : "Submit"}</Button></>}
       >
         <div className="space-y-4">
+          {errorLine}
           <Field label="Asset">
             <Select value={ff.assetId} onChange={(e) => setFf({ ...ff, assetId: e.target.value })} options={[{ value: "", label: "Select an asset…" }, ...assets.map((a) => ({ value: a.id, label: `${a.name} (${a.tag})` }))]} />
           </Field>
@@ -159,10 +181,11 @@ export default function Equipment() {
         wide
         footer={<><Button variant="ghost" onClick={() => setAssetOpen(false)}>Cancel</Button>
           <Button
-            disabled={!af.tag.trim() || !af.name.trim() || !af.commissionedOn || !af.lastServicedOn}
-            onClick={() => { addAsset({ ...af, tag: af.tag.trim(), name: af.name.trim(), commissionedOn: new Date(af.commissionedOn).toISOString(), lastServicedOn: new Date(af.lastServicedOn).toISOString() }); setAssetOpen(false); }}
-          >Add asset</Button></>}
+            disabled={!af.tag.trim() || !af.name.trim() || !af.commissionedOn || !af.lastServicedOn || busy}
+            onClick={() => void run(() => addAsset({ ...af, tag: af.tag.trim(), name: af.name.trim(), commissionedOn: new Date(af.commissionedOn).toISOString(), lastServicedOn: new Date(af.lastServicedOn).toISOString() }), () => setAssetOpen(false))}
+          >{busy ? "Saving…" : "Add asset"}</Button></>}
       >
+        {errorLine}
         <Grid cols={2}>
           <Field label="Asset tag"><Input value={af.tag} onChange={(e) => setAf({ ...af, tag: e.target.value.toUpperCase() })} placeholder="e.g. VR-8891" /></Field>
           <Field label="Name"><Input value={af.name} onChange={(e) => setAf({ ...af, name: e.target.value })} /></Field>
@@ -179,9 +202,10 @@ export default function Equipment() {
         onClose={() => setResolveFor(null)}
         title="Resolve maintenance job"
         footer={<><Button variant="ghost" onClick={() => setResolveFor(null)}>Cancel</Button>
-          <Button disabled={!resNote.trim()} onClick={() => { if (resolveFor) resolveJob(resolveFor, resNote.trim()); setResolveFor(null); }}><CircleCheck size={14} /> Mark resolved</Button></>}
+          <Button disabled={!resNote.trim() || busy} onClick={() => { if (resolveFor) void run(() => resolveJob(resolveFor, resNote.trim()), () => setResolveFor(null)); }}><CircleCheck size={14} /> Mark resolved</Button></>}
       >
         <div className="space-y-3">
+          {errorLine}
           <Field label="Resolution / work done"><Textarea value={resNote} onChange={(e) => setResNote(e.target.value)} /></Field>
           <p className="rounded-xl bg-mist-50 px-3 py-2 text-xs text-mist-500">Resolving stamps today as the asset's last-serviced date and restores it to service if no other job is open.</p>
         </div>
@@ -192,12 +216,13 @@ export default function Equipment() {
         onClose={() => setPmFor(null)}
         title="Log preventive service"
         footer={<><Button variant="ghost" onClick={() => setPmFor(null)}>Cancel</Button>
-          <Button onClick={() => { if (pmFor) completePm(pmFor, pmNote.trim()); setPmFor(null); }}><CircleCheck size={14} /> Record service</Button></>}
+          <Button disabled={busy} onClick={() => { if (pmFor) void run(() => completePm(pmFor, pmNote.trim()), () => setPmFor(null)); }}><CircleCheck size={14} /> Record service</Button></>}
       >
         {(() => {
           const a = pmFor ? assetById(pmFor) : undefined;
           return (
             <div className="space-y-3">
+              {errorLine}
               {a && <p className="rounded-xl bg-mist-50 px-3 py-2 text-sm text-mist-600"><b>{a.name}</b> ({a.tag}) · every {a.serviceIntervalDays} days · last {shortDate(a.lastServicedOn)}</p>}
               <Field label="Work done (optional)"><Textarea value={pmNote} onChange={(e) => setPmNote(e.target.value)} placeholder="Cleaned, calibrated, parts replaced…" /></Field>
               <p className="rounded-xl bg-mist-50 px-3 py-2 text-xs text-mist-500">Records the service, resets the PM clock, and closes any open preventive job for this asset.</p>

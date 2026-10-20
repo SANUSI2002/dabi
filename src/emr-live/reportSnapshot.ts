@@ -5,6 +5,7 @@ import { emrRequest } from "./client";
 import { useLiveAntenatal } from "./antenatal";
 import { useLiveAppointments } from "./appointments";
 import { useLiveDeliveries } from "./deliveries";
+import { useLiveEquipment } from "./equipment";
 import { useLiveFamilyPlanning } from "./familyPlanning";
 import { doseFromApi, type LiveDose } from "./immunizations";
 import { useLiveWards } from "./inpatient";
@@ -23,7 +24,7 @@ import { create } from "zustand";
 
 // The Reports page's snapshot for a live hospital, assembled only from its own EMR: the period's
 // visits, lab orders and immunizations, every module register, the formulary stock and the audit
-// trail. Anything with no live source (equipment assets and maintenance) is empty — never demo data.
+// trail, and the equipment register with its maintenance jobs.
 
 const usePeriodDoses = create<{ doses: LiveDose[]; load: (from: string, to: string) => Promise<void> }>((set) => ({
   doses: [],
@@ -62,6 +63,7 @@ export function useLiveReportSnapshotLoad(enabled: boolean, from: string, to: st
     quiet(useLiveAppointments.getState().load());
     quiet(useLiveQueue.getState().load());
     quiet(useLivePharmacy.getState().load());
+    quiet(useLiveEquipment.getState().load());
     quiet(useLiveReports.getState().loadAudit());
   }, [enabled, hospital]);
 }
@@ -89,6 +91,8 @@ export function useLiveReportSnapshot(): EmrSnapshot & { truncated: boolean; rea
   const appointments = useLiveAppointments((s) => s.items);
   const queue = useLiveQueue((s) => s.entries);
   const formulary = useLivePharmacy((s) => s.drugs);
+  const equipment = useLiveEquipment((s) => s.assets);
+  const maintenance = useLiveEquipment((s) => s.jobs);
 
   return useMemo(() => {
     // People named anywhere in the snapshot, so rows can show who they are.
@@ -103,10 +107,10 @@ export function useLiveReportSnapshot(): EmrSnapshot & { truncated: boolean; rea
       patients: [...people.values()], queue, encounters: source?.encounters ?? [], labOrders: source?.labOrders ?? [], admissions, appointments,
       referrals, transfers, ancRecords, fpClients, childVisits, deliveries, birthRegister, immunizations: doses, pncVisits, cmamScreenings,
       outreachActivities, surveillanceCases, ncdClients, patientById: (id: string) => people.get(id),
-      assets: [], maintenanceJobs: [], wards, beds,
+      assets: equipment, maintenanceJobs: maintenance, wards, beds,
       drugs: formulary.filter((d) => d.active).map((d) => ({ name: d.name, form: d.form, stock: d.onHand, reorder: d.reorderLevel })),
       auditEvents: audit, registry: source?.registry,
       truncated: source?.truncated ?? false, ready: source !== null,
     } as EmrSnapshot & { truncated: boolean; ready: boolean };
-  }, [source, audit, doses, referrals, transfers, ancRecords, fpClients, childVisits, cmamScreenings, deliveries, birthRegister, pncVisits, outreachActivities, surveillanceCases, ncdClients, admitted, discharged, wards, beds, appointments, queue, formulary]);
+  }, [source, audit, doses, referrals, transfers, ancRecords, fpClients, childVisits, cmamScreenings, deliveries, birthRegister, pncVisits, outreachActivities, surveillanceCases, ncdClients, admitted, discharged, wards, beds, appointments, queue, formulary, equipment, maintenance]);
 }

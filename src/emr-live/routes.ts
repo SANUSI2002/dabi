@@ -35,6 +35,7 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   "/referrals": "referral.read",
   "/transfers": "transfer.read",
   "/outreach": "outreach.read",
+  "/equipment": "equipment.read",
   "/reports": "report.view",
   "/nhmis-sync": "report.view",
   "/msf-report": "report.view",
