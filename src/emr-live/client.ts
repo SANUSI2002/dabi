@@ -30,10 +30,10 @@ export function describeEmrError(cause: unknown): string {
   return error.message || "The EMR service could not complete this request.";
 }
 
-async function send<T>(path: string, request: EmrRequest): Promise<T> {
+async function send<T>(path: string, request: EmrRequest, product: "emr" | "workforce" = "emr"): Promise<T> {
   const organizationId = useLiveEmr.getState().access?.organizationId;
   if (!organizationId) throw new Error("No hospital is selected.");
-  return liveApiRequest<T>(`/api/v1/emr/organizations/${encodeURIComponent(organizationId)}${path}`, {
+  return liveApiRequest<T>(`/api/v1/${product}/organizations/${encodeURIComponent(organizationId)}${path}`, {
     method: request.method ?? "GET",
     ...(request.body !== undefined ? { body: JSON.stringify(request.body) } : {}),
     headers: {
@@ -50,6 +50,17 @@ export async function emrRequest<T>(path: string, request: EmrRequest = {}): Pro
     if ((cause as Partial<LiveApiError>).status !== 401) throw cause;
     await useLiveEmr.getState().reselect();
     return send<T>(path, request);
+  }
+}
+
+/** The same, for the Workforce API (/api/v1/workforce/organizations/:organizationId/...): people, time, HR. */
+export async function workforceRequest<T>(path: string, request: EmrRequest = {}): Promise<T> {
+  try {
+    return await send<T>(path, request, "workforce");
+  } catch (cause) {
+    if ((cause as Partial<LiveApiError>).status !== 401) throw cause;
+    await useLiveEmr.getState().reselect();
+    return send<T>(path, request, "workforce");
   }
 }
 

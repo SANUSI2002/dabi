@@ -4,6 +4,7 @@ import { Lock, PlugZap } from "lucide-react";
 import { EmrRouteLoadingScreen } from "@/components/layout/AppLoadingScreen";
 import { LIVE_CONNECTED_ROUTES, liveRouteState } from "./routes";
 import { useLiveEmr } from "./session";
+import { LiveWorkforceSync } from "@/workforce-live/LiveWorkforceSync";
 
 // The EMR shell (sidebar, top bar, route boundary) in live mode: the hospital, user and permissions
 // come from the verified live session; demo mode keeps the local tenant exactly as before.
@@ -17,7 +18,7 @@ const NO_PERMISSIONS: readonly string[] = [];
 export function LiveWorkspaceGate({ children }: { children: ReactNode }) {
   const status = useLiveEmr((state) => state.status);
   useEffect(() => { void useLiveEmr.getState().restore(); }, []);
-  if (status === "ready") return <>{children}</>;
+  if (status === "ready") return <><LiveWorkforceSync />{children}</>;
   if (status === "error") return <Navigate to="/identity/account" replace />;
   return <EmrRouteLoadingScreen pathname="/workspace" tenantName="your hospital" />;
 }

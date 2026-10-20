@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Users, ShieldAlert, CalendarClock, Award } from "lucide-react";
-import { PageHeader, StatCard, Badge } from "@/components/ui/primitives";
+import { Users, ShieldAlert, CalendarClock, Award, UserPlus } from "lucide-react";
+import { PageHeader, StatCard, Badge, Button } from "@/components/ui/primitives";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Select } from "@/components/ui/form";
 import { useHr } from "@/store/useHr";
 import { useEmployees } from "@/store/useEmployees";
 import { useOrg } from "@/store/useOrg";
 import { shortDate, initials } from "@/lib/format";
+import { useIsLiveEmr, useLiveEmr } from "@/emr-live/session";
+import { importMembers as importLiveMembers } from "@/workforce-live/people";
 
 export default function EmployeeDirectory() {
   const staff = useHr((s) => s.staff);
@@ -15,6 +17,18 @@ export default function EmployeeDirectory() {
   const { departments, departmentName, jobPositionName, employeeTypeName } = useOrg();
   const [dept, setDept] = useState("");
   const [renderedAt] = useState(Date.now);
+  // Live: the organization's own name, and a way to add everyone who already has a Sabi ID here.
+  const live = useIsLiveEmr();
+  const organizationName = useLiveEmr((st) => st.access?.organizationName ?? "");
+  const canManage = useLiveEmr((st) => st.access?.permissions.includes("hr.manage") ?? false);
+  const [importing, setImporting] = useState(false);
+  const [importMessage, setImportMessage] = useState("");
+  async function importMembers() {
+    setImporting(true); setImportMessage("");
+    const added = await importLiveMembers();
+    setImporting(false);
+    if (added !== null) setImportMessage(added ? `Added ${added} member${added === 1 ? "" : "s"} as employees.` : "Every member already has an employee record.");
+  }
 
   const expiring = expiringDocuments(45);
   const contractsEnding = profiles.filter((p) => p.contractEndDate && new Date(p.contractEndDate).getTime() - renderedAt < 30 * 864e5);
@@ -25,7 +39,14 @@ export default function EmployeeDirectory() {
 
   return (
     <div>
-      <PageHeader title="Employee Directory" subtitle={`${staff.length} people on record · Sabi Health Post`} />
+      <PageHeader
+        title="Employee Directory"
+        subtitle={`${staff.length} people on record · ${live ? organizationName : "Sabi Health Post"}`}
+        actions={live && canManage ? (
+          <Button variant="ghost" disabled={importing} onClick={() => void importMembers()}><UserPlus size={15} /> {importing ? "Adding…" : "Add Sabi ID members"}</Button>
+        ) : undefined}
+      />
+      {importMessage && <p className="mb-4 rounded-xl bg-brand-50 px-3 py-2 text-sm text-brand-700">{importMessage}</p>}
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Employees" value={staff.length} tone="brand" icon={<Users size={18} />} />

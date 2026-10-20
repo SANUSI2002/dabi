@@ -42,6 +42,11 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   "/nhmis-sync": "report.view",
   "/msf-report": "report.view",
   "/audit-log": "audit.view",
+  // Workforce (people & organization)
+  "/hr/employees": "hr.read",
+  "/hr/org-setup": "hr.read",
+  "/hr/departments": "hr.read",
+  "/hr/org-chart": "hr.read",
 };
 
 export type LiveRouteState = "connected" | "no-permission" | "not-connected";
