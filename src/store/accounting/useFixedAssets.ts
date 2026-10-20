@@ -64,7 +64,7 @@ export const useFixedAssets = create<FAState>((set, get) => ({
     const a = get().assetById(id);
     if (!a) return { ok: false, error: "Asset not found." };
     if (a.status === "Disposed" || a.status === "Under Construction") return { ok: false, error: "Can't revalue this asset." };
-    const carryingBefore = round2(a.cost - a.accumulatedDepreciation + (a.revaluationReserve ?? 0) - (a.impairmentLoss ?? 0));
+    const carryingBefore = netBookValue(a); // revaluations already move cost; the reserve and impairment are tallies of them
     const delta = round2(input.newCarryingValue - carryingBefore);
     if (Math.abs(delta) < 0.005) return { ok: false, error: "New value matches the current carrying amount." };
     const led = useLedger.getState();

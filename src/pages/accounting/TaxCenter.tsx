@@ -22,6 +22,9 @@ export default function TaxCenter() {
   const [rf, setRf] = useState({ name: "", kind: "VAT" as TaxKind, rate: 0, accountNumber: 2200 });
   const [pf, setPf] = useState<{ type: ReturnType; start: string; end: string }>(() => ({ type: "VAT", start: isoDate(new Date(Date.now() - 30 * 864e5)), end: isoDate(new Date()) }));
   const [msg, setMsg] = useState<string | null>(null);
+  const [ackFor, setAckFor] = useState<string | null>(null);
+  const [ack, setAck] = useState("");
+  const ackReturn = returns.find((r) => r.id === ackFor);
 
   const netDue = returns.filter((r) => r.status !== "Paid").reduce((n, r) => n + Math.max(0, r.netPayable), 0);
 
@@ -74,7 +77,7 @@ export default function TaxCenter() {
                     <Cell><Badge tone={statusTone(r.status === "Paid" ? "paid" : r.status === "Filed" ? "approved" : "submitted")}>{r.status}</Badge></Cell>
                     <Cell>
                       <div className="flex justify-end gap-1">
-                        {r.status === "Open" && <button className="btn-primary px-2 py-1 text-xs" onClick={() => { const res = efileReturn(r.id); if (res.ok) setMsg(`Filed with ${r.authority}. Acknowledgement: ${res.ref}`); }}><Send size={11} /> E-file</button>}
+                        {r.status === "Open" && <button className="btn-primary px-2 py-1 text-xs" onClick={() => { const res = efileReturn(r.id); if (res.ok) setMsg(`Filed with ${r.authority}. Acknowledgement: ${res.ref}`); else if (res.needsAcknowledgement) { setAck(""); setAckFor(r.id); } }}><Send size={11} /> E-file</button>}
                         {r.status === "Filed" && r.netPayable > 0 && <button className="btn-primary px-2 py-1 text-xs" onClick={() => { setPayAcct(1010); setPayId(r.id); }}><Banknote size={11} /> Pay</button>}
                       </div>
                     </Cell>
@@ -105,6 +108,14 @@ export default function TaxCenter() {
             <Field label="From"><Input type="date" value={pf.start} onChange={(e) => setPf({ ...pf, start: e.target.value })} /></Field>
             <Field label="To"><Input type="date" value={pf.end} onChange={(e) => setPf({ ...pf, end: e.target.value })} /></Field>
           </div>
+        </div>
+      </Modal>
+
+      <Modal open={!!ackReturn} onClose={() => setAckFor(null)} title="Record Filing"
+        footer={<><Button variant="ghost" onClick={() => setAckFor(null)}>Cancel</Button><Button disabled={!ack.trim()} onClick={() => { if (ackReturn && efileReturn(ackReturn.id, ack.trim()).ok) setMsg(`Filing of ${ackReturn.reference} recorded. Acknowledgement: ${ack.trim()}`); setAckFor(null); }}>Record filing</Button></>}>
+        <div className="space-y-3">
+          <p className="text-sm text-mist-600">Direct e-filing to {ackReturn?.authority} isn't connected. File {ackReturn?.reference} on the authority's portal, then enter the acknowledgement it issued.</p>
+          <Field label="Acknowledgement reference"><Input value={ack} onChange={(e) => setAck(e.target.value)} placeholder="e.g. the TCC / filing receipt number" /></Field>
         </div>
       </Modal>
 

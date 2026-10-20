@@ -30,8 +30,9 @@ type TaxState = {
 
   /** build a return from the period movement on the relevant liability account */
   prepareReturn: (returnType: ReturnType, periodStart: string, periodEnd: string) => TaxReturn;
-  /** e-file: generate a submission acknowledgement from the tax authority */
-  efileReturn: (id: string) => { ok: boolean; ref?: string };
+  /** e-file: generate a submission acknowledgement from the tax authority. Where direct e-filing isn't
+   *  connected, the filing is recorded with the acknowledgement the authority's portal issued (`ack`). */
+  efileReturn: (id: string, ack?: string) => { ok: boolean; ref?: string; needsAcknowledgement?: boolean };
   payReturn: (id: string, fromAccount: number) => void;
 };
 
