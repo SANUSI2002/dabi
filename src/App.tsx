@@ -196,6 +196,7 @@ const EmrProductPage = lazy(() => import("@/public/pages/ProductPages").then((m)
 const TelemedicineProductPage = lazy(() => import("@/public/pages/ProductPages").then((m) => ({ default: m.TelemedicinePage })));
 const AIPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.AIPage })));
 const SabiAIPage = lazy(() => import("@/public/ai/SabiAIPage"));
+const AiEntry = lazy(() => import("@/ai/AiEntry"));
 const SecurityPage = lazy(() => import("@/public/pages/ProductPages").then((m) => ({ default: m.SecurityPage })));
 const AboutPage = lazy(() => import("@/public/pages/ContentPages").then((m) => ({ default: m.AboutPage })));
 const PricingPage = lazy(() => import("@/public/pages/ProductPages").then((m) => ({ default: m.PricingPage })));
@@ -269,6 +270,7 @@ export default function App() {
     <IdleSessionGuard />
     <Suspense fallback={<AppLoadingScreen pathname={loc.pathname} />}>
       <Routes location={loc}>
+        <Route path="/ai/workspace" element={<AiEntry />} />
         <Route element={<PublicShell />}>
           <Route index element={<HomePage />} />
           <Route path="products/emr" element={<EmrProductPage />} />

@@ -72,6 +72,7 @@ import { CheckInPage } from "./pages/hospitals/CheckInPage";
 import { FamilyHospitalEnrollmentPage } from "./pages/hospitals/FamilyHospitalEnrollmentPage";
 import { InsurancePage } from "./pages/insurance/InsurancePage";
 import { WalletPage } from "./pages/wallet/WalletPage";
+import SabiAiPage from './pages/ai/SabiAiPage';
 import ForgotPassword from "./pages/Onboarding/ForgotPassword";
 import ResetPassword from "./pages/Onboarding/ResetPassword";
 import { HOSPITAL_ONBOARDING_URL, DOCTOR_PORTAL_URL } from "./ecosystemLinks";
@@ -213,6 +214,7 @@ export default function App() {
               <Route path="/care-plans" element={<DieticianTablePage support />} />
               <Route path="/activity" element={<ActivityLogPage />} />
               <Route path="/medications" element={<MedicinesPage />} />
+              <Route path="/sabi-ai" element={<SabiAiPage />} />
               <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
               <Route path="/install" element={<InstallAppPage />} />
               <Route path="/prescriptions/:id" element={<PrescriptionDetailPage />} />
