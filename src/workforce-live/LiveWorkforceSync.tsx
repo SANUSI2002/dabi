@@ -5,6 +5,7 @@ import { clearPeople, goLivePeople, loadPeople } from "./people";
 import { clearTime, goLiveTime, loadDirectory, loadTime } from "./time";
 import { clearWorkflows, goLiveWorkflows, loadWorkflows } from "./workflows";
 import { clearHiring, goLiveHiring, loadHiring } from "./hiring";
+import { clearCareers, goLiveCareers, loadCareers } from "./careers";
 import { useWorkforceSync } from "./sync";
 
 // Mounted once in the live shell. Each Workforce domain fills its stores from the organization's
@@ -20,6 +21,8 @@ const DOMAINS: Domain[] = [
   { permissions: ["workforce.self", "workflow.manage"], goLive: goLiveWorkflows, load: loadWorkflows, clear: clearWorkflows },
   // Hiring and exits for HR; vacancy requests for department heads.
   { permissions: ["hr.read", "workforce.self"], goLive: goLiveHiring, load: loadHiring, clear: clearHiring },
+  // Performance for everyone (their own objectives and reviews); promotions and transfers for HR.
+  { permissions: ["hr.read", "workforce.self"], goLive: goLiveCareers, load: loadCareers, clear: clearCareers },
 ];
 const holds = (permissions: readonly string[], wanted: string[]) => wanted.some((p) => permissions.includes(p));
 

@@ -54,6 +54,10 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   "/hr/onboarding": "hr.read",
   "/hr/offboarding": "hr.read",
   "/hr/vacancies": ["workforce.self", "hr.read"],
+  // Careers: everyone's own objectives, reviews and 1-on-1s; promotions and transfers are HR's
+  "/hr/performance": ["workforce.self", "hr.read"],
+  "/hr/promotions": "hr.read",
+  "/hr/branch-transfers": "hr.read",
   // Workforce (time & attendance, leave, work)
   "/workforce": ["workforce.self", "workforce.approve", "workforce.manage"],
   // Approval workflows: everyone's inbox, and the Builder for workflow designers
