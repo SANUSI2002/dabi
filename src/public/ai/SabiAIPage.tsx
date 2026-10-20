@@ -90,7 +90,7 @@ function SubNav() {
       </div>
       <div className="hidden shrink-0 items-center gap-2 sm:flex">
         <Link to="/ai/workspace" className="rounded-full px-3 py-1.5 text-[13px] font-semibold text-[#3d5a4d] hover:text-[#0b2b20]">Open workspace</Link>
-        <a href={WAITLIST} className="rounded-full bg-[#0b2b20] px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-[#123d2e]">Join the waitlist</a>
+        <Link to="/ai/signup" className="rounded-full bg-[#0b2b20] px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-[#123d2e]">Create account</Link>
       </div>
     </div>
   </nav>;
@@ -108,7 +108,7 @@ function Hero() {
         <p className={cn("mt-7 max-w-[540px] text-[17px] leading-[1.75] sm:text-lg", SOFT)}>Explore medical knowledge, make sense of complex reports, and work through healthcare questions with Sabi — your AI companion for clearer understanding and more informed care.</p>
         <div className="mt-9 flex flex-wrap items-center gap-3">
           <Pill to="/ai/workspace">Open Sabi AI</Pill>
-          <Pill href={WAITLIST} variant="outline">Get product updates</Pill>
+          <Pill to="/ai/signup" variant="outline">Create your account</Pill>
           <Pill href="#professionals" variant="outline">Explore Sabi</Pill>
         </div>
         <p className={cn("mt-6 text-sm", SOFT)}>For healthcare professionals first — and for patients and caregivers who want to understand their health.</p>

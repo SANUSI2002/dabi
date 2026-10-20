@@ -12,6 +12,9 @@ describe("Sabi deployment surfaces", () => {
     expect(surfaceForPath("/rider/login")).toBe("pharmacy");
     expect(surfaceForPath("/rider/delivery/assignment")).toBe("pharmacy");
     expect(surfaceForPath("/access")).toBe("health");
+    expect(surfaceForPath('/ai/workspace')).toBe('health');
+    expect(surfaceForPath('/ai/signup')).toBe('health');
+    expect(surfaceForPath('/ai/verify-email/qa')).toBe('health');
     expect(surfaceForPath("/emr/login")).toBe("emr");
     expect(surfaceForPath("/login")).toBe("shared");
     expect(surfaceForPath("/accept-invite/11111111-1111-4111-8111-111111111111")).toBe("shared");

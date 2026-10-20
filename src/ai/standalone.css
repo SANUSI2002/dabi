@@ -1,0 +1,481 @@
+.sai-auth,
+.sai-workspace {
+  --sai-ink: #173e32;
+  --sai-muted: #566b61;
+  --sai-line: #ccd9cf;
+  --sai-paper: #f8f8f2;
+  --sai-green: #17644d;
+  color: var(--sai-ink);
+  background: var(--sai-paper);
+  font-family: inherit;
+}
+.sai-auth {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(450px, 48%);
+  min-height: 100dvh;
+  padding: 16px;
+  gap: 16px;
+}
+.sai-art {
+  position: sticky;
+  top: 16px;
+  height: calc(100dvh - 32px);
+  min-height: 620px;
+  border-radius: 28px;
+  overflow: hidden;
+  background: #d2ddc8;
+}
+.sai-art > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 63% center;
+}
+.sai-art-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(247, 247, 235, 0.18),
+    transparent 30%,
+    rgba(8, 35, 26, 0.7) 85%,
+    rgba(8, 35, 26, 0.88)
+  );
+}
+.sai-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  min-height: 48px;
+  text-decoration: none;
+}
+.sai-brand > span {
+  width: 38px;
+  height: 38px;
+  background: #17533f;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+}
+.sai-brand em {
+  font-style: normal;
+  font-weight: 400;
+}
+.sai-art > .sai-brand {
+  position: absolute;
+  top: 30px;
+  left: 32px;
+  color: #153f30;
+}
+.sai-art-copy {
+  position: absolute;
+  bottom: 48px;
+  left: 40px;
+  right: 32px;
+  color: #fff;
+}
+.sai-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  line-height: 1.6;
+}
+.sai-art-copy h1 {
+  font-family: var(--font-display, inherit);
+  font-size: clamp(42px, 4.1vw, 68px);
+  font-weight: 500;
+  letter-spacing: -0.05em;
+  line-height: 1.05;
+  margin: 18px 0 20px;
+}
+.sai-art-copy > p:not(.sai-eyebrow) {
+  font-size: 17px;
+  line-height: 1.7;
+  color: #f0f4e9;
+}
+.sai-art-copy > span {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 38px;
+  font-size: 13px;
+  color: #e4eedf;
+}
+.sai-form-pane {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 64px 10%;
+  min-width: 0;
+}
+.sai-form-content {
+  width: 100%;
+  max-width: 520px;
+  margin: auto;
+}
+.sai-form-content h2 {
+  font-size: clamp(30px, 3vw, 44px);
+  font-family: var(--font-display, inherit);
+  letter-spacing: -0.045em;
+  font-weight: 600;
+  line-height: 1.12;
+  margin: 16px 0;
+}
+.sai-intro {
+  font-size: 16px;
+  color: var(--sai-muted);
+  line-height: 1.8;
+  max-width: 48ch;
+  margin: 0 0 32px;
+}
+.sai-form {
+  display: grid;
+  gap: 20px;
+}
+.sai-form label {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.sai-form input:not([type="checkbox"]),
+.sai-form select {
+  min-height: 52px;
+  min-width: 0;
+  width: 100%;
+  border: 1px solid var(--sai-line);
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--sai-ink);
+}
+.sai-auth a:focus-visible,
+.sai-auth button:focus-visible,
+.sai-auth input:focus-visible,
+.sai-auth select:focus-visible,
+.sai-workspace-header a:focus-visible,
+.sai-workspace-header button:focus-visible {
+  outline: 3px solid #1a7658;
+  outline-offset: 4px;
+}
+.sai-primary {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  min-height: 54px;
+  border: 0;
+  border-radius: 13px;
+  background: var(--sai-green);
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 14px 20px;
+  cursor: pointer;
+}
+.sai-primary:hover {
+  background: #114b3a;
+}
+.sai-primary:disabled,
+.sai-secondary:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.sai-secondary {
+  min-height: 48px;
+  padding: 12px 16px;
+  background: white;
+  border: 1px solid var(--sai-line);
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.sai-forgot {
+  justify-self: end;
+  color: var(--sai-green);
+  font-size: 13px;
+  min-height: 32px;
+}
+.sai-switch {
+  font-size: 14px;
+  margin: 28px 0;
+  line-height: 1.8;
+  color: var(--sai-muted);
+}
+.sai-switch a,
+.sai-fine a {
+  font-weight: 700;
+  color: var(--sai-green);
+}
+.sai-fine {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--sai-muted);
+  margin: 0;
+}
+.sai-auth-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 28px;
+  font-size: 12px;
+  color: var(--sai-muted);
+  margin-top: 44px;
+}
+.sai-auth-footer a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+.sai-mobile-brand {
+  display: none;
+}
+.sai-kind {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.sai-kind legend {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.sai-kind > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.sai-kind button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 15px 12px;
+  min-height: 106px;
+  background: white;
+  border: 1px solid var(--sai-line);
+  border-radius: 12px;
+  font-size: 12px;
+  text-align: left;
+  color: var(--sai-muted);
+  cursor: pointer;
+}
+.sai-kind button[aria-pressed="true"] {
+  border-color: var(--sai-green);
+  background: #eaf1e5;
+  color: var(--sai-ink);
+  box-shadow: inset 0 0 0 1px var(--sai-green);
+}
+.sai-kind button > svg:last-child:not(:first-child) {
+  position: absolute;
+  top: 12px;
+  right: 10px;
+}
+.sai-detail-fields {
+  display: grid;
+  gap: 16px;
+  border-left: 2px solid #a6bea8;
+  padding: 4px 0 4px 20px;
+}
+.sai-detail-fields > p:first-child {
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+}
+.sai-two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.sai-form .sai-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-weight: 400;
+  line-height: 1.7;
+  font-size: 12px;
+}
+.sai-checkbox input {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 3px;
+  accent-color: var(--sai-green);
+}
+.sai-error {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #fff0ed;
+  color: #9c3020;
+  font-size: 14px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.sai-success {
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+  border: 1px solid #bfcebd;
+  border-radius: 18px;
+  background: #edf3e7;
+  font-size: 15px;
+  line-height: 1.7;
+}
+.sai-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  margin-top: 22px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--sai-green);
+}
+.sai-review-note {
+  background: #eaf0e5;
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.sai-loading {
+  display: grid;
+  min-height: 100dvh;
+  place-content: center;
+  gap: 24px;
+  background: #f8f8f2;
+  color: #173e32;
+}
+.sai-loading p {
+  display: flex;
+  gap: 12px;
+}
+.sai-workspace-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--sai-line);
+  background: #f8f8f2;
+}
+.sai-workspace-header nav {
+  margin-left: auto;
+  display: flex;
+  gap: 12px;
+}
+.sai-workspace-header nav a,
+.sai-workspace-header nav button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: 13px;
+  border: 0;
+  background: transparent;
+  color: var(--sai-ink);
+  cursor: pointer;
+}
+.sai-account-kind {
+  border: 1px solid #b9cfbd;
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 12px;
+  text-transform: capitalize;
+}
+.sai-workspace .sabi-ai-workspace {
+  min-height: calc(100dvh - 73px);
+}
+@media (max-width: 1000px) {
+  .sai-auth {
+    grid-template-columns: minmax(0, 1fr) minmax(400px, 52%);
+  }
+  .sai-form-pane {
+    padding: 48px 7%;
+  }
+  .sai-art-copy {
+    left: 28px;
+    right: 24px;
+    bottom: 36px;
+  }
+  .sai-art-copy h1 {
+    font-size: 44px;
+  }
+}
+@media (max-width: 760px) {
+  .sai-auth {
+    display: block;
+    padding: 0;
+    min-height: 100dvh;
+  }
+  .sai-art {
+    display: none;
+  }
+  .sai-form-pane {
+    padding: 24px 24px 20px;
+    min-height: 100dvh;
+    justify-content: flex-start;
+  }
+  .sai-mobile-brand {
+    display: block;
+    margin-bottom: 44px;
+  }
+  .sai-form-content {
+    max-width: 520px;
+  }
+  .sai-form-content h2 {
+    font-size: 34px;
+  }
+  .sai-auth-footer {
+    margin-top: 36px;
+  }
+  .sai-two {
+    grid-template-columns: 1fr;
+  }
+  .sai-kind button {
+    padding: 14px 10px;
+    font-size: 12px;
+    line-height: 1.4;
+    min-height: 108px;
+  }
+  .sai-workspace-header {
+    padding: 10px 16px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .sai-workspace-header .sai-brand {
+    font-size: 21px;
+  }
+  .sai-workspace-header nav {
+    gap: 10px;
+  }
+  .sai-workspace-header nav span {
+    display: none;
+  }
+  .sai-workspace-header nav a,
+  .sai-workspace-header nav button {
+    width: 44px;
+  }
+  .sai-account-kind {
+    font-size: 11px;
+    padding: 5px 8px;
+  }
+  .sai-intro {
+    line-height: 1.7;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sai-auth *,
+  .sai-workspace * {
+    scroll-behavior: auto;
+    animation: none !important;
+    transition: none !important;
+  }
+}

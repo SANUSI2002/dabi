@@ -20,7 +20,8 @@ describe("Sabi AI landing page", () => {
     page();
     expect(screen.getByRole("heading", { level: 1, name: "Made for the way you care." })).toBeInTheDocument();
     const nav = screen.getByRole("navigation", { name: "Sabi AI" });
-    expect(within(nav).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual(["#top", "#professionals", "#everyday-health", "#how-it-works", "#faqs", "/ai/workspace", "#waitlist"]);
+    expect(within(nav).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual(["#top", "#professionals", "#everyday-health", "#how-it-works", "#faqs", "/ai/workspace", "/ai/signup"]);
+    expect(within(nav).getByRole('link', {name:'Create account'})).toHaveAttribute('href','/ai/signup');
     expect(screen.getByRole('link', { name: 'Open Sabi AI' })).toHaveAttribute('href', '/ai/workspace');
     for (const heading of ["More clarity for the work that matters.", "Understand more. Feel better prepared.", "Ask. Share. Explore.", "Meet Sabi where you need it.", "Bring more clarity to healthcare."]) {
       expect(screen.getByRole("heading", { name: heading })).toBeInTheDocument();
