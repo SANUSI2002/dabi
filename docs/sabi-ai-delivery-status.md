@@ -61,7 +61,31 @@ large-chunk warnings remain. These are local build results, not a declaration of
 
 Secret Manager API is enabled in the official project. The approved TypeSafe backend key is stored
 as `typesafe-api-key`, version 1; no key was printed, committed or saved in this workspace. No
-runtime secret-access IAM permission, live provider invocation or clinical activation is implied.
+live provider invocation or clinical activation is implied. On 20 October, the user separately
+approved and the console verified Secret Manager Secret Accessor for `sabi-ai-production` on
+`typesafe-api-key` only. No runtime is attached yet.
+
+Patient integration checkpoint: `/sabi-ai` now retains the existing patient Sidebar, Topbar,
+wallet header and account-bound authenticated transport, with lazy loading and a scoped embedded
+mobile layout. The patient page's transport, real question submission and failure states have
+regression coverage. Command Centre now distinguishes configuration metadata from an actually
+verified model connection. Backend `npm run ai:check` defaults to metadata-only; the explicit
+synthetic flag checks fixed benign fixtures without reading patient records. No live provider
+or deployed patient conversation has passed yet.
+
+Current checkpoint verification: **941 backend unit/route tests in 95 files passed** with bounded
+test workers (the first full-concurrency run hit the isolated PDF test's time limit). **11 focused
+patient/workspace/Command Centre UI tests passed**; root TypeScript passed. The full Health source
+build passed, including embedded patient and doctor bundles and PWA generation. **50 embedded
+PostgreSQL AI/JEV tests passed** again. Backend lint passed; frontend lint completed with existing
+unrelated warnings, which were not silently repaired. Browser QA at 375px confirmed the embedded
+workspace, history expansion, opening a saved synthetic conversation and visible composer; this
+is layout verification, not an authenticated live patient test. These remain local/synthetic checks.
+
+Cloud Build: user approved connecting only `SANUSI2002/dabi-backend`. The `sabi-backend-github`
+host connection in `europe-west1` exists but is visibly **Configuration incomplete**. The browser
+did not open its GitHub authorization window, so no repository is linked, no trigger exists and
+no build/deployment was performed. Do not label it connected or live.
 
 The user subsequently approved **USD 60/month ongoing hosting**, without a 30-day expiry. Retain
 the original cumulative trial-credit cap and USD 90 operating target too; this is not approval for

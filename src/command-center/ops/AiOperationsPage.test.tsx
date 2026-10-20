@@ -10,6 +10,17 @@ const me = { id: 'admin', name: 'Synthetic operator', email: 'operator@example.t
 afterEach(() => { cleanup(); get.mockReset(); post.mockReset(); });
 
 describe('AI operations controls', () => {
+  it('distinguishes configured credentials from verified provider connectivity', async () => {
+    get.mockImplementation(async (path: string) => path === '/ai/overview' ? { ...overview, runtime: {
+      google: { provider: 'vertex', authMode: 'adc', model: null, projectId: 'synthetic-project', credentialConfigured: true, configurationReady: false, providerVerified: false },
+      jev: { credentialConfigured: true, enabled: false, processingApproved: false, providerVerified: false }, checksPerformed: 'CONFIGURATION_ONLY',
+    } } : { items: [], total: 0 });
+    render(<CcProvider me={me}><AiOperationsPage /></CcProvider>);
+    expect(await screen.findByText('Provider connection configuration')).toBeInTheDocument();
+    expect(screen.getByText(/Live connectivity is not verified by this view/)).toBeInTheDocument();
+    expect(screen.getByText(/Generation configuration incomplete/)).toBeInTheDocument();
+    expect(screen.getByText(/JEV review does not enable or replace patient chat/)).toBeInTheDocument();
+  });
   it('shows real queue state, explains allowances and requires a reason before pausing', async () => {
     get.mockImplementation(async (path: string) => path === '/ai/overview' ? overview : { items: [], total: 0 });
     post.mockResolvedValue({ version: 5, generationPaused: true });

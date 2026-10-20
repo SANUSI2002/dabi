@@ -75,12 +75,13 @@ At the USD 70 warning, review the full remaining-duration forecast before additi
 ## Current status
 
 JEV update: official-project Secret Manager is enabled; the user-approved backend-only TypeSafe
-key is stored as `typesafe-api-key`, version 1. No runtime IAM access to this secret has been
-granted, no real patient request sent and no live cutover performed. JEV/EMDEX backend adapters
+key is stored as `typesafe-api-key`, version 1. The user-approved production AI identity now has
+Secret Manager Secret Accessor on this secret only, visibly verified in the console. It is not
+attached to a live runtime. No real patient request was sent and no live cutover performed. JEV/EMDEX backend adapters
 and one durable documentation-assessment workflow have been tested locally; clinical policies,
 provider smoke verification and the other module-specific workflows remain outstanding.
 
-Completed here: environment boundary recorded; cumulative USD 90 alerts saved and verified; backend container packaging and opt-in Firebase cookie compatibility prepared locally (see backend migration notes).
+Completed here: environment boundary recorded; cumulative USD 90 alerts saved and verified; backend container packaging and opt-in Firebase cookie compatibility prepared locally (see backend migration notes). Cloud Run Admin, Cloud Build, Artifact Registry, IAM and Container Analysis APIs were enabled through the console setup. The approved `sabi-backend-github` host connection was created in `europe-west1`, but visibly remains **Configuration incomplete** because its GitHub authorization window did not open. No repository is linked and no build/deployment trigger exists. Do not report this as connected.
 
 Not completed: regional cost quote, resource provisioning, async worker migration, distributed limits, Cloud SQL backup/restore validation, Google storage adapter/data copy, official OAuth/AI credential connection, production deployment or DNS cutover. Existing live behavior is unchanged.
 
