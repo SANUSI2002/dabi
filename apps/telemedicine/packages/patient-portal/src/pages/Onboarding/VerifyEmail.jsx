@@ -52,8 +52,8 @@ export default function VerifyEmail() {
     <div className="w-full max-w-md rounded-3xl border border-emerald-100 bg-white p-8 shadow-xl shadow-emerald-950/5">
       <div className="mb-6 grid h-14 w-14 place-items-center rounded-2xl bg-emerald-100 text-emerald-800">{uid && token ? <ShieldCheck size={28} /> : <MailCheck size={28} />}</div>
       <p className="text-xs font-extrabold uppercase tracking-[.2em] text-emerald-700">Sabi Health identity</p>
-      <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">{uid && token ? 'Verify your email' : 'Check your email'}</h1>
-      <p className="mt-3 text-sm leading-6 text-slate-600">{uid && token ? 'Confirm your email address to activate your patient account. This link works once and expires after 24 hours.' : 'We sent a verification link after registration. Open it to activate your account before signing in.'}</p>
+      <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">Verify your email</h1>
+      <p className="mt-3 text-sm leading-6 text-slate-600">{uid && token ? 'Confirm ownership of your email address. This link works once and expires after 24 hours.' : 'Open your verification email to confirm your address. If you need a fresh link for a new or existing patient account, request one below.'}</p>
       {uid && token && <form onSubmit={verify} className="mt-7"><button type="submit" disabled={busy} className="w-full rounded-xl bg-emerald-800 px-5 py-3 font-bold text-white disabled:opacity-60">{busy ? 'Verifying…' : 'Verify email and continue'}</button></form>}
       {message && <p role="status" className="mt-5 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">{message}</p>}
       {error && <p role="alert" className="mt-5 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}

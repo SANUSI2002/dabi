@@ -1,4 +1,8 @@
 .sabi-patient-ai .sabi-main{min-width:0}
+.sabi-patient-ai-verification{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;padding:16px 20px;background:#fff9eb;border:1px solid #e7d7ad;border-radius:16px;color:#634519;font-size:14px;line-height:1.6}
+.sabi-patient-ai-verification p{margin:0;flex:1 1 280px}
+.sabi-patient-ai-verification a{color:inherit;font-weight:700;text-decoration:underline;text-underline-offset:3px;padding:10px 0}
+.sabi-patient-ai-verification a:focus-visible{outline:2px solid currentColor;outline-offset:4px;border-radius:4px}
 .sabi-patient-ai-frame{min-width:0;border:1px solid var(--sabi-border,#d7e2da);border-radius:20px;overflow:hidden}
 .sabi-patient-ai-frame .sabi-ai-workspace{min-height:540px;height:calc(100dvh - 190px);font-size:calc(1rem * var(--sabi-font-scale,1))}
 .sabi-patient-ai-frame .sabi-ai-header{padding:20px 24px}
