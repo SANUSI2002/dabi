@@ -55,15 +55,20 @@ export function liveChange(work: () => Promise<unknown>, reload: () => Promise<v
  * employee record here — so "raised by me", approvals and audit names are theirs, not a demo account.
  * Set without saving, so the demo sign-in is untouched.
  */
+let liveSelfId: string | null = null; // the employee id once any loader has found it (Accounting alone has none)
 export function adoptLiveIdentity(selfEmployeeId: string | null, reportIds: string[] = useIdentity.getState().user.reports ?? []) {
   const { user, access } = useLiveEmr.getState();
   if (!user || !access) return;
+  if (selfEmployeeId) liveSelfId = selfEmployeeId;
+  selfEmployeeId = selfEmployeeId ?? liveSelfId;
   const can = (p: string) => access.permissions.includes(p);
   const account: Account = {
     id: selfEmployeeId ?? `user-${user.id}`, username: user.email, name: user.name, role: user.role,
     systemRole: can("workflow.manage") || can("hr.manage") ? "System Administrator" : "Staff",
     wfRole: can("workforce.manage") ? "Tenant HR Administrator" : reportIds.length ? "Line Manager" : "Employee",
-    financeRole: "None", reports: reportIds,
+    // Accounting permissions → the finance role the Accounting screens check.
+    financeRole: can("acct.control") ? "Finance Controller" : can("acct.post") ? "Accountant" : can("acct.approve") ? "Approver" : can("acct.view") ? "Auditor" : "None",
+    reports: reportIds,
   };
   useIdentity.setState({ user: account });
 }

@@ -76,6 +76,12 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   "/settings/master-data": ["hr.manage", "catalog.manage", "platform.config"],
   "/settings/terminology": ["platform.config", "hr.manage"],
   "/settings/letters": ["hr.manage", "platform.config"],
+  // Accounting — general ledger
+  "/accounting/chart-of-accounts": "acct.view",
+  "/accounting/journals": "acct.view",
+  "/accounting/general-ledger": "acct.view",
+  "/accounting/trial-balance": "acct.view",
+  "/accounting/consolidation": "acct.view",
 };
 
 export type LiveRouteState = "connected" | "no-permission" | "not-connected";

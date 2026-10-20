@@ -31,7 +31,7 @@ export function describeEmrError(cause: unknown): string {
   return error.message || "The EMR service could not complete this request.";
 }
 
-async function send<T>(path: string, request: EmrRequest, product: "emr" | "workforce" | "org-config" = "emr"): Promise<T> {
+async function send<T>(path: string, request: EmrRequest, product: "emr" | "workforce" | "org-config" | "accounting" = "emr"): Promise<T> {
   const organizationId = useLiveEmr.getState().access?.organizationId;
   if (!organizationId) throw new Error("No hospital is selected.");
   return liveApiRequest<T>(`/api/v1/${product}/organizations/${encodeURIComponent(organizationId)}${path}`, {
@@ -73,6 +73,17 @@ export async function orgConfigRequest<T>(path: string, request: EmrRequest = {}
     if ((cause as Partial<LiveApiError>).status !== 401) throw cause;
     await useLiveEmr.getState().reselect();
     return send<T>(path, request, "org-config");
+  }
+}
+
+/** The same, for the Accounting API (/api/v1/accounting/organizations/:organizationId/...): ledger, receivables, payables. */
+export async function accountingRequest<T>(path: string, request: EmrRequest = {}): Promise<T> {
+  try {
+    return await send<T>(path, request, "accounting");
+  } catch (cause) {
+    if ((cause as Partial<LiveApiError>).status !== 401) throw cause;
+    await useLiveEmr.getState().reselect();
+    return send<T>(path, request, "accounting");
   }
 }
 

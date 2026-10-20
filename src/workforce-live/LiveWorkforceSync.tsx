@@ -10,6 +10,7 @@ import { clearPayroll, goLivePayroll, loadPayroll } from "./payroll";
 import { clearServices, goLiveServices, loadServices } from "./services";
 import { clearAudit, goLiveAudit, loadHrAudit } from "./audit";
 import { clearOrgConfig, goLiveOrgConfig, loadOrgConfig } from "./orgConfig";
+import { clearLedger, goLiveLedger, loadLedger } from "@/accounting-live/ledger";
 import { useWorkforceSync } from "./sync";
 
 // Mounted once in the live shell. Each Workforce domain fills its stores from the organization's
@@ -35,6 +36,8 @@ const DOMAINS: Domain[] = [
   { permissions: ["hr.read"], goLive: goLiveAudit, load: loadHrAudit, clear: clearAudit },
   // Master data, terminology and letter templates: every member reads them (the server checks changes).
   { permissions: ["*"], goLive: goLiveOrgConfig, load: loadOrgConfig, clear: clearOrgConfig },
+  // Accounting: the general ledger for finance staff.
+  { permissions: ["acct.view", "acct.control"], goLive: goLiveLedger, load: loadLedger, clear: clearLedger },
 ];
 const holds = (permissions: readonly string[], wanted: string[]) => wanted.some((p) => p === "*" || permissions.includes(p));
 

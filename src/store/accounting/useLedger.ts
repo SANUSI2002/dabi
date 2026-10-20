@@ -199,7 +199,8 @@ export const useLedger = create<LedgerState>((set, get) => ({
 
   linesFor: (accountNumber, branch) =>
     get()
-      .entries.filter((e) => e.status === "Posted" && (!branch || e.branchId === branch))
+      // A reversed entry still counts — its reversing entry offsets it — so both stay in the balances.
+      .entries.filter((e) => (e.status === "Posted" || e.status === "Reversed") && (!branch || e.branchId === branch))
       .flatMap((entry) => entry.lines.filter((l) => l.accountNumber === accountNumber).map((line) => ({ entry, line }))),
 
   debitCreditOf: (accountNumber, opts) => {
