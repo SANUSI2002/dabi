@@ -26,6 +26,28 @@ beforeAll(() => {
 afterEach(cleanup);
 
 describe('connected Sabi AI workspace', () => {
+  it('blocks a known exhausted allowance and accepts an administrator top-up after refreshing the server balance', async () => {
+    let remaining = 0;
+    const request = transport((path) => path.endsWith('/usage') ? ok({ ...usage, allowance: { requests: { remaining: 8, resetsAt: '2099-01-01T00:00:00Z' }, tokens: { allocated: 5000, used: 5000, reserved: 0, remaining, status: remaining ? 'AVAILABLE' : 'EXHAUSTED', resetsAt: '2099-01-01T00:00:00Z' } } }) : undefined);
+    render(<AiWorkspace request={request} />);
+    await screen.findByText('0 tokens left');
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.change(screen.getByLabelText('Your message to Sabi'), { target: { value: 'Explain a health term.' } });
+    expect(screen.getByRole('button', { name: 'Send message' })).toBeDisabled();
+    remaining = 1000;
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh balance' }));
+    await screen.findByText('1,000 tokens left');
+    expect(screen.getByRole('button', { name: 'Send message' })).toBeEnabled();
+  });
+  it('shows server-owned remaining tokens and reset details without deriving a balance from browser storage', async () => {
+    const request = transport((path) => path.endsWith('/usage') ? ok({ ...usage, allowance: { requests: { remaining: 8, resetsAt: '2099-01-01T00:00:00Z' }, tokens: { allocated: 5000, used: 1000, reserved: 500, remaining: 3500, status: 'LOW', resetsAt: '2099-01-01T00:00:00Z' } } }) : undefined);
+    render(<AiWorkspace request={request} />);
+    expect(await screen.findByText('3,500 tokens left')).toBeInTheDocument();
+    expect(screen.getByText('Your token allocation is running low.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Usage & reset times' }));
+    expect(await screen.findByRole('region', { name: 'Token allocation details' })).toHaveTextContent('Tokens reserved for outstanding work');
+    expect(screen.getByText('Token allowance renews')).toBeInTheDocument();
+  });
   it('requires consent and sends only the explicit message with an idempotency key', async () => {
     const request = transport((path, options) => {
       if (path.endsWith('/sessions') && options?.method === 'POST') return ok({ ...conversation, messages: [] });

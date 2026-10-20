@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowUp, Check, Download, FileText, Loader2, MessageCircle, Plus, RefreshCw, Search, ShieldCheck, Sparkles, Square, Trash2, X } from 'lucide-react';
 import './ai-workspace.css';
+import './ai-allowances.css';
 import AiPrivacyPanel from './AiPrivacyPanel.jsx';
 import AiDocumentsPanel from './AiDocumentsPanel.jsx';
 import AiActionsPanel from './AiActionsPanel.jsx';
@@ -17,6 +18,7 @@ export default function AiWorkspace({ request, accountName = 'Your workspace', h
   const [usage, setUsage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [refreshingBalance, setRefreshingBalance] = useState(false);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
   const [message, setMessage] = useState('');
@@ -54,6 +56,14 @@ export default function AiWorkspace({ request, accountName = 'Your workspace', h
   }, [call, refresh]);
 
   const activeRun = current?.runs?.find((run) => ACTIVE.has(run.status));
+  useEffect(() => {
+    if (!usage?.allowance) return undefined;
+    const next = Math.min(new Date(usage.allowance.requests.resetsAt).getTime(), new Date(usage.allowance.tokens.resetsAt).getTime());
+    if (!Number.isFinite(next)) return undefined;
+    const controller = new AbortController();
+    const timer = setTimeout(() => { call('/usage', { signal: controller.signal }).then((value) => { if (!controller.signal.aborted) setUsage(value); }).catch(() => {}); }, Math.min(86400000, Math.max(1000, next - Date.now() + 500)));
+    return () => { controller.abort(); clearTimeout(timer); };
+  }, [usage, call]);
   const activeRunId = activeRun?.id;
   useEffect(() => {
     if (!activeRunId) return undefined;
@@ -68,7 +78,7 @@ export default function AiWorkspace({ request, accountName = 'Your workspace', h
           if (controller.signal.aborted) return;
           setCurrent((old) => old?.id === run.sessionId ? updated : old);
           setStatus(run.status === 'SUCCEEDED' ? 'Your response is ready.' : run.status === 'CANCELLED' ? 'Response cancelled.' : 'This response could not be completed. You can send your question again.');
-          if (run.status === 'FAILED') setError('Sabi could not finish this response. No completed answer was saved.');
+          if (run.status === 'FAILED') setError(run.errorCode === 'AI_TOKEN_QUOTA' ? 'This question and its context need more tokens than the available request allocation. Check Usage & reset times, or start a shorter conversation. Unused tokens from this preflight check were released.' : 'Sabi could not finish this response. No completed answer was saved.');
           call('/usage', { signal: controller.signal }).then((u) => { if (!controller.signal.aborted) setUsage(u); }).catch(() => {});
           return;
         }
@@ -96,7 +106,7 @@ export default function AiWorkspace({ request, accountName = 'Your workspace', h
     finally { if (mounted.current && generation === epoch.current) setBusy(false); }
   }
   async function send(event) {
-    event.preventDefault(); if (busy || activeRun || !message.trim()) return;
+    event.preventDefault(); if (disabled || activeRun || !message.trim()) return;
     setBusy(true); setError(''); const text = message.trim(); const generation = epoch.current;
     try {
       let session = current;
@@ -115,6 +125,7 @@ export default function AiWorkspace({ request, accountName = 'Your workspace', h
       if (!mounted.current || generation !== epoch.current) return;
       setCurrent(canonical); setMessage(''); pendingMessage.current = null; setStatus('Your question has been received.');
       await loadSessions();
+      const latestUsage = await call('/usage'); if (mounted.current && generation === epoch.current) setUsage(latestUsage);
     } catch (e) { if (mounted.current && generation === epoch.current) setError(messageOf(e)); }
     finally { if (mounted.current && generation === epoch.current) setBusy(false); }
   }
@@ -124,8 +135,15 @@ export default function AiWorkspace({ request, accountName = 'Your workspace', h
       await call(`/runs/${activeRun.id}/cancel`, { method: 'POST', body: {} });
       const canonical = await call(`/sessions/${id}`);
       if (mounted.current) { setCurrent((old) => old?.id === id ? canonical : old); setStatus('Response cancelled. Provider work already performed may still count toward usage.'); }
+      const latestUsage = await call('/usage'); if (mounted.current) setUsage(latestUsage);
     } catch (e) { if (mounted.current) setError(messageOf(e)); }
     finally { if (mounted.current) setBusy(false); }
+  }
+  async function refreshBalance() {
+    setRefreshingBalance(true); setError('');
+    try { const latest = await call('/usage'); if (mounted.current) { setUsage(latest); setStatus('Your allowance is up to date.'); } }
+    catch (e) { if (mounted.current) setError(messageOf(e)); }
+    finally { if (mounted.current) setRefreshingBalance(false); }
   }
   async function exportConversation() {
     if (!current) return; setBusy(true); setError('');
@@ -161,7 +179,8 @@ export default function AiWorkspace({ request, accountName = 'Your workspace', h
     if (!selectedSources.some((s) => s.id === source.id) && selectedSources.length >= 3) { setError('Choose up to three documents for one question.'); return; }
     setSelectedSources((old) => old.some((s) => s.id === source.id) ? old : [...old, source]); pendingMessage.current = null; setView('chat');
   }
-  const disabled = loading || busy || !config?.enabled;
+  const exhausted = usage?.allowance && (usage.allowance.requests.remaining < 1 || usage.allowance.tokens.remaining < 128);
+  const disabled = loading || busy || !config?.enabled || exhausted;
   const filtered = sessions.filter((session) => session.title.toLocaleLowerCase().includes(search.toLocaleLowerCase()));
 
   return <section className={`sabi-ai-workspace${embedded ? ' sabi-ai-embedded' : ''}`} aria-label="Sabi AI workspace">
@@ -178,6 +197,7 @@ export default function AiWorkspace({ request, accountName = 'Your workspace', h
     <div className="sabi-ai-main">
       <header className="sabi-ai-header"><div><p className="sabi-ai-overline">Your space for clearer understanding</p><h1>{view === 'privacy' ? 'Privacy & usage' : view === 'documents' ? 'Your documents' : view === 'actions' ? 'Reminder controls' : current?.title || 'A little clarity goes a long way.'}</h1></div><span className="sabi-ai-mode"><ShieldCheck size={15} aria-hidden="true" /> {selectedSources.length ? 'Selected personal documents' : 'General knowledge'}</span></header>
       <div className="sabi-ai-status" role="status" aria-live="polite">{loading ? <><Loader2 className="sabi-ai-spin" size={16} aria-hidden="true" /> Opening your workspace…</> : status}</div>
+{usage?.allowance && <div className="sabi-ai-budget" aria-label="Your AI allowance"><span><strong>{usage.allowance.tokens.remaining.toLocaleString()} tokens left</strong> · {usage.allowance.requests.remaining} requests left today</span><div><button type="button" onClick={() => setView('privacy')}>Usage & reset times</button><button type="button" disabled={refreshingBalance} onClick={refreshBalance} aria-label="Refresh balance"><RefreshCw size={15} aria-hidden="true" /> {refreshingBalance ? 'Refreshing…' : 'Refresh balance'}</button></div>{usage.allowance.tokens.status !== 'AVAILABLE' && <span role="status">{usage.allowance.tokens.status === 'EXHAUSTED' ? 'No tokens are available for a new request.' : 'Your token allocation is running low.'}</span>}</div>}
       {error && <div className="sabi-ai-error" role="alert"><p>{error}</p><button type="button" disabled={busy} onClick={() => setRefresh((x) => x + 1)}><RefreshCw size={16} aria-hidden="true" /> Refresh connection</button></div>}
       {!loading && config && !config.enabled && <p className="sabi-ai-notice">New AI responses are temporarily unavailable. Your saved conversations and normal Sabi services remain available.</p>}
       {view === 'privacy' ? <AiPrivacyPanel call={call} usage={usage} sourceSessionId={current?.id} onBack={() => setView('chat')} />
