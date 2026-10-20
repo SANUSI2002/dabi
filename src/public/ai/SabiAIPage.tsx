@@ -9,6 +9,7 @@ import { Reveal } from "@/public/ui";
 import { WhatsAppGlyph } from "@/public/ui";
 import { HeroConversation, InteractionDemo } from "./ConversationPreview";
 import { WaitlistForm } from "./WaitlistForm";
+import { AI_SIGNUP_URL, AI_WORKSPACE_URL } from "./links";
 import storyUnwell from "@/assets/landing/story-unwell.webp";
 import storyDoctor from "@/assets/landing/story-doctor.webp";
 import storyMedication from "@/assets/landing/story-medication.webp";
@@ -22,7 +23,6 @@ import ctaWellness from "@/assets/landing/cta-wellness.webp";
 const PAPER = "bg-[#f7f4ee]";
 const INK = "text-[#0b2b20]";
 const SOFT = "text-[#55685f]";
-const WAITLIST = "#waitlist";
 
 const SUBNAV = [["For professionals", "#professionals"], ["For everyday health", "#everyday-health"], ["How it works", "#how-it-works"], ["FAQs", "#faqs"]] as const;
 
@@ -89,8 +89,8 @@ function SubNav() {
         {SUBNAV.map(([label, href]) => <a key={href} href={href} className="shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium text-[#3d5a4d] transition hover:bg-[#0b2b20]/[0.05] hover:text-[#0b2b20]">{label}</a>)}
       </div>
       <div className="hidden shrink-0 items-center gap-2 sm:flex">
-        <Link to="/ai/workspace" className="rounded-full px-3 py-1.5 text-[13px] font-semibold text-[#3d5a4d] hover:text-[#0b2b20]">Open workspace</Link>
-        <Link to="/ai/signup" className="rounded-full bg-[#0b2b20] px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-[#123d2e]">Create account</Link>
+        <a href={AI_WORKSPACE_URL} className="rounded-full px-3 py-1.5 text-[13px] font-semibold text-[#3d5a4d] hover:text-[#0b2b20]">Open workspace</a>
+        <a href={AI_SIGNUP_URL} className="rounded-full bg-[#0b2b20] px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-[#123d2e]">Create account</a>
       </div>
     </div>
   </nav>;
@@ -107,8 +107,8 @@ function Hero() {
         <h1 id="ai-hero-heading" className="text-balance font-display text-[clamp(2.9rem,7vw,5.6rem)] font-semibold leading-[0.98] tracking-[-0.055em]">Made for the way you care.</h1>
         <p className={cn("mt-7 max-w-[540px] text-[17px] leading-[1.75] sm:text-lg", SOFT)}>Explore medical knowledge, make sense of complex reports, and work through healthcare questions with Sabi — your AI companion for clearer understanding and more informed care.</p>
         <div className="mt-9 flex flex-wrap items-center gap-3">
-          <Pill to="/ai/workspace">Open Sabi AI</Pill>
-          <Pill to="/ai/signup" variant="outline">Create your account</Pill>
+          <Pill href={AI_WORKSPACE_URL}>Open Sabi AI</Pill>
+          <Pill href={AI_SIGNUP_URL} variant="outline">Create your account</Pill>
           <Pill href="#professionals" variant="outline">Explore Sabi</Pill>
         </div>
         <p className={cn("mt-6 text-sm", SOFT)}>For healthcare professionals first — and for patients and caregivers who want to understand their health.</p>
@@ -235,7 +235,7 @@ function HowItWorks() {
           {steps.map(([title, copy], i) => <li key={title} className="flex gap-5"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[#0b2b20]/15 font-display text-sm font-semibold">{i + 1}</span><div><h3 className="font-display text-xl font-semibold tracking-[-0.02em]">{title}</h3><p className={cn("mt-1.5 text-[15px] leading-7", SOFT)}>{copy}</p></div></li>)}
         </ol>
       </Reveal>
-      <Reveal delay={.08}><InteractionDemo waitlistHref={WAITLIST} /></Reveal>
+      <Reveal delay={.08}><InteractionDemo /></Reveal>
     </div>
   </section>;
 }
@@ -281,11 +281,11 @@ function Trust() {
 
 // ---------------------------------------------------------------- FAQs
 const FAQS = [
-  ["What is Sabi AI?", "An AI assistant built for healthcare. It helps healthcare professionals, patients and caregivers explore medical knowledge, make sense of complex information and work through healthcare questions in clear language. It isn't open yet — join the waitlist to hear when it is."],
-  ["Who can use Sabi?", "Sabi is designed first for healthcare professionals, and also for patients and caregivers who want to understand health information. Access will open in stages, starting with people on the waitlist."],
+  ["What is Sabi AI?", "An AI assistant built for healthcare. It helps healthcare professionals, patients and caregivers explore medical knowledge and work through healthcare questions in clear language. Open Sabi AI or create an account to get started."],
+  ["Who can use Sabi?", "Individuals, healthcare professionals and hospitals or businesses can create an account. Professional registration and organisation details are reviewed separately; the features available depend on your account permissions."],
   ["How can Sabi support healthcare professionals?", "By helping you explore clinical concepts, condense long histories and reports you provide into summaries, turn your notes into structured drafts, and explain medical information in plain language. You review everything and make every clinical decision."],
   ["Can Sabi help me understand a medical report?", "Yes — Sabi can explain the terms in a report, what each measure describes and what the reference ranges printed on it mean, and help you prepare questions. It won't diagnose a condition from a report; your clinician can tell you what the results mean for you."],
-  ["Where can I use Sabi?", "Sabi AI isn't available yet. It's planned for Sabi Health (for patients and caregivers), Sabi EMR (for professional workflows) and WhatsApp. Each will open separately, and health information won't move between them automatically."],
+  ["Where can I use Sabi?", "The standalone Sabi AI app is available at ai.sabihealth.org. You can also use the AI features enabled in your Sabi patient or professional workspace. Integrations and features have separate permissions; health information does not move between them automatically."],
   ["Does Sabi replace a healthcare professional?", "No. Sabi supports understanding and clinical work. It does not replace professional judgment or emergency services. In an emergency, call your local emergency number or go to the nearest emergency department."],
 ] as const;
 
@@ -311,8 +311,8 @@ function Faqs() {
 function Waitlist() {
   return <section id="waitlist" aria-labelledby="waitlist-heading" className="scroll-mt-36 px-5 py-20 sm:px-8 lg:py-28">
     <div className="mx-auto grid max-w-[1180px] gap-12 lg:grid-cols-[.85fr_1.15fr] lg:gap-20">
-      <Reveal><Kicker>Early access</Kicker><Headline id="waitlist-heading">Join the waitlist.</Headline>
-        <p className={cn("mt-6 max-w-[440px] text-[17px] leading-[1.75]", SOFT)}>Sabi AI opens in stages. Tell us who you are and we'll let you know when it's ready for you.</p></Reveal>
+      <Reveal><Kicker>Product updates</Kicker><Headline id="waitlist-heading">Stay in the loop.</Headline>
+        <p className={cn("mt-6 max-w-[440px] text-[17px] leading-[1.75]", SOFT)}>Hear about new features and integrations. You do not need to join this list to create a Sabi AI account.</p></Reveal>
       <Reveal delay={.06}><div className="rounded-[28px] border border-[#e6e0d3] bg-white p-6 sm:p-8"><WaitlistForm source="ai-waitlist-section" /></div></Reveal>
     </div>
   </section>;
@@ -330,7 +330,7 @@ function FinalCta() {
       <Kicker light>Sabi AI</Kicker>
       <Headline id="final-heading" light>Bring more clarity to healthcare.</Headline>
       <p className="mx-auto mt-6 max-w-[520px] text-[17px] leading-[1.75] text-[#f7f4ee]/70">For the questions you face, the information you review, and the people you care for.</p>
-      <div className="mt-10 flex flex-wrap justify-center gap-3"><Pill href={WAITLIST} variant="light">Join the waitlist</Pill><Pill href="#professionals" variant="outline-light">Explore Sabi</Pill></div>
+      <div className="mt-10 flex flex-wrap justify-center gap-3"><Pill href={AI_WORKSPACE_URL} variant="light">Open Sabi AI</Pill><Pill href={AI_SIGNUP_URL} variant="outline-light">Create your account</Pill></div>
     </Reveal>
   </section>;
 }
