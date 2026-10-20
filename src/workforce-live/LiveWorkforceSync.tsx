@@ -2,16 +2,20 @@ import { useEffect } from "react";
 import { AlertTriangle, X } from "lucide-react";
 import { useLiveEmr } from "@/emr-live/session";
 import { clearPeople, goLivePeople, loadPeople } from "./people";
+import { clearTime, goLiveTime, loadDirectory, loadTime } from "./time";
 import { useWorkforceSync } from "./sync";
 
 // Mounted once in the live shell. Each Workforce domain fills its stores from the organization's
 // records when the signed-in role may read them, and is emptied otherwise — demo people never show
 // in a live hospital. Failed changes appear in the banner.
 
-type Domain = { permission: string; goLive: () => void; load: () => Promise<void>; clear: () => void };
+type Domain = { permissions: string[]; goLive: () => void; load: () => Promise<void>; clear: () => void; fallback?: { permissions: string[]; load: () => Promise<void> } };
 const DOMAINS: Domain[] = [
-  { permission: "hr.read", goLive: goLivePeople, load: loadPeople, clear: clearPeople },
+  // HR sees full people records; everyone else gets the names-only directory (rosters, approvals).
+  { permissions: ["hr.read"], goLive: goLivePeople, load: loadPeople, clear: clearPeople, fallback: { permissions: ["workforce.directory"], load: loadDirectory } },
+  { permissions: ["workforce.self", "workforce.approve", "workforce.manage"], goLive: goLiveTime, load: loadTime, clear: clearTime },
 ];
+const holds = (permissions: readonly string[], wanted: string[]) => wanted.some((p) => permissions.includes(p));
 
 export function LiveWorkforceSync() {
   const permissions = useLiveEmr((s) => s.access?.permissions);
@@ -20,15 +24,14 @@ export function LiveWorkforceSync() {
   useEffect(() => {
     if (!permissions) return;
     for (const domain of DOMAINS) {
-      if (permissions.includes(domain.permission)) {
-        domain.goLive();
-        domain.load().catch((cause) => {
-          domain.clear();
-          useWorkforceSync.getState().report(cause instanceof Error ? cause.message : "Workforce records could not be loaded.");
-        });
-      } else {
+      domain.clear(); // never show demo records in a live organization, even while loading
+      const load = holds(permissions, domain.permissions) ? domain.load : domain.fallback && holds(permissions, domain.fallback.permissions) ? domain.fallback.load : null;
+      domain.goLive();
+      if (!load) continue;
+      load().catch((cause) => {
         domain.clear();
-      }
+        useWorkforceSync.getState().report(cause instanceof Error ? cause.message : "Workforce records could not be loaded.");
+      });
     }
   }, [permissions]);
 

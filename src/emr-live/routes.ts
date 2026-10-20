@@ -47,6 +47,9 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   "/hr/org-setup": "hr.read",
   "/hr/departments": "hr.read",
   "/hr/org-chart": "hr.read",
+  "/hris": "hr.read",
+  // Workforce (time & attendance, leave, work)
+  "/workforce": ["workforce.self", "workforce.approve", "workforce.manage"],
 };
 
 export type LiveRouteState = "connected" | "no-permission" | "not-connected";

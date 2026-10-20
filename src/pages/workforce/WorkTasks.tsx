@@ -6,6 +6,8 @@ import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Grid } from "@/components/ui/form";
 import { useWorkforce } from "@/store/useWorkforce";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { addWorkContainer } from "@/workforce-live/time";
 import { useHr } from "@/store/useHr";
 import { shortDate } from "@/lib/format";
 
@@ -14,7 +16,11 @@ export default function WorkTasks() {
   const staff = useHr((s) => s.staff);
   const [taskModal, setTaskModal] = useState(false);
   const [actModal, setActModal] = useState<string | null>(null);
-  const [tf, setTf] = useState({ containerId: containers[0].id, name: "", assignedTo: "Nursing team", status: "Not started" as const, estimateHours: 8 });
+  const [tf, setTf] = useState({ containerId: containers[0]?.id ?? "", name: "", assignedTo: "Nursing team", status: "Not started" as const, estimateHours: 8 });
+  // Live: an organization creates its own work items (programmes, initiatives…); the demo seeds them.
+  const live = useIsLiveEmr();
+  const [containerModal, setContainerModal] = useState(false);
+  const [cf, setCf] = useState({ label: "Programme", name: "", code: "", owner: "" });
   const [af, setAf] = useState({ staff: staff[0]?.name ?? "", date: "", hours: 1, note: "" });
 
   const logged = tasks.reduce((n, t) => n + t.loggedHours, 0);
@@ -24,7 +30,10 @@ export default function WorkTasks() {
       <PageHeader
         title="Work & Tasks"
         subtitle="Configurable work containers, tasks, subtasks & activities — allocation reconciles to approved worked time"
-        actions={<Button onClick={() => setTaskModal(true)}><Plus size={15} /> New Task</Button>}
+        actions={<>
+          {live && <Button variant="ghost" onClick={() => { setCf({ label: "Programme", name: "", code: "", owner: "" }); setContainerModal(true); }}><Plus size={15} /> New work item</Button>}
+          <Button disabled={live && containers.length === 0} onClick={() => { setTf((f) => ({ ...f, containerId: f.containerId || containers[0]?.id || "" })); setTaskModal(true); }}><Plus size={15} /> New Task</Button>
+        </>}
       />
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -99,12 +108,27 @@ export default function WorkTasks() {
       </Tabs>
 
       <Modal
+        open={containerModal}
+        onClose={() => setContainerModal(false)}
+        title="New work item"
+        footer={<><Button variant="ghost" onClick={() => setContainerModal(false)}>Cancel</Button>
+          <Button disabled={!cf.name.trim() || !cf.code.trim() || !cf.owner.trim()} onClick={() => { void addWorkContainer({ label: cf.label.trim() || "Programme", name: cf.name.trim(), code: cf.code.trim().toUpperCase(), owner: cf.owner.trim() }); setContainerModal(false); }}>Create</Button></>}
+      >
+        <Grid cols={2}>
+          <Field label="Kind"><Input value={cf.label} onChange={(e) => setCf({ ...cf, label: e.target.value })} placeholder="Programme, Initiative…" /></Field>
+          <Field label="Name"><Input value={cf.name} onChange={(e) => setCf({ ...cf, name: e.target.value })} /></Field>
+          <Field label="Code"><Input value={cf.code} onChange={(e) => setCf({ ...cf, code: e.target.value.toUpperCase() })} placeholder="e.g. MAL26" /></Field>
+          <Field label="Owner"><Input value={cf.owner} onChange={(e) => setCf({ ...cf, owner: e.target.value })} placeholder="Team or person" /></Field>
+        </Grid>
+      </Modal>
+
+      <Modal
         open={taskModal}
         onClose={() => setTaskModal(false)}
         title="New Task"
         wide
         footer={<><Button variant="ghost" onClick={() => setTaskModal(false)}>Cancel</Button>
-          <Button disabled={!tf.name} onClick={() => { addTask(tf); setTaskModal(false); }}>Create Task</Button></>}
+          <Button disabled={!tf.name || !tf.containerId} onClick={() => { addTask(tf); setTaskModal(false); }}>Create Task</Button></>}
       >
         <Grid cols={2}>
           <Field label="Work container"><Select value={tf.containerId} onChange={(e) => setTf({ ...tf, containerId: e.target.value })} options={containers.map((c) => ({ value: c.id, label: c.name }))} /></Field>

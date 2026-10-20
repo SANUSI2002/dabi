@@ -19,7 +19,9 @@ export default function Timesheets() {
   const name = (id: string) => staff.find((s) => s.id === id)?.name ?? id;
   const policy = policies.find((p) => p.status === "Current") ?? policies[0];
 
-  const [periodId, setPeriodId] = useState(periods[0].id);
+  // Periods may arrive after the screen opens (a live organization): default to the latest one.
+  const [chosenPeriodId, setPeriodId] = useState(periods[0]?.id ?? "");
+  const periodId = chosenPeriodId || periods[0]?.id || "";
   const visible = useMemo(
     () => timesheets.filter((t) => t.periodId === periodId && scope.inScope(t.staffId)),
     [timesheets, periodId, scope],
@@ -32,7 +34,7 @@ export default function Timesheets() {
   const [amdModal, setAmdModal] = useState(false);
   const [amd, setAmd] = useState({ change: "", reason: "" });
 
-  const period = periods.find((p) => p.id === periodId)!;
+  const period = periods.find((p) => p.id === periodId) ?? { id: "", label: "No period yet", start: "", end: "", locked: false } as (typeof periods)[number];
   const sheet = timesheets.find((t) => t.id === openId) ?? visible[0];
 
   const worked = (t: typeof timesheets[number]) => sum(t.lines.map((l) => l.workedHours));
@@ -44,7 +46,7 @@ export default function Timesheets() {
     if (!sheet) return [];
     const b: string[] = [];
     if (sheet.lines.length === 0) b.push("At least one time entry is required.");
-    const overCap = sheet.lines.find((l) => l.workedHours > policy.maxDailyHours);
+    const overCap = policy && sheet.lines.find((l) => l.workedHours > policy.maxDailyHours);
     if (overCap) b.push(`A day exceeds the ${policy.maxDailyHours}h maximum (${shortDate(overCap.date)}).`);
     return b;
   }, [sheet, policy]);

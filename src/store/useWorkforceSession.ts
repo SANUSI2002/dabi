@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { useHr } from "@/store/useHr";
 import { useIdentity } from "@/store/useIdentity";
 import { ACCOUNTS, accountById, type WfRole } from "@/data/accounts";
+import { useLiveEmr } from "@/emr-live/session";
+import { useLiveTimeMeta } from "@/workforce-live/time";
 
 export type { WfRole };
 
@@ -62,7 +64,29 @@ function personaFor(staffId: string): WfPersona {
   return { id: staffId, staffId, role: "Employee" };
 }
 
+/** A live organization: who you are comes from your linked employee record and your permissions. */
+function liveScope(): WfScope {
+  const access = useLiveEmr.getState().access;
+  const user = useLiveEmr.getState().user;
+  const meta = useLiveTimeMeta.getState();
+  const can = (p: string) => access?.permissions.includes(p) ?? false;
+  const staff = useHr.getState().staff;
+  const selfId = meta.selfEmployeeId ?? "";
+  const role: WfRole = can("workforce.manage") ? "Tenant HR Administrator" : meta.reportIds.length ? "Line Manager" : "Employee";
+  const visibleIds = meta.seesEveryone ? staff.map((s) => s.id) : [selfId, ...meta.reportIds].filter(Boolean);
+  const name = useHr.getState().byId(selfId)?.name ?? user?.name ?? "You";
+  return {
+    persona: { id: selfId, staffId: selfId, role, reports: meta.reportIds }, role, staffId: selfId, name,
+    selfId, selfName: name, selfRole: role, isViewingAs: false, canViewAs: false,
+    visibleIds, inScope: (id: string) => visibleIds.includes(id),
+    scopeLabel: meta.seesEveryone ? "All employees" : meta.reportIds.length ? "You and your direct reports" : "Your own records",
+    canApprove: can("workforce.approve") || meta.reportIds.length > 0, canConfigure: can("workforce.manage"), canSchedule: can("workforce.manage"),
+    canRecordOwnTime: !!meta.selfEmployeeId && can("workforce.self"), readOnly: false, selfOnly: !meta.seesEveryone && meta.reportIds.length === 0,
+  };
+}
+
 export function wfScope(): WfScope {
+  if (useLiveEmr.getState().status === "ready" && useLiveEmr.getState().access) return liveScope();
   const signedIn = useIdentity.getState().user;
   const self = personaFor(signedIn.id);
   const canViewAs = self.role === "Tenant HR Administrator";
@@ -123,8 +147,10 @@ export function useWfScope(): WfScope {
   const viewAsId = useWorkforceSession((s) => s.viewAsId);
   const user = useIdentity((s) => s.user);
   const staff = useHr((s) => s.staff);
+  const live = useLiveTimeMeta();
   void viewAsId;
   void user;
   void staff;
+  void live;
   return wfScope();
 }
