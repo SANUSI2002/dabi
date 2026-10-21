@@ -18,7 +18,9 @@ type ApiRxItem = {
   id: string; drugCode: string; drugName: string; strength: string; form: string; dose: number; doseUnit: string; frequency: string;
   route: string; durationDays: number | null; prn: boolean; prnReason: string | null; instructions: string | null; dispenseUnit: string;
   quantityPrescribed: number; quantityDispensed: number; status: "ACTIVE" | "COMPLETED" | "CANCELLED"; controlled: boolean;
-  safetyAlerts: ApiAlert[]; closeOutcome: "OUTSOURCED" | "NOT_DISPENSED" | null; closeReason: string | null; closedAt: string | null; closedByName: string | null;
+  safetyAlerts: ApiAlert[]; closeOutcome: "OUTSOURCED" | "NOT_DISPENSED" | "STOPPED" | "REPLACED" | null; closeReason: string | null; closedAt: string | null; closedByName: string | null;
+  /** put on hold on a ward round (charting refused until restarted) */
+  heldAt?: string | null; heldReason?: string | null;
 };
 type ApiRx = {
   id: string; encounterId: string; patientId: string; version: number; createdAt: string;
@@ -78,6 +80,10 @@ function lineStatus(rx: ApiRx, item: ApiRxItem): Prescription["status"] {
   if (rx.status === "REJECTED") return "Rejected";
   if (item.closeOutcome === "OUTSOURCED") return "Outsourced";
   if (item.closeOutcome === "NOT_DISPENSED") return "Refused";
+  // ward-round decisions
+  if (item.closeOutcome === "STOPPED") return "Stopped";
+  if (item.closeOutcome === "REPLACED") return "Replaced";
+  if (item.status === "ACTIVE" && item.heldAt) return "Held";
   if (item.status === "CANCELLED") return "Cancelled";
   if (item.status === "COMPLETED") return "Dispensed";
   return "Approved"; // still to dispense (possibly partly given already)

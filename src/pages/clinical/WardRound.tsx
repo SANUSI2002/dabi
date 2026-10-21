@@ -19,6 +19,8 @@ import { useNursing } from "@/store/useNursing";
 import { useClinical } from "@/store/useClinical";
 import { useRadiology } from "@/store/useRadiology";
 import { useWardRound, buildSummary, type MedicationChangeInput } from "@/store/useWardRound";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { liveWardRoundActions, useLiveWardRound, useLiveWardRoundLoad } from "@/emr-live/wardRound";
 import {
   CLINICAL_PROGRESS_OPTIONS, PARTICIPANT_ROLES, PLAN_TASK_TYPES, DISCHARGE_BARRIER_OPTIONS,
   EXAMINATION_SYSTEMS, type MedicationChangeAction, type PhysicalExaminationSystem, type ExaminationSystemKey,
@@ -29,7 +31,8 @@ import { dateTime, timeAgo } from "@/lib/format";
 
 const FOCUSED_EXAM_SYSTEMS: ExaminationSystemKey[] = ["general", "cardiovascular", "respiratory", "neurological", "abdominal", "musculoskeletal", "other"];
 
-const ACTIVE_RX_STATUSES: Prescription["status"][] = ["Pending", "Dispensed", "Partially Dispensed"];
+// a live hospital's orders are "Under Review" by the pharmacy, then "Approved" until fully dispensed
+const ACTIVE_RX_STATUSES: Prescription["status"][] = ["Pending", "Dispensed", "Partially Dispensed", "Under Review", "Approved"];
 const INACTIVE_RX_STATUSES: Prescription["status"][] = ["Held", "Stopped", "Replaced"];
 
 const MEDICATION_ACTIONS: { action: MedicationChangeAction; label: string }[] = [
@@ -55,10 +58,15 @@ export default function WardRound() {
   const nursing = useNursing();
   const clinical = useClinical();
   const radiology = useRadiology();
-  const wr = useWardRound();
+  const demoWr = useWardRound();
+  // a live hospital's admission, rounds and chart come from its server (src/emr-live/wardRound.ts)
+  const live = useIsLiveEmr();
+  useLiveWardRoundLoad(live ? admissionId : undefined);
+  const liveData = useLiveWardRound();
+  const wr = live ? liveWardRoundActions : demoWr;
 
-  const admission = emr.admissions.find((a) => a.id === admissionId);
-  const patient = emr.patientById(admission?.patientId);
+  const admission = live ? (liveData.admissionId === admissionId ? liveData.admission : undefined) : emr.admissions.find((a) => a.id === admissionId);
+  const patient = live ? admission && liveData.patient : emr.patientById(admission?.patientId);
 
   const [roundId, setRoundId] = useState<string | null>(routeRoundId ?? null);
   const startedForRef = useRef<string | null>(null);
@@ -96,6 +104,7 @@ export default function WardRound() {
   const [addMedForm, setAddMedForm] = useState({
     drug: "", dose: "", frequency: "BD", duration: "5 days", qty: 0, route: "Oral", indication: "",
     specialInstructions: "", monitoringInstructions: "", prn: false, prnIndication: "", priority: "Routine" as Prescription["priority"],
+    drugCode: undefined as string | undefined, doseUnit: undefined as string | undefined,
   });
 
   const [participantForm, setParticipantForm] = useState({ role: PARTICIPANT_ROLES[0], name: "" });
@@ -105,6 +114,10 @@ export default function WardRound() {
   const [amendmentNote, setAmendmentNote] = useState("");
   const [signError, setSignError] = useState("");
   const [trendOpen, setTrendOpen] = useState(false);
+
+  if (live && !liveData.error && !(liveData.loaded && liveData.admissionId === admissionId)) {
+    return <div className="pt-10 text-center text-mist-400">Loading the ward round…</div>;
+  }
 
   if (!admission || !patient) {
     return (
@@ -124,12 +137,12 @@ export default function WardRound() {
   }
 
   const previousRound = wr.roundsFor(admission.id).find((r) => r.id !== round.id && r.status !== "draft");
-  const observations = nursing.observationsFor(admission.id);
+  const observations = live ? liveData.observations : nursing.observationsFor(admission.id);
   const latestObs = observations[0];
-  const activeProblems = clinical.conditionsFor(patient.id).filter((c) => c.category === "problem-list-item" && c.clinicalStatus === "active");
-  const labs = emr.labOrders.filter((l) => l.patientId === patient.id && +new Date(l.orderedAt) >= +new Date(admission.admittedAt));
-  const imaging = radiology.studiesFor(patient.id).filter((s) => +new Date(s.requestedAt) >= +new Date(admission.admittedAt));
-  const allMeds = prescriptionsForPatient(emr.encounters, patient.id);
+  const activeProblems = (live ? liveData.conditions : clinical.conditionsFor(patient.id)).filter((c) => c.category === "problem-list-item" && c.clinicalStatus === "active");
+  const labs = (live ? liveData.labs : emr.labOrders).filter((l) => l.patientId === patient.id && +new Date(l.orderedAt) >= +new Date(admission.admittedAt));
+  const imaging = (live ? liveData.imaging : radiology.studiesFor(patient.id)).filter((s) => +new Date(s.requestedAt) >= +new Date(admission.admittedAt));
+  const allMeds = live ? liveData.medications : prescriptionsForPatient(emr.encounters, patient.id);
   const activeMeds = allMeds.filter((m) => ACTIVE_RX_STATUSES.includes(m.status));
   const inactiveMeds = allMeds.filter((m) => INACTIVE_RX_STATUSES.includes(m.status)).slice(0, 8);
   const medicationHistory = wr.medicationChangesFor(patient.id);
@@ -138,7 +151,7 @@ export default function WardRound() {
     at: o.recordedAt, by: o.recordedBy, bp: o.bp, temp: o.temp, pulse: o.pulse, resp: o.resp, spo2: o.spo2, painScore: o.painScore,
   }));
 
-  const lastAdministered = (prescriptionId: string) =>
+  const lastAdministered = (prescriptionId: string) => live ? liveData.lastGiven[prescriptionId] :
     nursing.administrations
       .filter((a) => a.prescriptionId === prescriptionId && a.status === "given")
       .sort((l, r) => +new Date(r.administeredAt ?? 0) - +new Date(l.administeredAt ?? 0))[0]?.administeredAt;
@@ -187,9 +200,11 @@ export default function WardRound() {
       prn: addMedForm.prn,
       prnIndication: addMedForm.prn ? addMedForm.prnIndication.trim() || undefined : undefined,
       priority: addMedForm.priority,
+      drugCode: addMedForm.drugCode,
+      doseUnit: addMedForm.doseUnit,
     });
     setAddMedOpen(false);
-    setAddMedForm({ drug: "", dose: "", frequency: "BD", duration: "5 days", qty: 0, route: "Oral", indication: "", specialInstructions: "", monitoringInstructions: "", prn: false, prnIndication: "", priority: "Routine" });
+    setAddMedForm({ drug: "", dose: "", frequency: "BD", duration: "5 days", qty: 0, route: "Oral", indication: "", specialInstructions: "", monitoringInstructions: "", prn: false, prnIndication: "", priority: "Routine", drugCode: undefined, doseUnit: undefined });
   };
 
   const safetyAlerts = addMedForm.drug.trim() ? wr.screenNewMedication(patient.id, addMedForm.drug.trim()) : [];
@@ -751,7 +766,7 @@ export default function WardRound() {
             </div>
           )}
           <Grid cols={2}>
-            <Field label="Drug"><DrugField value={addMedForm.drug} onChange={(v) => setAddMedForm({ ...addMedForm, drug: v })} /></Field>
+            <Field label="Drug"><DrugField value={addMedForm.drug} onChange={(v, product) => setAddMedForm({ ...addMedForm, drug: v, drugCode: product?.code, doseUnit: product?.doseUnit })} /></Field>
             <Field label="Dose"><Input value={addMedForm.dose} onChange={(e) => setAddMedForm({ ...addMedForm, dose: e.target.value })} placeholder="e.g. 500mg" /></Field>
             <Field label="Route"><Input value={addMedForm.route} onChange={(e) => setAddMedForm({ ...addMedForm, route: e.target.value })} /></Field>
             <Field label="Frequency"><Input value={addMedForm.frequency} onChange={(e) => setAddMedForm({ ...addMedForm, frequency: e.target.value })} /></Field>

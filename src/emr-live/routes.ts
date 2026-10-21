@@ -12,6 +12,8 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   // The pharmacy queue is for pharmacy staff (the backend allows reviewers and dispensers).
   "/pharmacy": "prescription.dispense",
   "/inpatient": "admission.read",
+  // a ward round is a clinical note on the admission (the backend checks each action)
+  "/ward-round": "clinical.read",
   // The billing desk (cashiers and finance); its invoice pages live under /billing/invoices/:id.
   "/billing": "billing.read",
   // The patient chart (/patients/:id) and Medical History are clinical records (doctors, nurses).
