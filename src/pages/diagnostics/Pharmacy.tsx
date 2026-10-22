@@ -13,7 +13,7 @@ import { useClinical, selectAllergiesFor } from "@/store/useClinical";
 import { useAP } from "@/store/accounting/useAP";
 import { usePharmacy } from "@/store/usePharmacy";
 import type { SafetyAlert } from "@/data/medicationSafety";
-import { PHARMACY_LOCATIONS, REJECTION_REASONS, type PharmacyLocation, type ExpiryBucket, type DrugMasterStatus, type DrugBatch, type ControlledMedicineEntry } from "@/data/pharmacyOps";
+import { PHARMACY_LOCATIONS, type PharmacyLocation, type ExpiryBucket, type DrugMasterStatus, type DrugBatch, type ControlledMedicineEntry } from "@/data/pharmacyOps";
 import { dateTime, shortDate } from "@/lib/format";
 import type { Prescription } from "@/data/types";
 import { useIsLiveEmr, useLiveEmr, liveCan } from "@/emr-live/session";
@@ -21,6 +21,7 @@ import { useLivePharmacy, useLivePharmacyRefresh, type LiveRxLine, type LiveRegi
 import { describeEmrError, newIdempotencyKey } from "@/emr-live/client";
 import { Link } from "react-router-dom";
 import { DRUG_LISTS_LINK, drugCategoryLabel, inDrugCategory, useDrugCategories, useDrugClasses } from "@/lib/drugCategories";
+import { useListValues } from "@/lib/listOptions";
 
 const RX_QUEUE_TABS = ["Under Review", "Approved", "Rejected", "All"] as const;
 const RX_STATUS_TONE: Record<string, "brand" | "action" | "mist" | "amber"> = {
@@ -110,7 +111,8 @@ export default function Pharmacy() {
   const [queueTab, setQueueTab] = useState<(typeof RX_QUEUE_TABS)[number]>("Under Review");
   const [reviewing, setReviewing] = useState<EncounterRx | null>(null);
   const [rejecting, setRejecting] = useState(false);
-  const [rejectReason, setRejectReason] = useState<string>(REJECTION_REASONS[0]);
+  const rejectionReasons = useListValues("prescription-rejection-reasons"); // the pharmacy's Prescription Rejection Reasons
+  const [rejectReason, setRejectReason] = useState<string>("");
   const [rejectNote, setRejectNote] = useState("");
   const [overrideReason, setOverrideReason] = useState("");
 
@@ -125,7 +127,7 @@ export default function Pharmacy() {
     setReviewing(row);
     setRejecting(false);
     setOverrideReason("");
-    setRejectReason(REJECTION_REASONS[0]);
+    setRejectReason(rejectionReasons[0] ?? "");
     setRejectNote("");
   }
 
@@ -790,7 +792,7 @@ export default function Pharmacy() {
             {rejecting && (
               <div className="space-y-3 rounded-xl bg-mist-50 p-3">
                 <Field label="Reason *">
-                  <Select value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} options={REJECTION_REASONS} />
+                  <Select value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} options={rejectionReasons} />
                 </Field>
                 <Field label="Pharmacist note * (shown to the prescriber)">
                   <Textarea value={rejectNote} onChange={(e) => setRejectNote(e.target.value)} />

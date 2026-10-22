@@ -3,13 +3,14 @@ import { create } from "zustand";
 import type { Appointment, Patient } from "@/data/types";
 import { emrRequest, newIdempotencyKey } from "./client";
 import { patientFromApi, type ApiPatient } from "./mappers";
+import { listCode, listLabel } from "@/lib/listOptions";
 
 // The Appointments screen in live mode: the hospital's bookings (GET /appointments), booking,
 // check-in (which opens the visit and queues the patient) and no-show — and the visit requests
 // patients made in the Sabi app (GET /appointments/requests), which the desk confirms (booking
 // the patient for the requested time) or rejects with a reason the patient sees.
 
-type ApiType = "GENERAL" | "ANC" | "PNC" | "FOLLOW_UP" | "IMMUNIZATION" | "SPECIALIST";
+type ApiType = "GENERAL" | "ANC" | "PNC" | "FOLLOW_UP" | "IMMUNIZATION" | "SPECIALIST" | (string & {});
 type ApiStatus = "SCHEDULED" | "ATTENDED" | "NO_SHOW" | "CANCELLED";
 export type ApiAppointment = {
   id: string; patientId: string; scheduledAt: string; type: ApiType; reason: string | null; status: ApiStatus; version: number;
@@ -17,10 +18,13 @@ export type ApiAppointment = {
   patient?: Pick<ApiPatient, "id" | "medicalRecordNumber" | "givenName" | "familyName" | "dateOfBirth" | "sex">;
 };
 
-export const TYPE_FROM_API: Record<ApiType, Appointment["type"]> = {
+export const TYPE_FROM_API: Record<string, Appointment["type"]> = {
   GENERAL: "General", ANC: "ANC", PNC: "PNC", FOLLOW_UP: "Follow-up", IMMUNIZATION: "Immunization", SPECIALIST: "Specialist",
 };
-const TYPE_TO_API = Object.fromEntries(Object.entries(TYPE_FROM_API).map(([api, label]) => [label, api])) as Record<Appointment["type"], ApiType>;
+const TYPE_TO_API = Object.fromEntries(Object.entries(TYPE_FROM_API).map(([api, label]) => [label, api])) as Record<string, ApiType>;
+// A type the hospital added is shown by its name and sent by its code (Settings → Master Data → Appointment Types).
+const typeFromApi = (code: ApiType): Appointment["type"] => TYPE_FROM_API[code] ?? listLabel("appointment-types", code);
+const typeToApi = (label: Appointment["type"]): ApiType => TYPE_TO_API[label] ?? listCode("appointment-types", label);
 const STATUS_FROM_API: Record<ApiStatus, Appointment["status"]> = { SCHEDULED: "Scheduled", ATTENDED: "Attended", NO_SHOW: "No-Show", CANCELLED: "Cancelled" };
 
 /** A booking with what live actions need (its version) and the patient it is for. */
@@ -38,7 +42,7 @@ export function appointmentFromApi(row: ApiAppointment): LiveAppointment {
     date: row.scheduledAt,
     time: `${pad(when.getHours())}:${pad(when.getMinutes())}`,
     provider: row.providerName ?? "—",
-    type: TYPE_FROM_API[row.type],
+    type: typeFromApi(row.type),
     reason: row.reason ?? undefined,
     status: STATUS_FROM_API[row.status],
     encounterId: row.encounterId ?? undefined,
@@ -148,7 +152,7 @@ export const useLiveAppointments = create<AppointmentsState>((set, get) => ({
     await emrRequest("/appointments", {
       method: "POST", idempotencyKey,
       body: {
-        patientId: form.patientId, scheduledAt: scheduledAtFor(form.date, form.time), type: TYPE_TO_API[form.type],
+        patientId: form.patientId, scheduledAt: scheduledAtFor(form.date, form.time), type: typeToApi(form.type),
         ...(form.providerUserId ? { providerUserId: form.providerUserId } : {}), ...(reason ? { reason } : {}),
       },
     });
@@ -167,7 +171,7 @@ export const useLiveAppointments = create<AppointmentsState>((set, get) => ({
     await emrRequest(`/appointments/requests/${request.id}/confirm`, {
       method: "POST", idempotencyKey,
       body: {
-        ...(request.linkedPatient ? {} : { patientId: form.patientId }), type: TYPE_TO_API[form.type],
+        ...(request.linkedPatient ? {} : { patientId: form.patientId }), type: typeToApi(form.type),
         ...(form.providerUserId ? { providerUserId: form.providerUserId } : {}),
       },
     });

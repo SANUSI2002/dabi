@@ -3,7 +3,7 @@
 const day = (n: number) => new Date(Date.now() - n * 864e5).toISOString();
 
 export type AssetStatus = "In service" | "Under repair" | "Out of service" | "Retired";
-export type AssetCategory = "Cold chain" | "Maternity" | "Diagnostics" | "Power" | "IT" | "General";
+export type AssetCategory = "Cold chain" | "Maternity" | "Diagnostics" | "Power" | "IT" | "General" | (string & {}) /* the hospital's own (Settings → Master Data) */;
 
 export type Asset = {
   id: string;

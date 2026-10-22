@@ -24,12 +24,12 @@ import type { LabOrder } from "@/data/types";
 import { useIsLiveEmr, liveCan } from "@/emr-live/session";
 import { useLiveLab, useLiveLabRefresh, analyteRange, resultValue, referenceText, type LiveLabTest } from "@/emr-live/lab";
 import { describeEmrError } from "@/emr-live/client";
+import { useListValues } from "@/lib/listOptions";
 
 // A live test with no bench phases set (Lab Test Settings) goes straight from collection to analysis.
 const LIVE_PHASES = ["Analysis"];
 
 const SAMPLE_TYPES = ["Venous blood (EDTA)", "Venous blood (Plain)", "Capillary blood", "Urine", "Stool", "Sputum", "Swab", "Other"];
-const REJECT_REASONS = ["Haemolysed sample", "Insufficient volume", "Clotted sample", "Wrong container", "Unlabelled / mislabelled", "Leaked in transit", "Expired collection", "Other"];
 
 const labConcept = (test: string) => {
   const loinc = LAB_LOINC[test];
@@ -91,7 +91,8 @@ export default function Laboratory() {
   const [backFor, setBackFor] = useState<string | null>(null);
   const [backNote, setBackNote] = useState("");
   const [rejectId, setRejectId] = useState<string | null>(null);
-  const [rejectReason, setRejectReason] = useState(REJECT_REASONS[0]);
+  const rejectReasons = useListValues("specimen-rejection-reasons"); // the laboratory's Specimen Rejection Reasons
+  const [rejectReason, setRejectReason] = useState("");
   const [criticalFor, setCriticalFor] = useState<string | null>(null);
   const [criticalTo, setCriticalTo] = useState("");
 
@@ -210,7 +211,7 @@ export default function Laboratory() {
 
                     <div className="mt-3 flex flex-wrap justify-end gap-2">
                       {(order.status === "Pending" || order.status === "Sample Collected") && (
-                        <Button variant="ghost" className="px-2.5 py-1 text-xs" onClick={() => { setRejectReason(REJECT_REASONS[0]); setRejectId(order.id); }}>
+                        <Button variant="ghost" className="px-2.5 py-1 text-xs" onClick={() => { setRejectReason(rejectReasons[0] ?? ""); setRejectId(order.id); }}>
                           <Ban size={13} /> Reject specimen
                         </Button>
                       )}
@@ -323,7 +324,7 @@ export default function Laboratory() {
           <Button variant="action" disabled={busy} onClick={() => { if (rejectId) void act(() => rejectSpecimen(rejectId, rejectReason), () => lab.reject(liveTest(rejectId), rejectReason), () => setRejectId(null)); }}>Reject specimen</Button></>}
       >
         <div className="space-y-3">
-          <Field label="Rejection reason"><Select value={rejectReason} onChange={(event) => setRejectReason(event.target.value)} options={REJECT_REASONS} /></Field>
+          <Field label="Rejection reason"><Select value={rejectReason} onChange={(event) => setRejectReason(event.target.value)} options={rejectReasons} /></Field>
           <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700">The ordering clinician should be asked to re-collect. A rejected specimen is a closed order.</p>
         </div>
       </Modal>

@@ -12,8 +12,8 @@ import type { AssetCategory } from "@/data/assets";
 import { useIsLiveEmr } from "@/emr-live/session";
 import { describeEmrError } from "@/emr-live/client";
 import { useLiveEquipment, useLiveEquipmentLoad } from "@/emr-live/equipment";
+import { useListValues } from "@/lib/listOptions";
 
-const CATEGORIES: AssetCategory[] = ["Cold chain", "Maternity", "Diagnostics", "Power", "IT", "General"];
 const pmTone = (l: string) => (l === "Overdue" ? "action" : l === "Due soon" ? "amber" : "mist");
 
 export default function Equipment() {
@@ -39,6 +39,7 @@ export default function Equipment() {
   const [faultOpen, setFaultOpen] = useState(false);
   const [ff, setFf] = useState({ assetId: "", summary: "", priority: "Medium" as "Low" | "Medium" | "High" });
   const [assetOpen, setAssetOpen] = useState(false);
+  const categories = useListValues("equipment-categories"); // the hospital's Equipment Categories
   const [af, setAf] = useState({ tag: "", name: "", category: "General" as AssetCategory, location: "", commissionedOn: "", serviceIntervalDays: 180, lastServicedOn: "" });
   const [resolveFor, setResolveFor] = useState<string | null>(null);
   const [resNote, setResNote] = useState("");
@@ -189,7 +190,7 @@ export default function Equipment() {
         <Grid cols={2}>
           <Field label="Asset tag"><Input value={af.tag} onChange={(e) => setAf({ ...af, tag: e.target.value.toUpperCase() })} placeholder="e.g. VR-8891" /></Field>
           <Field label="Name"><Input value={af.name} onChange={(e) => setAf({ ...af, name: e.target.value })} /></Field>
-          <Field label="Category"><Select value={af.category} onChange={(e) => setAf({ ...af, category: e.target.value as AssetCategory })} options={CATEGORIES} /></Field>
+          <Field label="Category"><Select value={af.category} onChange={(e) => setAf({ ...af, category: e.target.value as AssetCategory })} options={categories} /></Field>
           <Field label="Location"><Input value={af.location} onChange={(e) => setAf({ ...af, location: e.target.value })} /></Field>
           <Field label="Commissioned"><Input type="date" value={af.commissionedOn} onChange={(e) => setAf({ ...af, commissionedOn: e.target.value })} /></Field>
           <Field label="Last serviced"><Input type="date" value={af.lastServicedOn} onChange={(e) => setAf({ ...af, lastServicedOn: e.target.value })} /></Field>

@@ -241,7 +241,7 @@ export type Appointment = {
   date: string;
   time: string;
   provider: string;
-  type: "General" | "ANC" | "PNC" | "Follow-up" | "Immunization" | "Specialist";
+  type: "General" | "ANC" | "PNC" | "Follow-up" | "Immunization" | "Specialist" | (string & {}) /* the hospital's own (Settings → Master Data) */;
   reason?: string;
   status: "Scheduled" | "Attended" | "No-Show" | "Cancelled";
   encounterId?: string;
@@ -280,7 +280,7 @@ export type PatientTransfer = {
   patientId?: string; // linked local record (always set for Out)
   patientName: string;
   facility: string; // the other facility
-  reason: "Relocation" | "Catchment reassignment" | "Service not available here" | "Patient request" | "Higher level of care";
+  reason: "Relocation" | "Catchment reassignment" | "Service not available here" | "Patient request" | "Higher level of care" | (string & {}) /* the hospital's own (Settings → Master Data) */;
   summary?: string; // clinical handover note
   date: string;
   status: "Pending" | "Completed" | "Cancelled";

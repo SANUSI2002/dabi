@@ -16,6 +16,7 @@ import {
   newIdempotencyKey, useLiveAppointments, useLiveAppointmentsLoad,
   type AppointmentRequest, type ConfirmForm, type LiveAppointment,
 } from "@/emr-live/appointments";
+import { useListOptions } from "@/lib/listOptions";
 
 export default function Appointments() {
   const { appointments: demoAppointments, patientById, bookAppointment, markAppointment } = useEmr();
@@ -30,6 +31,7 @@ export default function Appointments() {
   const liveRequests = useLiveAppointments((s) => s.requests);
   const appointments: (Appointment & Partial<LiveAppointment>)[] = live ? liveItems : demoAppointments;
   const [open, setOpen] = useState(false);
+  const appointmentTypes = useListOptions("appointment-types").map((o) => o.label); // the hospital's Appointment Types, by name
   const [f, setF] = useState({ patientId: "", date: "", time: "09:00", provider: clinicians[0]?.name ?? "", providerUserId: "", type: "General" as Appointment["type"], reason: "" });
   const [bookingKey, setBookingKey] = useState("");
   const [pending, setPending] = useState(false);
@@ -213,7 +215,7 @@ export default function Appointments() {
             <Field label="Date"><Input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
             <Field label="Time"><Input type="time" value={f.time} onChange={(e) => setF({ ...f, time: e.target.value })} /></Field>
             <Field label="Type">
-              <Select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value as Appointment["type"] })} options={["General", "ANC", "PNC", "Follow-up", "Immunization", "Specialist"]} />
+              <Select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value as Appointment["type"] })} options={appointmentTypes} />
             </Field>
           </Grid>
           <Field label="Provider">
@@ -274,7 +276,7 @@ export default function Appointments() {
             </Field>
             <Grid cols={2}>
               <Field label="Type">
-                <Select value={confirmForm.type} onChange={(e) => setConfirmForm({ ...confirmForm, type: e.target.value as Appointment["type"] })} options={["General", "ANC", "PNC", "Follow-up", "Immunization", "Specialist"]} />
+                <Select value={confirmForm.type} onChange={(e) => setConfirmForm({ ...confirmForm, type: e.target.value as Appointment["type"] })} options={appointmentTypes} />
               </Field>
               <Field label="Provider">
                 <Select

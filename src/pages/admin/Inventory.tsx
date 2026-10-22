@@ -16,6 +16,7 @@ import { QuarantineModal, QuarantinePanel } from "./inventory/Quarantine";
 import { RequisitionsTab } from "./inventory/RequisitionsTab";
 import { TransfersTab } from "./inventory/TransfersTab";
 import { StockCountTab } from "./inventory/StockCountTab";
+import { useListValues } from "@/lib/listOptions";
 
 type Asset = { id: string; name: string; category: string; serial: string; location: string; cost: number; status: "Functional" | "Faulty" | "Under Repair" | "Disposed"; acquired: string };
 
@@ -23,7 +24,6 @@ type Asset = { id: string; name: string; category: string; serial: string; locat
 const FROM_REGISTER: Record<AssetStatus, Asset["status"]> = { "In service": "Functional", "Under repair": "Under Repair", "Out of service": "Faulty", Retired: "Disposed" };
 const TO_REGISTER: Record<Asset["status"], AssetStatus> = { Functional: "In service", "Under Repair": "Under repair", Faulty: "Out of service", Disposed: "Retired" };
 const REGISTER_CATEGORY: Record<string, AssetCategory> = { Equipment: "General", "Cold Chain": "Cold chain", Furniture: "General", Vehicle: "General", IT: "IT", Other: "General" };
-const ITEM_CATEGORIES: InventoryItem["category"][] = ["Consumables", "Reagents", "PPE", "Surgical Supplies", "Linen", "Medical Devices", "Drugs", "Other"];
 
 type StockStatus = "OK" | "Reorder" | "Low Stock" | "Out of Stock";
 function statusFor(currentQty: number, minLevel: number | undefined, reorderLevel: number): { label: StockStatus; tone: "brand" | "action" | "amber" | "mist" } {
@@ -58,6 +58,7 @@ export default function Inventory() {
   const [assetError, setAssetError] = useState("");
   // ---- live: new items and receiving stock (the demo receives through accounting goods receipts) ----
   const [itemOpen, setItemOpen] = useState(false);
+  const itemCategories = useListValues("store-item-categories"); // the hospital's Store Item Categories
   const [itemForm, setItemForm] = useState({ sku: "", name: "", category: "Consumables" as InventoryItem["category"], unit: "", reorderLevel: "", minLevel: "" });
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [receiveForm, setReceiveForm] = useState({ itemId: "", locationId: "", quantity: "", unitCost: "", batchNumber: "", expiryDate: "", reference: "" });
@@ -363,7 +364,7 @@ export default function Inventory() {
           <Grid cols={2}>
             <Field label="SKU *"><Input value={itemForm.sku} onChange={(e) => setItemForm({ ...itemForm, sku: e.target.value.toUpperCase() })} placeholder="e.g. GLV-M" /></Field>
             <Field label="Name *"><Input value={itemForm.name} onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })} /></Field>
-            <Field label="Category"><Select value={itemForm.category} onChange={(e) => setItemForm({ ...itemForm, category: e.target.value as InventoryItem["category"] })} options={ITEM_CATEGORIES} /></Field>
+            <Field label="Category"><Select value={itemForm.category} onChange={(e) => setItemForm({ ...itemForm, category: e.target.value as InventoryItem["category"] })} options={itemCategories} /></Field>
             <Field label="Unit *"><Input value={itemForm.unit} onChange={(e) => setItemForm({ ...itemForm, unit: e.target.value })} placeholder="e.g. box, pack, roll" /></Field>
             <Field label="Reorder level"><Input type="number" min={0} value={itemForm.reorderLevel} onChange={(e) => setItemForm({ ...itemForm, reorderLevel: e.target.value })} /></Field>
             <Field label="Minimum level"><Input type="number" min={0} value={itemForm.minLevel} onChange={(e) => setItemForm({ ...itemForm, minLevel: e.target.value })} /></Field>

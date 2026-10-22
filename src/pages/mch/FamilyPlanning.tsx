@@ -18,6 +18,7 @@ import type { FpClient, FpVisitType, Patient } from "@/data/types";
 import { useIsLiveEmr } from "@/emr-live/session";
 import { describeEmrError } from "@/emr-live/client";
 import { newIdempotencyKey, useLiveFamilyPlanning, useLiveFamilyPlanningLoad, type LiveFpClient } from "@/emr-live/familyPlanning";
+import { useListValues } from "@/lib/listOptions";
 
 // annual couple-years-of-protection contribution by method (WHO/USAID factors, per client-year on method)
 const CYP: Record<string, number> = {
@@ -55,6 +56,7 @@ export default function FamilyPlanning() {
   const [visitFor, setVisitFor] = useState<string | null>(null);
   const [vf, setVf] = useState<{ type: FpVisitType; method: string; nextVisit: string; notes: string }>({ type: "Resupply", method: "", nextVisit: "", notes: "" });
   const [discFor, setDiscFor] = useState<string | null>(null);
+  const stopReasons = useListValues("fp-discontinue-reasons"); // the hospital's reasons (a removal visit records "Removal")
   const [discReason, setDiscReason] = useState("");
 
   const active = fpClients.filter((c) => c.status === "Active");
@@ -220,7 +222,7 @@ export default function FamilyPlanning() {
           }, () => setDiscFor(null))}>{busy ? "Saving…" : "Discontinue"}</Button></>}
       >
         {errorLine}
-        <Field label="Reason"><Select value={discReason} onChange={(e) => setDiscReason(e.target.value)} options={["", "Wants to conceive", "Side effects", "Method failure", "Moved away", "Partner objection", "Switched method"].map((r) => ({ value: r, label: r || "Select a reason…" }))} /></Field>
+        <Field label="Reason"><Select value={discReason} onChange={(e) => setDiscReason(e.target.value)} options={["", ...stopReasons.filter((r) => r !== "Removal")].map((r) => ({ value: r, label: r || "Select a reason…" }))} /></Field>
       </Modal>
     </div>
   );

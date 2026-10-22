@@ -16,7 +16,7 @@ export type InventoryItem = {
   id: string;
   sku: string;
   name: string;
-  category: "Drugs" | "Consumables" | "Reagents" | "Other" | "PPE" | "Surgical Supplies" | "Linen" | "Medical Devices";
+  category: "Drugs" | "Consumables" | "Reagents" | "Other" | "PPE" | "Surgical Supplies" | "Linen" | "Medical Devices" | (string & {}) /* the hospital's own (Settings → Master Data) */;
   subcategory?: string;
   unit: string;
   valuationMethod: ValuationMethod;

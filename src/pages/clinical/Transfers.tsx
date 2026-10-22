@@ -14,10 +14,8 @@ import type { Patient, PatientTransfer } from "@/data/types";
 import { useIsLiveEmr } from "@/emr-live/session";
 import { describeEmrError } from "@/emr-live/client";
 import { newIdempotencyKey, useLiveTransfers, useLiveTransfersLoad, type LiveTransfer } from "@/emr-live/transfers";
+import { useListValues } from "@/lib/listOptions";
 
-const REASONS: PatientTransfer["reason"][] = [
-  "Relocation", "Catchment reassignment", "Service not available here", "Patient request", "Higher level of care",
-];
 
 export default function Transfers() {
   const { transfers: demoTransfers, patients, patientById, addTransfer, completeTransfer, cancelTransfer } = useEmr();
@@ -44,6 +42,7 @@ export default function Transfers() {
   const me = useIdentity((s) => s.user.name);
 
   const [open, setOpen] = useState(false);
+  const reasons = useListValues("transfer-reasons"); // the hospital's Transfer Reasons
   const [f, setF] = useState<{ direction: "In" | "Out"; patientId: string; patientName: string; facility: string; reason: PatientTransfer["reason"]; summary: string }>({
     direction: "Out", patientId: "", patientName: "", facility: "", reason: "Relocation", summary: "",
   });
@@ -143,7 +142,7 @@ export default function Transfers() {
               <Select value={f.direction} onChange={(e) => setF({ ...f, direction: e.target.value as "In" | "Out" })} options={["Out", "In"]} />
             </Field>
             <Field label="Reason">
-              <Select value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value as PatientTransfer["reason"] })} options={REASONS} />
+              <Select value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value as PatientTransfer["reason"] })} options={reasons} />
             </Field>
           </Grid>
           {f.direction === "Out" ? (

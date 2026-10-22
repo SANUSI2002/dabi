@@ -13,6 +13,7 @@ import { PatientCardDoc, BirthCertificateDoc } from "@/components/print/document
 import { PatientLink } from "@/components/ui/PatientLink";
 import type { Patient, Sex, Payer } from "@/data/types";
 import { STRONG_DUPLICATE_SCORE } from "@/lib/duplicates";
+import { useListValues } from "@/lib/listOptions";
 
 const BLANK = {
   firstName: "", lastName: "", otherName: "", preferredName: "", sex: "F" as Sex, dob: "",
@@ -22,9 +23,9 @@ const BLANK = {
   emergencyContactName: "", emergencyContactPhone: "", emergencyContactRelation: "",
 };
 
-const LANGUAGES = ["English", "Yoruba", "Igbo", "Hausa", "Pidgin", "French", "Other"];
 
 export default function Registration() {
+  const languages = useListValues("patient-languages"); // the hospital's Patient Languages
   const nav = useNavigate();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -253,7 +254,7 @@ export default function Registration() {
             <p className="mb-2 text-xs font-bold uppercase tracking-wide text-mist-400">Contact &amp; personal</p>
             <Grid cols={3}>
               <Field label="Phone"><Input value={form.phone} onChange={(event) => setField("phone", event.target.value)} placeholder="080X XXX XXXX" /></Field>
-              <Field label="Preferred language"><Select value={form.language} onChange={(event) => setField("language", event.target.value)} options={["", ...LANGUAGES]} /></Field>
+              <Field label="Preferred language"><Select value={form.language} onChange={(event) => setField("language", event.target.value)} options={["", ...languages]} /></Field>
               <Field label="Occupation"><Input value={form.occupation} onChange={(event) => setField("occupation", event.target.value)} placeholder="Optional" /></Field>
             </Grid>
             <div className="mt-3">
