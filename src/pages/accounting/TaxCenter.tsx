@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FundsNote } from "@/components/accounting/FundsNote";
 import { Plus, Percent, FileCheck2, Banknote, Send } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard, Card, statusTone, EmptyState } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
@@ -122,6 +123,7 @@ export default function TaxCenter() {
       <Modal open={!!payId} onClose={() => setPayId(null)} title="Remit Tax"
         footer={<><Button variant="ghost" onClick={() => setPayId(null)}>Cancel</Button><Button onClick={() => { if (payId) payReturn(payId, payAcct); setPayId(null); }}>Remit</Button></>}>
         <Field label="Pay from"><Select value={String(payAcct)} onChange={(e) => setPayAcct(+e.target.value)} options={cashAccts.map((a) => ({ value: String(a.number), label: `${a.number} — ${a.name}` }))} /></Field>
+        <div className="mt-3"><FundsNote account={payAcct} amount={returns.find((r) => r.id === payId)?.netPayable ?? 0} /></div>
       </Modal>
     </div>
   );

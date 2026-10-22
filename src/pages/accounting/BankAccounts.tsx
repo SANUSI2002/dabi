@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FundsNote } from "@/components/accounting/FundsNote";
 import { Plus, Landmark, ArrowRightLeft } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard, Card } from "@/components/ui/primitives";
 import { Table, Row, Cell } from "@/components/ui/Table";
@@ -93,6 +94,7 @@ export default function BankAccounts() {
             <Field label="Date"><Input type="date" value={tf.date} onChange={(e) => setTf({ ...tf, date: e.target.value })} /></Field>
           </Grid>
           <Field label="Reference"><Input value={tf.reference} onChange={(e) => setTf({ ...tf, reference: e.target.value })} /></Field>
+          <FundsNote account={tf.from} amount={tf.amount} />
           <p className="text-xs text-mist-400">Posts Dr destination / Cr source.</p>
         </div>
       </Modal>

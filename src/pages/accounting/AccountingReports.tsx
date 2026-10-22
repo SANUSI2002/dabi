@@ -282,6 +282,10 @@ function ReportView({ reportKey, data, print }: { reportKey: ReportKey; data: un
 
   if (reportKey === "inv-val") {
     const rows = data as ReturnType<typeof inventoryValuationReport>;
+    const stockValue = rows.reduce((n, r) => n + r.valuation, 0);
+    const ledger = useLedger.getState();
+    const ledgerInventory = ledger.accounts.filter((a) => a.subtype === "inventory" && a.isActive);
+    const ledgerValue = ledgerInventory.reduce((n, a) => n + ledger.balanceOf(a.number), 0);
     return (
       <table className={`w-full ${wrap}`}>
         <thead><tr className="border-b border-mist-300 text-left text-[11px] uppercase text-mist-500"><th className="py-2">Item</th><th>Method</th><th className="text-right">Qty</th><th className="text-right">Valuation</th></tr></thead>
@@ -289,7 +293,16 @@ function ReportView({ reportKey, data, print }: { reportKey: ReportKey; data: un
           {rows.map((r) => (
             <tr key={r.item.id} className="border-b border-mist-100"><td className="py-1.5">{r.item.sku} — {r.item.name}</td><td>{r.item.valuationMethod}</td><td className="text-right font-mono">{r.qty} {r.item.unit}</td><td className="text-right font-mono">{money(r.valuation)}</td></tr>
           ))}
-          <tr className="border-t-2 border-brand-600 font-bold"><td className="py-2" colSpan={3}>Total inventory value</td><td className="text-right font-mono">{money(rows.reduce((n, r) => n + r.valuation, 0))}</td></tr>
+          <tr className="border-t-2 border-brand-600 font-bold"><td className="py-2" colSpan={3}>Total inventory value</td><td className="text-right font-mono">{money(stockValue)}</td></tr>
+          {/* the stock counted above against what the books carry on the inventory accounts */}
+          <tr className="border-b border-mist-100"><td className="py-1.5" colSpan={3}>Inventory accounts in the ledger ({ledgerInventory.map((a) => a.number).join(", ") || "none"})</td><td className="text-right font-mono">{money(ledgerValue)}</td></tr>
+          <tr className={`font-semibold ${Math.abs(ledgerValue - stockValue) > 0.005 ? "text-action-700" : "text-brand-700"}`}>
+            <td className="py-1.5" colSpan={3}>
+              Difference
+              {Math.abs(ledgerValue - stockValue) > 0.005 && <span className="block text-xs font-normal text-mist-500">Usually goods billed but not yet received into the stores, or stock received but not yet billed. Receive or bill them to reconcile.</span>}
+            </td>
+            <td className="text-right font-mono">{money(ledgerValue - stockValue)}</td>
+          </tr>
         </tbody>
       </table>
     );

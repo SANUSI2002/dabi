@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { FundsNote } from "@/components/accounting/FundsNote";
 import { Plus, Banknote } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard, Card, EmptyState } from "@/components/ui/primitives";
 import { Table, Row, Cell } from "@/components/ui/Table";
@@ -126,6 +127,7 @@ export default function VendorPayments() {
             <Field label="Method"><Select value={f.method} onChange={(e) => setF({ ...f, method: e.target.value as never })} options={["Bank Transfer", "Cheque", "Cash"]} /></Field>
             <Field label="Pay from"><Select value={String(f.account)} onChange={(e) => setF({ ...f, account: +e.target.value })} options={cashAccts.map((a) => ({ value: String(a.number), label: `${a.number} — ${a.name}` }))} /></Field>
           </div>
+          <FundsNote account={f.account} amount={allocTotal} />
           {f.vendorId && (
             <div>
               <div className="mb-1.5 flex items-center justify-between">

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { FundsNote } from "@/components/accounting/FundsNote";
 import { Plus, Send, Check, X, Ban, Banknote, FileText, ScanLine } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard, Card, statusTone, EmptyState } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
@@ -253,6 +254,7 @@ export default function Bills() {
               <Field label="Pay from"><Select value={String(payF.account)} onChange={(e) => setPayF({ ...payF, account: +e.target.value })} options={cashAccts.map((a) => ({ value: String(a.number), label: `${a.number} — ${a.name}` }))} /></Field>
               <Field label="Reference"><Input value={payF.reference} onChange={(e) => setPayF({ ...payF, reference: e.target.value })} /></Field>
             </div>
+            <FundsNote account={payF.account} amount={payF.amount} />
             <p className="text-xs text-mist-400">Posts Dr Accounts Payable {money(payF.amount + (payF.wht || 0))} / Cr bank {money(payF.amount)}{payF.wht ? ` / Cr WHT Payable ${money(payF.wht)}` : ""}.</p>
           </div>
         )}
