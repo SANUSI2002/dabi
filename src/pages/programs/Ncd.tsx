@@ -13,6 +13,7 @@ import type { NcdClient, Patient } from "@/data/types";
 import { useIsLiveEmr } from "@/emr-live/session";
 import { describeEmrError } from "@/emr-live/client";
 import { newIdempotencyKey, useLiveNcdLoad, useLiveProgrammes } from "@/emr-live/programmes";
+import { useListValues } from "@/lib/listOptions";
 
 export default function Ncd() {
   const { ncdClients: demoClients, patientById, addNcdClient } = useEmr();
@@ -26,6 +27,7 @@ export default function Ncd() {
   const [actionError, setActionError] = useState("");
   const [enrolKey, setEnrolKey] = useState(newIdempotencyKey);
   const [open, setOpen] = useState(false);
+  const conditions = useListValues("ncd-conditions"); // the hospital's NCD Conditions
   const [f, setF] = useState({ patientId: "", condition: "Essential hypertension", bp: "", fbs: 0, nextVisit: "", control: "Controlled" as "Controlled" | "Uncontrolled" });
 
   return (
@@ -90,7 +92,7 @@ export default function Ncd() {
         <div className="space-y-4">
           {live && actionError && <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError}</p>}
           <Field label="Patient"><PatientPicker value={f.patientId} onChange={(id) => setF({ ...f, patientId: id })} /></Field>
-          <Field label="Condition"><Select value={f.condition} onChange={(e) => setF({ ...f, condition: e.target.value })} options={["Essential hypertension", "Type 2 Diabetes Mellitus", "Hypertension + Diabetes", "Asthma", "Sickle Cell Disease"]} /></Field>
+          <Field label="Condition"><Select value={f.condition} onChange={(e) => setF({ ...f, condition: e.target.value })} options={conditions} /></Field>
           <Grid cols={3}>
             <Field label="BP"><Input value={f.bp} onChange={(e) => setF({ ...f, bp: e.target.value })} placeholder="120/80" /></Field>
             <Field label="FBS (mmol/L)"><Input type="number" step="0.1" value={f.fbs || ""} onChange={(e) => setF({ ...f, fbs: +e.target.value })} /></Field>

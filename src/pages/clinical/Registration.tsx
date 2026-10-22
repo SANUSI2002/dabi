@@ -308,7 +308,7 @@ export default function Registration() {
                 <Select value={form.category} onChange={(event) => setField("category", event.target.value)} options={categories.filter((entry) => entry.active !== false || entry.code === form.category).map((entry) => ({ value: entry.code, label: `${entry.name}${entry.exempt ? " (fee-exempt)" : ""}` }))} />
               </Field>
               <Field label="Who is paying?">
-                <Select value={form.payer} onChange={(event) => setField("payer", event.target.value)} options={["Out of Pocket", "Government Scheme", "NHIS"]} />
+                <Select value={form.payer} onChange={(event) => setField("payer", event.target.value)} options={["Out of Pocket", "Government Scheme", "NHIS", "HMO", "Corporate"]} />
               </Field>
             </Grid>
             {categoryOf(form.category)?.exempt && (

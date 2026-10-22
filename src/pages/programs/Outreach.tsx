@@ -11,6 +11,7 @@ import { shortDate } from "@/lib/format";
 import { useIsLiveEmr } from "@/emr-live/session";
 import { describeEmrError } from "@/emr-live/client";
 import { newIdempotencyKey, useLiveOutreach, useLiveOutreachLoad } from "@/emr-live/outreach";
+import { useListValues } from "@/lib/listOptions";
 
 export default function Outreach() {
   const { outreachActivities: demoActivities, addOutreach } = useEmr();
@@ -26,6 +27,7 @@ export default function Outreach() {
   const chws = live
     ? liveChws.map((c) => ({ id: c.userId, name: c.name, cadre: "Community Health Worker", phone: undefined as string | undefined, status: "Active" }))
     : staff.filter((s) => s.role.includes("Community"));
+  const activityTypes = useListValues("outreach-activity-types"); // the hospital's Outreach Activity Types
   const [f, setF] = useState({ chw: chws[0]?.name ?? staff[0]?.name ?? "", type: "Household visit", ward: "Kirikiri", households: 0, referrals: 0, date: "", notes: "" });
   const [chwUserId, setChwUserId] = useState("");
   const [busy, setBusy] = useState(false);
@@ -107,7 +109,7 @@ export default function Outreach() {
             <Field label="CHW"><Select value={f.chw} onChange={(e) => setF({ ...f, chw: e.target.value })} options={chws.map((c) => c.name)} /></Field>
           )}
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Activity type"><Select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })} options={["Household visit", "Health talk", "Immunization campaign", "Defaulter tracing", "Community screening"]} /></Field>
+            <Field label="Activity type"><Select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })} options={activityTypes} /></Field>
             <Field label="Ward / zone"><Input value={f.ward} onChange={(e) => setF({ ...f, ward: e.target.value })} /></Field>
             <Field label="Households reached"><Input type="number" value={f.households || ""} onChange={(e) => setF({ ...f, households: +e.target.value })} /></Field>
             <Field label="Referrals made"><Input type="number" value={f.referrals || ""} onChange={(e) => setF({ ...f, referrals: +e.target.value })} /></Field>
