@@ -10,6 +10,7 @@ import { clearPayroll, goLivePayroll, loadPayroll } from "./payroll";
 import { clearServices, goLiveServices, loadServices } from "./services";
 import { clearAudit, goLiveAudit, loadHrAudit } from "./audit";
 import { clearOrgConfig, goLiveOrgConfig, loadOrgConfig } from "./orgConfig";
+import { clearModules, goLiveModules, loadModules } from "./modules";
 import { clearLedger, goLiveLedger, loadLedger } from "@/accounting-live/ledger";
 import { clearAcctSettings, goLiveAcctSettings, loadAcctSettings } from "@/accounting-live/settings";
 import { clearReceivables, goLiveReceivables, loadReceivables } from "@/accounting-live/receivables";
@@ -45,6 +46,8 @@ const DOMAINS: Domain[] = [
   { permissions: ["hr.read"], goLive: goLiveAudit, load: loadHrAudit, clear: clearAudit },
   // Master data, terminology and letter templates: every member reads them (the server checks changes).
   { permissions: ["*"], goLive: goLiveOrgConfig, load: loadOrgConfig, clear: clearOrgConfig },
+  // Module switches within the approved package: everyone reads them; hospital admins change them.
+  { permissions: ["*"], goLive: goLiveModules, load: loadModules, clear: clearModules },
   // Accounting: the general ledger for finance staff.
   { permissions: ["acct.view", "acct.control"], goLive: goLiveLedger, load: loadLedger, clear: clearLedger },
   { permissions: ["acct.view", "acct.control"], goLive: goLiveAcctSettings, load: loadAcctSettings, clear: clearAcctSettings },

@@ -78,6 +78,8 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   "/settings/master-data": ["hr.manage", "catalog.manage", "platform.config"],
   "/settings/terminology": ["platform.config", "hr.manage"],
   "/settings/letters": ["hr.manage", "platform.config"],
+  // Platform & Modules: every member sees what is switched on; hospital admins switch modules
+  "/platform": "*",
   // Accounting — general ledger
   "/accounting/chart-of-accounts": "acct.view",
   "/accounting/journals": "acct.view",
@@ -137,5 +139,5 @@ export function liveRouteState(path: string, permissions: readonly string[]): Li
   const screen = connectedScreen(path);
   const required = screen ? LIVE_CONNECTED_ROUTES[screen] : undefined;
   if (!required) return "not-connected";
-  return [required].flat().some((permission) => permissions.includes(permission)) ? "connected" : "no-permission";
+  return [required].flat().some((permission) => permission === "*" || permissions.includes(permission)) ? "connected" : "no-permission";
 }

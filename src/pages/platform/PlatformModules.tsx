@@ -4,6 +4,8 @@ import { PageHeader, Button, Badge, Card, StatCard } from "@/components/ui/primi
 import { useEntitlements } from "@/platform/useEntitlements";
 import { PRODUCTS, MODULES, modulesByProduct, type ProductKey } from "@/platform/entitlements";
 import { cn } from "@/lib/cn";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { useLiveModulesMeta } from "@/workforce-live/modules";
 
 const PRESETS: { key: Parameters<ReturnType<typeof useEntitlements.getState>["applyPreset"]>[0]; label: string }[] = [
   { key: "all", label: "All modules" },
@@ -17,12 +19,23 @@ const PRESETS: { key: Parameters<ReturnType<typeof useEntitlements.getState>["ap
 export default function PlatformModules() {
   const { org, products, setProduct, isModuleEnabled, setModule, isSubmoduleEnabled, setSubmodule, applyPreset } = useEntitlements();
   const [confirmPreset, setConfirmPreset] = useState<string | null>(null);
+  // Live: products come from the approved package; modules within it are switched by a hospital admin.
+  const live = useIsLiveEmr();
+  const liveMeta = useLiveModulesMeta();
+  const canSwitch = !live || liveMeta.editable;
+  const fromPackage = live ? `Set by ${liveMeta.packageName ?? "your approved package"} — contact Sabi to change it` : undefined;
 
   const enabledCount = MODULES.filter((m) => isModuleEnabled(m.key)).length;
 
   return (
     <div>
       <PageHeader title="Platform & Modules" subtitle={`What ${org.name} has licensed. Disabling a module makes its screens and routes unreachable — not just hidden.`} />
+      {live && (
+        <p className="mb-4 rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-800 ring-1 ring-brand-200">
+          {liveMeta.packageName ? <>Products come from your approved package, <strong>{liveMeta.packageName}</strong>.</> : "Your organization has no approved package yet."}{" "}
+          {liveMeta.editable ? "Switching a module off applies to everyone at once; the server refuses its requests and keeps its records." : "Only a hospital administrator can switch modules."}
+        </p>
+      )}
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Products licensed" value={Object.values(products).filter(Boolean).length + " / 3"} tone="brand" icon={<Boxes size={18} />} />
@@ -35,7 +48,7 @@ export default function PlatformModules() {
         <div className="mb-2 flex items-center gap-2 text-sm font-bold text-mist-700"><Sparkles size={15} /> Quick presets</div>
         <div className="flex flex-wrap gap-2">
           {PRESETS.map((p) => (
-            <Button key={p.key} variant="soft" onClick={() => setConfirmPreset(p.key)}>{p.label}</Button>
+            <Button key={p.key} variant="soft" disabled={live} title={fromPackage} onClick={() => setConfirmPreset(p.key)}>{p.label}</Button>
           ))}
         </div>
         {confirmPreset && (
@@ -60,6 +73,8 @@ export default function PlatformModules() {
                   <p className="text-xs text-mist-400">{PRODUCTS[pk].tagline}</p>
                 </div>
                 <button
+                  disabled={live}
+                  title={fromPackage}
                   onClick={() => setProduct(pk, !licensed)}
                   className={cn("flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold", licensed ? "bg-brand-50 text-brand-700 ring-1 ring-brand-200" : "bg-mist-100 text-mist-500 ring-1 ring-mist-200")}
                 >
@@ -76,8 +91,8 @@ export default function PlatformModules() {
                           <p className="text-sm font-semibold text-mist-800">{m.label} {m.core && <Badge tone="mist">core</Badge>}</p>
                           <p className="truncate text-xs text-mist-400">{m.description}</p>
                         </div>
-                        <label className={cn("relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition", on ? "bg-brand-500" : "bg-mist-300", (m.core || !licensed) && "cursor-not-allowed opacity-50")}>
-                          <input type="checkbox" className="peer sr-only" checked={on} disabled={m.core || !licensed} onChange={(e) => setModule(m.key, e.target.checked)} />
+                        <label className={cn("relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition", on ? "bg-brand-500" : "bg-mist-300", (m.core || !licensed || !canSwitch) && "cursor-not-allowed opacity-50")}>
+                          <input type="checkbox" className="peer sr-only" aria-label={`${m.label} ${on ? "on" : "off"}`} checked={on} disabled={m.core || !licensed || !canSwitch} onChange={(e) => setModule(m.key, e.target.checked)} />
                           <span className={cn("inline-block h-4 w-4 transform rounded-full bg-white transition", on ? "translate-x-4" : "translate-x-0.5")} />
                         </label>
                       </div>
@@ -86,7 +101,7 @@ export default function PlatformModules() {
                           {m.submodules.map((s) => {
                             const son = isSubmoduleEnabled(s.key);
                             return (
-                              <button key={s.key} onClick={() => setSubmodule(s.key, !son)} className={cn("rounded-md px-2 py-0.5 text-[11px] font-semibold ring-1", son ? "bg-brand-50 text-brand-700 ring-brand-200" : "bg-mist-100 text-mist-400 ring-mist-200 line-through")}>
+                              <button key={s.key} disabled={!canSwitch} onClick={() => setSubmodule(s.key, !son)} className={cn("rounded-md px-2 py-0.5 text-[11px] font-semibold ring-1", son ? "bg-brand-50 text-brand-700 ring-brand-200" : "bg-mist-100 text-mist-400 ring-mist-200 line-through")}>
                                 {s.label}
                               </button>
                             );
@@ -103,8 +118,8 @@ export default function PlatformModules() {
       </div>
 
       <p className="mt-4 text-xs text-mist-400">
-        Entitlements persist locally and are checked on every route by <code>EntitlementBoundary</code> plus the sidebar.
-        In a deployed build this same check moves behind the API — the seam is <code>src/platform/</code>.
+        {live ? "Module switches are saved for the whole organization and checked by the server on every request." : <>Entitlements persist locally and are checked on every route by <code>EntitlementBoundary</code> plus the sidebar.
+        In a deployed build this same check moves behind the API — the seam is <code>src/platform/</code>.</>}
       </p>
     </div>
   );

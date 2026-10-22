@@ -1,10 +1,12 @@
 import { useEffect, type ReactNode } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { Lock, PlugZap } from "lucide-react";
+import { Lock, PlugZap, PowerOff } from "lucide-react";
 import { EmrRouteLoadingScreen } from "@/components/layout/AppLoadingScreen";
 import { LIVE_CONNECTED_ROUTES, liveRouteState } from "./routes";
 import { useLiveEmr } from "./session";
 import { LiveWorkforceSync } from "@/workforce-live/LiveWorkforceSync";
+import { useLiveModulesMeta } from "@/workforce-live/modules";
+import { useEntitlements } from "@/platform/useEntitlements";
 
 // The EMR shell (sidebar, top bar, route boundary) in live mode: the hospital, user and permissions
 // come from the verified live session; demo mode keeps the local tenant exactly as before.
@@ -28,6 +30,11 @@ export function LiveRouteBoundary({ pathname, children }: { pathname: string; ch
   const permissions = useLiveEmr((state) => state.access?.permissions ?? NO_PERMISSIONS);
   const organizationName = useLiveEmr((state) => state.access?.organizationName ?? "your hospital");
   const state = liveRouteState(pathname, permissions);
+  // The organization's module switches (within its package) — the server refuses a switched-off module too.
+  const modulesLoaded = useLiveModulesMeta((s) => s.loaded);
+  useEntitlements((s) => s.products); useEntitlements((s) => s.modules); useEntitlements((s) => s.submodules);
+  const off = modulesLoaded ? useEntitlements.getState().routeBlockReason(pathname) : null;
+  if (off) return <SwitchedOff organizationName={organizationName} reason={off} />;
   if (state === "connected") return <>{children}</>;
 
   const labels: Record<string, string> = { "/registration": "Registration", "/queue": "Clinical Queue", "/consultation": "Consultation", "/laboratory": "Laboratory", "/pharmacy": "Pharmacy", "/inpatient": "In-patient Care", "/billing": "Billing", "/history": "Medical History", "/workspace": "Workspace", "/appointments": "Appointments", "/radiology": "Radiology", "/procedures": "Procedures" };
@@ -55,6 +62,25 @@ export function LiveRouteBoundary({ pathname, children }: { pathname: string; ch
             ))}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/** A screen of a module the organization switched off, or of a product its package does not include. */
+function SwitchedOff({ organizationName, reason }: { organizationName: string; reason: { product?: string; module?: string; submodule?: string } }) {
+  const what = reason.product ? reason.product : reason.module ? `the ${reason.module} module` : `${reason.submodule}`;
+  return (
+    <div className="grid place-items-center py-24">
+      <div className="max-w-md rounded-2xl border border-dashed border-mist-300 bg-mist-50/60 p-8 text-center">
+        <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-xl bg-mist-200 text-mist-500"><PowerOff size={22} /></div>
+        <h2 className="font-display text-lg font-bold text-mist-800">{reason.product ? "Not part of your package" : "Switched off"}</h2>
+        <p className="mt-1.5 text-sm text-mist-500">
+          {reason.product
+            ? `${organizationName}'s approved Sabi package does not include ${what}. Contact Sabi to add it.`
+            : `${organizationName} has switched off ${what}. Its records are kept; an administrator can switch it back on in Platform & Modules.`}
+        </p>
+        <Link to="/platform" className="btn-ghost mt-4 inline-flex">Platform &amp; Modules</Link>
       </div>
     </div>
   );
