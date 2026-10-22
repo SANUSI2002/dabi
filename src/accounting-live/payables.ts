@@ -10,7 +10,8 @@ import { loadLedger } from "./ledger";
 // Payables in live mode (GET /payables): vendors, requisitions, orders, goods receipts, bills, payments and
 // vendor credits are the organization's records. Approvals follow the organization's rules on the server:
 // whether a step is yours to decide comes from the server (your finance role, and never your own
-// submission), and a bill posts only once approved. The books reload after every change.
+// submission), and a bill posts only once approved — as does a payment a rule covers. The books reload after
+// every change.
 
 type Versioned = { version?: number };
 type LiveApproval = DocApproval & { decidableByMe?: boolean; submittedByMe?: boolean };
@@ -78,6 +79,7 @@ export function goLivePayables() {
     },
     submitBill: (id) => { void liveChange(() => post(`/bills/${id}/submit`), reload); },
     decideBill: (id, decision, comment) => { void liveChange(() => post(`/bills/${id}/decide`, defined({ decision, comment })), reload); },
+    decideVendorPayment: (id, decision, comment) => { void liveChange(() => post(`/payments/${id}/decide`, defined({ decision, comment })), reload); },
     postBill: (id) => {
       const bill = P().bills.find((x) => x.id === id);
       if (!bill || bill.status !== "Draft") return { ok: false, error: "Bill is not awaiting posting." };

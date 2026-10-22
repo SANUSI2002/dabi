@@ -7,7 +7,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Textarea, Grid } from "@/components/ui/form";
 import { PrintDoc, Section, Line } from "@/components/print/PrintFrame";
 import { money, shortDate } from "@/lib/format";
-import { useAP, purchaseTotal } from "@/store/accounting/useAP";
+import { useAP, purchaseTotal, paymentPosted } from "@/store/accounting/useAP";
 import type { Vendor } from "@/data/accounting/payables";
 
 const CATS: Vendor["category"][] = ["Pharmaceuticals", "Medical Supplies", "Equipment", "Utilities", "Services", "Facilities", "Other"];
@@ -123,7 +123,7 @@ export default function Vendors() {
 
       {statement && (() => {
         const bs = billsOf(statement.id).filter((b) => b.status !== "Draft" && b.status !== "Pending Approval" && b.status !== "Void");
-        const ps = vendorPayments.filter((p) => p.vendorId === statement.id);
+        const ps = vendorPayments.filter((p) => p.vendorId === statement.id && paymentPosted(p));
         const rows = [
           ...bs.map((b) => ({ date: b.date, doc: b.number, desc: "Bill", debit: 0, credit: purchaseTotal(b.lines) })),
           ...ps.map((p) => ({ date: p.date, doc: p.number, desc: `Payment (${p.method})`, debit: p.amount, credit: 0 })),

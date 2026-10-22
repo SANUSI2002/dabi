@@ -33,6 +33,8 @@ const monthsAdd = (iso: string, m: number) => { const d = new Date(iso); return 
 const lineAmt = (l: PurchaseLine) => round2(l.qty * l.unitPrice);
 export const purchaseSubtotal = (lines: PurchaseLine[]) => round2(lines.reduce((n, l) => n + lineAmt(l), 0));
 export const purchaseTax = (lines: PurchaseLine[]) => round2(lines.reduce((n, l) => n + useTax.getState().taxTotal(lineAmt(l), useTax.getState().taxIdsOf(l)), 0));
+/** A payment that has left the bank — not one still waiting for (or refused) approval. */
+export const paymentPosted = (p: VendorPayment) => !p.status || p.status === "Posted";
 export const purchaseTotal = (lines: PurchaseLine[]) => round2(purchaseSubtotal(lines) + purchaseTax(lines));
 export const purchaseTaxBreakdown = (lines: PurchaseLine[]) => {
   const t = useTax.getState();
@@ -139,6 +141,8 @@ type APState = {
   updateBill: (id: string, patch: Partial<Pick<Bill, "date" | "dueDate" | "lines" | "notes" | "vendorInvoiceNumber">>) => void;
   submitBill: (id: string) => void;
   decideBill: (id: string, decision: "Approved" | "Rejected", comment?: string) => void;
+  /** Decides a payment held for approval (payments only wait when the books are live). */
+  decideVendorPayment: (id: string, decision: "Approved" | "Rejected", comment?: string) => void;
   postBill: (id: string) => { ok: boolean; error?: string };
   voidBill: (id: string) => { ok: boolean; error?: string };
 
@@ -352,6 +356,7 @@ export const useAP = create<APState>((set, get) => {
       set((s) => ({ bills: s.bills.map((x) => (x.id === id ? { ...x, approval, status: "Pending Approval" } : x)) }));
       audit(`submitted bill ${b.number} for approval`, `accounting/bills/${b.number}`);
     },
+    decideVendorPayment: () => {}, // payments here post at once, so none waits for a decision
     decideBill: (id, decision, comment) => {
       const before = get().bills.find((x) => x.id === id);
       if (!before) return;
@@ -509,7 +514,7 @@ export const useAP = create<APState>((set, get) => {
 
     whtCertificates: () =>
       get().vendorPayments
-        .filter((p) => (p.withheldTax ?? 0) > 0)
+        .filter((p) => paymentPosted(p) && (p.withheldTax ?? 0) > 0)
         .map((payment) => {
           const grossPaid = round2(payment.amount + (payment.withheldTax ?? 0));
           const withheld = round2(payment.withheldTax ?? 0);

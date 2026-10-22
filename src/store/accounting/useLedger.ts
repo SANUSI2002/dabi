@@ -101,6 +101,8 @@ type LedgerState = {
   updateDraft: (id: string, patch: Partial<Pick<JournalEntry, "date" | "memo" | "reference">> & { lines?: DraftLine[] }) => void;
   postDraft: (id: string) => { ok: boolean; error?: string };
   voidDraft: (id: string) => void;
+  /** Decides a manual entry an approval rule holds (rule-held entries only exist when the books are live). */
+  decideEntry: (id: string, decision: "Approved" | "Rejected", comment?: string) => void;
   reverseEntry: (id: string, opts?: { date?: string; memo?: string }) => { ok: boolean; error?: string; entry?: JournalEntry };
 
   // ---- chart of accounts ----
@@ -349,6 +351,8 @@ export const useLedger = create<LedgerState>((set, get) => ({
     audit(`posted journal entry ${e.number}`, `accounting/journal/${e.number}`);
     return { ok: true };
   },
+
+  decideEntry: () => {}, // no rule holds an entry here
 
   voidDraft: (id) => {
     const e = get().entries.find((x) => x.id === id);

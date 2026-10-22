@@ -129,6 +129,7 @@ export type VendorPayment = {
   reference?: string;
   withheldTax?: number;
   journalEntryId?: string;
+  status?: "Pending Approval" | "Posted" | "Rejected"; // absent = posted
   approval: DocApproval;
   createdBy: string;
   createdAt: string;

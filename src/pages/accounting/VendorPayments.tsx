@@ -8,7 +8,7 @@ import { Field, Input, Select } from "@/components/ui/form";
 import { money, shortDate, isoDate } from "@/lib/format";
 import { Tabs } from "@/components/ui/Tabs";
 import { PrintDoc, Section, Line, SignRow } from "@/components/print/PrintFrame";
-import { useAP } from "@/store/accounting/useAP";
+import { useAP, paymentPosted } from "@/store/accounting/useAP";
 import { useLedger } from "@/store/accounting/useLedger";
 import { useAccountingSettings } from "@/store/accounting/useAccountingSettings";
 
@@ -41,7 +41,8 @@ export default function VendorPayments() {
     setAlloc({});
   }
 
-  const total = useMemo(() => vendorPayments.reduce((n, p) => n + p.amount, 0), [vendorPayments]);
+  const paid = useMemo(() => vendorPayments.filter(paymentPosted), [vendorPayments]);
+  const total = useMemo(() => paid.reduce((n, p) => n + p.amount, 0), [paid]);
 
   return (
     <div>
@@ -51,7 +52,7 @@ export default function VendorPayments() {
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard label="Payments" value={vendorPayments.length} tone="brand" icon={<Banknote size={18} />} />
         <StatCard label="Paid (all time)" value={money(total)} tone="action" delay={0.05} />
-        <StatCard label="Paid this month" value={money(vendorPayments.filter((p) => new Date(p.date).getUTCMonth() === new Date().getUTCMonth()).reduce((n, p) => n + p.amount, 0))} tone="mist" delay={0.1} />
+        <StatCard label="Paid this month" value={money(paid.filter((p) => new Date(p.date).getUTCMonth() === new Date().getUTCMonth()).reduce((n, p) => n + p.amount, 0))} tone="mist" delay={0.1} />
       </div>
 
       <Tabs tabs={["Payments", `WHT Certificates (${whtCertificates().length})`]}>
@@ -78,7 +79,7 @@ export default function VendorPayments() {
             <Table columns={["Payment", "Vendor", "Date", "Method", "Amount", "WHT", "Bills"]}>
               {vendorPayments.map((p, i) => (
                 <Row key={p.id} index={i}>
-                  <Cell className="font-mono text-xs">{p.number}</Cell>
+                  <Cell className="font-mono text-xs">{p.number}{p.status && p.status !== "Posted" && <span className="ml-1.5"><Badge tone={p.status === "Rejected" ? "mist" : "amber"}>{p.status}</Badge></span>}</Cell>
                   <Cell className="font-semibold">{vendorById(p.vendorId)?.name}</Cell>
                   <Cell>{shortDate(p.date)}</Cell>
                   <Cell><Badge tone="mist">{p.method}</Badge></Cell>

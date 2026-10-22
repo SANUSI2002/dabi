@@ -81,6 +81,9 @@ export function goLiveLedger() {
       return { ok: true };
     },
     voidDraft: (id) => { void liveChange(() => send(`/entries/${id}/void`, "POST", {}, versionOf(L().entries, id)), reload); },
+    decideEntry: (id, decision, comment) => {
+      void liveChange(() => send(`/entries/${id}/decide`, "POST", Object.fromEntries(Object.entries({ decision, comment }).filter(([, v]) => v !== undefined))), reload);
+    },
     reverseEntry: (id, opts) => {
       const orig = L().entries.find((x) => x.id === id);
       if (!orig) return { ok: false, error: "Entry not found." };

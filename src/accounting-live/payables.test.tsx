@@ -13,6 +13,7 @@ import GoodsReceipts from "@/pages/accounting/GoodsReceipts";
 import Bills from "@/pages/accounting/Bills";
 import VendorPayments from "@/pages/accounting/VendorPayments";
 import VendorCredits from "@/pages/accounting/VendorCredits";
+import AccountingApprovals from "@/pages/accounting/AccountingApprovals";
 import { useAP } from "@/store/accounting/useAP";
 import { useAcctControl } from "@/store/accounting/useAcctControl";
 import { useLiveEmr } from "@/emr-live/session";
@@ -88,6 +89,28 @@ describe("live payables", () => {
     await waitFor(() => expect(writes().length).toBe(2));
     expect(writes()).toContainEqual([`/payables/vendors/${V}`, "PATCH", { phone: "0803" }, 2]);
     expect(writes()).toContainEqual(["/payables/bills", "POST", expect.objectContaining({ id, vendorId: V, lines: [line] }), undefined]);
+  });
+
+  it("queues held vendor payments and manual journals for the approver, and keeps them out of what was paid", async () => {
+    const payment = { id: "vp1", number: "PAY-2026-000001", vendorId: V, date: "2026-10-20T12:00:00.000Z", method: "Bank Transfer", fromAccountNumber: 1010, amount: 1425000, withheldTax: 75000, allocations: [{ billId: "b1", amount: 1500000 }], status: "Pending Approval", approval: pending(false), createdBy: "Ngozi Eze", createdAt: "2026-10-20T12:00:00.000Z" };
+    const entry = { id: "je1", number: "JE-2026-000009", date: "2026-10-20T12:00:00.000Z", branchId: "br1", source: "Manual", memo: "Generator overhaul", status: "Pending Approval", approval: pending(false), createdBy: "Ngozi Eze", createdAt: "2026-10-20T12:00:00.000Z", version: 1,
+      lines: [{ id: "x1", accountNumber: 5230, debit: 1200000, credit: 0 }, { id: "x2", accountNumber: 1010, debit: 0, credit: 1200000 }] };
+    api.accountingRequest.mockImplementation(async (path: string) => ({ data: path === "/ledger" ? { ...ledger, entries: [entry] } : path === "/payables" ? { ...payables, vendorPayments: [payment] } : {} }));
+    await ready();
+    expect(useAP.getState().whtCertificates()).toEqual([]); // no certificate until the tax is actually withheld
+    const { unmount } = render(<MemoryRouter><VendorPayments /></MemoryRouter>);
+    expect(screen.getByText("Pending Approval")).toBeInTheDocument();
+    expect(screen.getByText("Paid (all time)").parentElement).toHaveTextContent("₦0");
+    unmount();
+    render(<MemoryRouter><AccountingApprovals /></MemoryRouter>);
+    expect(screen.getAllByText("PAY-2026-000001")).toHaveLength(2); // yours to decide, and in the full queue
+    expect(screen.getAllByText("JE-2026-000009")).toHaveLength(2);
+    const rows = screen.getAllByRole("button", { name: /Approve/ });
+    expect(rows.length).toBe(3); // the bill, the payment and the journal
+    useAP.getState().decideVendorPayment("vp1", "Approved");
+    (await import("@/store/accounting/useLedger")).useLedger.getState().decideEntry("je1", "Rejected", "No invoice");
+    await waitFor(() => expect(writes()).toContainEqual(["/payables/payments/vp1/decide", "POST", { decision: "Approved" }, undefined]));
+    await waitFor(() => expect(writes()).toContainEqual(["/ledger/entries/je1/decide", "POST", { decision: "Rejected", comment: "No invoice" }, undefined]));
   });
 
   it("lets the rules be tuned and switched off, never deleted", async () => {
