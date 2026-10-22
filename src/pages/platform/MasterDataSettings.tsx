@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Plus, Trash2, Database } from "lucide-react";
 import { PageHeader, Button, Badge, Card, StatCard, EmptyState } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
@@ -11,8 +12,11 @@ const PRODUCT_TABS = ["workforce", "emr", "accounting", "platform"] as const;
 
 export default function MasterDataSettings() {
   const { data, items, addItem, updateItem, toggleActive, removeItem } = useMasterData();
-  const [tab, setTab] = useState<(typeof PRODUCT_TABS)[number]>("workforce");
-  const [cat, setCat] = useState(MASTER_CATEGORIES.find((c) => c.product === "workforce")!.key);
+  // ?list=drug-categories opens on that list (links from the screens that use it)
+  const [params] = useSearchParams();
+  const linked = MASTER_CATEGORIES.find((c) => c.key === params.get("list"));
+  const [tab, setTab] = useState<(typeof PRODUCT_TABS)[number]>((linked?.product ?? "workforce") as (typeof PRODUCT_TABS)[number]);
+  const [cat, setCat] = useState(linked?.key ?? MASTER_CATEGORIES.find((c) => c.product === "workforce")!.key);
   const [modal, setModal] = useState(false);
   const [f, setF] = useState({ label: "", code: "" });
 

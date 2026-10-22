@@ -36,7 +36,7 @@ type ApiStock = { code: string; genericName: string; strength: string; dispenseU
 export type ApiFormularyItem = {
   code: string; genericName: string; brandName: string | null; form: string; strength: string; doseUnit: string; dispenseUnit: string;
   defaultRoute: string; controlled: boolean; active: boolean; reorderLevel: number; version: number; inStock: number;
-  category: string | null; manufacturer: string | null; prescriptionRequired: boolean; minStock: number;
+  category: string | null; drugClasses?: string[]; manufacturer: string | null; prescriptionRequired: boolean; minStock: number;
   patientDescription: string | null; pharmacistNotes: string | null;
 };
 type ApiMovement = {
