@@ -24,8 +24,12 @@ type ApiAR = {
 export const useLiveARMeta = create<{ loaded: boolean }>(() => ({ loaded: false }));
 const noNull = <T extends object>(row: T) => Object.fromEntries(Object.entries(row).filter(([, v]) => v !== null && v !== undefined)) as T;
 
+// Invoices created on this screen that the server has not shown back yet (see createInvoice/issueInvoice).
+const justCreated = new Map<string, Pick<Invoice, "id" | "customerId" | "lines" | "amountPaid" | "currency" | "exchangeRate" | "status"> & { serverBuilt: boolean }>();
+
 export async function loadReceivables() {
   const { data } = await accountingRequest<{ data: ApiAR }>("/receivables");
+  for (const inv of data.invoices) justCreated.delete(inv.id);
   useLiveARMeta.setState({ loaded: true });
   useAR.setState({
     customers: data.customers.map((c) => noNull(c)), estimates: data.estimates.map((d) => noNull(d)), salesOrders: data.salesOrders.map((d) => noNull(d)), invoices: data.invoices.map((d) => noNull(d)),
@@ -82,6 +86,9 @@ export function goLiveReceivables() {
 
     createInvoice: (input) => {
       const id = uuid();
+      // "Save & issue" issues it at once: remember what was sent until the books reload with it
+      justCreated.set(id, { id, customerId: input.customerId, lines: input.lines, amountPaid: 0, currency: input.currency ?? "NGN", exchangeRate: input.exchangeRate ?? 1, status: "Draft",
+        serverBuilt: !!(input.timeEntryIds?.length || input.delayedChargeIds?.length) });
       void liveChange(() => post("/invoices", defined({
         id, customerId: input.customerId, date: input.date, dueDate: input.dueDate, lines: lineBody(input.lines), notes: input.notes, salesOrderId: input.salesOrderId, currency: input.currency,
         exchangeRate: input.currency && input.currency !== "NGN" ? input.exchangeRate : undefined, deferOverMonths: input.deferOverMonths || undefined, recurEveryMonths: input.recurEveryMonths || undefined,
@@ -91,7 +98,13 @@ export function goLiveReceivables() {
     },
     updateInvoice: (id, change) => { void liveChange(() => patch(`/docs/invoice/${id}`, defined({ date: change.date, dueDate: change.dueDate, lines: change.lines ? lineBody(change.lines) : undefined, notes: change.notes }), versionOf(AR().invoices, id)), reload); },
     issueInvoice: (id, opts) => {
-      const inv = AR().invoices.find((i) => i.id === id);
+      const pending = justCreated.get(id);
+      // lines pulled in from project time or delayed charges are added on the server: it checks those
+      if (pending?.serverBuilt && !AR().invoices.some((i) => i.id === id)) {
+        void liveChange(() => post(`/invoices/${id}/issue`, {}), reload);
+        return { ok: true };
+      }
+      const inv = AR().invoices.find((i) => i.id === id) ?? (pending as unknown as Invoice | undefined);
       if (!inv || inv.status !== "Draft") return { ok: false, error: "Only a draft invoice can be issued." };
       if (!inv.lines.length || docTotal(inv.lines) <= 0) return { ok: false, error: "Add at least one line with an amount." };
       const credit = AR().creditCheck(inv.customerId, (docTotal(inv.lines) - inv.amountPaid) * fxOf(inv));
