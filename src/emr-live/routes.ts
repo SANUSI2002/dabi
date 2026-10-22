@@ -75,7 +75,7 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   "/workflows": ["workforce.self", "workflow.manage"],
   "/settings/workflows": "workflow.manage",
   // Organization configuration shared by every product; each list is edited by its product's owner
-  "/settings/master-data": ["hr.manage", "catalog.manage", "platform.config"],
+  "/settings/master-data": ["hr.manage", "catalog.manage", "platform.config", "emr.formulary.manage"],
   "/settings/terminology": ["platform.config", "hr.manage"],
   "/settings/letters": ["hr.manage", "platform.config"],
   // Platform & Modules: every member sees what is switched on; hospital admins switch modules
