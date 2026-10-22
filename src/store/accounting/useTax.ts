@@ -107,7 +107,12 @@ export const useTax = create<TaxState>((set, get) => ({
   returnSchedule: async (id) => {
     const r = get().returns.find((x) => x.id === id);
     if (!r) throw new Error("Tax return not found.");
-    const [{ useAP }, { useAR }] = await Promise.all([import("@/store/accounting/useAP"), import("@/store/accounting/useAR")]);
+    // Loaded when needed (payables and receivables use this store); typed here so the stores' types stay independent.
+    type Party = { name: string; taxId?: string };
+    const [{ useAP }, { useAR }] = (await Promise.all([import("@/store/accounting/useAP"), import("@/store/accounting/useAR")])) as unknown as [
+      { useAP: { getState(): { vendorById(id: string): Party | undefined } } },
+      { useAR: { getState(): { customerById(id: string): Party | undefined } } },
+    ];
     const from = new Date(r.periodStart).getTime();
     const to = new Date(r.periodEnd).getTime();
     const rows = useLedger.getState().entries
