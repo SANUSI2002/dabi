@@ -11,8 +11,8 @@ import { useOrg } from "@/store/useOrg";
 import { useIdentity } from "@/store/useIdentity";
 import { shortDate } from "@/lib/format";
 import type { TicketType, AssigningType, TicketPriority } from "@/data/helpdesk";
+import { useListValues } from "@/lib/listOptions";
 
-const TYPES: TicketType[] = ["IT Support", "HR Complaint", "Facilities", "Benefits", "General"];
 
 function PriorityStars({ value }: { value: TicketPriority }) {
   return (
@@ -23,6 +23,7 @@ function PriorityStars({ value }: { value: TicketPriority }) {
 }
 
 export default function Helpdesk() {
+  const ticketTypes = useListValues("helpdesk-ticket-types"); // the hospital's Helpdesk Ticket Types
   const { tickets, faqCategories, faqs, createTicket, setStatus, assignTo, addFaq, ticketCode } = useHelpdesk();
   const staff = useHr((s) => s.staff);
   const { departments, jobPositions } = useOrg();
@@ -127,7 +128,7 @@ export default function Helpdesk() {
         <div className="space-y-4">
           <Field label="Title"><Input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field>
           <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="Type"><Select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value as TicketType })} options={TYPES} /></Field>
+            <Field label="Type"><Select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value as TicketType })} options={ticketTypes} /></Field>
             <Field label="Priority"><Select value={String(f.priority)} onChange={(e) => setF({ ...f, priority: +e.target.value as TicketPriority })} options={[{ value: "1", label: "Low" }, { value: "2", label: "Medium" }, { value: "3", label: "High" }]} /></Field>
             <Field label="Forward to">
               <Select value={f.assigningType} onChange={(e) => setF({ ...f, assigningType: e.target.value as AssigningType, raisedOn: e.target.value === "Department" ? departments[0]?.name ?? "" : e.target.value === "Job Position" ? jobPositions[0]?.name ?? "" : staff[0]?.id ?? "" })} options={["Department", "Job Position", "Individual"]} />

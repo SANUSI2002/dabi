@@ -15,10 +15,11 @@ import { ACCOUNTS } from "@/data/accounts";
 import { QueryLetterDoc } from "@/components/print/documents";
 import { shortDate, timeAgo } from "@/lib/format";
 import type { PolicyCategory } from "@/data/hrProfile";
+import { useListValues } from "@/lib/listOptions";
 
-const CATEGORIES: PolicyCategory[] = ["Conduct", "Safety & Clinical", "Data & Security", "IT & Assets", "Leave & Attendance", "Other"];
 
 export default function PoliciesDiscipline() {
+  const policyCategories = useListValues("policy-categories"); // the hospital's Policy Categories
   const { policies, disciplinaryActions, actionTypes, addPolicy, addActionType } = useEmployees();
   const staff = useHr((s) => s.staff);
   const byId = useHr((s) => s.byId);
@@ -181,7 +182,7 @@ export default function PoliciesDiscipline() {
       >
         <div className="space-y-4">
           <Field label="Title"><Input value={pf.title} onChange={(e) => setPf({ ...pf, title: e.target.value })} /></Field>
-          <Field label="Category"><Select value={pf.category} onChange={(e) => setPf({ ...pf, category: e.target.value as PolicyCategory })} options={CATEGORIES} /></Field>
+          <Field label="Category"><Select value={pf.category} onChange={(e) => setPf({ ...pf, category: e.target.value as PolicyCategory })} options={policyCategories} /></Field>
           <Field label="Purpose"><Input value={pf.purpose} onChange={(e) => setPf({ ...pf, purpose: e.target.value })} /></Field>
           <Field label="Body"><Textarea value={pf.body} onChange={(e) => setPf({ ...pf, body: e.target.value })} /></Field>
         </div>

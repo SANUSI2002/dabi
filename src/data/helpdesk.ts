@@ -1,6 +1,6 @@
 const day = (n: number) => new Date(Date.now() - n * 864e5).toISOString();
 
-export type TicketType = "IT Support" | "HR Complaint" | "Facilities" | "Benefits" | "General";
+export type TicketType = "IT Support" | "HR Complaint" | "Facilities" | "Benefits" | "General" | (string & {}) /* the hospital's own (Settings → Master Data) */;
 export const TICKET_PREFIX: Record<TicketType, string> = {
   "IT Support": "ITS", "HR Complaint": "HRC", "Facilities": "OPS", "Benefits": "BEN", "General": "GEN",
 };

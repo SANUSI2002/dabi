@@ -25,7 +25,7 @@ export type PipelineStage = {
   sequence: number;
 };
 
-export type CandidateSource = "Application" | "Referral" | "Inside software";
+export type CandidateSource = "Application" | "Referral" | "Inside software" | (string & {}) /* the hospital's own (Settings → Master Data) */;
 
 export type Candidate = {
   id: string;
