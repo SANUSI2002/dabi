@@ -15,7 +15,8 @@ import { useNursing } from "@/store/useNursing";
 import { useHr } from "@/store/useHr";
 import { useIdentity } from "@/store/useIdentity";
 import { useMasterData } from "@/platform/useMasterData";
-import { INPATIENT_SERVICES, DISCHARGE_OUTCOMES, type Admission } from "@/data/types";
+import { DISCHARGE_OUTCOMES, type Admission } from "@/data/types";
+import { useListValues } from "@/lib/listOptions";
 import { MOBILITY_OPTIONS, RISK_LEVELS } from "@/data/nursing";
 import { dateTime, shortDate, timeAgo } from "@/lib/format";
 import { cn } from "@/lib/cn";
@@ -81,11 +82,12 @@ export default function Inpatient() {
   };
   const [admitOpen, setAdmitOpen] = useState(false);
   const defaultAdmitWard = wards[1]?.name ?? wards[0]?.name ?? "";
-  const [admitForm, setAdmitForm] = useState({ patientId: "", ward: defaultAdmitWard, bed: firstFreeBed(defaultAdmitWard), diagnosis: "", service: INPATIENT_SERVICES[0] as string, clinician: clinicians[0]?.value ?? currentUser, reason: "", isolation: "", expectedDischarge: "" });
+  const services = useListValues("inpatient-services"); // the hospital's Inpatient Services
+  const [admitForm, setAdmitForm] = useState({ patientId: "", ward: defaultAdmitWard, bed: firstFreeBed(defaultAdmitWard), diagnosis: "", service: services[0] ?? "", clinician: clinicians[0]?.value ?? currentUser, reason: "", isolation: "", expectedDischarge: "" });
 
   function openAdmit() {
     setActionError("");
-    setAdmitForm({ patientId: "", ward: defaultAdmitWard, bed: firstFreeBed(defaultAdmitWard), diagnosis: "", service: INPATIENT_SERVICES[0], clinician: clinicians[0]?.value ?? (live ? "" : currentUser), reason: "", isolation: "", expectedDischarge: "" });
+    setAdmitForm({ patientId: "", ward: defaultAdmitWard, bed: firstFreeBed(defaultAdmitWard), diagnosis: "", service: services[0] ?? "", clinician: clinicians[0]?.value ?? (live ? "" : currentUser), reason: "", isolation: "", expectedDischarge: "" });
     setAdmitOpen(true);
   }
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -211,7 +213,7 @@ export default function Inpatient() {
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-2">
                 <Select value={censusWard} onChange={(event) => setCensusWard(event.target.value)} options={["All", ...wards.map((ward) => ward.name)]} className="h-9 w-auto py-0 text-sm" />
-                <Select value={censusService} onChange={(event) => setCensusService(event.target.value)} options={["All", ...INPATIENT_SERVICES]} className="h-9 w-auto py-0 text-sm" />
+                <Select value={censusService} onChange={(event) => setCensusService(event.target.value)} options={["All", ...services]} className="h-9 w-auto py-0 text-sm" />
                 <Select value={censusReady} onChange={(event) => setCensusReady(event.target.value as never)} options={[{ value: "all", label: "Any discharge status" }, { value: "ready", label: "Ready for discharge" }, { value: "not-ready", label: "Not ready" }]} className="h-9 w-auto py-0 text-sm" />
               </div>
               <Table columns={["Patient", "Ward / bed", "Service", "Attending", "Admitting diagnosis", "LOS", "Discharge", ""]} caption="Ward census">
@@ -528,7 +530,7 @@ export default function Inpatient() {
                 })()}
               />
             </Field>
-            <Field label="Service"><Select value={admitForm.service} onChange={(event) => setAdmitForm({ ...admitForm, service: event.target.value })} options={[...INPATIENT_SERVICES]} /></Field>
+            <Field label="Service"><Select value={admitForm.service} onChange={(event) => setAdmitForm({ ...admitForm, service: event.target.value })} options={services} /></Field>
             <Field label="Admitting clinician"><Select value={admitForm.clinician} onChange={(event) => setAdmitForm({ ...admitForm, clinician: event.target.value })} options={clinicians.length ? clinicians : live ? [{ value: "", label: "—" }] : [currentUser]} /></Field>
             <Field label="Isolation / precautions"><Input value={admitForm.isolation} onChange={(event) => setAdmitForm({ ...admitForm, isolation: event.target.value })} placeholder="e.g. Contact isolation" /></Field>
             <Field label="Expected discharge"><Input type="date" value={admitForm.expectedDischarge} onChange={(event) => setAdmitForm({ ...admitForm, expectedDischarge: event.target.value })} /></Field>
