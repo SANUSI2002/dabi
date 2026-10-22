@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { useEntitlements } from "@/platform/useEntitlements";
 import type { ProductKey } from "@/platform/entitlements";
 import { orgConfigRequest } from "@/emr-live/client";
+import { useLiveEmr } from "@/emr-live/session";
 import { liveChange } from "./sync";
 
 // Module switches in live mode (GET /org-config/modules): the organization's approved package decides its
@@ -23,12 +24,15 @@ export const useLiveModulesMeta = create<{ loaded: boolean; version: number; edi
 export async function loadModules() {
   const { data } = await orgConfigRequest<{ data: ApiModules }>("/modules");
   useLiveModulesMeta.setState({ loaded: true, version: data.version, editable: data.editable, packageName: data.package ? `${data.package.name} (v${data.package.version})` : null, disabled: data.disabled });
-  useEntitlements.setState((s) => ({
-    org: { ...s.org, plan: data.package?.name ?? "No approved package" },
+  const access = useLiveEmr.getState().access;
+  const name = access?.organizationName ?? "Your organization";
+  useEntitlements.setState({
+    // the signed-in organization, never the demo tenant
+    org: { id: access?.organizationId ?? "", name, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""), plan: data.package?.name ?? "No approved package" },
     products: { ...data.products, pharmacy: false },
     modules: Object.fromEntries(data.modules.map((m) => [m.key, m.enabled])),
     submodules: Object.fromEntries(data.modules.flatMap((m) => m.submodules.map((x) => [x.key, x.enabled]))),
-  }));
+  });
 }
 
 const reload = () => loadModules();

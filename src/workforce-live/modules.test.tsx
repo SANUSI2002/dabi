@@ -44,7 +44,7 @@ describe("live module switches", () => {
   it("takes products from the package and modules from the organization's switches", async () => {
     await ready();
     expect(useEntitlements.getState().products).toEqual({ emr: true, workforce: false, accounting: false, pharmacy: false });
-    expect(useEntitlements.getState().org.plan).toBe("Hospital Standard");
+    expect(useEntitlements.getState().org).toMatchObject({ name: "Sabi Test General Hospital", slug: "sabi-test-general-hospital", plan: "Hospital Standard" });
     render(<MemoryRouter><PlatformModules /></MemoryRouter>);
     expect(screen.getByText("Hospital Standard (v3)")).toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: "Laboratory off" })).not.toBeChecked();
