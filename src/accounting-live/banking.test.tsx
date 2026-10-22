@@ -1,4 +1,4 @@
-import { cleanup, render, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -87,6 +87,23 @@ describe("live banking and expenses", () => {
     bank.toggleCleared("rc1", `${E}:${L1}`);
     expect(useBanking.getState().reconciliationProgress("rc1").difference).toBe(0); // the tick shows at once
     await waitFor(() => expect(writes()).toEqual([["/banking/accounts/1010/apply-rules", "POST", {}], ["/banking/reconciliations/rc1/toggle", "POST", { movementKey: `${E}:${L1}` }]]));
+  });
+
+  it("imports a bank's statement file after showing what it read", async () => {
+    await ready();
+    render(<MemoryRouter><BankTransactions /></MemoryRouter>);
+    fireEvent.click(screen.getByRole("button", { name: /Import statement/ }));
+    const csv = [
+      "Account Number,0123456789",
+      "Trans Date,Reference,Narration,Debit,Credit,Balance",
+      '01-Sep-2026,,Opening Balance,,,"2,000,000.00"',
+      '03/09/2026,NIP/778,"TRF FROM ADEBAYO, OLUWASEUN",,"45,000.00","2,045,000.00"',
+    ].join("\n");
+    fireEvent.change(screen.getByLabelText("Statement file"), { target: { files: [new File([csv], "gtb-september.csv", { type: "text/csv" })] } });
+    expect(await screen.findByText(/gtb-september.csv: 1 transaction/)).toBeInTheDocument();
+    expect(screen.getByText(/1 row left out/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Import 1 line" }));
+    await waitFor(() => expect(writes()).toContainEqual(["/banking/statement-lines/import", "POST", { accountNumber: expect.any(Number), lines: [{ date: "2026-09-03T12:00:00.000Z", amount: 45000, description: "TRF FROM ADEBAYO, OLUWASEUN", reference: "NIP/778" }] }]));
   });
 
   it("decides expense claims on the server", async () => {

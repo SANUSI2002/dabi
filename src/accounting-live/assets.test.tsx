@@ -85,6 +85,28 @@ describe("live fixed assets, budgets and tax", () => {
     expect(await screen.findByText(/Acknowledgement: FIRS-ACK-00123/)).toBeInTheDocument();
   });
 
+  it("downloads a return's schedule — every ledger line behind it — for the authority's portal", async () => {
+    await ready();
+    const schedule = {
+      reference: "WHT-2026-10", returnType: "WHT", authority: "FIRS", periodStart: "2026-10-01T00:00:00.000Z", periodEnd: "2026-10-31T23:59:59.000Z", outputTax: 75000, inputTax: 0, netPayable: 75000,
+      rows: [{ date: "2026-10-20T12:00:00.000Z", entryNumber: "JE-2026-000031", source: "Vendor Payment", reference: "PAY-2026-000001", description: "WHT withheld — Emzor", counterparty: "Emzor Pharmaceuticals", counterpartyTin: "0123-4567", tax: 75000, reclaimed: 0 }],
+      totals: { tax: 75000, reclaimed: 0 },
+    };
+    const base = api.accountingRequest.getMockImplementation()!;
+    api.accountingRequest.mockImplementation(async (path: string, o?: unknown) => (path.endsWith("/schedule") ? { data: schedule } : base(path, o)));
+    let blob: Blob | undefined;
+    Object.assign(URL, { createObjectURL: vi.fn((b: Blob) => { blob = b; return "blob:schedule"; }), revokeObjectURL: vi.fn() });
+    render(<MemoryRouter><TaxCenter /></MemoryRouter>);
+    fireEvent.click(screen.getByText("Returns"));
+    fireEvent.click((await screen.findAllByText("Schedule"))[0]);
+    await waitFor(() => expect(blob).toBeDefined());
+    const csv = await blob!.text();
+    expect(csv).toContain("Counterparty TIN");
+    expect(csv).toContain("2026-10-20,JE-2026-000031,Vendor Payment,PAY-2026-000001,Emzor Pharmaceuticals,0123-4567,WHT withheld — Emzor,75000,");
+    expect(csv).toContain("Net payable,,,,,,,75000");
+    expect(api.accountingRequest.mock.calls.map(([p]) => p)).toContain("/planning/tax-returns/t1/schedule");
+  });
+
   it("switches cost centres off on the server", async () => {
     await ready();
     useBudgets.getState().toggleCostCentre("cc1");

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { FundsNote } from "@/components/accounting/FundsNote";
-import { Plus, Percent, FileCheck2, Banknote, Send } from "lucide-react";
+import { Plus, Percent, FileCheck2, Banknote, Send, Download } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard, Card, statusTone, EmptyState } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
@@ -9,12 +9,13 @@ import { Field, Input, Select } from "@/components/ui/form";
 import { money, shortDate, isoDate } from "@/lib/format";
 import { useTax } from "@/store/accounting/useTax";
 import { useLedger } from "@/store/accounting/useLedger";
+import { downloadCsv, toCsv } from "@/lib/csv";
 import type { TaxKind, ReturnType } from "@/data/accounting/tax";
 
 const RETURN_TYPES: ReturnType[] = ["VAT", "WHT", "PAYE"];
 
 export default function TaxCenter() {
-  const { rates, returns, addRate, updateRate, prepareReturn, efileReturn, payReturn } = useTax();
+  const { rates, returns, addRate, updateRate, prepareReturn, efileReturn, payReturn, returnSchedule } = useTax();
   const cashAccts = useLedger((s) => s.accounts).filter((a) => a.subtype === "cash" || a.subtype === "bank");
   const [rateModal, setRateModal] = useState(false);
   const [prep, setPrep] = useState(false);
@@ -23,6 +24,17 @@ export default function TaxCenter() {
   const [rf, setRf] = useState({ name: "", kind: "VAT" as TaxKind, rate: 0, accountNumber: 2200 });
   const [pf, setPf] = useState<{ type: ReturnType; start: string; end: string }>(() => ({ type: "VAT", start: isoDate(new Date(Date.now() - 30 * 864e5)), end: isoDate(new Date()) }));
   const [msg, setMsg] = useState<string | null>(null);
+  // The schedule to upload with a return on the authority's portal: every ledger line behind it.
+  async function downloadSchedule(id: string) {
+    try {
+      const s = await returnSchedule(id);
+      const rows: (string | number | undefined)[][] = s.rows.map((x) => [x.date.slice(0, 10), x.entryNumber, x.source, x.reference, x.counterparty, x.counterpartyTin, x.description, x.tax || "", x.reclaimed || ""]);
+      rows.push([], ["Total", "", "", "", "", "", "", s.totals.tax, s.totals.reclaimed], ["Output tax on the return", "", "", "", "", "", "", s.outputTax], ["Input tax on the return", "", "", "", "", "", "", "", s.inputTax], ["Net payable", "", "", "", "", "", "", s.netPayable]);
+      downloadCsv(`${s.reference}-schedule`, toCsv(["Date", "Entry", "Source", "Reference", "Counterparty", "Counterparty TIN", "Description", s.returnType === "VAT" ? "Output VAT" : "Tax", s.returnType === "VAT" ? "Input VAT / remitted" : "Remitted"], rows));
+    } catch (cause) {
+      setMsg(cause instanceof Error ? cause.message : "The schedule could not be prepared.");
+    }
+  }
   const [ackFor, setAckFor] = useState<string | null>(null);
   const [ack, setAck] = useState("");
   const ackReturn = returns.find((r) => r.id === ackFor);
@@ -78,6 +90,7 @@ export default function TaxCenter() {
                     <Cell><Badge tone={statusTone(r.status === "Paid" ? "paid" : r.status === "Filed" ? "approved" : "submitted")}>{r.status}</Badge></Cell>
                     <Cell>
                       <div className="flex justify-end gap-1">
+                        <button className="btn-ghost px-2 py-1 text-xs" title="Every ledger line behind this return, to upload with it on the authority's portal" onClick={() => void downloadSchedule(r.id)}><Download size={11} /> Schedule</button>
                         {r.status === "Open" && <button className="btn-primary px-2 py-1 text-xs" onClick={() => { const res = efileReturn(r.id); if (res.ok) setMsg(`Filed with ${r.authority}. Acknowledgement: ${res.ref}`); else if (res.needsAcknowledgement) { setAck(""); setAckFor(r.id); } }}><Send size={11} /> E-file</button>}
                         {r.status === "Filed" && r.netPayable > 0 && <button className="btn-primary px-2 py-1 text-xs" onClick={() => { setPayAcct(1010); setPayId(r.id); }}><Banknote size={11} /> Pay</button>}
                       </div>

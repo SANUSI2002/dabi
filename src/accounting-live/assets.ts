@@ -6,6 +6,7 @@ import { useLedger } from "@/store/accounting/useLedger";
 import { accountingRequest } from "@/emr-live/client";
 import type { AssetRevaluation, DepreciationRun, FixedAsset } from "@/data/accounting/fixedAssets";
 import type { Budget, CostCentre } from "@/data/accounting/budgets";
+import type { TaxReturnSchedule } from "@/data/accounting/tax";
 import type { TaxReturn } from "@/data/accounting/tax";
 import { adoptLiveIdentity, liveChange, uuid } from "@/workforce-live/sync";
 import { loadLedger } from "./ledger";
@@ -159,6 +160,7 @@ export function goLiveAssets() {
       return { ok: true, ref: ack };
     },
     payReturn: (id, fromAccount) => { void liveChange(() => post(`/planning/tax-returns/${id}/pay`, { fromAccount }), reloadPlanning); },
+    returnSchedule: async (id) => (await accountingRequest<{ data: TaxReturnSchedule }>(`/planning/tax-returns/${id}/schedule`)).data,
   });
 }
 
