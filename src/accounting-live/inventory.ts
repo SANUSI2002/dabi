@@ -4,13 +4,15 @@ import { accountingRequest, emrRequest, newIdempotencyKey } from "@/emr-live/cli
 import { storesFromApi, type ApiStores } from "@/emr-live/stores";
 import { adoptLiveIdentity, liveChange, uuid } from "@/workforce-live/sync";
 import { loadLedger } from "./ledger";
+import { useLedger } from "@/store/accounting/useLedger";
 import { loadIntegrations } from "./integrations";
 
 // Inventory accounting in live mode (GET /inventory): the hospital's own stores — items, batches and
 // movements — valued at their batch costs, each item on its ledger accounts. Stock that is paid for
 // outside a bill is received here straight into the books; issues, adjustments, write-offs and counts go
 // to the hospital stores (they need stores rights) and the Stores connector posts them. Moving stock
-// between branches and landed costs are not connected to the stores yet, and say so.
+// between branches is a move between store locations (Inventory → Transfers), and says so. Landed costs
+// raise the cost of the batches on hand.
 
 type Accounts = Record<string, { inventory: number; cogs: number }>;
 export const useLiveInventoryMeta = create<{ loaded: boolean; mainLocationId: string }>(() => ({ loaded: false, mainLocationId: "" }));
@@ -86,7 +88,19 @@ export function goLiveInventory() {
     },
 
     transferStock: () => ({ ok: false, error: "Moving stock between branches isn't connected to the hospital stores: they are locations of one organization. Move stock between them in Inventory → Transfers." }),
-    applyLandedCost: () => ({ ok: false, error: "Landed costs aren't connected to the hospital stores yet. Include freight, duty and clearing on the purchase bill for now." }),
+    // Freight, duty and clearing on stock already received: each item's share raises the unit cost of its
+    // batches on hand; what falls on stock already used goes to cost of goods sold (the server works it out).
+    applyLandedCost: (input) => {
+      const allocations = input.allocations.filter((a) => a.amount > 0);
+      if (!allocations.length) return { ok: false, error: "Enter at least one cost allocation." };
+      const credit = useLedger.getState().accountByNumber(input.creditAccount);
+      if (!credit || !credit.isActive) return { ok: false, error: `Account ${input.creditAccount} is not available.` };
+      if (!credit.allowManualEntry) return { ok: false, error: `${credit.number} ${credit.name} is posted only by its subledger. Record the charge as a bill instead.` };
+      void liveChange(() => accountingRequest("/inventory/landed-costs", {
+        method: "POST", body: { id: uuid(), date: input.date.slice(0, 10), description: input.description.trim() || "Landed costs", creditAccount: input.creditAccount, allocations },
+      }), reload);
+      return { ok: true };
+    },
   });
 }
 

@@ -8,6 +8,7 @@ vi.mock("@/emr-live/client", async (importOriginal) => ({ ...(await importOrigin
 
 import InventoryAccounting from "@/pages/accounting/InventoryAccounting";
 import { useInventoryAccounting } from "@/store/accounting/useInventoryAccounting";
+import { useLedger } from "@/store/accounting/useLedger";
 import { useNotifications } from "@/store/accounting/useNotifications";
 import { useLiveEmr } from "@/emr-live/session";
 import { LiveWorkforceSync } from "@/workforce-live/LiveWorkforceSync";
@@ -70,6 +71,16 @@ describe("live inventory accounting", () => {
     await ready();
     const inv = useInventoryAccounting.getState();
     expect(inv.transferStock({ itemId: ITEM, qty: 1, fromBranchId: "a", toBranchId: "b", date: "2026-10-20" })).toMatchObject({ ok: false, error: expect.stringMatching(/between branches/) });
-    expect(inv.applyLandedCost({ date: "2026-10-20", description: "Freight", creditAccount: 2000, allocations: [{ itemId: ITEM, amount: 100 }] })).toMatchObject({ ok: false, error: expect.stringMatching(/Landed costs/) });
+  });
+
+  it("sends landed costs to the server, refusing an account only a subledger posts", async () => {
+    await ready();
+    const inv = useInventoryAccounting.getState();
+    const accounts = useLedger.getState().accounts;
+    const control = accounts.find((a) => !a.allowManualEntry && a.isActive);
+    const cash = accounts.find((a) => a.allowManualEntry && a.isActive && (a.subtype === "cash" || a.subtype === "bank"));
+    if (control) expect(inv.applyLandedCost({ date: "2026-10-20", description: "Freight", creditAccount: control.number, allocations: [{ itemId: ITEM, amount: 100 }] })).toMatchObject({ ok: false, error: expect.stringMatching(/subledger/) });
+    expect(inv.applyLandedCost({ date: "2026-10-20T12:00:00.000Z", description: "Freight", creditAccount: cash!.number, allocations: [{ itemId: ITEM, amount: 100 }, { itemId: ITEM, amount: 0 }] })).toEqual({ ok: true });
+    await waitFor(() => expect(sent(api.accountingRequest)).toContainEqual(["/inventory/landed-costs", { id: expect.any(String), date: "2026-10-20", description: "Freight", creditAccount: cash!.number, allocations: [{ itemId: ITEM, amount: 100 }] }]));
   });
 });
