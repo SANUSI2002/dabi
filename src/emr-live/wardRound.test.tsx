@@ -50,6 +50,7 @@ let rounds: ReturnType<typeof round>[] = [];
 
 function serve() {
   api.emrRequest.mockImplementation(async (path: string, options?: { method?: string }) => {
+    if (options?.method === "PATCH") return { data: { version: 4, updatedAt: "2026-10-20T09:00:00.000Z" } };
     if (options?.method) return { data: {} };
     if (path === "/admissions/ad1") return { data: admission };
     if (path === "/admissions/ad1/ward-rounds") return { data: { rounds, medicationChanges: [] } };
@@ -111,7 +112,11 @@ describe("the live ward round", () => {
     // a reload while typing never undoes what has not been sent yet
     await useLiveWardRound.getState().load("ad1");
     expect(useLiveWardRound.getState().rounds[0].progressNote).toBe("Afebrile overnight");
+    const reads = () => api.emrRequest.mock.calls.filter(([p, o]) => p === "/admissions/ad1/ward-rounds" && !o?.method).length;
+    const before = reads();
     await waitFor(() => expect(writes()).toEqual([["/ward-rounds/wr1", "PATCH", { progressNote: "Afebrile overnight" }, 3]]), { timeout: 2000 });
+    await waitFor(() => expect(useLiveWardRound.getState().rounds[0].version).toBe(4)); // takes back the new version…
+    expect(reads()).toBe(before); // …without reloading the whole screen
   });
 
   it("sends medication decisions in the formulary's terms, and saves the draft before signing", async () => {

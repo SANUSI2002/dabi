@@ -15,8 +15,9 @@ import { recordFromApi, type ApiPatientRecord } from "./patientRecord";
 // The ward round screen for a live hospital (GET /admissions/:id/ward-rounds and the stay's chart): the
 // admission, its rounds, medication decisions, the nursing flowsheet, the medication chart and the
 // patient's record, with the same actions the screen offers. Typing in a draft is saved a moment after
-// it stops (only the fields that changed, against the version read when sending); a reload never
-// overwrites what has not been sent yet. Medication decisions act on the real prescriptions on the server,
+// it stops (only the fields that changed, against the version read when sending) and takes back just the
+// new version — the screen reloads only when a save fails; a reload never overwrites what has not been
+// sent yet. Medication decisions act on the real prescriptions on the server,
 // which runs the prescribing safety checks — a refusal shows in the banner.
 
 type ApiAdmission = Parameters<typeof liveAdmission>[0];
@@ -151,13 +152,16 @@ function flush(id: string) {
   if (timer) clearTimeout(timer);
   timers.delete(id);
   if (!pending.get(id)) return;
+  let saved = false;
   void liveChange(async () => {
     const fields = pending.get(id);
     pending.delete(id);
-    if (!fields) return;
-    // the version as it is now (after any save before this one reloaded it)
-    await emrRequest(`/ward-rounds/${id}`, { method: "PATCH", version: roundOf(id)?.version ?? 1, body: fields });
-  }, reload);
+    if (!fields) return void (saved = true);
+    // the version as it is now (after any save before this one)
+    const { data } = await emrRequest<{ data: { version: number; updatedAt: string } }>(`/ward-rounds/${id}`, { method: "PATCH", version: roundOf(id)?.version ?? 1, body: fields });
+    useLiveWardRound.setState((s) => ({ rounds: s.rounds.map((r) => (r.id === id ? { ...r, version: data.version, updatedAt: data.updatedAt } : r)) }));
+    saved = true;
+  }, () => (saved ? Promise.resolve() : reload()));
 }
 function edit(id: string, change: (r: LiveWardRoundRound) => Partial<Pick<WardRound, DraftField>>) {
   const round = roundOf(id);
