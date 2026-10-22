@@ -86,4 +86,19 @@ describe("live receivables", () => {
       ["/receivables/receipts", "POST", { id: expect.any(String), customerId: C, date: "2026-10-21T12:00:00.000Z", method: "Bank Transfer", depositAccountNumber: 1010, amount: 215000, allocations: [{ invoiceId: "i1", amount: 215000 }] }],
     ]);
   });
+
+  it("issues a brand-new invoice straight away (Save & issue), checking credit on what was sent", async () => {
+    await ready();
+    const AR = useAR.getState();
+    const limit = (creditLimit: number) => useAR.setState((st) => ({ customers: st.customers.map((c) => ({ ...c, creditLimit })) }));
+    // no limit: created, then issued behind it
+    limit(0);
+    const small = AR.createInvoice({ customerId: C, date: "2026-10-21T12:00:00.000Z", lines: [{ ...line, qty: 1, taxRateId: "tax-vat-exempt" }] });
+    expect(AR.issueInvoice(small)).toMatchObject({ ok: true });
+    // over a 100,000 limit (215,000 already owed): refused before anything is issued
+    limit(100000);
+    const big = AR.createInvoice({ customerId: C, date: "2026-10-21T12:00:00.000Z", lines: [line] });
+    expect(AR.issueInvoice(big)).toMatchObject({ ok: false, error: expect.stringMatching(/limit/) });
+    await waitFor(() => expect(writes().map(([p]) => p)).toEqual(["/receivables/invoices", `/receivables/invoices/${small}/issue`, "/receivables/invoices"]));
+  });
 });
