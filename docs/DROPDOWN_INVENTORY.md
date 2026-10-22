@@ -1,7 +1,7 @@
 # Dropdowns — where each one is configured
 
 Every dropdown in Sabi falls into one of four groups. This file lists the fixed lists (the other two
-groups configure themselves) and records the decision for each. Last reviewed 2026-10-22.
+groups configure themselves) and records the decision for each. Last reviewed 2026-10-22 (batches 1–4 done).
 
 1. **Configurable** — the hospital edits the list under **Settings → Master Data** (or a settings screen
    of its own). The server checks saved values against the hospital's list.
@@ -25,6 +25,14 @@ groups configure themselves) and records the decision for each. Last reviewed 20
 | Equipment Categories | Master Data → EMR | Equipment managers | Equipment |
 | Prescription Rejection Reasons | Master Data → EMR | Pharmacy | Pharmacy review |
 | Specimen Rejection Reasons | Master Data → EMR | Lab catalogue managers | Laboratory |
+| NCD Conditions | Master Data → EMR | NCD clinic (ncd.enrol) | NCD programme (starter conditions are counted in NCD reports) |
+| Outreach Activity Types | Master Data → EMR | Outreach recorders | Outreach |
+| Receiving Accounts | Master Data → EMR | Billing cashiers | Billing payments |
+| Inpatient Services | Master Data → EMR | Catalogue managers | Admissions, ward census |
+| Policy Categories, Helpdesk Ticket Types, Recruitment Sources, Candidate Rejection Reasons, Talent Pool Skill Zones, Exit Reasons | Master Data → Workforce | HR | HR policies, Helpdesk, Recruitment, Talent Pool, Offboarding |
+| Vendor Categories | Master Data → Accounting | Finance | Vendors ("Pharmaceuticals" vendors supply the pharmacy) |
+| Letter Categories | Master Data → Platform | HR, hospital admin | Letter templates |
+| HRIS role | HR → job positions | HR | HRIS (from records) |
 | Ward Types, Bed Types, Lab Sample Types, Lab Stage Types | Master Data → EMR | Catalogue managers | Wards, Lab |
 | Leave, Employment, Document, Certification, Query, Vacancy Types; Recruitment Statuses; Handover Items; Loan Types | Master Data → Workforce | HR | HR and Workforce screens |
 | Identification Types | Master Data → Platform | Hospital admin | Registration, HR |
@@ -57,6 +65,12 @@ groups configure themselves) and records the decision for each. Last reviewed 20
 | Calibration result, fault priority | Equipment | Maintenance rules |
 | Payment methods | Billing, Accounting | Each maps to a ledger account |
 | Depreciation methods, tax kinds, return types | Accounting | Accounting standards, FIRS returns |
+| Who is paying (Out of Pocket, Government Scheme, NHIS, HMO, Corporate) | Registration | Drives billing and the receivables account; all five are now offered |
+| Customer type | Accounting customers | Picks the receivables account (NHIS, HMO, patients) |
+| Expense payment mode | Expenses | "Reimburse to staff" triggers the claimant rules |
+| Mobility | Inpatient nursing | Standard assistance scale used in falls-risk assessment |
+| Informant relationship | Birth notification | Statutory birth register |
+| Asset return condition, reimbursement type, holiday scope, work location | HR, Workforce | Each drives a rule (asset status, leave encashment, holiday coverage, time policy) |
 | Workflow operators and decisions | Workflow Builder | Engine logic |
 | Pay frequency, time rounding, attendance source, day status | Workforce settings | Time and pay calculations |
 
@@ -64,18 +78,4 @@ groups configure themselves) and records the decision for each. Last reviewed 20
 
 | Dropdown | Screen | Plan |
 |---|---|---|
-| Payment scheme (Out of Pocket / Government Scheme / NHIS) | Registration | Use the patient categories list |
-| Receiving account | Billing invoice | Use Accounting's bank and cash accounts |
-| NCD condition | NCD | Use the diagnoses catalogue |
-| Cadre | HRIS | Use HR job positions |
-| Care-plan category | Consultation | New Master Data list |
-| Inpatient service, mobility | Inpatient | New Master Data lists |
-| Informant relationship | Labour (birth notification) | New Master Data list |
-| Outreach activity type | Outreach | New Master Data list |
-| Helpdesk ticket types, policy categories, exit reasons | HR | New lists (policy categories have a database check to lift) |
-| Recruitment source, rejection reasons, skill zones | Recruitment | New Master Data lists |
-| Asset return condition | Company Assets | New Master Data list |
-| Reimbursement types, work locations, holiday scope | Payroll, Workforce | New lists (reimbursement types have a database check to lift) |
-| Vendor categories, customer types | Accounting | New lists (both have database checks; customer type drives receivables) |
-| Expense payment modes, receipt methods | Accounting | Review with payment methods |
-| Letter template categories | Letter Templates | New list (database check to lift) |
+| Care-plan category | Consultation | New Master Data list (waiting: the Consultation screen has other uncommitted work in progress) |

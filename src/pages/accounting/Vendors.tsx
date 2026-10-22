@@ -9,11 +9,12 @@ import { PrintDoc, Section, Line } from "@/components/print/PrintFrame";
 import { money, shortDate } from "@/lib/format";
 import { useAP, purchaseTotal, paymentPosted } from "@/store/accounting/useAP";
 import type { Vendor } from "@/data/accounting/payables";
+import { useListValues } from "@/lib/listOptions";
 
-const CATS: Vendor["category"][] = ["Pharmaceuticals", "Medical Supplies", "Equipment", "Utilities", "Services", "Facilities", "Other"];
 const blank = { name: "", category: "Services" as Vendor["category"], email: "", phone: "", address: "", taxId: "", paymentTermsDays: 30, openingBalance: 0 };
 
 export default function Vendors() {
+  const listed = useListValues("vendor-categories"); // the hospital's list (Settings → Master Data)
   const { vendors, bills, vendorPayments, addVendor, updateVendor, vendorBalance, billsOf, billBalance, apAgingFor } = useAP();
   const [create, setCreate] = useState(false);
   const [detail, setDetail] = useState<Vendor | null>(null);
@@ -84,7 +85,7 @@ export default function Vendors() {
         <div className="space-y-4">
           <Grid cols={2}>
             <Field label="Name"><Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
-            <Field label="Category"><Select value={f.category} onChange={(e) => setF({ ...f, category: e.target.value as never })} options={CATS} /></Field>
+            <Field label="Category"><Select value={f.category} onChange={(e) => setF({ ...f, category: e.target.value as never })} options={listed} /></Field>
             <Field label="Email"><Input value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></Field>
             <Field label="Phone"><Input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} /></Field>
             <Field label="Tax ID (TIN)"><Input value={f.taxId} onChange={(e) => setF({ ...f, taxId: e.target.value })} /></Field>

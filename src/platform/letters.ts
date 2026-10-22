@@ -5,7 +5,7 @@
 // fills with a data bag. Templates are editable in Settings; generated letters
 // are logged and rendered through <LetterDoc> for print / PDF.
 
-export type LetterCategory = "Onboarding" | "Discipline" | "Movement" | "Finance" | "General";
+export type LetterCategory = "Onboarding" | "Discipline" | "Movement" | "Finance" | "General" | (string & {}) /* the hospital's own (Settings → Master Data) */;
 
 export type LetterTemplate = {
   key: string;
