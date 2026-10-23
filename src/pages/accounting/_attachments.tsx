@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/primitives";
 import { useDocuments, type AttachmentEntity } from "@/store/accounting/useDocuments";
 import { shortDate } from "@/lib/format";
 import { useHr } from "@/store/useHr";
+import { useIsLiveEmr } from "@/emr-live/session";
 
 // A compact attachments block for any accounting record.
 export function Attachments({ entityType, entityId, entityLabel }: { entityType: AttachmentEntity; entityId: string; entityLabel: string }) {
@@ -12,6 +13,9 @@ export function Attachments({ entityType, entityId, entityLabel }: { entityType:
   const inputRef = useRef<HTMLInputElement>(null);
   const [note, setNote] = useState("");
   const list = attachmentsFor(entityType, entityId);
+  // A live hospital's files would only sit in this browser (lost on refresh, unseen by colleagues) until
+  // finance documents have scanned server storage — so attaching says so instead of pretending to file.
+  const live = useIsLiveEmr();
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -33,9 +37,10 @@ export function Attachments({ entityType, entityId, entityLabel }: { entityType:
         <div className="flex items-center gap-1.5">
           <input className="input h-7 w-32 text-xs" placeholder="note (optional)" value={note} onChange={(e) => setNote(e.target.value)} />
           <input ref={inputRef} type="file" hidden onChange={onFile} />
-          <Button variant="soft" onClick={() => inputRef.current?.click()}><Paperclip size={12} /> Attach</Button>
+          <Button variant="soft" disabled={live} title={live ? "Attachments aren't stored for live hospitals yet" : undefined} onClick={() => inputRef.current?.click()}><Paperclip size={12} /> Attach</Button>
         </div>
       </div>
+      {live && <p className="mb-1.5 text-xs text-amber-700">Attachments aren't stored for live hospitals yet — keep the supplier's or customer's document in your filing until document storage is switched on.</p>}
       {list.length === 0 ? <p className="text-sm text-mist-400">No files attached.</p> : (
         <div className="space-y-1.5">
           {list.map((a) => (
