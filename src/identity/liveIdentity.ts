@@ -72,6 +72,23 @@ export async function liveApiTextPost(path: string, payload: unknown): Promise<{
   return { text: await response.text(), filename };
 }
 
+/** Authenticated upload whose body is the file itself (its type as Content-Type); returns the JSON reply. */
+export async function liveApiUpload<T>(path: string, file: Blob, headers: Record<string, string>): Promise<T> {
+  if (!apiBaseUrl) throw new Error('Sabi API is not configured.');
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    method: 'POST', credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(120000), body: file,
+    headers: { 'Content-Type': file.type || 'application/octet-stream', Accept: 'application/json', 'X-Sabi-Client': 'browser', ...headers, ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(body.error?.message || body.message || 'The file could not be uploaded.') as LiveApiError;
+    error.status = response.status;
+    error.code = body.error?.code ?? body.code;
+    throw error;
+  }
+  return body as T;
+}
+
 const request = <T,>(path: string, options: RequestInit = {}) => requestApi<T>(`/api/v1/auth${path}`, options);
 
 export const liveRequestPasswordReset = (email: string) => request<{ status: string }>('/password-reset/request', { method: 'POST', body: JSON.stringify({ email: email.trim() }) });

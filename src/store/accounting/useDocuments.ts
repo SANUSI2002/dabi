@@ -20,6 +20,9 @@ export type Attachment = {
   uploadedBy: string;
   uploadedAt: string;
   note?: string;
+  /** live files: the virus check's verdict (only a CLEAN file opens) */
+  status?: "PENDING_UPLOAD" | "PENDING_SCAN" | "CLEAN" | "INFECTED" | "REJECTED";
+  scanError?: boolean;
 };
 
 const rid = () => Math.random().toString(36).slice(2, 9);

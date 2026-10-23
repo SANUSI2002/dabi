@@ -1,4 +1,4 @@
-import { liveApiRequest, type LiveApiError } from "@/identity/liveIdentity";
+import { liveApiRequest, liveApiUpload, type LiveApiError } from "@/identity/liveIdentity";
 import { useLiveEmr } from "./session";
 
 // Calls the tenant-scoped EMR API (/api/v1/emr/organizations/:organizationId/...) for the hospital
@@ -84,6 +84,20 @@ export async function accountingRequest<T>(path: string, request: EmrRequest = {
     if ((cause as Partial<LiveApiError>).status !== 401) throw cause;
     await useLiveEmr.getState().reselect();
     return send<T>(path, request, "accounting");
+  }
+}
+
+/** Uploads a file to the Accounting API (the file is the request body). */
+export async function accountingUpload<T>(path: string, file: Blob, headers: Record<string, string>): Promise<T> {
+  const organizationId = useLiveEmr.getState().access?.organizationId;
+  if (!organizationId) throw new Error("No hospital is selected.");
+  const url = `/api/v1/accounting/organizations/${encodeURIComponent(organizationId)}${path}`;
+  try {
+    return await liveApiUpload<T>(url, file, headers);
+  } catch (cause) {
+    if ((cause as Partial<LiveApiError>).status !== 401) throw cause;
+    await useLiveEmr.getState().reselect();
+    return liveApiUpload<T>(url, file, headers);
   }
 }
 
