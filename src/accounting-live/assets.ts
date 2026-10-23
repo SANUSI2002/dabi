@@ -2,11 +2,13 @@ import { create } from "zustand";
 import { monthlyDepreciation, netBookValue, useFixedAssets } from "@/store/accounting/useFixedAssets";
 import { useBudgets } from "@/store/accounting/useBudgets";
 import { useTax } from "@/store/accounting/useTax";
+import { useForecast } from "@/store/accounting/useForecast";
 import { useLedger } from "@/store/accounting/useLedger";
 import { accountingRequest } from "@/emr-live/client";
 import type { AssetRevaluation, DepreciationRun, FixedAsset } from "@/data/accounting/fixedAssets";
 import type { Budget, CostCentre } from "@/data/accounting/budgets";
 import type { TaxReturnSchedule } from "@/data/accounting/tax";
+import type { ForecastScenario } from "@/data/accounting/forecast";
 import type { TaxReturn } from "@/data/accounting/tax";
 import { adoptLiveIdentity, liveChange, uuid } from "@/workforce-live/sync";
 import { loadLedger } from "./ledger";
@@ -18,7 +20,10 @@ import { loadLedger } from "./ledger";
 
 type Versioned = { version?: number };
 type ApiAssets = { assets: (FixedAsset & Versioned)[]; runs: DepreciationRun[]; revaluations: AssetRevaluation[] };
-type ApiPlanning = { costCentres: (CostCentre & Versioned)[]; budgets: (Budget & Versioned)[]; taxReturns: (TaxReturn & Versioned)[] };
+type ApiPlanning = { costCentres: (CostCentre & Versioned)[]; budgets: (Budget & Versioned)[]; taxReturns: (TaxReturn & Versioned)[]; forecasts: (ForecastScenario & Versioned)[] };
+
+// the store's own month edit, kept before live mode replaces it (shows the figure; the server keeps it)
+const SHOW_OVERRIDE = useForecast.getState().setOverride;
 
 export const useLiveAssetsMeta = create<{ loaded: boolean; planningLoaded: boolean }>(() => ({ loaded: false, planningLoaded: false }));
 const noNull = <T extends object>(row: T) => Object.fromEntries(Object.entries(row).filter(([, v]) => v !== null && v !== undefined)) as T;
@@ -34,6 +39,7 @@ export async function loadPlanning() {
   useLiveAssetsMeta.setState({ planningLoaded: true });
   useBudgets.setState({ costCentres: data.costCentres, budgets: data.budgets.map((b) => noNull(b)) });
   useTax.setState({ returns: data.taxReturns.map((r) => noNull(r)) });
+  useForecast.setState({ scenarios: data.forecasts });
   adoptLiveIdentity(null);
 }
 
@@ -144,6 +150,41 @@ export function goLiveAssets() {
     },
   });
 
+  // Forecast scenarios are the organization's own (GET /planning). A month set by hand is saved a moment
+  // after typing stops, as the scenario's lines against the version read when sending.
+  const FC = () => useForecast.getState();
+  const versionOfScenario = (id: string) => (FC().scenarioById(id) as (ForecastScenario & Versioned) | undefined)?.version ?? 1;
+  const linesBody = (sc: ForecastScenario) => sc.lines.map((l) => defined({ id: l.id, accountNumber: l.accountNumber, baseAmount: l.baseAmount, monthlyGrowthPct: l.monthlyGrowthPct, overrides: l.overrides }));
+  const timers = new Map<string, ReturnType<typeof setTimeout>>();
+  const saveLines = (id: string) => {
+    clearTimeout(timers.get(id));
+    timers.set(id, setTimeout(() => {
+      timers.delete(id);
+      const sc = FC().scenarioById(id);
+      if (sc) void liveChange(() => accountingRequest(`/planning/forecasts/${id}`, { method: "PATCH", version: versionOfScenario(id), body: { lines: linesBody(sc) } }), reloadPlanning);
+    }, 600));
+  };
+  useForecast.setState({
+    addScenario: (input) => {
+      const id = uuid();
+      const lines = input.lines.map((l, i) => ({ ...l, id: `fl-${i}-${id.slice(0, 6)}` }));
+      void liveChange(() => post("/planning/forecasts", { id, name: input.name, basis: input.basis, startPeriod: input.startPeriod, months: input.months, lines: lines.map((l) => defined({ ...l })) }), reloadPlanning,
+        () => useForecast.setState((s) => ({ scenarios: [{ id, name: input.name, basis: input.basis, startPeriod: input.startPeriod, months: input.months, lines, createdAt: new Date().toISOString(), createdBy: "" }, ...s.scenarios] })));
+      return id;
+    },
+    updateScenario: (id, patch) => {
+      void liveChange(() => accountingRequest(`/planning/forecasts/${id}`, { method: "PATCH", version: versionOfScenario(id), body: defined({ name: patch.name, months: patch.months }) }), reloadPlanning,
+        () => useForecast.setState((s) => ({ scenarios: s.scenarios.map((x) => (x.id === id ? { ...x, ...patch } : x)) })));
+    },
+    removeScenario: (id) => {
+      void liveChange(() => post(`/planning/forecasts/${id}/remove`), reloadPlanning, () => useForecast.setState((s) => ({ scenarios: s.scenarios.filter((x) => x.id !== id) })));
+    },
+    setOverride: (scenarioId, lineId, monthIndex, value) => {
+      SHOW_OVERRIDE(scenarioId, lineId, monthIndex, value); // shown at once
+      saveLines(scenarioId);
+    },
+  });
+
   useTax.setState({
     prepareReturn: (returnType, periodStart, periodEnd) => {
       const id = uuid();
@@ -171,5 +212,6 @@ export function clearAssets() {
 export function clearPlanning() {
   useLiveAssetsMeta.setState({ planningLoaded: false });
   useBudgets.setState({ budgets: [], costCentres: [] });
+  useForecast.setState({ scenarios: [] });
   useTax.setState({ returns: [] });
 }

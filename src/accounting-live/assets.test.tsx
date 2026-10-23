@@ -12,6 +12,7 @@ import TaxCenter from "@/pages/accounting/TaxCenter";
 import { useFixedAssets } from "@/store/accounting/useFixedAssets";
 import { useBudgets } from "@/store/accounting/useBudgets";
 import { useTax } from "@/store/accounting/useTax";
+import { useForecast } from "@/store/accounting/useForecast";
 import { useLiveEmr } from "@/emr-live/session";
 import { LiveWorkforceSync } from "@/workforce-live/LiveWorkforceSync";
 import { useWorkforceSync } from "@/workforce-live/sync";
@@ -29,6 +30,7 @@ const fixedAssets = {
   runs: [], revaluations: [],
 };
 const planning = {
+  forecasts: [{ id: "fc1", name: "FY27 base case", basis: "Manual base", startPeriod: "2026-11", months: 3, lines: [{ id: "fl1", accountNumber: 4000, baseAmount: 1000, monthlyGrowthPct: 0 }], createdAt: "2026-10-20T00:00:00.000Z", createdBy: "Ngozi Eze", version: 2 }],
   costCentres: [{ id: "cc1", code: "LAB", name: "Laboratory", active: true, version: 3 }],
   budgets: [{ id: "b1", name: "FY budget", fiscalYear: 2026, status: "Draft", lines: [], createdAt: "2026-01-01T00:00:00.000Z", version: 1 }],
   taxReturns: [{ id: "t1", reference: "VAT-2026-10", kind: "VAT", returnType: "VAT", authority: "FIRS", liabilityAccount: 2200, periodStart: "2026-10-01T00:00:00.000Z", periodEnd: "2026-10-20T00:00:00.000Z", outputTax: 7500, inputTax: 0, netPayable: 7500, status: "Open", version: 1 }],
@@ -105,6 +107,16 @@ describe("live fixed assets, budgets and tax", () => {
     expect(csv).toContain("2026-10-20,JE-2026-000031,Vendor Payment,PAY-2026-000001,Emzor Pharmaceuticals,0123-4567,WHT withheld — Emzor,75000,");
     expect(csv).toContain("Net payable,,,,,,,75000");
     expect(api.accountingRequest.mock.calls.map(([p]) => p)).toContain("/planning/tax-returns/t1/schedule");
+  });
+
+  it("shows the organization's forecast scenarios, never the samples, and saves what is changed", async () => {
+    await ready();
+    expect(useForecast.getState().scenarios.map((x) => x.id)).toEqual(["fc1"]);
+    useForecast.getState().setOverride("fc1", "fl1", 1, 2500);
+    expect(useForecast.getState().scenarioById("fc1")?.lines[0].overrides).toEqual([null, 2500, null]); // shown at once
+    await waitFor(() => expect(writes()).toContainEqual(["/planning/forecasts/fc1", "PATCH", { lines: [{ id: "fl1", accountNumber: 4000, baseAmount: 1000, monthlyGrowthPct: 0, overrides: [null, 2500, null] }] }]), { timeout: 2000 });
+    useForecast.getState().removeScenario("fc1");
+    await waitFor(() => expect(writes()).toContainEqual(["/planning/forecasts/fc1/remove", "POST", {}]));
   });
 
   it("switches cost centres off on the server", async () => {
