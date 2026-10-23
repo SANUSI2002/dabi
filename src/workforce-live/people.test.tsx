@@ -3,8 +3,8 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/config/runtime", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/config/runtime")>()), apiBaseUrl: "https://api.test", apiConfigured: true }));
-const api = vi.hoisted(() => ({ workforceRequest: vi.fn() }));
-vi.mock("@/emr-live/client", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/emr-live/client")>()), workforceRequest: api.workforceRequest }));
+const api = vi.hoisted(() => ({ workforceRequest: vi.fn(), orgConfigRequest: vi.fn() }));
+vi.mock("@/emr-live/client", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/emr-live/client")>()), workforceRequest: api.workforceRequest, orgConfigRequest: api.orgConfigRequest }));
 
 import EmployeeDirectory from "@/pages/hr/EmployeeDirectory";
 import { useHr } from "@/store/useHr";
@@ -31,6 +31,10 @@ const signIn = (permissions: string[]) => useLiveEmr.setState({
 
 beforeEach(() => {
   api.workforceRequest.mockReset();
+  api.orgConfigRequest.mockReset();
+  api.orgConfigRequest.mockImplementation(async (path: string) => ({ data: path === "/modules"
+    ? { package: null, products: { emr: true, workforce: true, accounting: false }, modules: [], disabled: [], version: 1, editable: false }
+    : { data: {}, terms: { overrides: {}, version: 1 }, templates: [], letters: [] } }));
   api.workforceRequest.mockImplementation(async (path: string) => (path === "/people" ? { data: people } : path === "/people/employees/import-members" ? { data: { imported: 4 } } : { data: {} }));
   useWorkforceSync.setState({ error: "", pending: 0 });
 });
