@@ -1,0 +1,8 @@
+.sabi-ai-budget{display:flex;flex-shrink:0;align-items:center;flex-wrap:wrap;justify-content:space-between;gap:4px 14px;padding:4px 24px;border-bottom:1px solid var(--sai-border);background:var(--sai-surface,#f2f6ef);color:var(--sai-ink);font-size:13px;line-height:1.6;font-variant-numeric:tabular-nums}
+.sabi-ai-budget>span{min-width:0;overflow-wrap:anywhere}.sabi-ai-budget>span[role=status]{width:100%;padding-bottom:8px;font-weight:600}
+.sabi-ai-budget button{min-height:44px;border:0;border-radius:6px;background:none;color:var(--sai-green);font:inherit;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.sabi-ai-budget button:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.sabi-ai-budget>div{display:flex;flex-wrap:wrap;gap:4px 14px}.sabi-ai-budget button{display:inline-flex;align-items:center;gap:6px}.sabi-ai-budget button:disabled{opacity:.6;cursor:wait}
+@media(max-width:650px){.sabi-ai-budget{padding-inline:16px}}
+@media(max-width:1000px) and (max-height:720px){.sabi-ai-workspace{height:auto;min-height:720px}.sabi-ai-feed{min-height:240px;max-height:60dvh;flex:1 0 240px}}
+.sabi-ai-book-reference{display:block;max-width:100%;padding:12px 14px;border:1px solid #c9d8ca;border-radius:12px;background:#f4f7ef;color:#254c3d;font-size:13px;line-height:1.65;overflow-wrap:anywhere}.sabi-ai-book-reference small{display:block;font-size:12px;color:#52675e}

@@ -31,6 +31,9 @@ import { LiveSearchResults } from './ops/LiveSearch';
 import { AlertBell, Breadcrumb, Sidebar, SkipLink, useAlertCount, useNavBadges, useSearchShortcut } from './ops/Shell';
 import { EmrUsagePage, HospitalsPage, LaboratoriesPage, PrescriptionsPage, QuotesPage, VerificationPage, WaitlistPage, WellnessPage } from './ops/ProductPages';
 import { AccessPage, AnalyticsPage, isNotBuilt, NotBuiltPage, SecurityPage, SessionsPage, TenantsPage, type TenantView } from './ops/PlatformPages';
+import AiOperationsPage from './ops/AiOperationsPage';
+import AiKnowledgePage from './ops/AiKnowledgePage';
+import AiAccessPage from './ops/AiAccessPage';
 
 
 function LiveSidebar({ email, close, me, badges }: { email: string; close?: () => void; me: CcMe | null; badges: Record<string, number> }) {
@@ -183,6 +186,12 @@ export default function LiveCommandCenter() {
     content = <AnalyticsPage />;
   } else if (['/command-center/provisioning', '/command-center/setup', '/command-center/subscriptions', '/command-center/licenses', '/command-center/entitlements', '/command-center/documents'].includes(path)) {
     content = <TenantsPage key={path} view={path.split('/').pop() as TenantView} />;
+  } else if (path === '/command-center/ai') {
+    content = <AiOperationsPage />;
+  } else if (path === '/command-center/ai/knowledge') {
+    content = <AiKnowledgePage />;
+  } else if (path === '/command-center/ai/accounts') {
+    content = <AiAccessPage />;
   } else if (path === '/command-center/settings') {
     content = <RuntimeSettingsPage />;
   } else if (path === '/command-center/branding' || path === '/command-center/themes') {

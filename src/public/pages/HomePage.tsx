@@ -4,6 +4,7 @@ import { ArrowRight, BadgeCheck, Baby, Building2, CalendarCheck, ChevronDown, Cl
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/cn";
 import { DOCTOR_REGISTER_URL, DOCTOR_SIGN_IN_URL, TELEMEDICINE_SIGN_IN_URL } from "@/public/ecosystemLinks";
+import { AI_WORKSPACE_URL } from "@/public/ai/links";
 import { Action, ContactEmails, ContactLines, Eyebrow, INK, MUTED, Reveal, SectionTitle, TextLink } from "@/public/ui";
 import heroArt from "@/assets/landing/hero-care-conversation.webp";
 import storyUnwell from "@/assets/landing/story-unwell.webp";
@@ -248,7 +249,7 @@ function AiProductCard() {
       <span className="absolute bottom-3 right-4 text-[10px] font-semibold text-[#7a8a82]">Sample · fictional</span>
     </div>
     <div className="flex flex-1 flex-col p-6"><p className="text-[11px] font-bold uppercase tracking-[0.16em] text-brand-700">Sabi AI · professionals, patients &amp; caregivers</p><h3 className="mt-3 font-display text-2xl font-bold leading-tight tracking-[-0.03em]">AI built for healthcare.</h3><p className={cn("mt-3 flex-1 text-sm leading-6", MUTED)}>Explore medical knowledge, make sense of complex reports and work through healthcare questions in clear language. Opening in stages.</p>
-      <div className="mt-6 flex flex-wrap items-center gap-2"><Action to="/ai">Explore Sabi AI</Action><Link to="/ai#waitlist" className="px-2 py-2.5 text-sm font-bold text-brand-700 hover:text-brand-900">Join the waitlist</Link></div></div>
+      <div className="mt-6 flex flex-wrap items-center gap-2"><Action to="/ai">Explore Sabi AI</Action><a href={AI_WORKSPACE_URL} className="px-2 py-2.5 text-sm font-bold text-brand-700 hover:text-brand-900">Open Sabi AI</a></div></div>
   </article></Reveal>;
 }
 

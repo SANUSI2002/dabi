@@ -20,7 +20,10 @@ describe("Sabi AI landing page", () => {
     page();
     expect(screen.getByRole("heading", { level: 1, name: "Made for the way you care." })).toBeInTheDocument();
     const nav = screen.getByRole("navigation", { name: "Sabi AI" });
-    expect(within(nav).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual(["#top", "#professionals", "#everyday-health", "#how-it-works", "#faqs", "/access", "#waitlist"]);
+    expect(within(nav).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual(["#top", "#professionals", "#everyday-health", "#how-it-works", "#faqs", "https://ai.sabihealth.org/ai/workspace", "https://ai.sabihealth.org/ai/signup"]);
+    expect(within(nav).getByRole('link', {name:'Create account'})).toHaveAttribute('href','https://ai.sabihealth.org/ai/signup');
+    for (const link of screen.getAllByRole('link', { name: 'Open Sabi AI' })) expect(link).toHaveAttribute('href', 'https://ai.sabihealth.org/ai/workspace');
+    for (const link of screen.getAllByRole('link', { name: 'Create your account' })) expect(link).toHaveAttribute('href', 'https://ai.sabihealth.org/ai/signup');
     for (const heading of ["More clarity for the work that matters.", "Understand more. Feel better prepared.", "Ask. Share. Explore.", "Meet Sabi where you need it.", "Bring more clarity to healthcare."]) {
       expect(screen.getByRole("heading", { name: heading })).toBeInTheDocument();
     }
@@ -39,7 +42,8 @@ describe("Sabi AI landing page", () => {
     page();
     fireEvent.click(screen.getByRole("button", { name: "What questions should I ask my doctor?" }));
     expect(screen.getByText("When should this test be repeated?")).toBeInTheDocument();
-    expect(screen.getByLabelText("Attach a document (available when Sabi AI opens)").tagName).not.toBe("BUTTON");
+    expect(screen.getByLabelText("Attach a document (disabled in this sample)").tagName).not.toBe("BUTTON");
+    expect(screen.queryByText(/Sabi AI is opening soon/)).not.toBeInTheDocument();
   });
 
   it("states availability honestly and keeps the professional boundary", () => {
@@ -91,7 +95,7 @@ describe("home page products", () => {
     const section = screen.getByRole("heading", { name: "Bring your practice onto Sabi." }).closest("section") as HTMLElement;
     expect(within(section).getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual(["Every department, one patient chart.", "Practise online, once you're verified.", "AI built for healthcare."]);
     expect(within(section).getByRole("link", { name: /Explore Sabi AI/ })).toHaveAttribute("href", "/ai");
-    expect(within(section).getByRole("link", { name: "Join the waitlist" })).toHaveAttribute("href", "/ai#waitlist");
+    expect(within(section).getByRole("link", { name: "Open Sabi AI" })).toHaveAttribute("href", "https://ai.sabihealth.org/ai/workspace");
     expect(screen.getByRole("link", { name: /Meet Sabi AI, built for healthcare/ })).toHaveAttribute("href", "/ai");
   });
 });
