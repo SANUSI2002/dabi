@@ -4,7 +4,7 @@ import { PageHeader, Button, Badge, StatCard, Card, EmptyState } from "@/compone
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Field, Input } from "@/components/ui/form";
-import { money, shortDate, isoDate } from "@/lib/format";
+import { money, shortDate, isoDate, dayEndIso } from "@/lib/format";
 import { useLedger } from "@/store/accounting/useLedger";
 import { useAR, fxOf } from "@/store/accounting/useAR";
 import { useAP, fxOfBill } from "@/store/accounting/useAP";
@@ -26,28 +26,28 @@ export default function PeriodEnd() {
 
   const openForeignInv = invoices.filter((i) => i.currency !== "NGN" && (i.status === "Open" || i.status === "Partially Paid" || i.status === "Overdue"));
   const openForeignBill = bills.filter((b) => b.currency !== "NGN" && (b.status === "Awaiting Payment" || b.status === "Partially Paid" || b.status === "Overdue"));
-  const dueRecurringInv = invoices.filter((i) => i.isRecurring && i.recurrenceNextDate && new Date(i.recurrenceNextDate).getTime() <= new Date(asOf + "T23:59:59Z").getTime());
-  const dueRecurringBill = bills.filter((b) => b.isRecurring && b.recurrenceNextDate && new Date(b.recurrenceNextDate).getTime() <= new Date(asOf + "T23:59:59Z").getTime());
+  const dueRecurringInv = invoices.filter((i) => i.isRecurring && i.recurrenceNextDate && new Date(i.recurrenceNextDate).getTime() <= new Date(dayEndIso(asOf)).getTime());
+  const dueRecurringBill = bills.filter((b) => b.isRecurring && b.recurrenceNextDate && new Date(b.recurrenceNextDate).getTime() <= new Date(dayEndIso(asOf)).getTime());
   const dueSchedules = revenueSchedules.flatMap((s) => s.entries.filter((e) => !e.recognized && e.period <= period).map((e) => ({ s, e })));
   const [closeYear, setCloseYear] = useState(new Date().getUTCFullYear() - 1);
   const pendingDep = pendingDepreciationPeriods();
   const closePreview = previewYearEndClose(closeYear);
 
   function revalue() {
-    const iso = new Date(asOf + "T23:59:59Z").toISOString();
+    const iso = dayEndIso(asOf);
     const ar = revalueForeignAr(iso, rates);
     const ap = revalueForeignAp(iso, rates);
     // AR delta>0 is a gain; AP delta>0 is a loss
     setMsg(`Revalued ${ar.adjusted} AR + ${ap.adjusted} AP balances. Net P&L impact ${money(ar.net - ap.net)}.`);
   }
   function recur() {
-    const iso = new Date(asOf + "T23:59:59Z").toISOString();
+    const iso = dayEndIso(asOf);
     const i = runRecurringInvoices(iso);
     const b = runRecurringBills(iso);
     const j = runRecurringJournals(iso);
     setMsg(`Generated ${i.created.length} invoice(s), ${b.created.length} bill(s) and posted ${j.posted} recurring journal(s).`);
   }
-  const dueJournals = dueRecurringJournals(new Date(asOf + "T23:59:59Z").toISOString());
+  const dueJournals = dueRecurringJournals(dayEndIso(asOf));
 
   return (
     <div>
@@ -57,7 +57,7 @@ export default function PeriodEnd() {
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Foreign AR / AP open" value={openForeignInv.length + openForeignBill.length} tone="brand" icon={<Coins size={18} />} />
-        <StatCard label="Recurring due" value={dueRecurringInv.length + dueRecurringBill.length + dueRecurringJournals(new Date(asOf + "T23:59:59Z").toISOString()).length} tone="amber" delay={0.05} />
+        <StatCard label="Recurring due" value={dueRecurringInv.length + dueRecurringBill.length + dueRecurringJournals(dayEndIso(asOf)).length} tone="amber" delay={0.05} />
         <StatCard label="Revenue to recognise" value={dueSchedules.length} tone={dueSchedules.length ? "amber" : "mist"} delay={0.1} />
         <StatCard label="Revenue schedules" value={revenueSchedules.length} tone="mist" delay={0.15} />
       </div>

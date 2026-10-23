@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Check, ChevronRight, Building, CalendarRange, ListTree, Scale, Landmark } from "lucide-react";
 import { PageHeader, Button, Card, Badge } from "@/components/ui/primitives";
 import { Field, Input, Select, Textarea, Grid } from "@/components/ui/form";
-import { money } from "@/lib/format";
+import { money, dayStartIso } from "@/lib/format";
 import { useAccountingSettings } from "@/store/accounting/useAccountingSettings";
 import { useLedger } from "@/store/accounting/useLedger";
 import { coaTemplates } from "@/data/accounting/coaTemplates";
@@ -74,7 +74,7 @@ export default function SetupWizard() {
             <div className="space-y-3">
               <Field label="Fiscal year starts in"><Select value={String(orgForm.fiscalYearStartMonth)} onChange={(e) => setOrgForm({ ...orgForm, fiscalYearStartMonth: +e.target.value })} options={MONTHS.map((m, i) => ({ value: String(i + 1), label: m }))} /></Field>
               <Field label="Lock the books before" hint="Nothing can be posted or edited on a date earlier than this"><Input type="date" value={lock} onChange={(e) => setLock(e.target.value)} /></Field>
-              <div className="flex justify-end"><Button onClick={() => finishStep(() => { updateOrg({ fiscalYearStartMonth: orgForm.fiscalYearStartMonth }); setBooksLockedBefore(new Date(lock + "T00:00:00Z").toISOString()); })}>Save & continue <ChevronRight size={14} /></Button></div>
+              <div className="flex justify-end"><Button onClick={() => finishStep(() => { updateOrg({ fiscalYearStartMonth: orgForm.fiscalYearStartMonth }); setBooksLockedBefore(dayStartIso(lock)); })}>Save & continue <ChevronRight size={14} /></Button></div>
             </div>
           )}
 
@@ -115,7 +115,7 @@ export default function SetupWizard() {
                       ? [{ accountNumber: r.accountNumber, debit: r.amount, credit: 0 }, { accountNumber: 3900, debit: 0, credit: r.amount }]
                       : [{ accountNumber: 3900, debit: r.amount, credit: 0 }, { accountNumber: r.accountNumber, debit: 0, credit: r.amount }];
                   });
-                  const res = postJournal({ date: new Date(lock + "T00:00:00Z").toISOString(), source: "Opening Balance", memo: "Opening balances — setup wizard", lines });
+                  const res = postJournal({ date: dayStartIso(lock), source: "Opening Balance", memo: "Opening balances — setup wizard", lines });
                   setMsg(res.ok ? "Opening balance journal posted." : (res.error ?? "Could not post."));
                   if (res.ok) finishStep();
                 }}>Post opening balances <ChevronRight size={14} /></Button>

@@ -4,7 +4,7 @@ import { PageHeader, Button, Badge, Card, StatCard, EmptyState } from "@/compone
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select } from "@/components/ui/form";
-import { money, shortDate, isoDate } from "@/lib/format";
+import { money, shortDate, isoDate, dayEndIso } from "@/lib/format";
 import { useBanking } from "@/store/accounting/useBanking";
 import { useLedger } from "@/store/accounting/useLedger";
 
@@ -110,7 +110,7 @@ export default function BankReconciliation() {
       )}
 
       <Modal open={start} onClose={() => setStart(false)} title="Start Reconciliation"
-        footer={<><Button variant="ghost" onClick={() => setStart(false)}>Cancel</Button><Button onClick={() => { startReconciliation(acctNo, new Date(sf.date + "T23:59:59Z").toISOString(), sf.closing); setStart(false); }}>Begin</Button></>}>
+        footer={<><Button variant="ghost" onClick={() => setStart(false)}>Cancel</Button><Button onClick={() => { startReconciliation(acctNo, dayEndIso(sf.date), sf.closing); setStart(false); }}>Begin</Button></>}>
         <div className="space-y-3">
           <Field label="Statement date"><Input type="date" value={sf.date} onChange={(e) => setSf({ ...sf, date: e.target.value })} /></Field>
           <Field label="Statement closing balance" hint="The balance the bank shows on that date"><Input type="number" value={sf.closing || ""} onChange={(e) => setSf({ ...sf, closing: +e.target.value })} /></Field>

@@ -6,7 +6,7 @@ import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select } from "@/components/ui/form";
-import { money, shortDate, isoDate } from "@/lib/format";
+import { money, shortDate, isoDate, dayStartIso, dayEndIso } from "@/lib/format";
 import { useTax } from "@/store/accounting/useTax";
 import { useLedger } from "@/store/accounting/useLedger";
 import { downloadCsv, toCsv } from "@/lib/csv";
@@ -114,7 +114,7 @@ export default function TaxCenter() {
       </Modal>
 
       <Modal open={prep} onClose={() => setPrep(false)} title="Prepare Tax Return"
-        footer={<><Button variant="ghost" onClick={() => setPrep(false)}>Cancel</Button><Button onClick={() => { prepareReturn(pf.type, new Date(pf.start + "T00:00:00Z").toISOString(), new Date(pf.end + "T23:59:59Z").toISOString()); setPrep(false); }}>Prepare</Button></>}>
+        footer={<><Button variant="ghost" onClick={() => setPrep(false)}>Cancel</Button><Button onClick={() => { prepareReturn(pf.type, dayStartIso(pf.start), dayEndIso(pf.end)); setPrep(false); }}>Prepare</Button></>}>
         <div className="space-y-3">
           <Field label="Return type"><Select value={pf.type} onChange={(e) => setPf({ ...pf, type: e.target.value as ReturnType })} options={RETURN_TYPES} /></Field>
           <p className="text-sm text-mist-600">{pf.type === "VAT" ? "Output VAT (credits to VAT Payable) minus recoverable input VAT (debits)." : pf.type === "WHT" ? "Withholding tax deducted from vendor payments, accrued on WHT Payable." : "PAYE deducted from payroll, accrued on PAYE Payable."}</p>

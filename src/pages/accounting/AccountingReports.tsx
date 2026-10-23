@@ -4,7 +4,7 @@ import { PageHeader, Button, Card, Badge } from "@/components/ui/primitives";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Field, Input, Select } from "@/components/ui/form";
 import { PrintDoc, Section, Line } from "@/components/print/PrintFrame";
-import { money, shortDate, isoDate } from "@/lib/format";
+import { money, shortDate, isoDate, dayStartIso, dayEndIso } from "@/lib/format";
 import {
   profitAndLoss, balanceSheet, cashFlow, generalLedgerReport, inventoryValuationReport,
   fixedAssetRegisterReport, arAgingReport, apAgingReport, statementOfChangesInEquity, withBranch,
@@ -35,8 +35,8 @@ export default function AccountingReports() {
   const branches = useLedger((s) => s.branches);
   useLedger((s) => s.entries); // re-render when the ledger changes
 
-  const fromIso = new Date(from + "T00:00:00Z").toISOString();
-  const toIso = new Date(to + "T23:59:59Z").toISOString();
+  const fromIso = dayStartIso(from);
+  const toIso = dayEndIso(to);
   const scoped = branch || undefined;
 
   const data = useMemo(() => withBranch(scoped, () => {
