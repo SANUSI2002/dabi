@@ -11,6 +11,8 @@ import { useAR, docTotal } from "@/store/accounting/useAR";
 import { useAccountingSettings } from "@/store/accounting/useAccountingSettings";
 import { ExportButton, ImportButton } from "./_csv";
 import type { CustomerType, Customer } from "@/data/accounting/receivables";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { emailStatementNow } from "@/accounting-live/receivables";
 
 const TYPES: CustomerType[] = ["Patient", "NHIS", "HMO", "Corporate", "Walk-in"];
 const blank = { name: "", type: "Corporate" as CustomerType, email: "", phone: "", address: "", city: "", paymentTermId: "pt-net30", creditLimit: 0, openingBalance: 0 };
@@ -22,6 +24,10 @@ export default function Customers() {
   const termName = (id?: string) => termById(id)?.name ?? "Net 30";
   const [create, setCreate] = useState(false);
   const [detail, setDetail] = useState<Customer | null>(null);
+  // live: the statement can be emailed to the customer (the note says whether it went)
+  const live = useIsLiveEmr();
+  const [statementNote, setStatementNote] = useState("");
+  const [statementBusy, setStatementBusy] = useState(false);
   const [statement, setStatement] = useState<Customer | null>(null);
   const [f, setF] = useState(blank);
 
@@ -158,7 +164,10 @@ export default function Customers() {
         return (
           <PrintDoc open onClose={() => setStatement(null)} docTitle="Customer Statement">
             <div className="no-print mb-4 flex items-center justify-between rounded-lg bg-mist-50 px-3 py-2 text-sm">
-              <span className="text-mist-500">Preview only. Print or save this statement as PDF; no email is sent from this screen.</span>
+              <span className="text-mist-500">{live
+                ? statement.email ? statementNote || `Print or save it as PDF, or email it to ${statement.email}.` : "Print or save it as PDF. Add the customer's email address to email it."
+                : "Preview only. Print or save this statement as PDF; no email is sent from this screen."}</span>
+              {live && statement.email && <Button variant="soft" disabled={statementBusy} onClick={() => { setStatementBusy(true); void emailStatementNow(statement.id).then((note) => { setStatementNote(note); setStatementBusy(false); }); }}>{statementBusy ? "Sending…" : "Email to customer"}</Button>}
             </div>
             <Section title="Statement of Account">
               <Line label="Customer" value={statement.name} />

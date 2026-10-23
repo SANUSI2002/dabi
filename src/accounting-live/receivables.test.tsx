@@ -20,7 +20,7 @@ import { useAccountingSettings } from "@/store/accounting/useAccountingSettings"
 import { useLiveEmr } from "@/emr-live/session";
 import { LiveWorkforceSync } from "@/workforce-live/LiveWorkforceSync";
 import { useWorkforceSync } from "@/workforce-live/sync";
-import { useLiveARMeta } from "./receivables";
+import { emailStatementNow, sendRemindersNow, useLiveARMeta } from "./receivables";
 import { useLiveAcctSettingsMeta } from "./settings";
 
 const C = "00000000-0000-4000-8000-0000000000c1";
@@ -100,5 +100,17 @@ describe("live receivables", () => {
     const big = AR.createInvoice({ customerId: C, date: "2026-10-21T12:00:00.000Z", lines: [line] });
     expect(AR.issueInvoice(big)).toMatchObject({ ok: false, error: expect.stringMatching(/limit/) });
     await waitFor(() => expect(writes().map(([p]) => p)).toEqual(["/receivables/invoices", `/receivables/invoices/${small}/issue`, "/receivables/invoices"]));
+  });
+
+  it("says plainly whether reminders and statements were emailed", async () => {
+    await ready();
+    const reply = (data: unknown) => async (path: string, o?: { method?: string }) => (o?.method ? { data } : { data: path === "/settings" ? settings : path === "/receivables" ? receivables : {} });
+    api.accountingRequest.mockImplementation(reply({ sent: 3, emailed: 2, notEmailed: 1 }));
+    expect(await sendRemindersNow()).toBe("3 reminders recorded: 2 emailed, 1 not emailed (no email address on file, or email isn't set up).");
+    api.accountingRequest.mockImplementation(reply({ to: "claims@hygeia.test", delivery: { status: "QUEUED" } }));
+    expect(await emailStatementNow(C)).toBe("Statement emailed to claims@hygeia.test.");
+    api.accountingRequest.mockImplementation(reply({ to: "claims@hygeia.test", delivery: { status: "NOT_SENT", reason: "EMAIL_NOT_CONFIGURED" } }));
+    expect(await emailStatementNow(C)).toBe("Statement recorded, not emailed — email isn't set up for this deployment.");
+    expect(writes()).toContainEqual([`/receivables/customers/${C}/statement`, "POST", {}]);
   });
 });

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { docTotal, fxOf, useAR } from "@/store/accounting/useAR";
 import { useIdentity } from "@/store/useIdentity";
-import { accountingRequest } from "@/emr-live/client";
+import { describeEmrError, accountingRequest } from "@/emr-live/client";
 import type { CreditNote, Customer, CustomerReceipt, DelayedCharge, Estimate, Invoice, InvoiceReminder, RefundReceipt, RevenueSchedule, SalesLine, SalesOrder, SalesReceipt } from "@/data/accounting/receivables";
 import type { CustomerType } from "@/data/accounting/receivables";
 import { adoptLiveIdentity, liveChange, uuid } from "@/workforce-live/sync";
@@ -218,4 +218,49 @@ export function goLiveReceivables() {
 export function clearReceivables() {
   useLiveARMeta.setState({ loaded: false });
   useAR.setState({ customers: [], estimates: [], salesOrders: [], invoices: [], receipts: [], creditNotes: [], salesReceipts: [], refundReceipts: [], revenueSchedules: [], delayedCharges: [], reminders: [], statementLog: [] });
+}
+
+// ---- reminders and statements, with what happened to the email -------------------------------------
+type Delivery = { status: "QUEUED" | "NOT_SENT"; reason?: "NO_EMAIL_ADDRESS" | "EMAIL_NOT_CONFIGURED" };
+/** Says in words what became of a notice's email. */
+export function deliveryText(delivery: Delivery, to?: string | null) {
+  if (delivery.status === "QUEUED") return `emailed${to ? ` to ${to}` : ""}`;
+  return delivery.reason === "NO_EMAIL_ADDRESS" ? "recorded, not emailed — the customer has no email address" : "recorded, not emailed — email isn't set up for this deployment";
+}
+const call = async <T,>(path: string) => {
+  try {
+    const { data } = await accountingRequest<{ data: T }>(path, { method: "POST", body: {} });
+    return data;
+  } finally {
+    await loadReceivables().catch(() => undefined);
+  }
+};
+/** Sends one invoice's due reminder now and says whether it was emailed. */
+export async function sendReminderNow(invoiceId: string) {
+  try {
+    const r = await call<{ level: number; delivery: Delivery }>(`/receivables/invoices/${invoiceId}/reminder`);
+    const inv = useAR.getState().invoices.find((i) => i.id === invoiceId);
+    return `Reminder ${r.level} for ${inv?.number ?? "the invoice"} ${deliveryText(r.delivery, useAR.getState().customerById(inv?.customerId)?.email)}.`;
+  } catch (cause) {
+    return describeEmrError(cause);
+  }
+}
+/** Sends every due reminder now and says how many were emailed. */
+export async function sendRemindersNow() {
+  try {
+    const r = await call<{ sent: number; emailed: number; notEmailed: number }>("/receivables/reminders/run");
+    if (!r.sent) return "No reminders were due.";
+    return `${r.sent} reminder${r.sent === 1 ? "" : "s"} recorded: ${r.emailed} emailed${r.notEmailed ? `, ${r.notEmailed} not emailed (no email address on file, or email isn't set up)` : ""}.`;
+  } catch (cause) {
+    return describeEmrError(cause);
+  }
+}
+/** Emails the customer's statement of account now. */
+export async function emailStatementNow(customerId: string) {
+  try {
+    const r = await call<{ to: string; delivery: Delivery }>(`/receivables/customers/${customerId}/statement`);
+    return `Statement ${deliveryText(r.delivery, r.to)}.`;
+  } catch (cause) {
+    return describeEmrError(cause);
+  }
 }
