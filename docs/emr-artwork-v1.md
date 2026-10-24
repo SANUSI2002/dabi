@@ -56,3 +56,14 @@ node scripts/emr-artwork-catalog.mjs sheets
 Every prompt is in the manifest. The first dashboard illustration used this initial prompt before the common route template was established:
 
 > Use case: illustration-story. Asset type: wide editorial page banner for Sabi EMR hospital overview dashboard. Create ONE premium painterly illustration, landscape 1536x1024. Scene: a calm contemporary Nigerian hospital atrium where a Black female doctor in sage scrubs and Black male hospital administrator in cream clothes review a tablet together, with a leafy courtyard and soft architecture behind them. Refined hand-painted paper texture, warm daylight, forest green, sage, ivory, warm stone, small apricot accents. Composition: people and meaningful detail in the right half, left half quiet with pale sage/ivory atmospheric negative space for real HTML heading, designed for a wide banner crop. Confident, human, elegant, not stock photography, no neon, no robots, no exaggerated medical props. No text, lettering, interface screenshots, logos, watermarks, diagrams, blood or visible personal medical information. This is decorative artwork, not clinical instruction.
+
+## In the hospital OS (page banners)
+
+The library is now used as page banners. `PageHeader` (`src/components/ui/primitives.tsx`) shows the
+current route's illustration behind the real HTML title, subtitle and actions; a page without its own
+artwork takes its nearest parent route's (`src/lib/routeArtwork.ts`, data generated from
+`manifest.json` into `src/lib/routeArtwork.data.ts`). The images are decorative (`alt=""`), sit to the
+right under an ivory wash so text stays legible, reserve their dimensions, hide when printing, and fall
+away if an image fails to load. A page can choose another illustration with `art="<id>"` or none with
+`art={false}`. The patient chart keeps its identity and allergy banner unchanged and shows its artwork as
+a slim strip above it. The customer and supplier portal header uses the customers illustration.

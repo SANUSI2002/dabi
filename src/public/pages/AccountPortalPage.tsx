@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Building2, Download, FileText, Loader2, Lock, Wallet } from "lucide-react";
 import { apiBaseUrl } from "@/config/runtime";
+import { artworkUrl } from "@/lib/routeArtwork";
 
 // A customer's or supplier's own account with a hospital, opened from the link the hospital sent them —
 // no Sabi account needed. The statement, invoices (or bills and remittance advice) and how to pay come
@@ -41,13 +42,17 @@ export default function AccountPortalPage() {
   const doc = (href: string, label: string) => <a className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-50" href={href} target="_blank" rel="noreferrer noopener"><FileText size={13} /> {label}</a>;
   return (
     <Shell>
-      <header className="mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-700 p-6 text-white shadow-lg sm:p-8">
+      <header className="relative mb-6 overflow-hidden rounded-2xl bg-emerald-900 p-6 text-white shadow-lg sm:p-8">
+        <img src={artworkUrl("accounting-customers")} alt="" aria-hidden="true" width={1536} height={1024} className="pointer-events-none absolute inset-y-0 right-0 h-full w-full select-none object-cover object-[70%_40%] opacity-40 sm:w-[65%] sm:opacity-70" />
+        <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-r from-emerald-950 via-emerald-900/90 to-emerald-900/20" />
+        <div className="relative">
         <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-100"><Building2 size={14} /> {view.hospital.name}</p>
         <h1 className="mt-2 font-display text-2xl font-bold sm:text-3xl">{view.party.name}</h1>
         <p className="mt-1 text-sm text-emerald-100">Your account {view.kind === "customer" ? "with" : "as a supplier to"} {view.hospital.name}, as at {day(s.to)}</p>
         <div className="mt-5 flex flex-wrap items-end gap-6">
           <div><p className="text-xs uppercase tracking-wide text-emerald-200">{owes}</p><p className="font-display text-3xl font-bold">{naira(s.closingBalance)}</p></div>
           <a className="inline-flex items-center gap-2 rounded-xl bg-white/15 px-4 py-2 text-sm font-semibold ring-1 ring-white/30 hover:bg-white/25" href={`${base}/statement.pdf?download=1`} rel="noreferrer noopener"><Download size={15} /> Statement (PDF)</a>
+        </div>
         </div>
       </header>
 
