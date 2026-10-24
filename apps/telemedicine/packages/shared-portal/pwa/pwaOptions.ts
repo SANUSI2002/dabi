@@ -66,7 +66,8 @@ export function sabiPwaOptions(app: SabiPwaApp) {
       // Top-level files only: a nested app built into a subfolder is never precached here.
       // (Manifest icons are added by the plugin itself.)
       globPatterns: ["*.html", "assets/*.{js,css,woff2}", "*.svg", "apple-touch-icon-*.png"],
-      navigateFallbackDenylist: [/^\/api(?:\/|$)/, ...app.nestedApps],
+      // This standalone static gallery must not be replaced with the authenticated app shell.
+      navigateFallbackDenylist: [/^\/api(?:\/|$)/, /^\/emr-artwork(?:\/|$)/, ...app.nestedApps],
       runtimeCaching: [
         { urlPattern: ownCode, handler: "CacheFirst" as const, options: { cacheName: `sabi-${app.cacheId}-code`, expiration: { maxEntries: 600, maxAgeSeconds: MONTH } } },
         { urlPattern: ownImages, handler: "CacheFirst" as const, options: { cacheName: `sabi-${app.cacheId}-images`, expiration: { maxEntries: 80, maxAgeSeconds: MONTH } } },
