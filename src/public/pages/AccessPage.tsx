@@ -20,7 +20,7 @@ export default function AccessPage() {
       <IdleSignOutNotice className="mt-8 max-w-2xl" />
       <div className="mt-10 grid gap-4 sm:grid-cols-2">{portals.map(({ title, audience, description, icon: Icon, href }) => <a key={title} href={href} className="group flex min-h-56 flex-col rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-950 text-emerald-200"><Icon size={23}/></span><span className="mt-6 text-xs font-extrabold uppercase tracking-widest text-emerald-700">{audience}</span><span className="mt-2 font-display text-2xl font-extrabold">{title}</span><span className="mt-2 flex-1 text-sm leading-6 text-slate-500">{description}</span><span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-emerald-800">Open sign-in <ArrowRight size={16} className="transition group-hover:translate-x-1"/></span></a>)}</div>
       <p className="mt-8 text-sm text-slate-500">New organization? <Link to="/register/organization" className="font-bold text-emerald-800 hover:underline">Start onboarding</Link>.</p>
-      <p className="mt-3 text-xs leading-5 text-slate-500">EMR, Pharmacy and Command Center production authentication is awaiting the secure identity backend. These links are sign-in entry points, not live account provisioning.</p>
+      <p className="mt-3 text-xs leading-5 text-slate-500">Use your verified Sabi account. Organization workspaces require approved membership, and Command Center access is limited to authorized Sabi staff.</p>
     </div>
   </main>;
 }
