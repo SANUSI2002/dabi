@@ -21,7 +21,7 @@ describe("installed app release consistency", () => {
   it("keeps updates user-controlled and excludes API and nested application navigation", () => {
     expect(options.registerType).toBe("prompt");
     expect(options.injectRegister).toBe(false);
-    for (const path of ["/api/v1/pharmacy-portal/me", "/telemedicine/login"]) {
+    for (const path of ["/api/v1/pharmacy-portal/me", "/telemedicine/login", "/emr-artwork/v1/index.html"]) {
       expect(options.workbox.navigateFallbackDenylist.some((pattern) => pattern.test(path))).toBe(true);
     }
   });
