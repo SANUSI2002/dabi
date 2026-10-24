@@ -2,7 +2,7 @@ import SabiBrand from '@/components/brand/SabiBrand';
 // Loading states for the rider area. Instead of a generic spinner or the clinical "Sabi OS" screen,
 // riders see the shape of the page that is about to appear, so nothing jumps when it arrives.
 // Self-contained styles (riderLoading.css) so the route-level loader works before rider.css loads.
-import { Bike } from "lucide-react";
+
 import "./riderLoading.css";
 
 const AUTH_PATHS = ["/rider/login", "/rider/register", "/rider/join", "/rider/signup", "/rider/verify-email", "/rider/forgot-password"];
@@ -83,7 +83,7 @@ export function RiderWorkspaceSkeleton({ page = "dashboard" }: { page?: "dashboa
         <span className="rsk-stack-sm" style={{ marginTop: 18 }}>{[0, 1, 2, 3, 4, 5].map((i) => <Block key={i} h={40} r={12} className={i === 0 ? "rsk-strong" : ""} />)}</span>
       </aside>
       <div className="rsk-main" aria-hidden="true">
-        <div className="rsk-topbar"><span className="rsk-mobile-only"><span className="rsk-mark"><Bike size={18} /></span></span><Block w={120} h={16} /><span className="rsk-grow" /><Block w={40} h={40} r={999} /></div>
+        <div className="rsk-topbar"><span className="rsk-mobile-only"><SabiBrand symbol size={28} /></span><Block w={120} h={16} /><span className="rsk-grow" /><Block w={40} h={40} r={999} /></div>
         <div className="rsk-content rsk-stack">
           {page === "dashboard" ? <DashboardBody />
             : page === "delivery" ? <RiderDeliverySkeleton />

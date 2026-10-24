@@ -286,7 +286,7 @@ export default function RiderPortal() {
       </aside>
       <div className="rider-workspace-main">
         <header className="rider-topbar">
-          <Link className="rider-topbar-brand rider-brand" to="/rider/dashboard" aria-label="Sabi rider dashboard"><span><Bike size={20} aria-hidden="true" /></span></Link>
+          <Link className="rider-topbar-brand rider-brand" to="/rider/dashboard" aria-label="Sabi rider dashboard"><SabiBrand symbol size={28} inverse /></Link>
           <span className="rider-topbar-label">
             <span className="rider-topbar-crumb">Rider portal <ChevronRight size={16} aria-hidden="true" /></span>
             {title}
