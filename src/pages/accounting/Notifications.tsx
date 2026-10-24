@@ -4,11 +4,13 @@ import { PageHeader, Card, Badge, StatCard, EmptyState } from "@/components/ui/p
 import { Checkbox } from "@/components/ui/form";
 import { useNotifications, NOTIFICATION_LABELS, type NotificationKey } from "@/store/accounting/useNotifications";
 import { useIdentity } from "@/store/useIdentity";
+import { useIsLiveEmr } from "@/emr-live/session";
 
 const toneFor = (s: string) => (s === "urgent" ? "action" : s === "warn" ? "amber" : "mist") as "action" | "amber" | "mist";
 
 export default function Notifications() {
-  const { prefsFor, setPref, alerts } = useNotifications();
+  const { prefsFor, setPref, setEmailDigest, alerts } = useNotifications();
+  const live = useIsLiveEmr();
   const uid = useIdentity((s) => s.user.id);
   const prefs = prefsFor(uid);
   const list = alerts();
@@ -21,7 +23,7 @@ export default function Notifications() {
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard label="Active alerts" value={list.length} tone={list.length ? "action" : "brand"} icon={<Bell size={18} />} />
         <StatCard label="Urgent" value={list.filter((a) => a.severity === "urgent").length} tone="action" delay={0.05} />
-        <StatCard label="Categories on" value={Object.values(prefs).filter(Boolean).length} tone="mist" delay={0.1} />
+        <StatCard label="Categories on" value={(Object.keys(NOTIFICATION_LABELS) as NotificationKey[]).filter((k) => prefs[k]).length} tone="mist" delay={0.1} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
@@ -49,7 +51,12 @@ export default function Notifications() {
               <Checkbox key={k} label={NOTIFICATION_LABELS[k]} checked={prefs[k]} onChange={(e) => setPref(k, e.target.checked)} />
             ))}
           </div>
-          <p className="mt-3 text-xs text-mist-400">Preferences are per user. There's no email/SMS delivery in this build — these filter the in-app feed.</p>
+          <div className="mt-4 border-t border-mist-100 pt-3">
+            {live
+              ? <Checkbox label="Also email me these alerts (a digest, at most every 6 hours, with only what is new)" checked={!!prefs.emailDigest} onChange={(e) => setEmailDigest(e.target.checked)} />
+              : <p className="text-xs text-mist-400">Email alerts are sent on a live hospital; this preview only filters the in-app feed.</p>}
+          </div>
+          <p className="mt-3 text-xs text-mist-400">Preferences are per user. They filter this feed{live ? " and, when email is on, the emailed digest" : ""}.</p>
         </Card>
       </div>
     </div>

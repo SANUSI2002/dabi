@@ -31,6 +31,8 @@ const reload = () => loadAcctSettings();
 const pending = new Set<"org" | "sequences" | "paymentTerms" | "reminderRules" | "taxRegistration" | "setupSteps">();
 let timer: ReturnType<typeof setTimeout> | undefined;
 function save(part: typeof pending extends Set<infer P> ? P : never) {
+  // before the hospital's settings arrive, the screens hold nothing of its own to save
+  if (!useLiveAcctSettingsMeta.getState().loaded) return;
   pending.add(part);
   clearTimeout(timer);
   timer = setTimeout(() => {
@@ -42,8 +44,14 @@ function save(part: typeof pending extends Set<infer P> ? P : never) {
 }
 const uid = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
 
+// A live hospital starts from a blank company profile and tax registration, never the preview's sample
+// company: nothing shows, and nothing can be saved, before the hospital's own settings have loaded.
+const BLANK_ORG: S["org"] = { legalName: "", tradingName: "", tin: "", rcNumber: "", address: "", email: "", phone: "", paymentInstructions: "", reportingCurrency: "NGN", fiscalYearStartMonth: 1 };
+const BLANK_TAX_REGISTRATION: S["taxRegistration"] = { vatTin: "", wht: false, payeStateId: "", vatRegistered: false };
+
 export function goLiveAcctSettings() {
   const set = useAccountingSettings.setState;
+  if (!useLiveAcctSettingsMeta.getState().loaded) set({ org: BLANK_ORG, taxRegistration: BLANK_TAX_REGISTRATION });
   useAccountingSettings.setState({
     updateOrg: (patch) => { set((s) => ({ org: { ...s.org, ...patch } })); save("org"); },
     updateSequence: (key, patch) => { set((s) => ({ sequences: s.sequences.map((x) => (x.key === key ? { ...x, ...patch, example: example({ ...x, ...patch }) } : x)) })); save("sequences"); },

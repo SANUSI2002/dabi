@@ -35,10 +35,12 @@ export type BankConnection = {
   accountNumber: number;
   provider: "Mono" | "Okra" | "Stitch" | "Manual";
   institution: string;
-  status: "Connected" | "Disconnected" | "Error";
+  status: "Connected" | "Disconnected" | "Error" | "Reauth Required"; // Reauth Required: the bank's consent lapsed (live)
   connectedAt: string;
   lastSyncAt?: string;
-  cursor: number; // how many synthetic feed rows already delivered
+  cursor?: number; // demo: how many synthetic feed rows already delivered
+  accountNoMasked?: string; // live: the linked bank account, last four digits
+  lastError?: string; // live: why the last sync failed
 };
 
 export type ReconciliationRule = {

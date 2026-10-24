@@ -58,7 +58,8 @@ export default function Bills() {
   const fxRates = useLedger((s) => s.fxRates);
   const [f, setF] = useState<{ vendorId: string; vendorInvoiceNumber: string; date: string; dueDate: string; notes: string; currency: string; exchangeRate: number; recurMonths: number; lines: EditableLine[] }>(() => ({
     vendorId: vendors[0]?.id ?? "", vendorInvoiceNumber: "", date: isoDate(new Date()), dueDate: isoDate(new Date(Date.now() + 30 * 864e5)), notes: "", currency: "NGN", exchangeRate: 1, recurMonths: 0,
-    lines: [{ accountNumber: 5100, description: "", qty: 1, unitPrice: 0, taxRateId: "tax-vat-exempt" }],
+    // most hospital bills are drugs and supplies (as on purchase orders); never salaries, which payroll posts
+    lines: [{ accountNumber: 1200, description: "", qty: 1, unitPrice: 0, taxRateId: "tax-vat-exempt" }],
   }));
   const [payF, setPayF] = useState({ date: isoDate(new Date()), method: "Bank Transfer" as const, account: 1010, amount: 0, reference: "", wht: 0, settlementRate: 0 });
 

@@ -24,6 +24,9 @@ export default function AccountingSettings() {
   const [testAmt, setTestAmt] = useState(500000);
 
   const [orgForm, setOrgForm] = useState(org);
+  // the form follows the saved profile whenever it changes (it arrives from the server after the page opens)
+  const [shownOrg, setShownOrg] = useState(org);
+  if (org !== shownOrg) { setShownOrg(org); setOrgForm(org); }
   const [lockDate, setLockDate] = useState(booksLockedBefore ? isoDate(booksLockedBefore) : "");
   const [ruleModal, setRuleModal] = useState(false);
   const [rf, setRf] = useState<{ docType: ApprovableDoc; minAmount: number; maxAmount: string; approverRole: ApprovalRule["approverRole"]; level: number }>({ docType: "Bill", minAmount: 0, maxAmount: "", approverRole: "Accountant", level: 1 });
@@ -49,6 +52,11 @@ export default function AccountingSettings() {
                 <Field label="Fiscal year starts"><Select value={String(orgForm.fiscalYearStartMonth)} onChange={(e) => setOrgForm({ ...orgForm, fiscalYearStartMonth: +e.target.value })} options={MONTHS.map((m, i) => ({ value: String(i + 1), label: m }))} /></Field>
               </Grid>
               <Field label="Registered address"><Textarea value={orgForm.address} onChange={(e) => setOrgForm({ ...orgForm, address: e.target.value })} /></Field>
+              <Grid cols={2}>
+                <Field label="Accounts email" hint="printed on invoices and statements"><Input type="email" value={orgForm.email ?? ""} onChange={(e) => setOrgForm({ ...orgForm, email: e.target.value })} /></Field>
+                <Field label="Accounts phone"><Input value={orgForm.phone ?? ""} onChange={(e) => setOrgForm({ ...orgForm, phone: e.target.value })} /></Field>
+              </Grid>
+              <Field label="Payment instructions" hint="bank, account name and number, the reference to quote — printed on invoices and statements"><Textarea value={orgForm.paymentInstructions ?? ""} onChange={(e) => setOrgForm({ ...orgForm, paymentInstructions: e.target.value })} /></Field>
               <div className="mt-3 flex justify-end"><Button onClick={() => updateOrg(orgForm)}>Save</Button></div>
             </Card>
           );
@@ -122,7 +130,7 @@ export default function AccountingSettings() {
                     <Cell>
                       <div className="flex justify-end gap-1">
                         <button onClick={() => updateRule(r.id, { active: !r.active })}><Badge tone={r.active ? "brand" : "mist"}>{r.active ? "On" : "Off"}</Badge></button>
-                        <button className="btn-ghost px-2 py-1 text-xs" onClick={() => removeRule(r.id)}><Trash2 size={12} /></button>
+                        <button className="btn-ghost px-2 py-1 text-xs" onClick={() => removeRule(r.id)} aria-label="Remove approval rule" title="Remove approval rule"><Trash2 size={12} /></button>
                       </div>
                     </Cell>
                   </Row>
@@ -163,7 +171,7 @@ export default function AccountingSettings() {
                     <Cell><input className="input h-8 w-28 text-sm" value={r.tone} onChange={(e) => updateReminderRule(r.id, { tone: e.target.value })} /></Cell>
                     <Cell className="max-w-[280px] truncate text-mist-500">{r.subject}</Cell>
                     <Cell><button onClick={() => updateReminderRule(r.id, { active: !r.active })}><Badge tone={r.active ? "brand" : "mist"}>{r.active ? "On" : "Off"}</Badge></button></Cell>
-                    <Cell><button className="btn-ghost px-2 py-1 text-xs" onClick={() => removeReminderRule(r.id)}><Trash2 size={12} /></button></Cell>
+                    <Cell><button className="btn-ghost px-2 py-1 text-xs" onClick={() => removeReminderRule(r.id)} aria-label="Remove reminder" title="Remove reminder"><Trash2 size={12} /></button></Cell>
                   </Row>
                 ))}
               </Table>

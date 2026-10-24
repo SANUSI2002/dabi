@@ -78,6 +78,33 @@ describe("live banking and expenses", () => {
     expect(writes()).toEqual([]);
   });
 
+  it("connects a bank through Mono's consent screen, then syncs and disconnects through the server", async () => {
+    const withFeed = { ...banking, feedProvider: { name: "Mono", publicKey: "test_pk" }, connections: [{ id: "c1", accountNumber: 1010, provider: "Mono", institution: "GTBank", status: "Reauth Required", connectedAt: "2026-10-01T00:00:00.000Z", accountNoMasked: "••••6789", lastError: "MONO_HTTP_401" }] };
+    api.accountingRequest.mockImplementation(async (path: string, o?: { method?: string }) => {
+      if (o?.method) return { data: path.endsWith("/sync") ? { imported: 2, autoMatched: 1 } : path === "/banking/connections" ? { id: "c2", imported: 5, autoMatched: 2 } : {} };
+      return { data: path === "/banking" ? withFeed : path === "/expenses" ? expenses : path === "/ledger" ? ledger : {} };
+    });
+    await ready();
+    expect(useLiveBankingMeta.getState().feedProvider).toEqual({ name: "Mono", publicKey: "test_pk" });
+    expect(useBanking.getState().connections[0]).toMatchObject({ status: "Reauth Required", accountNoMasked: "••••6789" });
+    // Mono's widget, stubbed: it is opened with the public key, and its one-time code goes to the server
+    let options: { key: string; onSuccess: (r: { code: string }) => void } | undefined;
+    const open = vi.fn();
+    window.Connect = class { constructor(o: never) { options = o; } setup() {} open() { open(); } } as never;
+    const { connectBankFeed, syncBankFeed } = await import("./bankFeeds");
+    const pending = connectBankFeed(1010, "test_pk");
+    await waitFor(() => expect(open).toHaveBeenCalled());
+    expect(options?.key).toBe("test_pk");
+    options!.onSuccess({ code: "code_123" });
+    expect(await pending).toBe("Bank connected. 5 transaction(s) pulled; 2 posted by your rules. The rest are waiting in Reconciliation.");
+    expect(writes()).toContainEqual(["/banking/connections", "POST", { accountNumber: 1010, code: "code_123" }]);
+    expect(await syncBankFeed("c1")).toBe("Pulled 2 new transaction(s); 1 posted by your rules. The rest are in Reconciliation.");
+    render(<MemoryRouter><BankFeeds /></MemoryRouter>);
+    expect(await screen.findByRole("button", { name: /Reconnect/ })).toBeInTheDocument();
+    expect(screen.getByText("the bank needs fresh consent")).toBeInTheDocument();
+    delete window.Connect;
+  });
+
   it("checks locally first, then sends banking work to the API", async () => {
     await ready();
     const bank = useBanking.getState();

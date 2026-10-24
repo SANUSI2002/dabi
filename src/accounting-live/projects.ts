@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { useProjects } from "@/store/accounting/useProjects";
-import { useNotifications, type Alert, type NotificationKey } from "@/store/accounting/useNotifications";
+import { useNotifications, type Alert, type NotificationKey, type NotificationPrefs } from "@/store/accounting/useNotifications";
 import { useAcctControl } from "@/store/accounting/useAcctControl";
 import { useAP } from "@/store/accounting/useAP";
 import { useExpenses } from "@/store/accounting/useExpenses";
@@ -17,7 +17,7 @@ import { loadLedger } from "./ledger";
 // inventory). Preferences are saved per user.
 
 type Versioned = { version?: number };
-type ApiProjects = { projects: (Project & Versioned)[]; timeEntries: TimeEntry[]; notificationPrefs: Record<NotificationKey, boolean> | null };
+type ApiProjects = { projects: (Project & Versioned)[]; timeEntries: TimeEntry[]; notificationPrefs: NotificationPrefs | null };
 
 export const useLiveProjectsMeta = create<{ loaded: boolean }>(() => ({ loaded: false }));
 const noNull = <T extends object>(row: T) => Object.fromEntries(Object.entries(row).filter(([, v]) => v !== null && v !== undefined)) as T;
@@ -75,6 +75,11 @@ export function goLiveProjects() {
     setPref: (key, on) => {
       const uid = useIdentity.getState().user.id;
       const next = { ...useNotifications.getState().prefsFor(uid), [key]: on };
+      void liveChange(() => accountingRequest("/notification-prefs", { method: "PUT", body: next }), loadProjects, () => useNotifications.setState((s) => ({ prefs: { ...s.prefs, [uid]: next } })));
+    },
+    setEmailDigest: (on) => {
+      const uid = useIdentity.getState().user.id;
+      const next = { ...useNotifications.getState().prefsFor(uid), emailDigest: on };
       void liveChange(() => accountingRequest("/notification-prefs", { method: "PUT", body: next }), loadProjects, () => useNotifications.setState((s) => ({ prefs: { ...s.prefs, [uid]: next } })));
     },
     alerts: liveAlerts,

@@ -103,7 +103,7 @@ export default function Expenses() {
                       <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                         {c.status === "Draft" && <>
                           <button className="btn-primary px-2 py-1 text-xs" onClick={() => submitClaim(c.id)}><Send size={11} /></button>
-                          <button className="btn-ghost px-2 py-1 text-xs" onClick={() => deleteDraft(c.id)}><Trash2 size={11} /></button>
+                          <button className="btn-ghost px-2 py-1 text-xs" onClick={() => deleteDraft(c.id)} aria-label="Delete draft" title="Delete draft"><Trash2 size={11} /></button>
                         </>}
                         {c.status === "Approved" && c.payMode === "Reimburse to staff" && <button className="btn-primary px-2 py-1 text-xs" onClick={() => { setPayAcct(1000); setPay(c); }}><Banknote size={11} /> Reimburse</button>}
                       </div>

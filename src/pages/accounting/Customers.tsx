@@ -13,6 +13,8 @@ import { ExportButton, ImportButton } from "./_csv";
 import type { CustomerType, Customer } from "@/data/accounting/receivables";
 import { useIsLiveEmr } from "@/emr-live/session";
 import { emailStatementNow } from "@/accounting-live/receivables";
+import { LiveStatement } from "./_statement";
+import { PortalLinks } from "./_portalLinks";
 
 const TYPES: CustomerType[] = ["Patient", "NHIS", "HMO", "Corporate", "Walk-in"];
 const blank = { name: "", type: "Corporate" as CustomerType, email: "", phone: "", address: "", city: "", paymentTermId: "pt-net30", creditLimit: 0, openingBalance: 0 };
@@ -93,7 +95,7 @@ export default function Customers() {
                       <Cell className="font-mono">{c.creditLimit ? money(c.creditLimit) : "—"}</Cell>
                       <Cell className="font-mono font-semibold">{money(bal)}</Cell>
                       <Cell>{c.creditHold ? <Badge tone="action">On hold</Badge> : bal > c.creditLimit && c.creditLimit > 0 ? <Badge tone="amber">Over limit</Badge> : <Badge tone="brand">OK</Badge>}</Cell>
-                      <Cell><button className="btn-ghost px-2 py-1 text-xs" onClick={(e) => { e.stopPropagation(); setStatement(c); }}><Printer size={12} /></button></Cell>
+                      <Cell><button className="btn-ghost px-2 py-1 text-xs" onClick={(e) => { e.stopPropagation(); setStatement(c); }} aria-label="Statement" title="Statement of account"><Printer size={12} /></button></Cell>
                     </Row>
                   );
                 })}
@@ -147,6 +149,7 @@ export default function Customers() {
                 ))}
               </Table>
             </div>
+            {live && <div className="border-t border-mist-100 pt-3"><PortalLinks partyKind="customer" partyId={detail.id} email={detail.email} /></div>}
           </div>
         )}
       </Modal>
@@ -162,7 +165,8 @@ export default function Customers() {
         let run = statement.openingBalance;
         const ageRow = aging.find((a) => a.customer.id === statement.id);
         return (
-          <PrintDoc open onClose={() => setStatement(null)} docTitle="Customer Statement">
+          <PrintDoc open onClose={() => { setStatement(null); setStatementNote(""); }} docTitle="Customer Statement">
+            {live ? <LiveStatement kind="customer" partyId={statement.id} email={statement.email} /> : <>
             <div className="no-print mb-4 flex items-center justify-between rounded-lg bg-mist-50 px-3 py-2 text-sm">
               <span className="text-mist-500">{live
                 ? statement.email ? statementNote || `Print or save it as PDF, or email it to ${statement.email}.` : "Print or save it as PDF. Add the customer's email address to email it."
@@ -197,6 +201,7 @@ export default function Customers() {
                 ); })}
               </tbody>
             </table>
+            </>}
           </PrintDoc>
         );
       })()}

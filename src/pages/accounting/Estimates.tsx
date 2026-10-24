@@ -47,10 +47,10 @@ export default function Estimates() {
                 <Cell><Badge tone={statusTone(e.status === "Accepted" || e.status === "Converted" ? "approved" : e.status === "Declined" ? "rejected" : "submitted")}>{e.status}</Badge></Cell>
                 <Cell>
                   <div className="flex justify-end gap-1">
-                    {e.status === "Draft" && <button className="btn-ghost px-2 py-1 text-xs" onClick={() => setEstimateStatus(e.id, "Sent")}><Send size={11} /></button>}
+                    {e.status === "Draft" && <button className="btn-ghost px-2 py-1 text-xs" onClick={() => setEstimateStatus(e.id, "Sent")} aria-label="Mark sent" title="Mark sent"><Send size={11} /></button>}
                     {e.status === "Sent" && <>
-                      <button className="btn-ghost px-2 py-1 text-xs" onClick={() => setEstimateStatus(e.id, "Accepted")}><Check size={11} /></button>
-                      <button className="btn-ghost px-2 py-1 text-xs" onClick={() => setEstimateStatus(e.id, "Declined")}><X size={11} /></button>
+                      <button className="btn-ghost px-2 py-1 text-xs" onClick={() => setEstimateStatus(e.id, "Accepted")} aria-label="Accepted" title="Customer accepted"><Check size={11} /></button>
+                      <button className="btn-ghost px-2 py-1 text-xs" onClick={() => setEstimateStatus(e.id, "Declined")} aria-label="Declined" title="Customer declined"><X size={11} /></button>
                     </>}
                     {e.status === "Accepted" && <>
                       <button className="btn-soft px-2 py-1 text-xs" onClick={() => convertEstimateToOrder(e.id)}>To order</button>

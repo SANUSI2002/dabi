@@ -1,5 +1,7 @@
-import { type ReactNode, type ButtonHTMLAttributes, forwardRef } from "react";
+import { type ReactNode, type ButtonHTMLAttributes, forwardRef, useContext, useState } from "react";
 import { motion } from "framer-motion";
+import { UNSAFE_LocationContext } from "react-router-dom";
+import { artworkIdFor, artworkUrl } from "@/lib/routeArtwork";
 import { cn } from "@/lib/cn";
 
 /* ---------- Button ---------- */
@@ -33,11 +35,18 @@ export function PageHeader({
   title,
   subtitle,
   actions,
+  art,
 }: {
   title: string;
   subtitle?: string;
   actions?: ReactNode;
+  /** The banner illustration: by default the page's route artwork; an artwork id to choose one; false for none. */
+  art?: string | false;
 }) {
+  // outside a router (a test, a standalone page) there is no route, so no route artwork
+  const pathname = useContext(UNSAFE_LocationContext)?.location?.pathname ?? "";
+  const artId = art === false ? null : art ?? artworkIdFor(pathname);
+  if (artId) return <PageBanner artId={artId} title={title} subtitle={subtitle} actions={actions} />;
   return (
     <motion.div
       initial={{ opacity: 0, y: -8 }}
@@ -50,6 +59,36 @@ export function PageHeader({
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </motion.div>
+  );
+}
+
+/** The page title over its decorative illustration (Sabi EMR artwork); the heading stays real, readable text. */
+function PageBanner({ artId, title, subtitle, actions }: { artId: string; title: string; subtitle?: string; actions?: ReactNode }) {
+  const [shown, setShown] = useState(true);
+  return (
+    <motion.header
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="relative mb-6 overflow-hidden rounded-2xl bg-[#f6f4ec] shadow-sm ring-1 ring-mist-100 print:hidden"
+    >
+      {shown && (
+        <img
+          src={artworkUrl(artId)} alt="" aria-hidden="true" width={1536} height={1024} decoding="async" fetchPriority="high"
+          onError={() => setShown(false)}
+          className="pointer-events-none absolute inset-y-0 right-0 h-full w-full select-none object-cover object-[75%_40%] opacity-60 sm:w-[68%] sm:opacity-100"
+        />
+      )}
+      {/* ivory wash from the left keeps the title legible over the illustration */}
+      <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-r from-[#f6f4ec] via-[#f6f4ec]/90 to-[#f6f4ec]/40 sm:via-[#f6f4ec]/80 sm:to-transparent" />
+      <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#f6f4ec]/70 to-transparent sm:hidden" />
+      <div className="relative flex min-h-[9.5rem] flex-col justify-end gap-4 p-5 sm:min-h-[11rem] sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:p-7">
+        <div className="max-w-xl">
+          <h1 className="font-display text-2xl font-bold text-mist-900 sm:text-[1.7rem]">{title}</h1>
+          {subtitle && <p className="mt-1 max-w-lg text-sm text-mist-600">{subtitle}</p>}
+        </div>
+        {actions && <div className="flex flex-wrap items-center gap-2 self-start rounded-xl bg-white/75 p-1.5 shadow-sm ring-1 ring-white/60 backdrop-blur-sm sm:self-auto">{actions}</div>}
+      </div>
+    </motion.header>
   );
 }
 

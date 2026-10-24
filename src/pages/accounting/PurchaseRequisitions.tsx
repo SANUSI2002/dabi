@@ -75,7 +75,7 @@ export default function PurchaseRequisitions() {
                 <Cell><Badge tone={statusTone(r.status === "Approved" || r.status === "Ordered" ? "approved" : r.status === "Rejected" ? "rejected" : "submitted")}>{r.status}</Badge></Cell>
                 <Cell>
                   <div className="flex justify-end gap-1">
-                    {r.status === "Draft" && <button className="btn-ghost px-2 py-1 text-xs" onClick={() => submitRequisition(r.id)}><Send size={11} /></button>}
+                    {r.status === "Draft" && <button className="btn-ghost px-2 py-1 text-xs" onClick={() => submitRequisition(r.id)} aria-label="Submit for approval" title="Submit for approval"><Send size={11} /></button>}
                     {r.status === "Approved" && <button className="btn-primary px-2 py-1 text-xs" onClick={() => { setConvVendor(r.vendorId ?? vendors[0]?.id ?? ""); setConvert(r); }}>To PO <ArrowRight size={10} /></button>}
                   </div>
                 </Cell>

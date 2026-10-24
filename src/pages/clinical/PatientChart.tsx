@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { artworkUrl } from "@/lib/routeArtwork";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft, Printer, ListPlus, Receipt, CalendarPlus, Plus, FileText, ClipboardList,
@@ -169,9 +170,17 @@ export default function PatientChart() {
 
   return (
     <div>
-      <button onClick={() => nav(-1)} className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-mist-500 hover:text-mist-800">
-        <ArrowLeft size={15} /> Back
-      </button>
+      {/* the chart's artwork as a slim strip: decoration stays clear of the patient's identity and alerts below */}
+      <div className="relative mb-4 overflow-hidden rounded-2xl bg-[#f6f4ec] ring-1 ring-mist-100 print:hidden">
+        <img src={artworkUrl("patients-id")} alt="" aria-hidden="true" width={1536} height={1024} decoding="async" className="pointer-events-none absolute inset-y-0 right-0 h-full w-full select-none object-cover object-[70%_35%] opacity-60 sm:w-[60%] sm:opacity-100" />
+        <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-r from-[#f6f4ec] via-[#f6f4ec]/85 to-transparent" />
+        <div className="relative flex min-h-[4.5rem] items-center gap-3 px-4 py-3">
+          <button onClick={() => nav(-1)} className="inline-flex items-center gap-1.5 rounded-lg bg-white/80 px-2.5 py-1.5 text-sm font-medium text-mist-600 shadow-sm hover:text-mist-900">
+            <ArrowLeft size={15} /> Back
+          </button>
+          <span className="font-display text-sm font-semibold tracking-wide text-mist-700">Patient chart</span>
+        </div>
+      </div>
 
       <PatientBanner
         patient={patient}

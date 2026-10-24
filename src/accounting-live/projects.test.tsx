@@ -1,4 +1,4 @@
-import { cleanup, render, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -72,5 +72,10 @@ describe("live projects and notifications", () => {
     useNotifications.getState().setPref("largeJournal", true);
     expect(useNotifications.getState().prefsFor(useIdentity.getState().user.id).largeJournal).toBe(true);
     await waitFor(() => expect(writes()).toEqual([["/notification-prefs", "PUT", { ...projects.notificationPrefs, largeJournal: true }]]));
+    // email alerts: the same preferences, with the digest switched on
+    useNotifications.getState().setEmailDigest(true);
+    await waitFor(() => expect(writes()).toContainEqual(["/notification-prefs", "PUT", expect.objectContaining({ emailDigest: true })]));
+    render(<MemoryRouter><Notifications /></MemoryRouter>);
+    expect(screen.getByLabelText(/Also email me these alerts/)).toBeInTheDocument();
   });
 });
