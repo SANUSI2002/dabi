@@ -58,6 +58,6 @@ describe('standalone doctor domain', () => {
       expect(new RegExp(accept.value).test('*/*')).toBe(false);
       expect(new RegExp(accept.value).test('application/javascript')).toBe(false);
     }
-    expect(config.rewrites[0]).toMatchObject({ source: '/api/:path*', destination: 'https://sabi-health-api-test.onrender.com/api/:path*' });
+    expect(config.rewrites[0]).toMatchObject({ source: '/api/:path*', destination: 'https://sabi-api-production-556396127853.us-east1.run.app/api/:path*' });
   });
 });
