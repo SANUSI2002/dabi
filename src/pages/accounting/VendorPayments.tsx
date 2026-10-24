@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { FundsNote } from "@/components/accounting/FundsNote";
-import { Plus, Banknote } from "lucide-react";
+import { Plus, Banknote, FileDown } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard, Card, EmptyState } from "@/components/ui/primitives";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
@@ -11,12 +11,17 @@ import { PrintDoc, Section, Line, SignRow } from "@/components/print/PrintFrame"
 import { useAP, paymentPosted } from "@/store/accounting/useAP";
 import { useLedger } from "@/store/accounting/useLedger";
 import { useAccountingSettings } from "@/store/accounting/useAccountingSettings";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { remittancePdf } from "@/accounting-live/documents";
 
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 export default function VendorPayments() {
   const { vendors, vendorPayments, vendorById, openBillsOf, billBalance, payVendor, whtCertificates } = useAP();
   const org = useAccountingSettings((s) => s.org);
+  // live: remittance advice for a posted payment, as a PDF from the server
+  const live = useIsLiveEmr();
+  const [remitNote, setRemitNote] = useState("");
   const [cert, setCert] = useState<ReturnType<typeof whtCertificates>[number] | null>(null);
   const cashAccts = useLedger((s) => s.accounts).filter((a) => a.subtype === "cash" || a.subtype === "bank");
   const [create, setCreate] = useState(false);
@@ -76,7 +81,8 @@ export default function VendorPayments() {
           )
         ) : vendorPayments.length === 0 ? <EmptyState title="No vendor payments yet" /> : (
           <Card className="p-0">
-            <Table columns={["Payment", "Vendor", "Date", "Method", "Amount", "WHT", "Bills"]}>
+            {remitNote && <p className="border-b border-mist-100 px-4 py-2 text-sm text-action-700">{remitNote}</p>}
+            <Table columns={["Payment", "Vendor", "Date", "Method", "Amount", "WHT", "Bills", ""]}>
               {vendorPayments.map((p, i) => (
                 <Row key={p.id} index={i}>
                   <Cell className="font-mono text-xs">{p.number}{p.status && p.status !== "Posted" && <span className="ml-1.5"><Badge tone={p.status === "Rejected" ? "mist" : "amber"}>{p.status}</Badge></span>}</Cell>
@@ -86,6 +92,7 @@ export default function VendorPayments() {
                   <Cell className="font-mono">{money(p.amount)}</Cell>
                   <Cell className="font-mono">{p.withheldTax ? money(p.withheldTax) : "—"}</Cell>
                   <Cell className="text-xs text-mist-500">{p.allocations.length}</Cell>
+                  <Cell>{live && paymentPosted(p) && <button className="btn-ghost px-2 py-1 text-xs" title="Remittance advice (PDF)" onClick={() => { void remittancePdf(p.id, p.number).then(setRemitNote); }}><FileDown size={12} /> Remittance</button>}</Cell>
                 </Row>
               ))}
             </Table>

@@ -7,6 +7,11 @@ export type OrgSettings = {
   tin: string;
   rcNumber: string;
   address: string;
+  /** Printed on invoices, statements and remittance advice. */
+  email?: string;
+  phone?: string;
+  /** How customers pay (bank, account number, reference to quote): printed on invoices and statements. */
+  paymentInstructions?: string;
   reportingCurrency: string;
   fiscalYearStartMonth: number; // 1 = January
 };

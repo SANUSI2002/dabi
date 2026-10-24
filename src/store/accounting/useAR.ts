@@ -171,6 +171,8 @@ type ARState = {
   refundReceipts: RefundReceipt[];
   delayedCharges: DelayedCharge[];
   statementLog: { customerId: string; to: string; sentAt: string; by: string; email?: import("@/data/accounting/receivables").NoticeEmail }[];
+  /** Invoices emailed to customers (live mode), newest first. */
+  invoiceEmails: { invoiceId: string; customerId: string; to: string; sentAt: string; by: string; email?: import("@/data/accounting/receivables").NoticeEmail }[];
 
   // customers
   addCustomer: (c: Omit<Customer, "id" | "createdAt" | "arAccountNumber" | "creditHold" | "openingBalance"> & { openingBalance?: number }) => string;
@@ -281,6 +283,7 @@ export const useAR = create<ARState>((set, get) => {
     refundReceipts: seedRefundReceipts,
     delayedCharges: seedDelayedCharges,
     statementLog: [],
+    invoiceEmails: [],
 
     addCustomer: (c) => {
       const id = `cust-${rid()}`;

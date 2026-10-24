@@ -72,6 +72,25 @@ export async function liveApiTextPost(path: string, payload: unknown): Promise<{
   return { text: await response.text(), filename };
 }
 
+/** Authenticated download of a file (a PDF); returns its bytes and the file name the service gave it. */
+export async function liveApiFileRequest(path: string, accept = 'application/pdf'): Promise<{ blob: Blob; filename: string | null }> {
+  if (!apiBaseUrl) throw new Error('Sabi API is not configured.');
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(60000),
+    headers: { Accept: `${accept}, application/json`, 'X-Sabi-Client': 'browser', ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    const error = new Error(body.error?.message || body.message || 'The document could not be downloaded.') as LiveApiError;
+    error.status = response.status;
+    error.code = body.error?.code ?? body.code;
+    throw error;
+  }
+  if (!response.headers.get('Content-Type')?.startsWith(accept)) throw new Error('The service did not return the document.');
+  const filename = /filename="([^"]+)"/.exec(response.headers.get('Content-Disposition') ?? '')?.[1] ?? null;
+  return { blob: await response.blob(), filename };
+}
+
 /** Authenticated upload whose body is the file itself (its type as Content-Type); returns the JSON reply. */
 export async function liveApiUpload<T>(path: string, file: Blob, headers: Record<string, string>): Promise<T> {
   if (!apiBaseUrl) throw new Error('Sabi API is not configured.');

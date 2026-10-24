@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, Printer, Send, Ban, Banknote, FileText } from "lucide-react";
+import { Plus, Printer, Send, Ban, Banknote, FileText, Download, Mail } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard, Card, statusTone, EmptyState } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
@@ -14,13 +14,18 @@ import { useLedger } from "@/store/accounting/useLedger";
 import { LineEditor, DocTotals, type EditableLine } from "./_components";
 import type { Invoice } from "@/data/accounting/receivables";
 import { useIsLiveEmr } from "@/emr-live/session";
-import { sendReminderNow, sendRemindersNow } from "@/accounting-live/receivables";
+import { deliveryText, sendReminderNow, sendRemindersNow } from "@/accounting-live/receivables";
+import { emailInvoiceNow, invoicePdf } from "@/accounting-live/documents";
 
 export default function Invoices() {
   // live: what became of each reminder's email (emailed, or why not)
   const live = useIsLiveEmr();
   const [reminderNote, setReminderNote] = useState("");
-  const { customers, invoices, customerById, createInvoice, issueInvoice, voidInvoice, recordReceipt, invoiceBalance, reminderDue, sendReminder, runReminderRun, reminders, unbilledChargesOf, earlyPayDiscountFor } = useAR();
+  const { customers, invoices, customerById, createInvoice, issueInvoice, voidInvoice, recordReceipt, invoiceBalance, reminderDue, sendReminder, runReminderRun, reminders, unbilledChargesOf, earlyPayDiscountFor, invoiceEmails } = useAR();
+  // live: the invoice as a PDF from the server, and emailing it to the customer
+  const [docNote, setDocNote] = useState("");
+  const [docBusy, setDocBusy] = useState(false);
+  const [emailTo, setEmailTo] = useState("");
   const [takeDiscount, setTakeDiscount] = useState(true);
   const projects = useProjects((s) => s.projects);
   const [pullCharges, setPullCharges] = useState(true);
@@ -214,7 +219,7 @@ export default function Invoices() {
       </Modal>
 
       {/* view */}
-      <Modal open={!!view} onClose={() => setView(null)} title={view?.number ?? ""} wide
+      <Modal open={!!view} onClose={() => { setView(null); setDocNote(""); setEmailTo(""); }} title={view?.number ?? ""} wide
         footer={view && <>
           <Button variant="ghost" onClick={() => setView(null)}>Close</Button>
           {view.status === "Draft" && <Button onClick={() => { const r = issueInvoice(view.id); if (r.ok) setView(null); else alert(r.error); }}><Send size={14} /> Issue</Button>}
@@ -244,6 +249,23 @@ export default function Invoices() {
             </Table>
             <DocTotals subtotal={docSubtotal(view.lines)} tax={docTax(view.lines)} total={docTotal(view.lines)} />
             <div className="flex justify-end gap-6 text-sm"><span className="text-mist-500">Paid {money(view.amountPaid)}</span><span className="font-bold">Balance {money(invoiceBalance(view))}</span></div>
+            {live && (
+              <div className="space-y-2 border-t border-mist-100 pt-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-mist-400">Documents</p>
+                <div className="flex flex-wrap items-end gap-2">
+                  <Button variant="soft" disabled={docBusy} onClick={() => { setDocBusy(true); void invoicePdf(view.id, view.number, true).then((e) => { setDocNote(e); setDocBusy(false); }); }}><FileText size={14} /> Open PDF</Button>
+                  <Button variant="soft" disabled={docBusy} onClick={() => { setDocBusy(true); void invoicePdf(view.id, view.number).then((e) => { setDocNote(e); setDocBusy(false); }); }}><Download size={14} /> Download</Button>
+                  {view.status !== "Draft" && view.status !== "Void" && <>
+                    <div className="min-w-[14rem] flex-1"><Field label="Email to" hint={customerById(view.customerId)?.email ? "leave blank for the customer's address" : "the customer has no email address on file"}><Input type="email" value={emailTo} placeholder={customerById(view.customerId)?.email ?? "name@example.com"} onChange={(e) => setEmailTo(e.target.value)} /></Field></div>
+                    <Button disabled={docBusy || (!emailTo.trim() && !customerById(view.customerId)?.email)} onClick={() => { setDocBusy(true); void emailInvoiceNow(view.id, emailTo.trim() || undefined).then((note) => { setDocNote(note); setDocBusy(false); setEmailTo(""); }); }}><Mail size={14} /> {docBusy ? "Sending…" : "Email invoice"}</Button>
+                  </>}
+                </div>
+                {docNote && <p className="text-sm text-mist-600">{docNote}</p>}
+                {invoiceEmails.filter((e) => e.invoiceId === view.id).map((e, i) => (
+                  <p key={i} className="text-xs text-mist-500">{dateTime(e.sentAt)} · {e.by} · {e.email?.status === "SENT" ? `delivered to ${e.to}` : e.email?.status === "FAILED" ? `to ${e.to} — the email could not be delivered` : e.email?.status === "QUEUED" ? `to ${e.to} — sending` : deliveryText({ status: "NOT_SENT", reason: e.email?.status === "NO_EMAIL_ADDRESS" ? "NO_EMAIL_ADDRESS" : "EMAIL_NOT_CONFIGURED" })}</p>
+                ))}
+              </div>
+            )}
             <div className="border-t border-mist-100 pt-3"><Attachments entityType="invoice" entityId={view.id} entityLabel={view.number} /></div>
           </div>
         )}

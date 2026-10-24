@@ -49,6 +49,11 @@ export default function AccountingSettings() {
                 <Field label="Fiscal year starts"><Select value={String(orgForm.fiscalYearStartMonth)} onChange={(e) => setOrgForm({ ...orgForm, fiscalYearStartMonth: +e.target.value })} options={MONTHS.map((m, i) => ({ value: String(i + 1), label: m }))} /></Field>
               </Grid>
               <Field label="Registered address"><Textarea value={orgForm.address} onChange={(e) => setOrgForm({ ...orgForm, address: e.target.value })} /></Field>
+              <Grid cols={2}>
+                <Field label="Accounts email" hint="printed on invoices and statements"><Input type="email" value={orgForm.email ?? ""} onChange={(e) => setOrgForm({ ...orgForm, email: e.target.value })} /></Field>
+                <Field label="Accounts phone"><Input value={orgForm.phone ?? ""} onChange={(e) => setOrgForm({ ...orgForm, phone: e.target.value })} /></Field>
+              </Grid>
+              <Field label="Payment instructions" hint="bank, account name and number, the reference to quote — printed on invoices and statements"><Textarea value={orgForm.paymentInstructions ?? ""} onChange={(e) => setOrgForm({ ...orgForm, paymentInstructions: e.target.value })} /></Field>
               <div className="mt-3 flex justify-end"><Button onClick={() => updateOrg(orgForm)}>Save</Button></div>
             </Card>
           );

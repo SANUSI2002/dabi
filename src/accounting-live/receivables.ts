@@ -11,14 +11,16 @@ import { loadLedger } from "./ledger";
 // notes, cash-sale and refund receipts, delayed charges, revenue schedules, reminders and statements are
 // the organization's records. Each action answers at once from the checks the screens always ran (credit
 // hold and limit, balances, due reminders), then the server checks again, numbers the document and posts
-// its journal entry; the books reload after every change. Reminders and statements record that they were
-// sent — nothing is mailed.
+// its journal entry; the books reload after every change. Invoices, reminders and statements are emailed
+// to the customer with the document attached as a PDF when email is set up (each notice says whether it
+// was); see ./documents for the PDFs themselves.
 
 type Versioned = { version?: number };
 type ApiAR = {
   customers: (Customer & Versioned)[]; estimates: (Estimate & Versioned)[]; salesOrders: (SalesOrder & Versioned)[]; invoices: (Invoice & Versioned)[]; receipts: CustomerReceipt[];
   creditNotes: (CreditNote & Versioned)[]; salesReceipts: SalesReceipt[]; refundReceipts: RefundReceipt[]; revenueSchedules: RevenueSchedule[]; delayedCharges: DelayedCharge[];
   reminders: InvoiceReminder[]; statementLog: { customerId: string; to: string; sentAt: string; by: string }[];
+  invoiceEmails?: { invoiceId: string; customerId: string; to: string; sentAt: string; by: string }[];
 };
 
 export const useLiveARMeta = create<{ loaded: boolean }>(() => ({ loaded: false }));
@@ -34,7 +36,7 @@ export async function loadReceivables() {
   useAR.setState({
     customers: data.customers.map((c) => noNull(c)), estimates: data.estimates.map((d) => noNull(d)), salesOrders: data.salesOrders.map((d) => noNull(d)), invoices: data.invoices.map((d) => noNull(d)),
     receipts: data.receipts.map((r) => noNull(r)), creditNotes: data.creditNotes.map((d) => noNull(d)), salesReceipts: data.salesReceipts.map((d) => noNull(d)), refundReceipts: data.refundReceipts.map((d) => noNull(d)),
-    revenueSchedules: data.revenueSchedules, delayedCharges: data.delayedCharges.map((d) => noNull(d)), reminders: data.reminders, statementLog: data.statementLog,
+    revenueSchedules: data.revenueSchedules, delayedCharges: data.delayedCharges.map((d) => noNull(d)), reminders: data.reminders, statementLog: data.statementLog, invoiceEmails: data.invoiceEmails ?? [],
   });
   adoptLiveIdentity(null);
 }
@@ -217,7 +219,7 @@ export function goLiveReceivables() {
 
 export function clearReceivables() {
   useLiveARMeta.setState({ loaded: false });
-  useAR.setState({ customers: [], estimates: [], salesOrders: [], invoices: [], receipts: [], creditNotes: [], salesReceipts: [], refundReceipts: [], revenueSchedules: [], delayedCharges: [], reminders: [], statementLog: [] });
+  useAR.setState({ customers: [], estimates: [], salesOrders: [], invoices: [], receipts: [], creditNotes: [], salesReceipts: [], refundReceipts: [], revenueSchedules: [], delayedCharges: [], reminders: [], statementLog: [], invoiceEmails: [] });
 }
 
 // ---- reminders and statements, with what happened to the email -------------------------------------
@@ -227,9 +229,9 @@ export function deliveryText(delivery: Delivery, to?: string | null) {
   if (delivery.status === "QUEUED") return `emailed${to ? ` to ${to}` : ""}`;
   return delivery.reason === "NO_EMAIL_ADDRESS" ? "recorded, not emailed — the customer has no email address" : "recorded, not emailed — email isn't set up for this deployment";
 }
-const call = async <T,>(path: string) => {
+const call = async <T,>(path: string, body: Record<string, unknown> = {}) => {
   try {
-    const { data } = await accountingRequest<{ data: T }>(path, { method: "POST", body: {} });
+    const { data } = await accountingRequest<{ data: T }>(path, { method: "POST", body });
     return data;
   } finally {
     await loadReceivables().catch(() => undefined);
@@ -255,11 +257,11 @@ export async function sendRemindersNow() {
     return describeEmrError(cause);
   }
 }
-/** Emails the customer's statement of account now. */
-export async function emailStatementNow(customerId: string) {
+/** Emails the customer's statement of account now (for a period, else the last 90 days), the PDF attached. */
+export async function emailStatementNow(customerId: string, period: { from?: string; to?: string } = {}) {
   try {
-    const r = await call<{ to: string; delivery: Delivery }>(`/receivables/customers/${customerId}/statement`);
-    return `Statement ${deliveryText(r.delivery, r.to)}.`;
+    const r = await call<{ to: string; delivery: Delivery }>(`/receivables/customers/${customerId}/statement`, defined(period));
+    return `Statement ${deliveryText(r.delivery, r.to)}${r.delivery.status === "QUEUED" ? ", with the PDF attached" : ""}.`;
   } catch (cause) {
     return describeEmrError(cause);
   }

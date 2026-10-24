@@ -10,6 +10,8 @@ import { money, shortDate } from "@/lib/format";
 import { useAP, purchaseTotal, paymentPosted } from "@/store/accounting/useAP";
 import type { Vendor } from "@/data/accounting/payables";
 import { useListValues } from "@/lib/listOptions";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { LiveStatement } from "./_statement";
 
 const blank = { name: "", category: "Services" as Vendor["category"], email: "", phone: "", address: "", taxId: "", paymentTermsDays: 30, openingBalance: 0 };
 
@@ -19,6 +21,8 @@ export default function Vendors() {
   const [create, setCreate] = useState(false);
   const [detail, setDetail] = useState<Vendor | null>(null);
   const [statement, setStatement] = useState<Vendor | null>(null);
+  // live: the statement comes from the payable ledger on the server, with its PDF
+  const live = useIsLiveEmr();
   const [f, setF] = useState(blank);
 
   const asOf = new Date().toISOString();
@@ -132,6 +136,7 @@ export default function Vendors() {
         let run = statement.openingBalance;
         return (
           <PrintDoc open onClose={() => setStatement(null)} docTitle="Vendor Statement">
+            {live ? <LiveStatement kind="vendor" partyId={statement.id} /> : <>
             <Section title="Statement of Account">
               <Line label="Vendor" value={statement.name} />
               <Line label="As at" value={shortDate(new Date())} />
@@ -150,6 +155,7 @@ export default function Vendors() {
                 ); })}
               </tbody>
             </table>
+            </>}
           </PrintDoc>
         );
       })()}
