@@ -9,6 +9,9 @@ import { money, timeAgo, shortDate } from "@/lib/format";
 import { useBanking } from "@/store/accounting/useBanking";
 import { useLedger } from "@/store/accounting/useLedger";
 import type { BankConnection, ReconciliationRule } from "@/data/accounting/banking";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { useLiveBankingMeta } from "@/accounting-live/banking";
+import { connectBankFeed, disconnectBankFeed, syncBankFeed } from "@/accounting-live/bankFeeds";
 
 const PROVIDERS: BankConnection["provider"][] = ["Mono", "Okra", "Stitch", "Manual"];
 
@@ -21,13 +24,21 @@ export default function BankFeeds() {
   const [rf, setRf] = useState<{ accountNumber: number; name: string; descriptionContains: string; direction: "" | "in" | "out"; contraAccount: number; memo: string }>({ accountNumber: 1010, name: "", descriptionContains: "", direction: "", contraAccount: 5600, memo: "" });
   const [msg, setMsg] = useState<string | null>(null);
 
+  // live: feeds come through Mono's consent screen and the server's sync (when the deployment has Mono)
+  const live = useIsLiveEmr();
+  const provider = useLiveBankingMeta((s) => s.feedProvider);
+  const [busy, setBusy] = useState(false);
+  const liveRun = (work: Promise<string>) => { setBusy(true); void work.then((m) => { setMsg(m); setBusy(false); }); };
+  const bankAccts = live ? accounts.filter((a) => allAccts.some((x) => x.number === a.accountNumber && x.subtype === "bank")) : accounts;
+
   const feedLines = statementLines.filter((l) => l.origin === "feed");
   const autoCleared = feedLines.filter((l) => l.ruleApplied).length;
 
   return (
     <div>
       <PageHeader title="Bank Feeds & Rules" subtitle="Connected bank feeds pull transactions automatically; rules categorise and post the routine ones"
-        actions={<Button onClick={() => setConnect(true)}><Plus size={15} /> Connect a Bank</Button>} />
+        actions={<Button disabled={busy} onClick={() => { setCf({ ...cf, account: bankAccts[0]?.accountNumber ?? cf.account, provider: "Mono" }); setConnect(true); }}><Plus size={15} /> Connect a Bank</Button>} />
+      {live && !provider && <div className="mb-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 ring-1 ring-amber-200">Live bank feeds are not switched on for this deployment yet (Sabi needs the hospital group's Mono keys). Until then, import statements in Reconciliation.</div>}
 
       {msg && <div className="mb-4 rounded-xl bg-brand-50 px-4 py-3 text-sm font-semibold text-brand-700 ring-1 ring-brand-200">{msg}</div>}
 
@@ -69,15 +80,16 @@ export default function BankFeeds() {
                     <Cell className="font-semibold">{c.institution}</Cell>
                     <Cell><Badge tone="mist">{c.provider}</Badge></Cell>
                     <Cell className="font-mono text-xs">{accounts.find((a) => a.accountNumber === c.accountNumber)?.accountNo ?? c.accountNumber}</Cell>
-                    <Cell><Badge tone={c.status === "Connected" ? "brand" : c.status === "Error" ? "action" : "mist"}>{c.status}</Badge></Cell>
-                    <Cell>{c.lastSyncAt ? timeAgo(c.lastSyncAt) : "never"}</Cell>
+                    <Cell><Badge tone={c.status === "Connected" ? "brand" : c.status === "Error" || c.status === "Reauth Required" ? "action" : "mist"}>{c.status}</Badge>{c.accountNoMasked && <span className="ml-1 text-xs text-mist-400">{c.accountNoMasked}</span>}</Cell>
+                    <Cell>{c.lastSyncAt ? timeAgo(c.lastSyncAt) : "never"}{c.lastError && c.status !== "Connected" && <span className="block text-[11px] text-action-600">{c.status === "Reauth Required" ? "the bank needs fresh consent" : "last sync failed — retrying"}</span>}</Cell>
                     <Cell>
                       <div className="flex justify-end gap-1">
-                        {c.status === "Connected" && <>
-                          <button className="btn-primary px-2 py-1 text-xs" onClick={() => { const r = syncFeed(c.id); setMsg(`Pulled ${r.imported} transaction(s); ${r.autoMatched} auto-categorised by rules. The rest are in Reconciliation.`); }}><RefreshCw size={11} /> Sync</button>
+                        {live && c.status === "Reauth Required" && provider && <button className="btn-primary px-2 py-1 text-xs" disabled={busy} onClick={() => liveRun(connectBankFeed(c.accountNumber, provider.publicKey))}><Link2 size={11} /> Reconnect</button>}
+                        {(c.status === "Connected" || (live && c.status === "Error")) && <>
+                          <button className="btn-primary px-2 py-1 text-xs" disabled={busy} onClick={() => { if (live) return liveRun(syncBankFeed(c.id)); const r = syncFeed(c.id); setMsg(`Pulled ${r.imported} transaction(s); ${r.autoMatched} auto-categorised by rules. The rest are in Reconciliation.`); }}><RefreshCw size={11} /> Sync</button>
                           <button className="btn-ghost px-2 py-1 text-xs" onClick={() => { const r = applyRulesTo(c.accountNumber); setMsg(`${r.matched} line(s) matched.`); }}><Zap size={11} /></button>
-                          <button className="btn-ghost px-2 py-1 text-xs" onClick={() => disconnectBank(c.id)}><Unplug size={11} /></button>
                         </>}
+                        {c.status !== "Disconnected" && <button className="btn-ghost px-2 py-1 text-xs" disabled={busy} title="Disconnect" onClick={() => { if (live) return liveRun(disconnectBankFeed(c.id)); disconnectBank(c.id); }}><Unplug size={11} /></button>}
                       </div>
                     </Cell>
                   </Row>
@@ -105,11 +117,13 @@ export default function BankFeeds() {
       )}
 
       <Modal open={connect} onClose={() => setConnect(false)} title="Connect a Bank Feed"
-        footer={<><Button variant="ghost" onClick={() => setConnect(false)}>Cancel</Button><Button onClick={() => { const r = connectBank(cf.account, cf.provider); setConnect(false); setMsg(r && !r.ok ? r.error ?? "" : "Feed connected. Hit Sync to pull transactions."); }}>Authorise & connect</Button></>}>
+        footer={<><Button variant="ghost" onClick={() => setConnect(false)}>Cancel</Button><Button disabled={live && (!provider || !bankAccts.length || busy)} onClick={() => { setConnect(false); if (live) { if (provider) liveRun(connectBankFeed(cf.account, provider.publicKey)); return; } const r = connectBank(cf.account, cf.provider); setMsg(r && !r.ok ? r.error ?? "" : "Feed connected. Hit Sync to pull transactions."); }}>Authorise & connect</Button></>}>
         <div className="space-y-3">
-          <p className="text-sm text-mist-600">Pick the account and open-banking provider. In production this opens the provider's consent screen; here it links a simulated feed.</p>
-          <Field label="Bank account"><Select value={String(cf.account)} onChange={(e) => setCf({ ...cf, account: +e.target.value })} options={accounts.map((a) => ({ value: String(a.accountNumber), label: `${a.accountName} (${a.accountNo})` }))} /></Field>
-          <Field label="Provider"><Select value={cf.provider} onChange={(e) => setCf({ ...cf, provider: e.target.value as never })} options={PROVIDERS} /></Field>
+          <p className="text-sm text-mist-600">{live
+            ? provider ? "Pick the ledger bank account to feed. Mono's secure consent screen opens next: the hospital signs in to its bank there (Sabi never sees the bank login), and its transactions then flow in here every few hours." : "Live bank feeds are not switched on for this deployment yet."
+            : "Pick the account and open-banking provider. In production this opens the provider's consent screen; here it links a simulated feed."}</p>
+          <Field label="Bank account"><Select value={String(cf.account)} onChange={(e) => setCf({ ...cf, account: +e.target.value })} options={bankAccts.map((a) => ({ value: String(a.accountNumber), label: `${a.accountName} (${a.accountNo})` }))} /></Field>
+          <Field label="Provider"><Select value={live ? "Mono" : cf.provider} disabled={live} onChange={(e) => setCf({ ...cf, provider: e.target.value as never })} options={live ? ["Mono"] : PROVIDERS} /></Field>
         </div>
       </Modal>
 

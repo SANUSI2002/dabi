@@ -3,23 +3,25 @@ import { useBanking } from "@/store/accounting/useBanking";
 import { claimTotal, useExpenses } from "@/store/accounting/useExpenses";
 import { useLedger } from "@/store/accounting/useLedger";
 import { accountingRequest } from "@/emr-live/client";
-import type { BankAccountMeta, BankReconciliation, BankStatementLine, ReconciliationRule } from "@/data/accounting/banking";
+import type { BankAccountMeta, BankConnection, BankReconciliation, BankStatementLine, ReconciliationRule } from "@/data/accounting/banking";
 import type { ExpenseClaim } from "@/data/accounting/expenses";
 import { adoptLiveIdentity, liveChange, uuid } from "@/workforce-live/sync";
 import { loadLedger } from "./ledger";
 
 // Banking and expense claims in live mode (GET /banking, GET /expenses). Bank accounts are the ledger's bank
 // and cash accounts; transfers, bank transactions, booked statement lines and claims post through the
-// server's ledger, and reconciliations are kept and checked there. Live bank feeds need an open-banking
-// provider, which is not configured: connecting one says so rather than linking a simulated feed.
+// server's ledger, and reconciliations are kept and checked there. Live bank feeds connect through Mono
+// when the deployment has it configured (see ./bankFeeds); without it, connecting says so rather than
+// linking a simulated feed.
 
 type Versioned = { version?: number };
 type ApiBanking = {
   accounts: (BankAccountMeta & Versioned)[]; statementLines: BankStatementLine[]; reconciliations: (BankReconciliation & Versioned)[];
-  reconciliationRules: (ReconciliationRule & Versioned)[]; feedProvider: string | null;
+  reconciliationRules: (ReconciliationRule & Versioned)[]; feedProvider: FeedProvider | null; connections?: BankConnection[];
 };
+export type FeedProvider = { name: "Mono"; publicKey: string };
 
-export const useLiveBankingMeta = create<{ loaded: boolean; expensesLoaded: boolean; feedProvider: string | null }>(() => ({ loaded: false, expensesLoaded: false, feedProvider: null }));
+export const useLiveBankingMeta = create<{ loaded: boolean; expensesLoaded: boolean; feedProvider: FeedProvider | null }>(() => ({ loaded: false, expensesLoaded: false, feedProvider: null }));
 const noNull = <T extends object>(row: T) => Object.fromEntries(Object.entries(row).filter(([, v]) => v !== null && v !== undefined)) as T;
 const FEED_UNAVAILABLE = "Live bank feeds need an open-banking provider, and none is configured for this deployment. Import a statement instead.";
 
@@ -28,7 +30,7 @@ export async function loadBanking() {
   useLiveBankingMeta.setState({ loaded: true, feedProvider: data.feedProvider });
   useBanking.setState({
     accounts: data.accounts.map((a) => noNull(a)), statementLines: data.statementLines.map((l) => noNull(l)), reconciliations: data.reconciliations.map((r) => noNull(r)),
-    reconciliationRules: data.reconciliationRules.map((r) => noNull(r)), connections: [],
+    reconciliationRules: data.reconciliationRules.map((r) => noNull(r)), connections: (data.connections ?? []).map((c) => noNull(c)),
   });
   adoptLiveIdentity(null);
 }

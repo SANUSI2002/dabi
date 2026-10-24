@@ -89,7 +89,7 @@ export const useBanking = create<BankingState>((set, get) => ({
     if (!conn || conn.status !== "Connected") return { imported: 0, autoMatched: 0 };
     const count = 3 + Math.floor(Math.random() * 3);
     const rows: BankStatementLine[] = Array.from({ length: count }, (_, i) => {
-      const tpl = FEED_TEMPLATES[(conn.cursor + i) % FEED_TEMPLATES.length];
+      const tpl = FEED_TEMPLATES[((conn.cursor ?? 0) + i) % FEED_TEMPLATES.length];
       return {
         id: `feed-${rid()}`,
         accountNumber: conn.accountNumber,
@@ -104,7 +104,7 @@ export const useBanking = create<BankingState>((set, get) => ({
     });
     set((s) => ({
       statementLines: [...rows, ...s.statementLines],
-      connections: s.connections.map((c) => (c.id === connectionId ? { ...c, cursor: c.cursor + count, lastSyncAt: new Date().toISOString() } : c)),
+      connections: s.connections.map((c) => (c.id === connectionId ? { ...c, cursor: (c.cursor ?? 0) + count, lastSyncAt: new Date().toISOString() } : c)),
     }));
     audit(`synced ${count} feed transaction(s) from ${conn.provider}`, "accounting/banking/feed");
     const { matched } = get().applyRulesTo(conn.accountNumber);
