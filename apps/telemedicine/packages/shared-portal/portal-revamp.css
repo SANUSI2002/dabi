@@ -202,6 +202,7 @@
 .sabi-social-status button{min-height:44px;padding:8px 14px;border:1px solid #91b18b;border-radius:10px;background:#edf3e8;color:#173d30;font:600 14px/1.5 inherit;cursor:pointer;}
 :is(.sabi-patient-login,.sabi-patient-signup,.sabi-account-layout,.sh-auth) :is(button,a,input,select,textarea){touch-action:manipulation;}
 @media(max-width:1024px){
+  .sh-auth.sh-auth .sh-auth-field :is(input,select,textarea){font-size:16px;min-height:44px;}
   :is(.sabi-patient-login,.sabi-patient-signup,.sabi-account-layout,.sh-auth) :is(input,select,textarea){font-size:16px;min-height:44px;}
   :is(.sabi-patient-login,.sabi-patient-signup,.sabi-account-layout,.sh-auth) button{min-height:44px;}
   :is(.sabi-patient-login,.sabi-patient-signup,.sabi-account-layout,.sh-auth) button[aria-label]{min-width:44px;}

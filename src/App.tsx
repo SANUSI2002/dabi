@@ -20,6 +20,7 @@ const EmrOwnerSetupPage = lazy(() => import("@/registration/pages/EmrOwnerSetupP
 const LiveMfaSettingsPage = lazy(() => import("@/identity/pages/LiveMfaSettingsPage"));
 const SubscriptionPage = lazy(() => import('@/emr-live/SubscriptionPage'));
 const AccessPage = lazy(() => import("@/public/pages/AccessPage"));
+const PrivacyPage = lazy(() => import("@/public/pages/PrivacyPage"));
 const MfaPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.MfaPage })));
 const OrganizationChooserPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.OrganizationChooserPage })));
 const ForgotPasswordPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.ForgotPasswordPage })));
@@ -297,6 +298,7 @@ export default function App() {
           <Route path="solutions" element={<SolutionsPage />} />
           <Route path="solutions/:type" element={<SolutionsPage />} />
           <Route path="resources" element={<ResourcesPage />} />
+            <Route path="privacy" element={<PrivacyPage />} />
           <Route path="register" element={<RegisterEntryPage />} />
           <Route path="book-demo" element={<BookDemoPage />} />
         </Route>

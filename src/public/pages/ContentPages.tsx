@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from "react";
-import { Activity, ArrowRight, BookOpen, BrainCircuit, Check, CircleUserRound, Database, FileHeart, Globe2, HeartHandshake, Hospital, Laptop, ReceiptText, Stethoscope, Workflow } from "lucide-react";
+import { Activity, ArrowRight, BookOpen, BrainCircuit, Check, CircleUserRound, Database, Globe2, HeartHandshake, Hospital, Laptop, ReceiptText, Stethoscope, Workflow } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/cn";
 import { Status } from "@/public/components";
@@ -34,7 +34,7 @@ export function AboutPage() {
 }
 
 export function ResourcesPage() {
-  const resources = [[BookOpen, "Documentation", "Approved product documentation will be published here."], [Laptop, "Help Centre", "Guided help and support articles are being prepared."], [Activity, "System Status", "A public status page is planned."], [FileHeart, "Privacy", "Our privacy notice is pending formal approval."], [ReceiptText, "Terms", "Terms of use are pending formal approval."], [Globe2, "Careers", "Open roles will be listed here."]] as const;
+  const resources = [[BookOpen, "Documentation", "Approved product documentation will be published here."], [Laptop, "Help Centre", "Guided help and support articles are being prepared."], [Activity, "System Status", "A public status page is planned."], [ReceiptText, "Terms", "Terms of use are pending formal approval."], [Globe2, "Careers", "Open roles will be listed here."]] as const;
   return <div className={INK}><PageHero eyebrow="Resources" title="Product guidance and company resources." copy="Legal and policy pages are marked as pending until they're formally approved — we won't publish placeholder legal text. For anything urgent, call or WhatsApp us." actions={<Action href={whatsappUrl(CONTACT_LINES[0])}>Ask us on WhatsApp</Action>} />
     <section className="bg-white px-5 py-16 sm:px-8 lg:px-10 lg:py-24"><div className="mx-auto grid max-w-[1200px] gap-4 md:grid-cols-2 lg:grid-cols-3">{resources.map(([Icon, title, copy], i) => <Reveal key={title} delay={i * .04}><article id={title.toLowerCase().replaceAll(" ", "-")} className="h-full scroll-mt-24 rounded-2xl border border-[#e3ebe5] bg-[#fcfefc] p-6"><div className="flex items-start justify-between"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-brand-50 text-brand-700"><Icon size={20} /></span><Status tone="soon">Coming soon</Status></div><h2 className="mt-5 font-display text-xl font-bold">{title}</h2><p className={cn("mt-3 text-sm leading-6", MUTED)}>{copy}</p></article></Reveal>)}</div></section>
   </div>;
