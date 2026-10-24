@@ -1,4 +1,5 @@
 import CareStory from "../../../../shared-portal/CareStory";
+import SocialSignInStatus from "../../../../shared-portal/SocialSignInStatus";
 import { Children, cloneElement, isValidElement, useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HeartPulse, Phone, Mail, Lock, Eye, EyeOff, ArrowRight, IdCard, X } from "lucide-react";
@@ -398,6 +399,7 @@ export default function SignupPage() {
               <div className="h-px flex-1 bg-slate-200" />
             </div>
 
+            <SocialSignInStatus social={social} />
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
               <SocialButton label={socialBusy === "google" ? "Connecting…" : "Google"} disabled={!social.available.google || isSubmitting || !!socialBusy} pending={social.configured.google} onClick={() => handleSocial("google")}>
                 <GoogleIcon />

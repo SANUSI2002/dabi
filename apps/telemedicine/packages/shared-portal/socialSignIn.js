@@ -17,8 +17,10 @@ function loadScript(src) {
       const tag = document.createElement('script');
       tag.src = src;
       tag.async = true;
-      tag.onload = () => resolve();
-      tag.onerror = () => { scripts.delete(src); reject(new Error('Sign-in could not load. Check your connection and try again.')); };
+      const failed = () => { clearTimeout(timer); scripts.delete(src); tag.remove(); reject(new Error('Secure sign-in could not load. Check your connection and retry.')); };
+      const timer = setTimeout(failed, 12000);
+      tag.onload = () => { clearTimeout(timer); resolve(); };
+      tag.onerror = failed;
       document.head.appendChild(tag);
     }));
   }
@@ -38,23 +40,36 @@ export function createSocialSignIn(api) {
   return function useSocialSignIn(defaults = {}) {
     const [config, setConfig] = useState({ google: null, apple: null, checked: !api.configured });
     const [loaded, setLoaded] = useState({ google: false, apple: false });
+    const [error, setError] = useState('');
+    const [attempt, setAttempt] = useState(0);
+    const retry = useCallback(() => { setError(''); setConfig(c => ({ ...c, checked: false })); setAttempt(n => n + 1); }, []);
     const nonce = useRef(null);
 
     useEffect(() => {
       if (!api.configured) return undefined;
       let active = true;
-      api.providers()
+      let timer;
+      // Load in parallel rather than waiting for a cold API before downloading
+      // the SDK. Opening the popup itself stays synchronous inside the tap.
+      const googleReady = window.google?.accounts?.oauth2 ? Promise.resolve() : loadScript(GOOGLE_SDK);
+      googleReady.catch(() => {});
+      const boundedProviders = Promise.race([api.providers(), new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('Sign-in options are taking too long to load. Retry to reconnect.')), 12000);
+      })]);
+      boundedProviders
         .then((providers) => {
           if (!active) return;
           setConfig({ google: providers?.google ?? null, apple: providers?.apple ?? null, checked: true });
           // Reuse a provider script that is already on the page (another visit, or a test double).
           const ensure = (present, src) => (present ? Promise.resolve() : loadScript(src));
-          if (providers?.google) ensure(window.google?.accounts?.oauth2, GOOGLE_SDK).then(() => active && setLoaded((l) => ({ ...l, google: true })), () => {});
-          if (providers?.apple) ensure(window.AppleID?.auth, APPLE_SDK).then(() => active && setLoaded((l) => ({ ...l, apple: true })), () => {});
+          if (providers?.google) googleReady.then(() => active && setLoaded((l) => ({ ...l, google: true })), cause => active && setError(cause.message));
+          if (providers?.apple) ensure(window.AppleID?.auth, APPLE_SDK).then(() => active && setLoaded((l) => ({ ...l, apple: true })), cause => active && setError(cause.message));
         })
-        .catch(() => active && setConfig({ google: null, apple: null, checked: true }));
-      return () => { active = false; };
-    }, []);
+        .catch(() => { if (active) { setConfig(c => ({ ...c, checked: true })); setError('Secure sign-in options could not load. Retry to reconnect.'); } })
+        .finally(() => clearTimeout(timer));
+      window.addEventListener('online', retry);
+      return () => { active = false; clearTimeout(timer); window.removeEventListener('online', retry); };
+    }, [attempt, retry]);
 
     const refreshNonce = useCallback(() => api.nonce().then((value) => { nonce.current = value; }, () => { nonce.current = null; }), []);
     useEffect(() => {
@@ -102,6 +117,8 @@ export function createSocialSignIn(api) {
 
     return {
       checked: config.checked,
+      error,
+      retry,
       configured: { google: !!config.google, apple: !!config.apple },
       available: { google: !!config.google && loaded.google, apple: !!config.apple && loaded.apple },
       start,

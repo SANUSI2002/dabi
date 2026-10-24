@@ -46,6 +46,33 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.clearAllMocks(); delete window.google; delete window.AppleID; });
 
 describe('Google and Apple on the patient sign-in page', () => {
+  it('lets a mobile user recover when the provider request fails instead of leaving Google disabled forever', async () => {
+    identity.socialProviders.mockRejectedValueOnce(new Error('offline'));
+    mount(<Login />);
+    const retry = await screen.findByRole('button', { name: 'Retry secure sign-in' });
+    expect(googleButton()).toBeDisabled();
+    fireEvent.click(retry);
+    await waitFor(() => expect(googleButton()).toBeEnabled());
+    expect(identity.socialProviders).toHaveBeenCalledTimes(2);
+  });
+
+  it('recovers from a blocked Google SDK download and opens the popup directly from the next tap', async () => {
+    const google = window.google;
+    delete window.google;
+    mount(<Login />);
+    await waitFor(() => expect(document.querySelector('script[src="https://accounts.google.com/gsi/client"]')).not.toBeNull());
+    fireEvent.error(document.querySelector('script[src="https://accounts.google.com/gsi/client"]'));
+    const retry = await screen.findByRole('button', { name: 'Retry secure sign-in' });
+    window.google = google;
+    fireEvent.click(retry);
+    await waitFor(() => expect(googleButton()).toBeEnabled());
+    identity.signInWithGoogleCode.mockResolvedValue({ user });
+    fireEvent.click(googleButton());
+    // No awaited SDK or API operation may precede requestCode: Safari/iPadOS
+    // would lose the browser's user-activation permission for the popup.
+    expect(googleClient).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText('Patient dashboard')).toBeInTheDocument();
+  });
   it('keeps the buttons switched off, with the note, when the server has no providers', async () => {
     identity.socialProviders.mockResolvedValue({ google: null, apple: null });
     mount(<Login />);

@@ -1,6 +1,6 @@
 import React from 'react';
 import {HeartPulse, ShieldCheck} from 'lucide-react';
-import artwork from './assets/care-conversation-v1.png';
+import artwork from './assets/care-conversation-v1.webp';
 
 /** Decorative commissioned artwork, never a real clinician or patient record. */
 export default function CareStory({audience='patient',className=''}) {

@@ -17,6 +17,7 @@ async function request(path, options = {}) {
   if (!apiConfigured) throw new Error('Sabi Identity API is not configured.');
   const response = await fetch(`${apiBaseUrl}/api/v1/auth${path}`, {
     ...options,
+    signal: options.signal || AbortSignal.timeout(30000),
     credentials: 'include',
     headers: { 'Content-Type': 'application/json', 'X-Sabi-Client': 'browser', ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}), ...options.headers },
   });
