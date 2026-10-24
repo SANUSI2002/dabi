@@ -8,8 +8,8 @@ import { useInventoryAccounting } from "@/store/accounting/useInventoryAccountin
 import { useBudgets } from "@/store/accounting/useBudgets";
 import { useLedger } from "@/store/accounting/useLedger";
 
-// B18 — per-user notification preferences + a derived accounting-alert feed.
-// There is no real delivery channel; prefs filter the in-app feed.
+// B18 — per-user notification preferences + a derived accounting-alert feed. Prefs filter the in-app
+// feed; on a live hospital, emailDigest also emails the same alerts to the person (the server sends it).
 
 export type NotificationKey =
   | "approvalPending"
@@ -32,10 +32,14 @@ export type Alert = { id: string; key: NotificationKey; severity: "info" | "warn
 
 const LARGE_JE = 5_000_000;
 
+export type NotificationPrefs = Record<NotificationKey, boolean> & { emailDigest?: boolean };
+
 type NotificationState = {
-  prefs: Record<string, Record<NotificationKey, boolean>>; // by staffId
-  prefsFor: (staffId: string) => Record<NotificationKey, boolean>;
+  prefs: Record<string, NotificationPrefs>; // by staffId
+  prefsFor: (staffId: string) => NotificationPrefs;
   setPref: (key: NotificationKey, on: boolean) => void;
+  /** Live only: email me a digest of these alerts. */
+  setEmailDigest: (on: boolean) => void;
   alerts: () => Alert[]; // filtered by the current user's prefs
 };
 
@@ -49,6 +53,7 @@ export const useNotifications = create<NotificationState>((set, get) => ({
     set((s) => ({ prefs: { ...s.prefs, [uid]: { ...(s.prefs[uid] ?? ALL_ON), [key]: on } } }));
     audit(`${on ? "enabled" : "muted"} notification "${NOTIFICATION_LABELS[key]}"`, "accounting/notifications");
   },
+  setEmailDigest: () => {}, // demo: no email is sent from the preview
   alerts: () => {
     const uid = useIdentity.getState().user.id;
     const prefs = get().prefsFor(uid);
