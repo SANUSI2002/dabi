@@ -1,4 +1,4 @@
-import notice from "../../../docs/privacy-notice.md?raw";
+import notice from "../content/privacy-notice.md?raw";
 
 // Plain text only: the owner-approved notice is local content, not uploaded HTML.
 export default function PrivacyPage() {
