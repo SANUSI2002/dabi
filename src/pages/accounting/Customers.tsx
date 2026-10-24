@@ -14,6 +14,7 @@ import type { CustomerType, Customer } from "@/data/accounting/receivables";
 import { useIsLiveEmr } from "@/emr-live/session";
 import { emailStatementNow } from "@/accounting-live/receivables";
 import { LiveStatement } from "./_statement";
+import { PortalLinks } from "./_portalLinks";
 
 const TYPES: CustomerType[] = ["Patient", "NHIS", "HMO", "Corporate", "Walk-in"];
 const blank = { name: "", type: "Corporate" as CustomerType, email: "", phone: "", address: "", city: "", paymentTermId: "pt-net30", creditLimit: 0, openingBalance: 0 };
@@ -148,6 +149,7 @@ export default function Customers() {
                 ))}
               </Table>
             </div>
+            {live && <div className="border-t border-mist-100 pt-3"><PortalLinks partyKind="customer" partyId={detail.id} email={detail.email} /></div>}
           </div>
         )}
       </Modal>

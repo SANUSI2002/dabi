@@ -21,6 +21,7 @@ const LiveMfaSettingsPage = lazy(() => import("@/identity/pages/LiveMfaSettingsP
 const SubscriptionPage = lazy(() => import('@/emr-live/SubscriptionPage'));
 const AccessPage = lazy(() => import("@/public/pages/AccessPage"));
 const PrivacyPage = lazy(() => import("@/public/pages/PrivacyPage"));
+const AccountPortalPage = lazy(() => import("@/public/pages/AccountPortalPage"));
 const MfaPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.MfaPage })));
 const OrganizationChooserPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.OrganizationChooserPage })));
 const ForgotPasswordPage = lazy(() => import("@/identity/pages/IdentityPages").then((m) => ({ default: m.ForgotPasswordPage })));
@@ -309,6 +310,8 @@ export default function App() {
         <Route path="/identity/mfa" element={<LiveMfaSettingsPage />} />
         <Route path="/subscription" element={<SubscriptionPage />} />
         <Route path="/access" element={<AccessPage />} />
+        {/* a customer's or supplier's own account with a hospital, from the link it sent them (no sign-in) */}
+        <Route path="/portal/:token" element={<AccountPortalPage />} />
         <Route path="/emr/login" element={<SignInPage intent="emr" />} />
         <Route path="/command-center/login" element={<SignInPage intent="platform" />} />
         <Route path="/mfa" element={<MfaPage />} />

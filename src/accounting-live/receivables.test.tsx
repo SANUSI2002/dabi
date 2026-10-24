@@ -23,6 +23,7 @@ import { useWorkforceSync } from "@/workforce-live/sync";
 import { emailStatementNow, sendRemindersNow, useLiveARMeta } from "./receivables";
 import { useLiveAcctSettingsMeta } from "./settings";
 import { customerStatementPdf, emailInvoiceNow, loadStatement } from "./documents";
+import { PortalLinks } from "@/pages/accounting/_portalLinks";
 
 const C = "00000000-0000-4000-8000-0000000000c1";
 const settings = {
@@ -152,5 +153,22 @@ describe("live receivables", () => {
     api.accountingDownload.mockRejectedValue(Object.assign(new Error("Customer not found."), { status: 404 }));
     expect(await customerStatementPdf(C)).toBe("Customer not found.");
     click.mockRestore();
+  });
+
+  it("creates a portal link, shows it once, emails it to the customer and revokes it", async () => {
+    let items: unknown[] = [];
+    api.accountingRequest.mockImplementation(async (path: string, o?: { method?: string; body?: { email?: boolean } }) => {
+      if (path.startsWith("/portal-links?")) return { data: { items } };
+      if (path === "/portal-links") { items = [{ id: "pl1", createdAt: "2026-10-24T10:00:00.000Z", createdBy: "Ngozi Eze", expiresAt: "2026-11-23T10:00:00.000Z", useCount: 0, status: "Active" }]; return { data: { url: "https://app.test/portal/abc", ...(o?.body?.email ? { delivery: { status: "QUEUED" } } : {}) } }; }
+      if (path === "/portal-links/pl1/revoke") { items = [{ ...(items[0] as object), status: "Revoked" }]; return { data: {} }; }
+      return { data: {} };
+    });
+    render(<PortalLinks partyKind="customer" partyId={C} email="claims@hygeia.test" />);
+    (await screen.findByRole("button", { name: /Email link to claims@hygeia.test/ })).click();
+    expect(await screen.findByDisplayValue("https://app.test/portal/abc")).toBeInTheDocument();
+    expect(screen.getByText("Link emailed to claims@hygeia.test.")).toBeInTheDocument();
+    expect(writes()).toContainEqual(["/portal-links", "POST", { partyKind: "customer", partyId: C, days: 30, email: true }]);
+    (await screen.findByRole("button", { name: /Revoke/ })).click();
+    expect(await screen.findByText("Revoked")).toBeInTheDocument();
   });
 });

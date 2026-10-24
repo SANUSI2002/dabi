@@ -12,6 +12,7 @@ import type { Vendor } from "@/data/accounting/payables";
 import { useListValues } from "@/lib/listOptions";
 import { useIsLiveEmr } from "@/emr-live/session";
 import { LiveStatement } from "./_statement";
+import { PortalLinks } from "./_portalLinks";
 
 const blank = { name: "", category: "Services" as Vendor["category"], email: "", phone: "", address: "", taxId: "", paymentTermsDays: 30, openingBalance: 0 };
 
@@ -122,6 +123,7 @@ export default function Vendors() {
                 </Row>
               ))}
             </Table>
+            {live && <div className="border-t border-mist-100 pt-3"><PortalLinks partyKind="vendor" partyId={detail.id} /></div>}
           </div>
         )}
       </Modal>
