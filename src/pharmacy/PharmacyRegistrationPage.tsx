@@ -1,7 +1,8 @@
+import SabiBrand from '@/components/brand/SabiBrand';
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Pill, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { apiConfigured } from "@/config/runtime";
 import { getLive, writeLive, type PharmacyTier } from "./liveApi";
 const input =
@@ -16,7 +17,7 @@ function Layout({ children }: { children: React.ReactNode }) {
           to="/pharmacy/login"
           className="mb-7 inline-flex min-h-11 items-center gap-3 font-display text-xl font-bold"
         >
-          <Pill className="text-[#0b8a63]" />
+          <SabiBrand symbol size={34}/>
           Sabi Pharmacy
         </Link>
         <section className="rounded-3xl border border-[#dbe9e2] bg-white p-5 shadow-sm sm:p-8">

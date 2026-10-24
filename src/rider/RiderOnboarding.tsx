@@ -1,3 +1,4 @@
+import SabiBrand from "@/components/brand/SabiBrand";
 // Rider sign-up and application. Designed to feel short and calm: one small step at a time, a clear
 // list of what is needed up front, plain-language statuses, and always one obvious next action.
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
@@ -53,7 +54,7 @@ function ApplicationFrame({ children, onSignOut, busy }: { children: ReactNode; 
     <div className="sabi-rider rider-application">
       <header className="rider-application-header">
         <Link className="rider-brand" to="/rider/application">
-          <span><Bike size={22} aria-hidden="true" /></span>
+          <SabiBrand symbol size={32} inverse />
           <div><strong>Sabi Health</strong><small>RIDER APPLICATION</small></div>
         </Link>
         <button type="button" className="rider-button-ghost" disabled={busy} onClick={onSignOut}><LogOut size={17} aria-hidden="true" />Sign out</button>

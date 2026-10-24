@@ -86,7 +86,9 @@ describe('connected Sabi AI workspace', () => {
     const { container } = render(<AiWorkspace request={request} />);
     fireEvent.click(await screen.findByRole('button', { name: conversation.title }));
     expect(await screen.findByText('<img src=x onerror=alert(1)>')).toBeInTheDocument();
-    expect(container.querySelector('img')).toBeNull();
+    // The rail contains an intentional brand image; model content must remain plain text.
+    expect(container.querySelector('.sabi-ai-message img')).toBeNull();
+    expect(container.querySelector('img[src="x"], [onerror]')).toBeNull();
     expect(screen.getByRole('button', { name: 'Send message' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
   });

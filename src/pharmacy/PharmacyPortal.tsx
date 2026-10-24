@@ -1,3 +1,4 @@
+import SabiBrand from '@/components/brand/SabiBrand';
 import { useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -38,7 +39,7 @@ const sections: { key: Section; label: string; icon: typeof Home; group?: string
 ];
 
 function PharmacyLogo() {
-  return <div className="flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#f5a524] text-[#13231e] shadow-[0_8px_20px_-10px_rgba(245,165,36,.9)]"><Pill size={22} strokeWidth={2.4}/></span><span><b className="block font-display text-[17px] tracking-[-.02em] text-white">Sabi <span className="text-[#f5b94e]">Pharmacy</span></b><span className="block text-[10px] font-semibold uppercase tracking-[.18em] text-white/40">Operator workspace</span></span></div>;
+  return <div className="flex items-center gap-3"><SabiBrand symbol size={40} inverse/><span><b className="block font-display text-[17px] tracking-[-.02em] text-white">Sabi <span className="text-[#f5b94e]">Pharmacy</span></b><span className="block text-[10px] font-semibold uppercase tracking-[.18em] text-white/40">Operator workspace</span></span></div>;
 }
 
 function EmptyPanel({ title, description, action }: { title: string; description: string; action?: string }) {

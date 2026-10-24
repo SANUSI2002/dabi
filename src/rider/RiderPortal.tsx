@@ -1,3 +1,4 @@
+import SabiBrand from '@/components/brand/SabiBrand';
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation, useMatch, useNavigate } from "react-router-dom";
 import {
@@ -285,7 +286,7 @@ export default function RiderPortal() {
       </aside>
       <div className="rider-workspace-main">
         <header className="rider-topbar">
-          <Link className="rider-topbar-brand rider-brand" to="/rider/dashboard" aria-label="Sabi rider dashboard"><span><Bike size={20} aria-hidden="true" /></span></Link>
+          <Link className="rider-topbar-brand rider-brand" to="/rider/dashboard" aria-label="Sabi rider dashboard"><SabiBrand symbol size={28} inverse /></Link>
           <span className="rider-topbar-label">
             <span className="rider-topbar-crumb">Rider portal <ChevronRight size={16} aria-hidden="true" /></span>
             {title}
@@ -497,7 +498,7 @@ function RefreshButton({ busy, onClick }: { busy: boolean; onClick: () => void }
 function Brand() {
   return (
     <Link className="rider-brand" to="/rider/dashboard">
-      <span><Bike size={22} aria-hidden="true" /></span>
+      <SabiBrand symbol size={38} inverse/>
       <div><strong>Sabi Health</strong><small>RIDER PORTAL</small></div>
     </Link>
   );

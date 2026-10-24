@@ -1,3 +1,4 @@
+import SabiBrand from "@/components/brand/SabiBrand";
 import {
   Bike,
   CheckCircle2,
@@ -48,7 +49,7 @@ export default function RiderSection() {
           >
             <div className="flex items-center justify-between border-b border-[#d5e2d2] pb-5">
               <span className="inline-flex items-center gap-2 text-xs font-bold text-[#34563b]">
-                <Bike size={20} aria-hidden="true" /> SABI RIDER
+                <SabiBrand symbol size={28} /> SABI RIDER
               </span>
               <span className="rounded-full bg-white px-3 py-1 text-[10px] font-semibold text-[#34563b]">
                 Care, connected

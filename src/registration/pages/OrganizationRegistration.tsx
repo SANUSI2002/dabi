@@ -1,10 +1,7 @@
+import SabiBrand from '@/components/brand/SabiBrand';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import {
-  ArrowLeft, ArrowRight, BadgeCheck, Building2, Check, CheckCircle2, ChevronRight,
-  CircleAlert, Clock3, FileCheck2, HeartPulse, Loader2, LockKeyhole, PackageCheck,
-  RotateCcw, Save, ShieldCheck, Sparkles, Stethoscope, UsersRound,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, BadgeCheck, Building2, Check, CheckCircle2, ChevronRight, CircleAlert, Clock3, FileCheck2, Loader2, LockKeyhole, PackageCheck, RotateCcw, Save, ShieldCheck, Sparkles, Stethoscope, UsersRound } from "lucide-react";
 import { useCommandCenter } from "@/command-center/useCommandCenter";
 import { formatMoney as money } from "@/command-center/format";
 import { PRODUCTS, type ProductKey } from "@/platform/entitlements";
@@ -25,7 +22,7 @@ import { liveRequestVerificationLink, liveVerifyApplication } from "../livePlatf
 const SERVICES = ["24/7 operation", "Emergency department", "Inpatient care", "Pharmacy", "Laboratory", "Radiology", "Maternity", "Theatre", "ICU", "Dialysis", "Dental", "Optical", "Ambulance"];
 
 function BrandMark() {
-  return <Link to="/" className="inline-flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-gradient text-white"><HeartPulse size={20}/></span><span className="font-display text-xl font-extrabold text-slate-950">Sabi <span className="text-brand-700">Health</span></span></Link>;
+  return <Link to="/" className="inline-flex items-center gap-3"><SabiBrand width={165}/></Link>;
 }
 
 function relativeSaved(date: string) {

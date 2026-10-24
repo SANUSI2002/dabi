@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, ShieldPlus } from "lucide-react";
+import { ChevronDown } from "lucide-react";
+import SabiBrand from '@/components/brand/SabiBrand';
 import { NAV, type NavItem } from "@/data/nav";
 import { PRESCRIPTION_PENDING_STATUSES } from "@/data/pharmacyOps";
 import { useEmr } from "@/store/useEmr";
@@ -129,9 +130,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <aside className="flex h-full w-[268px] shrink-0 flex-col border-r border-mist-200 bg-white">
       <div className="flex items-center gap-3 px-5 py-5">
-        <div className="grid h-10 w-10 place-items-center rounded-xl bg-brand-gradient text-white shadow-glow">
-          <ShieldPlus size={20} />
-        </div>
+        <SabiBrand symbol size={40}/>
         <div className="leading-tight">
           <p className="font-display text-lg font-extrabold tracking-tight text-mist-900">
             Sabi<span className="text-gradient">EMR</span>

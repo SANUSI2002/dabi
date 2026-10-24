@@ -1,3 +1,4 @@
+import SabiBrand from "@/components/brand/SabiBrand";
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
@@ -58,7 +59,7 @@ function CommandSidebar({ close }: { close?: () => void }) {
   return (
     <aside className="flex h-full w-[252px] shrink-0 flex-col border-r border-white/[0.07] bg-[#09130f] text-slate-300">
       <div className="flex h-[68px] items-center gap-3 border-b border-white/[0.07] px-4">
-        <div className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-400 text-slate-950 shadow-[0_0_24px_rgba(52,211,153,.22)]"><ShieldCheck size={19} /></div>
+        <SabiBrand symbol size={32} inverse />
         <div className="leading-tight"><p className="font-display text-sm font-extrabold tracking-tight text-white">SABI</p><p className="text-[10px] font-semibold uppercase tracking-[.14em] text-emerald-400">Command Center</p></div>
         {close && <button onClick={close} className="ml-auto rounded-lg p-1.5 text-slate-400 hover:bg-white/10 lg:hidden" aria-label="Close navigation"><X size={18} /></button>}
       </div>

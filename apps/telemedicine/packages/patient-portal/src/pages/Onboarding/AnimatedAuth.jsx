@@ -1,3 +1,4 @@
+import SabiBrand from '../../../../shared-portal/SabiBrand';
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, User, Eye, EyeOff, HeartPulse } from "lucide-react";
@@ -154,18 +155,7 @@ export default function AnimatedAuth() {
   );
 }
 
-function Brand() {
-  return (
-    <div className="flex items-center gap-2.5">
-      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-600 to-teal-500 flex items-center justify-center shadow-sm shadow-emerald-900/20">
-        <HeartPulse className="w-5 h-5 text-white" />
-      </div>
-      <span className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-emerald-900 to-emerald-600 bg-clip-text text-transparent">
-        Sabi Health
-      </span>
-    </div>
-  );
-}
+function Brand() { return <SabiBrand width={155}/>; }
 
 function SignInFormFields({ form, update, showPassword, setShowPassword, onSubmit }) {
   return (
