@@ -57,6 +57,9 @@ export type AddMedicationInput = {
   wardRoundId: string;
   encounterId: string;
   drug: string;
+  /** a live hospital's formulary product (picked in the drug field) */
+  drugCode?: string;
+  doseUnit?: string;
   dose: string;
   frequency: string;
   duration: string;

@@ -17,7 +17,7 @@ afterEach(() => { document.body.innerHTML = ""; vi.useRealTimers(); });
 describe("installable app updates", () => {
   it("never reloads on its own: a new version waits for the person to choose Reload", () => {
     registerPwa();
-    expect(pwa.registerSW).toHaveBeenCalledWith(expect.objectContaining({ immediate: true }));
+    expect(pwa.registerSW).toHaveBeenCalledWith(expect.objectContaining({ immediate: false }));
     options().onNeedRefresh();
     const notice = document.getElementById("sabi-pwa-update")!;
     expect(notice.getAttribute("role")).toBe("status");

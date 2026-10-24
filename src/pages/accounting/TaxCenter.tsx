@@ -1,19 +1,21 @@
 import { useState } from "react";
-import { Plus, Percent, FileCheck2, Banknote, Send } from "lucide-react";
+import { FundsNote } from "@/components/accounting/FundsNote";
+import { Plus, Percent, FileCheck2, Banknote, Send, Download } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard, Card, statusTone, EmptyState } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select } from "@/components/ui/form";
-import { money, shortDate, isoDate } from "@/lib/format";
+import { money, shortDate, isoDate, dayStartIso, dayEndIso } from "@/lib/format";
 import { useTax } from "@/store/accounting/useTax";
 import { useLedger } from "@/store/accounting/useLedger";
+import { downloadCsv, toCsv } from "@/lib/csv";
 import type { TaxKind, ReturnType } from "@/data/accounting/tax";
 
 const RETURN_TYPES: ReturnType[] = ["VAT", "WHT", "PAYE"];
 
 export default function TaxCenter() {
-  const { rates, returns, addRate, updateRate, prepareReturn, efileReturn, payReturn } = useTax();
+  const { rates, returns, addRate, updateRate, prepareReturn, efileReturn, payReturn, returnSchedule } = useTax();
   const cashAccts = useLedger((s) => s.accounts).filter((a) => a.subtype === "cash" || a.subtype === "bank");
   const [rateModal, setRateModal] = useState(false);
   const [prep, setPrep] = useState(false);
@@ -22,6 +24,20 @@ export default function TaxCenter() {
   const [rf, setRf] = useState({ name: "", kind: "VAT" as TaxKind, rate: 0, accountNumber: 2200 });
   const [pf, setPf] = useState<{ type: ReturnType; start: string; end: string }>(() => ({ type: "VAT", start: isoDate(new Date(Date.now() - 30 * 864e5)), end: isoDate(new Date()) }));
   const [msg, setMsg] = useState<string | null>(null);
+  // The schedule to upload with a return on the authority's portal: every ledger line behind it.
+  async function downloadSchedule(id: string) {
+    try {
+      const s = await returnSchedule(id);
+      const rows: (string | number | undefined)[][] = s.rows.map((x) => [x.date.slice(0, 10), x.entryNumber, x.source, x.reference, x.counterparty, x.counterpartyTin, x.description, x.tax || "", x.reclaimed || ""]);
+      rows.push([], ["Total", "", "", "", "", "", "", s.totals.tax, s.totals.reclaimed], ["Output tax on the return", "", "", "", "", "", "", s.outputTax], ["Input tax on the return", "", "", "", "", "", "", "", s.inputTax], ["Net payable", "", "", "", "", "", "", s.netPayable]);
+      downloadCsv(`${s.reference}-schedule`, toCsv(["Date", "Entry", "Source", "Reference", "Counterparty", "Counterparty TIN", "Description", s.returnType === "VAT" ? "Output VAT" : "Tax", s.returnType === "VAT" ? "Input VAT / remitted" : "Remitted"], rows));
+    } catch (cause) {
+      setMsg(cause instanceof Error ? cause.message : "The schedule could not be prepared.");
+    }
+  }
+  const [ackFor, setAckFor] = useState<string | null>(null);
+  const [ack, setAck] = useState("");
+  const ackReturn = returns.find((r) => r.id === ackFor);
 
   const netDue = returns.filter((r) => r.status !== "Paid").reduce((n, r) => n + Math.max(0, r.netPayable), 0);
 
@@ -74,7 +90,8 @@ export default function TaxCenter() {
                     <Cell><Badge tone={statusTone(r.status === "Paid" ? "paid" : r.status === "Filed" ? "approved" : "submitted")}>{r.status}</Badge></Cell>
                     <Cell>
                       <div className="flex justify-end gap-1">
-                        {r.status === "Open" && <button className="btn-primary px-2 py-1 text-xs" onClick={() => { const res = efileReturn(r.id); if (res.ok) setMsg(`Filed with ${r.authority}. Acknowledgement: ${res.ref}`); }}><Send size={11} /> E-file</button>}
+                        <button className="btn-ghost px-2 py-1 text-xs" title="Every ledger line behind this return, to upload with it on the authority's portal" onClick={() => void downloadSchedule(r.id)}><Download size={11} /> Schedule</button>
+                        {r.status === "Open" && <button className="btn-primary px-2 py-1 text-xs" onClick={() => { const res = efileReturn(r.id); if (res.ok) setMsg(`Filed with ${r.authority}. Acknowledgement: ${res.ref}`); else if (res.needsAcknowledgement) { setAck(""); setAckFor(r.id); } }}><Send size={11} /> E-file</button>}
                         {r.status === "Filed" && r.netPayable > 0 && <button className="btn-primary px-2 py-1 text-xs" onClick={() => { setPayAcct(1010); setPayId(r.id); }}><Banknote size={11} /> Pay</button>}
                       </div>
                     </Cell>
@@ -97,7 +114,7 @@ export default function TaxCenter() {
       </Modal>
 
       <Modal open={prep} onClose={() => setPrep(false)} title="Prepare Tax Return"
-        footer={<><Button variant="ghost" onClick={() => setPrep(false)}>Cancel</Button><Button onClick={() => { prepareReturn(pf.type, new Date(pf.start + "T00:00:00Z").toISOString(), new Date(pf.end + "T23:59:59Z").toISOString()); setPrep(false); }}>Prepare</Button></>}>
+        footer={<><Button variant="ghost" onClick={() => setPrep(false)}>Cancel</Button><Button onClick={() => { prepareReturn(pf.type, dayStartIso(pf.start), dayEndIso(pf.end)); setPrep(false); }}>Prepare</Button></>}>
         <div className="space-y-3">
           <Field label="Return type"><Select value={pf.type} onChange={(e) => setPf({ ...pf, type: e.target.value as ReturnType })} options={RETURN_TYPES} /></Field>
           <p className="text-sm text-mist-600">{pf.type === "VAT" ? "Output VAT (credits to VAT Payable) minus recoverable input VAT (debits)." : pf.type === "WHT" ? "Withholding tax deducted from vendor payments, accrued on WHT Payable." : "PAYE deducted from payroll, accrued on PAYE Payable."}</p>
@@ -108,9 +125,18 @@ export default function TaxCenter() {
         </div>
       </Modal>
 
+      <Modal open={!!ackReturn} onClose={() => setAckFor(null)} title="Record Filing"
+        footer={<><Button variant="ghost" onClick={() => setAckFor(null)}>Cancel</Button><Button disabled={!ack.trim()} onClick={() => { if (ackReturn && efileReturn(ackReturn.id, ack.trim()).ok) setMsg(`Filing of ${ackReturn.reference} recorded. Acknowledgement: ${ack.trim()}`); setAckFor(null); }}>Record filing</Button></>}>
+        <div className="space-y-3">
+          <p className="text-sm text-mist-600">Direct e-filing to {ackReturn?.authority} isn't connected. File {ackReturn?.reference} on the authority's portal, then enter the acknowledgement it issued.</p>
+          <Field label="Acknowledgement reference"><Input value={ack} onChange={(e) => setAck(e.target.value)} placeholder="e.g. the TCC / filing receipt number" /></Field>
+        </div>
+      </Modal>
+
       <Modal open={!!payId} onClose={() => setPayId(null)} title="Remit Tax"
         footer={<><Button variant="ghost" onClick={() => setPayId(null)}>Cancel</Button><Button onClick={() => { if (payId) payReturn(payId, payAcct); setPayId(null); }}>Remit</Button></>}>
         <Field label="Pay from"><Select value={String(payAcct)} onChange={(e) => setPayAcct(+e.target.value)} options={cashAccts.map((a) => ({ value: String(a.number), label: `${a.number} — ${a.name}` }))} /></Field>
+        <div className="mt-3"><FundsNote account={payAcct} amount={returns.find((r) => r.id === payId)?.netPayable ?? 0} /></div>
       </Modal>
     </div>
   );

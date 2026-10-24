@@ -9,9 +9,13 @@ import { Field, Input, Select, Grid } from "@/components/ui/form";
 import { useHr } from "@/store/useHr";
 import { useWorkforce } from "@/store/useWorkforce";
 import { shortDate } from "@/lib/format";
+import { useOrg } from "@/store/useOrg";
 
 export default function Hris() {
   const { staff, addStaff, setStatus } = useHr();
+  // Roles are the hospital's job positions (HR → Org setup); the starter names until it has any.
+  const positions = useOrg((s) => s.jobPositions);
+  const roles = positions.length ? Array.from(new Set(positions.map((p) => p.name))) : ["Medical Officer", "Nurse", "Community Health Worker", "Lab Technician", "Pharmacy Technician", "Health Records Officer", "M&E / HMIS Officer", "Receptionist", "System Admin"];
   const { assignments, attendance, schedules } = useWorkforce();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
@@ -114,7 +118,7 @@ export default function Hris() {
         <div className="space-y-4">
           <Grid cols={2}>
             <Field label="Full name"><Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
-            <Field label="Role"><Select value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })} options={["Medical Officer", "Nurse", "Community Health Worker", "Lab Technician", "Pharmacy Technician", "Health Records Officer", "M&E / HMIS Officer", "Receptionist", "System Admin"]} /></Field>
+            <Field label="Role"><Select value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })} options={roles} /></Field>
             <Field label="Cadre"><Input value={f.cadre} onChange={(e) => setF({ ...f, cadre: e.target.value })} /></Field>
             <Field label="Phone"><Input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} /></Field>
             <Field label="Email"><Input value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></Field>

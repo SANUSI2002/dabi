@@ -1,3 +1,5 @@
+import type { DocApproval } from "@/data/accounting/control";
+
 // Journal entries — the formal double-entry record. Every financial event in
 // Sabi Accounting (manual entry, invoice, payment, bill, expense, depreciation,
 // payroll) becomes a balanced JournalEntry posted through useLedger.
@@ -55,6 +57,7 @@ export type JournalEntry = {
   reversedByEntryId?: string; // set on the original when a reversing entry is booked
   reversesEntryId?: string; // set on the reversing entry, points back to the original
   approvalRef?: string; // workflow instance reference when the entry needed sign-off
+  approval?: DocApproval; // the organization's approval rules, when one covers a manual entry
 };
 
 const line = (accountNumber: number, debit: number, credit: number, description?: string): JournalLine => ({

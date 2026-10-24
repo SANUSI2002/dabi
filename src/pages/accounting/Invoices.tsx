@@ -13,8 +13,13 @@ import { Attachments } from "./_attachments";
 import { useLedger } from "@/store/accounting/useLedger";
 import { LineEditor, DocTotals, type EditableLine } from "./_components";
 import type { Invoice } from "@/data/accounting/receivables";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { sendReminderNow, sendRemindersNow } from "@/accounting-live/receivables";
 
 export default function Invoices() {
+  // live: what became of each reminder's email (emailed, or why not)
+  const live = useIsLiveEmr();
+  const [reminderNote, setReminderNote] = useState("");
   const { customers, invoices, customerById, createInvoice, issueInvoice, voidInvoice, recordReceipt, invoiceBalance, reminderDue, sendReminder, runReminderRun, reminders, unbilledChargesOf, earlyPayDiscountFor } = useAR();
   const [takeDiscount, setTakeDiscount] = useState(true);
   const projects = useProjects((s) => s.projects);
@@ -127,13 +132,14 @@ export default function Invoices() {
           <Card className="mb-4 border-l-4 border-l-amber-400">
             <div className="mb-2 flex items-center justify-between">
               <h3 className="text-sm font-bold text-amber-700">Payment reminders due ({dueList.length})</h3>
-              <Button variant="soft" onClick={() => { const r = runReminderRun(); alert(`Sent ${r.sent} reminder(s).`); }}>Send all</Button>
+              <Button variant="soft" onClick={() => { if (live) { void sendRemindersNow().then(setReminderNote); return; } const r = runReminderRun(); alert(`Sent ${r.sent} reminder(s).`); }}>Send all</Button>
             </div>
+            {reminderNote && <p role="status" className="mb-2 rounded-lg bg-white px-3 py-1.5 text-xs text-mist-600 ring-1 ring-mist-200">{reminderNote}</p>}
             <div className="space-y-1.5">
               {dueList.slice(0, 6).map(({ inv, due }) => (
                 <div key={inv.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-mist-50 px-3 py-1.5 text-sm">
                   <span>{inv.number} · {customerById(inv.customerId)?.name} · <b>{money(invoiceBalance(inv))}</b> · <Badge tone={due!.level === 3 ? "action" : "amber"}>{due!.tone}</Badge></span>
-                  <button className="btn-primary px-2 py-1 text-xs" onClick={() => sendReminder(inv.id)}><Send size={11} /> Send</button>
+                  <button className="btn-primary px-2 py-1 text-xs" onClick={() => { if (live) void sendReminderNow(inv.id).then(setReminderNote); else sendReminder(inv.id); }}><Send size={11} /> Send</button>
                 </div>
               ))}
             </div>

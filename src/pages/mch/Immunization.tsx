@@ -15,21 +15,38 @@ import { VACCINES } from "@/data/catalog";
 import { shortDate, dateTime } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { differenceInWeeks } from "date-fns";
-import type { Aefi } from "@/data/types";
+import type { Aefi, Patient } from "@/data/types";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { describeEmrError } from "@/emr-live/client";
+import { newIdempotencyKey, useLiveImmunization, useLiveImmunizationLoad } from "@/emr-live/immunizations";
 
 const ageWeeksOf = (dob: string) => differenceInWeeks(new Date(), new Date(dob));
 
 export default function Immunization() {
-  const { patients, patientById, immunizations, recordImmunization, recordAefi } = useEmr();
+  const { patients, patientById, immunizations: demoImmunizations, recordImmunization, recordAefi } = useEmr();
   const me = useIdentity((s) => s.user.name);
-  const [pid, setPid] = useState<string | null>(patients.find((p) => p.category === "U5")?.id ?? null);
+  // A live hospital's doses, defaulters and AEFI come from its EMR (see src/emr-live/immunizations.ts).
+  const live = useIsLiveEmr();
+  const [pid, setPid] = useState<string | null>(live ? null : patients.find((p) => p.category === "U5")?.id ?? null);
+  useLiveImmunizationLoad(live, pid);
+  const liveChildDoses = useLiveImmunization((st) => st.childDoses);
+  const liveDefaulters = useLiveImmunization((st) => st.defaulters);
+  const liveAefi = useLiveImmunization((st) => st.aefi);
+  const liveError = useLiveImmunization((st) => st.error);
+  const immunizations = useMemo(() => (live ? [...liveChildDoses, ...liveAefi.filter((a) => !liveChildDoses.some((d) => d.id === a.id))] : demoImmunizations), [live, liveChildDoses, liveAefi, demoImmunizations]);
+  // Live: the picked child comes from the hospital's register (search results), kept here.
+  const [liveChild, setLiveChild] = useState<Patient | null>(null);
+  const under5 = (p: Patient) => (live ? ageWeeksOf(p.dob) < 260 : p.category === "U5");
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [giveKey, setGiveKey] = useState(newIdempotencyKey);
   const [printCard, setPrintCard] = useState(false);
   const [giveFor, setGiveFor] = useState<{ code: string; name: string; site: string } | null>(null);
   const [gf, setGf] = useState({ batchNo: "", site: "" });
   const [aefiFor, setAefiFor] = useState<string | null>(null);
   const [af, setAf] = useState<{ symptoms: string; severity: Aefi["severity"]; onsetHours: number; action: string }>({ symptoms: "", severity: "Non-serious", onsetHours: 6, action: "" });
 
-  const child = patientById(pid);
+  const child = live ? (liveChild?.id === pid ? liveChild : undefined) : patientById(pid);
   const childImm = useMemo(() => immunizations.filter((i) => i.patientId === pid), [immunizations, pid]);
   const givenMap = useMemo(() => Object.fromEntries(childImm.map((i) => [i.vaccineCode, i])), [childImm]);
   const ageWeeks = child ? ageWeeksOf(child.dob) : 0;
@@ -41,13 +58,17 @@ export default function Immunization() {
   });
 
   const u5 = patients.filter((p) => p.category === "U5");
-  const defaulters = u5.flatMap((p) => {
+  const demoDefaulters = u5.flatMap((p) => {
     const gm = new Set(immunizations.filter((i) => i.patientId === p.id).map((i) => i.vaccineCode));
     const aw = ageWeeksOf(p.dob);
     return VACCINES.filter((v) => !gm.has(v.code) && aw >= v.ageWeeks + 4).map((v) => ({ p, v, weeksLate: aw - v.ageWeeks }));
   });
+  // Live: the hospital works out who is 4+ weeks past a missed dose.
+  const defaulters: { p: Patient; v: (typeof VACCINES)[number]; weeksLate: number }[] = live
+    ? liveDefaulters.flatMap((d) => (d.patient ? d.missed.flatMap((m) => { const v = VACCINES.find((x) => x.code === m.vaccineCode); return v ? [{ p: d.patient!, v, weeksLate: m.weeksLate }] : []; }) : []))
+    : demoDefaulters;
 
-  const aefiRecords = immunizations.filter((i) => i.aefi);
+  const aefiRecords: ((typeof immunizations)[number] & { patient?: Patient })[] = live ? liveAefi : immunizations.filter((i) => i.aefi);
   const givenGiven = Object.fromEntries(immunizations.filter((i) => i.patientId === pid).map((i) => [i.vaccineCode, i.givenAt]));
 
   return (
@@ -55,10 +76,11 @@ export default function Immunization() {
       <PageHeader title="Immunization" subtitle="Routine EPI schedule, defaulter tracking & AEFI — persisted & NHMIS-fed" />
 
       <GuidelineBanner guidelineKey="epi-ng-2022" className="mb-5" />
+      {live && (actionError || liveError) && !giveFor && !aefiFor && <p role="alert" className="mb-4 rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError || liveError}</p>}
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Doses given (total)" value={immunizations.length} tone="brand" icon={<Syringe size={18} />} />
-        <StatCard label="Children reached" value={new Set(immunizations.map((i) => i.patientId)).size} tone="mist" delay={0.05} />
+        {live ? <StatCard label="Doses for this child" value={liveChildDoses.length} tone="brand" icon={<Syringe size={18} />} /> : <StatCard label="Doses given (total)" value={immunizations.length} tone="brand" icon={<Syringe size={18} />} />}
+        {live ? <StatCard label="Children overdue" value={liveDefaulters.length} tone="mist" delay={0.05} /> : <StatCard label="Children reached" value={new Set(immunizations.map((i) => i.patientId)).size} tone="mist" delay={0.05} />}
         <StatCard label="Defaulter children" value={new Set(defaulters.map((d) => d.p.id)).size} tone={defaulters.length ? "action" : "brand"} delay={0.1} />
         <StatCard label="AEFI reported" value={aefiRecords.length} tone={aefiRecords.some((r) => r.aefi!.severity === "Serious") ? "action" : "mist"} delay={0.15} icon={<TriangleAlert size={18} />} />
       </div>
@@ -68,7 +90,7 @@ export default function Immunization() {
           t === "Give Vaccine" ? (
             <div className="space-y-4">
               <div className="card flex flex-wrap items-center gap-4">
-                <div className="min-w-[280px] flex-1"><PatientPicker value={pid} onChange={setPid} placeholder="Search child…" filter={(p) => p.category === "U5"} /></div>
+                <div className="min-w-[280px] flex-1"><PatientPicker value={pid} onChange={setPid} onPick={live ? setLiveChild : undefined} placeholder="Search child…" filter={under5} /></div>
                 {child && (
                   <div className="flex items-center gap-3 text-sm">
                     <span className="text-mist-400">Age: <b className="text-mist-700">{ageWeeks} weeks</b> · {childImm.length} doses on file</span>
@@ -93,7 +115,7 @@ export default function Immunization() {
                       <Cell>
                         <div className="flex justify-end gap-1.5">
                           {!v.rec && (v.status === "Due" || v.status === "Overdue") && (
-                            <button onClick={() => { setGiveFor({ code: v.code, name: v.name, site: v.site }); setGf({ batchNo: "", site: v.site }); }} className="btn-primary px-2.5 py-1 text-xs">Give</button>
+                            <button onClick={() => { setGiveFor({ code: v.code, name: v.name, site: v.site }); setGf({ batchNo: "", site: v.site }); setGiveKey(newIdempotencyKey()); setActionError(""); }} className="btn-primary px-2.5 py-1 text-xs">Give</button>
                           )}
                           {v.rec && !v.rec.aefi && (
                             <button onClick={() => { setAefiFor(v.rec!.id); setAf({ symptoms: "", severity: "Non-serious", onsetHours: 6, action: "" }); }} className="btn-ghost px-2 py-1 text-xs">Report AEFI</button>
@@ -122,7 +144,7 @@ export default function Immunization() {
             <Table columns={["Child", "Vaccine", "Symptoms", "Severity", "Onset", "Action", "Reported"]}>
               {aefiRecords.map((r, i) => (
                 <Row key={r.id} index={i}>
-                  <Cell><PatientLink patient={patientById(r.patientId)} /></Cell>
+                  <Cell><PatientLink patient={live ? r.patient : patientById(r.patientId)} /></Cell>
                   <Cell>{r.vaccineName}</Cell>
                   <Cell className="max-w-[240px] text-mist-600">{r.aefi!.symptoms}</Cell>
                   <Cell><Badge tone={r.aefi!.severity === "Serious" ? "action" : "amber"}>{r.aefi!.severity}</Badge></Cell>
@@ -158,12 +180,21 @@ export default function Immunization() {
         onClose={() => setGiveFor(null)}
         title={`Give ${giveFor?.name ?? ""}`}
         footer={<><Button variant="ghost" onClick={() => setGiveFor(null)}>Cancel</Button>
-          <Button disabled={!gf.batchNo.trim() || !gf.site.trim() || !pid} onClick={() => {
-            if (pid && giveFor) recordImmunization(pid, { vaccineCode: giveFor.code, vaccineName: giveFor.name, batchNo: gf.batchNo.trim(), site: gf.site.trim(), givenBy: me });
+          <Button disabled={!gf.batchNo.trim() || !gf.site.trim() || !pid || busy} onClick={async () => {
+            if (!pid || !giveFor) return;
+            if (live) {
+              setBusy(true); setActionError("");
+              try { await useLiveImmunization.getState().give(pid, giveFor.code, gf.batchNo, gf.site, giveKey); setGiveFor(null); }
+              catch (cause) { setActionError(describeEmrError(cause)); }
+              finally { setBusy(false); }
+              return;
+            }
+            recordImmunization(pid, { vaccineCode: giveFor.code, vaccineName: giveFor.name, batchNo: gf.batchNo.trim(), site: gf.site.trim(), givenBy: me });
             setGiveFor(null);
-          }}>Record dose</Button></>}
+          }}>{busy ? "Saving…" : "Record dose"}</Button></>}
       >
         <div className="space-y-4">
+          {live && actionError && <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError}</p>}
           {child && <p className="rounded-xl bg-mist-50 px-3 py-2 text-sm text-mist-600"><b>{child.firstName} {child.lastName}</b> · {ageWeeks} weeks · MRN {child.mrn}</p>}
           <Field label="Batch / lot number"><Input value={gf.batchNo} onChange={(e) => setGf({ ...gf, batchNo: e.target.value })} placeholder="e.g. PENTA-1120" /></Field>
           <Field label="Site"><Input value={gf.site} onChange={(e) => setGf({ ...gf, site: e.target.value })} /></Field>
@@ -175,12 +206,21 @@ export default function Immunization() {
         onClose={() => setAefiFor(null)}
         title="Report Adverse Event Following Immunization"
         footer={<><Button variant="ghost" onClick={() => setAefiFor(null)}>Cancel</Button>
-          <Button variant={af.severity === "Serious" ? "action" : "primary"} disabled={!af.symptoms.trim() || !af.action.trim()} onClick={() => {
-            if (aefiFor) recordAefi(aefiFor, { ...af, reportedBy: me });
+          <Button variant={af.severity === "Serious" ? "action" : "primary"} disabled={!af.symptoms.trim() || !af.action.trim() || busy} onClick={async () => {
+            if (!aefiFor) return;
+            if (live) {
+              setBusy(true); setActionError("");
+              try { await useLiveImmunization.getState().reportAefi(aefiFor, af); setAefiFor(null); }
+              catch (cause) { setActionError(describeEmrError(cause)); }
+              finally { setBusy(false); }
+              return;
+            }
+            recordAefi(aefiFor, { ...af, reportedBy: me });
             setAefiFor(null);
           }}>{af.severity === "Serious" ? "Report & notify Surveillance" : "Record AEFI"}</Button></>}
       >
         <div className="space-y-4">
+          {live && actionError && <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError}</p>}
           <Field label="Symptoms / reaction"><Input value={af.symptoms} onChange={(e) => setAf({ ...af, symptoms: e.target.value })} /></Field>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Severity"><Select value={af.severity} onChange={(e) => setAf({ ...af, severity: e.target.value as Aefi["severity"] })} options={["Non-serious", "Serious"]} /></Field>

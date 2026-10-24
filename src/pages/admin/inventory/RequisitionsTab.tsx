@@ -4,9 +4,9 @@ import { Button, Badge } from "@/components/ui/primitives";
 import { Table, Row, Cell, EmptyRow } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Textarea } from "@/components/ui/form";
-import { useInventoryAccounting } from "@/store/accounting/useInventoryAccounting";
-import { useInventoryLocations } from "@/store/useInventoryLocations";
-import { DEFAULT_STORE_LOCATION_ID, type RequisitionStatus, type StockRequisition } from "@/data/accounting/inventory";
+import { type RequisitionStatus, type StockRequisition } from "@/data/accounting/inventory";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { useStoreLocationsSource, useStoresSource } from "@/emr-live/stores";
 import { shortDate } from "@/lib/format";
 
 const STATUS_TONE: Record<RequisitionStatus, "brand" | "action" | "mist" | "amber"> = {
@@ -17,8 +17,17 @@ type DraftLine = { itemId: string; qty: string };
 
 /** A ward or department asking a store for stock: raise → approve → fulfil (which moves the stock). */
 export function RequisitionsTab() {
-  const inv = useInventoryAccounting();
-  const locations = useInventoryLocations();
+  const inv = useStoresSource();
+  const locations = useStoreLocationsSource();
+  const DEFAULT_STORE_LOCATION_ID = locations.mainLocationId;
+  const live = useIsLiveEmr();
+  const [actionError, setActionError] = useState("");
+  /** Runs a requisition step (async in live mode) and shows its error, if any. */
+  async function step(work: () => unknown) {
+    setActionError("");
+    const res = (await work()) as { ok?: boolean; error?: string } | undefined;
+    if (res && res.ok === false) setActionError(res.error ?? "This step could not be completed.");
+  }
   const active = locations.activeLocations();
   const items = inv.items.filter((i) => i.active);
   const rows = [...inv.requisitions].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -30,13 +39,20 @@ export function RequisitionsTab() {
 
   const validLines = form.lines.filter((l) => l.itemId && Number(l.qty) > 0);
 
-  function raise(submit: boolean) {
-    const id = inv.createRequisition({
-      requestingLocationId: form.requestingLocationId, date: new Date().toISOString(), neededBy: form.neededBy ? new Date(form.neededBy + "T12:00:00Z").toISOString() : undefined,
-      lines: validLines.map((l) => ({ itemId: l.itemId, qtyRequested: Number(l.qty) })), justification: form.justification.trim() || undefined,
-    });
-    if (submit) inv.submitRequisition(id);
-    setRaising(false);
+  const [raiseError, setRaiseError] = useState("");
+  async function raise(submit: boolean) {
+    setRaiseError("");
+    try {
+      const id = await inv.createRequisition({
+        requestingLocationId: form.requestingLocationId, date: new Date().toISOString(), neededBy: form.neededBy ? new Date(form.neededBy + "T12:00:00Z").toISOString() : undefined,
+        lines: validLines.map((l) => ({ itemId: l.itemId, qtyRequested: Number(l.qty) })), justification: form.justification.trim() || undefined,
+        submit, // live: raised and submitted in one step
+      });
+      if (submit && !live) inv.submitRequisition(id);
+      setRaising(false);
+    } catch (cause) {
+      setRaiseError(cause instanceof Error ? cause.message : "The requisition could not be raised.");
+    }
   }
 
   // ---- reject ----
@@ -56,9 +72,9 @@ export function RequisitionsTab() {
     setFulfilError("");
   }
 
-  function submitFulfil() {
+  async function submitFulfil() {
     if (!fulfilling) return;
-    const res = inv.fulfillRequisition(fulfilling.id, fromLocationId);
+    const res = await inv.fulfillRequisition(fulfilling.id, fromLocationId);
     if (!res.ok) { setFulfilError(res.error ?? "Could not fulfil this requisition."); return; }
     setFulfilling(null);
   }
@@ -67,8 +83,9 @@ export function RequisitionsTab() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-mist-400">A ward or department asks a store for stock. Approving is a single store-supervisor decision; fulfilling moves the stock between locations (no ledger entry — it stays one inventory).</p>
-        <Button variant="soft" className="px-2.5 py-1 text-xs" onClick={() => { setForm(blank()); setRaising(true); }}><Plus size={13} /> New requisition</Button>
+        <Button variant="soft" className="px-2.5 py-1 text-xs" onClick={() => { setForm(blank()); setRaiseError(""); setRaising(true); }}><Plus size={13} /> New requisition</Button>
       </div>
+      {actionError && <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError}</p>}
 
       <Table columns={["Number", "Requesting", "Items", "Needed by", "Requested by", "Status", ""]} caption="Stock requisitions">
         {rows.length === 0 && <EmptyRow colSpan={7}>No requisitions yet.</EmptyRow>}
@@ -90,15 +107,15 @@ export function RequisitionsTab() {
             </Cell>
             <Cell>
               <div className="flex justify-end gap-1">
-                {r.status === "Draft" && <button className="btn-ghost px-2 py-1 text-xs" onClick={() => inv.submitRequisition(r.id)}>Submit</button>}
+                {r.status === "Draft" && <button className="btn-ghost px-2 py-1 text-xs" onClick={() => void step(() => inv.submitRequisition(r.id))}>Submit</button>}
                 {r.status === "Pending Approval" && (
                   <>
-                    <button className="btn-ghost px-2 py-1 text-xs" onClick={() => inv.decideRequisition(r.id, "Approved")}>Approve</button>
+                    <button className="btn-ghost px-2 py-1 text-xs" onClick={() => void step(() => inv.decideRequisition(r.id, "Approved"))}>Approve</button>
                     <button className="btn-ghost px-2 py-1 text-xs text-action-600" onClick={() => { setRejecting(r); setRejectReason(""); }}>Reject</button>
                   </>
                 )}
                 {(r.status === "Approved" || r.status === "Partially Fulfilled") && <button className="btn-soft px-2 py-1 text-xs" onClick={() => openFulfil(r)}>Fulfil</button>}
-                {["Draft", "Pending Approval", "Approved"].includes(r.status) && <button className="btn-ghost px-2 py-1 text-xs" onClick={() => inv.cancelRequisition(r.id)}>Cancel</button>}
+                {["Draft", "Pending Approval", "Approved"].includes(r.status) && <button className="btn-ghost px-2 py-1 text-xs" onClick={() => void step(() => inv.cancelRequisition(r.id))}>Cancel</button>}
               </div>
             </Cell>
           </Row>
@@ -114,12 +131,13 @@ export function RequisitionsTab() {
         footer={
           <>
             <Button variant="ghost" onClick={() => setRaising(false)}>Cancel</Button>
-            <Button variant="soft" disabled={validLines.length === 0} onClick={() => raise(false)}>Save draft</Button>
-            <Button disabled={validLines.length === 0} onClick={() => raise(true)}>Submit for approval</Button>
+            <Button variant="soft" disabled={validLines.length === 0} onClick={() => void raise(false)}>Save draft</Button>
+            <Button disabled={validLines.length === 0} onClick={() => void raise(true)}>Submit for approval</Button>
           </>
         }
       >
         <div className="space-y-4">
+          {raiseError && <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{raiseError}</p>}
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Requesting location *">
               <Select value={form.requestingLocationId} onChange={(e) => setForm({ ...form, requestingLocationId: e.target.value })} options={active.map((l) => ({ value: l.id, label: l.name }))} />
@@ -160,7 +178,7 @@ export function RequisitionsTab() {
         open={Boolean(rejecting)}
         onClose={() => setRejecting(null)}
         title={rejecting ? `Reject ${rejecting.number}` : ""}
-        footer={<><Button variant="ghost" onClick={() => setRejecting(null)}>Cancel</Button><Button variant="action" disabled={!rejectReason.trim()} onClick={() => { if (rejecting) inv.decideRequisition(rejecting.id, "Rejected", rejectReason.trim()); setRejecting(null); }}>Reject requisition</Button></>}
+        footer={<><Button variant="ghost" onClick={() => setRejecting(null)}>Cancel</Button><Button variant="action" disabled={!rejectReason.trim()} onClick={() => { if (rejecting) void step(() => inv.decideRequisition(rejecting.id, "Rejected", rejectReason.trim())); setRejecting(null); }}>Reject requisition</Button></>}
       >
         <Field label="Reason *"><Input value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Shown to the requesting location" /></Field>
       </Modal>

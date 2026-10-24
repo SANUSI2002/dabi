@@ -194,3 +194,26 @@
 .sabi-account-choice-icon{display:grid;place-items:center;background:#e5eddd;border-radius:12px;min-width:44px;height:44px;color:#245b43;}
 .sabi-account-signin a{color:#245b43;font-weight:650;}
 @media(max-width:600px){.sabi-account-selector{padding:24px;}.sabi-account-choices>a{padding:14px;gap:10px;}}
+
+/* Shared authentication and workspace touch ergonomics; no zoom suppression. */
+.sabi-route-loading{display:grid;min-height:55dvh;place-items:center;padding:24px;color:#245b43;font:600 16px/1.5 system-ui,sans-serif;}
+.sabi-social-status{margin:12px 0;font-size:14px;line-height:1.5;color:#365247;overflow-wrap:anywhere;}
+.sabi-social-status p{margin:0 0 8px;}
+.sabi-social-status button{min-height:44px;padding:8px 14px;border:1px solid #91b18b;border-radius:10px;background:#edf3e8;color:#173d30;font:600 14px/1.5 inherit;cursor:pointer;}
+:is(.sabi-patient-login,.sabi-patient-signup,.sabi-account-layout,.sh-auth) :is(button,a,input,select,textarea){touch-action:manipulation;}
+@media(max-width:1024px){
+  :is(.sabi-patient-login,.sabi-patient-signup,.sabi-account-layout,.sh-auth) :is(input,select,textarea){font-size:16px;min-height:44px;}
+  :is(.sabi-patient-login,.sabi-patient-signup,.sabi-account-layout,.sh-auth) button{min-height:44px;}
+  :is(.sabi-patient-login,.sabi-patient-signup,.sabi-account-layout,.sh-auth) button[aria-label]{min-width:44px;}
+  .sabi-patient-login,.sabi-patient-signup{min-height:100dvh;overflow-x:clip;}
+  .sabi-patient-signup-layout>*{min-width:0;}
+}
+@media(max-width:600px){
+  .sabi-patient-login-form{padding:24px 20px max(24px,env(safe-area-inset-bottom));}
+  .sabi-patient-signup-card{padding:24px 18px;max-width:100%;}
+  .sabi-account-content>div:not(.sabi-signup-mobile-brand){padding:24px 18px;}
+  :is(.sabi-main,.dp-shell-content) :is(table,pre){max-width:100%;}
+}
+@media(prefers-reduced-motion:reduce){
+  :is(.sabi-patient-login,.sabi-patient-signup,.sabi-account-layout) *{scroll-behavior:auto;animation-duration:.01ms!important;transition-duration:.01ms!important;}
+}

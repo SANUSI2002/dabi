@@ -15,7 +15,7 @@
     }
   ],
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://sabi-health-api-test.onrender.com/api/:path*" },
+    { "source": "/api/:path*", "destination": "https://sabi-api-production-556396127853.us-east1.run.app/api/:path*" },
     { "source": "/telemedicine/doctor-portal/:path*", "destination": "/telemedicine/doctor-portal/index.html" },
     { "source": "/doctor-portal/:path*", "destination": "/doctor-portal/index.html" },
     { "source": "/telemedicine/:path*", "destination": "/telemedicine/index.html" },

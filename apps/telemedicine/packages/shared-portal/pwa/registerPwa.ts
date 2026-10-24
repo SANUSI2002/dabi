@@ -36,7 +36,9 @@ function showUpdateNotice(reload: () => Promise<void>) {
 export function registerPwa() {
   if (!("serviceWorker" in navigator)) return;
   const updateServiceWorker = registerSW({
-    immediate: true,
+    // Install after the initial window load; precaching must not compete with
+    // the sign-in form, Google SDK and above-the-fold assets on mobile data.
+    immediate: false,
     onNeedRefresh: () => showUpdateNotice(() => updateServiceWorker(true)),
     onRegisteredSW: (_url, registration) => {
       if (registration) setInterval(() => { if (navigator.onLine) void registration.update(); }, HOUR);

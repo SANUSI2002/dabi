@@ -5,7 +5,7 @@ import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Textarea, Grid } from "@/components/ui/form";
-import { money, shortDate, isoDate } from "@/lib/format";
+import { money, shortDate, isoDate, dayStartIso } from "@/lib/format";
 import { useAccountingSettings } from "@/store/accounting/useAccountingSettings";
 import { useLedger } from "@/store/accounting/useLedger";
 import { useAcctControl } from "@/store/accounting/useAcctControl";
@@ -60,7 +60,7 @@ export default function AccountingSettings() {
                 <p className="mb-3 text-sm text-mist-500">Posting or reversing to any date before this is blocked across the whole ledger.</p>
                 <div className="flex items-end gap-2">
                   <Field label="Lock date"><Input type="date" value={lockDate} onChange={(e) => setLockDate(e.target.value)} /></Field>
-                  <Button onClick={() => setBooksLockedBefore(lockDate ? new Date(lockDate + "T00:00:00Z").toISOString() : null)}><Lock size={14} /> Apply</Button>
+                  <Button onClick={() => setBooksLockedBefore(lockDate ? dayStartIso(lockDate) : null)}><Lock size={14} /> Apply</Button>
                   {booksLockedBefore && <Button variant="ghost" onClick={() => { setBooksLockedBefore(null); setLockDate(""); }}><Unlock size={14} /> Remove</Button>}
                 </div>
                 <p className="mt-2 text-xs text-mist-400">Currently: {booksLockedBefore ? shortDate(booksLockedBefore) : "no lock"}</p>

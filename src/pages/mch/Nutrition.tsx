@@ -11,6 +11,10 @@ import { PatientLink } from "@/components/ui/PatientLink";
 import { useEmr } from "@/store/useEmr";
 import { shortDate } from "@/lib/format";
 import type { CmamOutcome } from "@/data/types";
+import type { Patient } from "@/data/types";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { describeEmrError } from "@/emr-live/client";
+import { newIdempotencyKey, useLiveNutrition, useLiveNutritionLoad, type LiveScreening } from "@/emr-live/nutrition";
 
 const OUTCOMES: CmamOutcome[] = ["Cured", "Non-response", "Defaulter", "Death", "Transferred"];
 
@@ -27,11 +31,28 @@ const SPHERE = [
 ];
 
 export default function Nutrition() {
-  const { cmamScreenings, patientById, addCmamScreening, setCmamOutcome } = useEmr();
+  const { cmamScreenings: demoScreenings, patientById, addCmamScreening, setCmamOutcome } = useEmr();
+  // A live hospital's CMAM records come from its EMR, which classifies and picks the programme (src/emr-live/nutrition.ts).
+  const live = useIsLiveEmr();
+  useLiveNutritionLoad(live);
+  const liveScreenings = useLiveNutrition((st) => st.screenings);
+  const liveError = useLiveNutrition((st) => st.error);
+  const cmamScreenings: ((typeof demoScreenings)[number] & Partial<LiveScreening>)[] = live ? liveScreenings : demoScreenings;
+  const patientOf = (v: { patientId: string; patient?: Patient }) => (live ? v.patient : patientById(v.patientId));
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [saveKey, setSaveKey] = useState(newIdempotencyKey);
+  async function run(work: () => Promise<void> | void, after: () => void) {
+    setBusy(true); setActionError("");
+    try { await work(); after(); }
+    catch (cause) { setActionError(describeEmrError(cause)); }
+    finally { setBusy(false); }
+  }
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({ patientId: "", muac: 0, oedema: "None", appetite: "Pass", date: "", growthMonitoringDone: true, notes: "" });
   const cls = classify(f.muac || 13, f.oedema);
-  const program = cls === "SAM" ? "OTP" : cls === "MAM" ? "SFP" : "—";
+  // Shown before saving; a live hospital also sends SAM with a failed appetite test or severe oedema to SC.
+  const program = cls === "SAM" ? (live && (f.appetite === "Fail" || f.oedema.startsWith("+++")) ? "SC" : "OTP") : cls === "MAM" ? "SFP" : "—";
   const [outcomeFor, setOutcomeFor] = useState<string | null>(null);
 
   const caseload = cmamScreenings.filter((s) => s.cls !== "Normal");
@@ -44,10 +65,11 @@ export default function Nutrition() {
       <PageHeader
         title="Nutrition · CMAM"
         subtitle="Acute malnutrition screening & treatment (OTP / SC / SFP)"
-        actions={<Button onClick={() => setOpen(true)}><Plus size={15} /> New Screening</Button>}
+        actions={<Button onClick={() => { setSaveKey(newIdempotencyKey()); setActionError(""); setOpen(true); }}><Plus size={15} /> New Screening</Button>}
       />
 
       <GuidelineBanner guidelineKey="cmam-ng-2016" className="mb-5" />
+      {live && (actionError || liveError) && !open && !outcomeFor && <p role="alert" className="mb-4 rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError || liveError}</p>}
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Screenings" value={cmamScreenings.length} tone="brand" icon={<Salad size={18} />} />
         <StatCard label="Active caseload" value={active.length} tone="action" delay={0.05} />
@@ -64,7 +86,7 @@ export default function Nutrition() {
               <Table columns={["Patient", "Date", "MUAC", "Oedema", "Classification", "Program", "Source", "Growth checked", "Notes", "Status"]}>
                 {cmamScreenings.map((s, i) => (
                   <Row key={s.id} index={i}>
-                    <Cell><PatientLink patient={patientById(s.patientId)} /></Cell>
+                    <Cell><PatientLink patient={patientOf(s)} /></Cell>
                     <Cell className="text-mist-400">{shortDate(s.date)}</Cell>
                     <Cell>{s.muac} cm</Cell>
                     <Cell>{s.oedema}</Cell>
@@ -85,7 +107,7 @@ export default function Nutrition() {
               <Table columns={["Patient", "Program", "MUAC", "Enrolled", "Days in program", ""]}>
                 {active.map((s, i) => (
                   <Row key={s.id} index={i}>
-                    <Cell><PatientLink patient={patientById(s.patientId)} /></Cell>
+                    <Cell><PatientLink patient={patientOf(s)} /></Cell>
                     <Cell><Badge tone={s.program === "OTP" ? "action" : "amber"}>{s.program}</Badge></Cell>
                     <Cell>{s.muac} cm</Cell>
                     <Cell className="text-mist-400">{shortDate(s.date)}</Cell>
@@ -117,13 +139,13 @@ export default function Nutrition() {
         onClose={() => setOpen(false)}
         title="New CMAM Screening"
         footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button disabled={!f.patientId || !f.date} onClick={() => {
-            addCmamScreening({ ...f, date: new Date(f.date).toISOString(), cls, program, source: "Nutrition" });
-            setOpen(false);
-            setF({ patientId: "", muac: 0, oedema: "None", appetite: "Pass", date: "", growthMonitoringDone: true, notes: "" });
-          }}>Save Screening</Button></>}
+          <Button disabled={!f.patientId || !f.date || busy} onClick={() => void run(
+            () => (live ? useLiveNutrition.getState().screen(f, saveKey) : addCmamScreening({ ...f, date: new Date(f.date).toISOString(), cls, program, source: "Nutrition" })),
+            () => { setOpen(false); setF({ patientId: "", muac: 0, oedema: "None", appetite: "Pass", date: "", growthMonitoringDone: true, notes: "" }); },
+          )}>{busy ? "Saving…" : "Save Screening"}</Button></>}
       >
         <div className="space-y-4">
+          {live && actionError && <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError}</p>}
           <Field label="Patient (child under 5)"><PatientPicker value={f.patientId} onChange={(id) => setF({ ...f, patientId: id })} /></Field>
           <Grid cols={2}>
             <Field label="Screening date"><Input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
@@ -146,11 +168,17 @@ export default function Nutrition() {
         footer={null}
       >
         <div className="space-y-2">
+          {live && actionError && <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError}</p>}
           <p className="mb-2 text-sm text-mist-500">Select the discharge outcome (WHO Sphere indicator):</p>
           {OUTCOMES.map((o) => (
             <button
               key={o}
-              onClick={() => { if (outcomeFor) setCmamOutcome(outcomeFor, o); setOutcomeFor(null); }}
+              disabled={busy}
+              onClick={() => void run(() => {
+                if (!outcomeFor) return;
+                if (live) return useLiveNutrition.getState().discharge(liveScreenings.find((x) => x.id === outcomeFor)!, o);
+                setCmamOutcome(outcomeFor, o);
+              }, () => setOutcomeFor(null))}
               className={`flex w-full items-center justify-between rounded-xl px-4 py-2.5 text-sm font-semibold ring-1 transition ${o === "Cured" ? "bg-brand-50 text-brand-700 ring-brand-200 hover:bg-brand-100" : "bg-mist-50 text-mist-600 ring-mist-200 hover:bg-mist-100"}`}
             >
               {o}

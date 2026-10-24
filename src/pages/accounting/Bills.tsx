@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { FundsNote } from "@/components/accounting/FundsNote";
 import { Plus, Send, Check, X, Ban, Banknote, FileText, ScanLine } from "lucide-react";
 import { PageHeader, Button, Badge, StatCard, Card, statusTone, EmptyState } from "@/components/ui/primitives";
 import { Tabs } from "@/components/ui/Tabs";
@@ -12,6 +13,7 @@ import { useLedger } from "@/store/accounting/useLedger";
 import { useIdentity } from "@/store/useIdentity";
 import { LineEditor, DocTotals, type EditableLine } from "./_components";
 import { Attachments } from "./_attachments";
+import { useIsLiveEmr } from "@/emr-live/session";
 import type { Bill } from "@/data/accounting/payables";
 
 const purchaseAcct = (n: number) => n >= 5000 || (n >= 1200 && n < 1600) || n === 2100;
@@ -27,6 +29,9 @@ export default function Bills() {
   const [pay, setPay] = useState<Bill | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [scan, setScan] = useState(false);
+  // Reading a supplier invoice needs a document-reading service; none is connected for a live hospital,
+  // so it says so rather than inventing a vendor, number and amount (the sample data does that in demo).
+  const live = useIsLiveEmr();
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState<null | { vendorId: string; vendorInvoiceNumber: string; date: string; confidence: number; lines: EditableLine[] }>(null);
 
@@ -253,6 +258,7 @@ export default function Bills() {
               <Field label="Pay from"><Select value={String(payF.account)} onChange={(e) => setPayF({ ...payF, account: +e.target.value })} options={cashAccts.map((a) => ({ value: String(a.number), label: `${a.number} — ${a.name}` }))} /></Field>
               <Field label="Reference"><Input value={payF.reference} onChange={(e) => setPayF({ ...payF, reference: e.target.value })} /></Field>
             </div>
+            <FundsNote account={payF.account} amount={payF.amount} />
             <p className="text-xs text-mist-400">Posts Dr Accounts Payable {money(payF.amount + (payF.wht || 0))} / Cr bank {money(payF.amount)}{payF.wht ? ` / Cr WHT Payable ${money(payF.wht)}` : ""}.</p>
           </div>
         )}
@@ -265,10 +271,17 @@ export default function Bills() {
               setF({ ...f, vendorId: scanResult.vendorId, vendorInvoiceNumber: scanResult.vendorInvoiceNumber, date: scanResult.date, lines: scanResult.lines });
               setScan(false); setCreate(true);
             }}>Use these details</Button></>
-          : <Button variant="ghost" onClick={() => setScan(false)}>Cancel</Button>}>
+          : live
+            ? <><Button variant="ghost" onClick={() => setScan(false)}>Cancel</Button><Button onClick={() => { setScan(false); setCreate(true); }}>Enter the bill</Button></>
+            : <Button variant="ghost" onClick={() => setScan(false)}>Cancel</Button>}>
         <div className="space-y-3">
           <p className="text-sm text-mist-500">Upload a photo or PDF of the supplier's invoice. The document is read and the vendor, date and amount are extracted for you to review before the bill is created.</p>
-          {!scanResult && !scanning && (
+          {live && (
+            <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 ring-1 ring-amber-200">
+              Reading invoices automatically isn't set up for this hospital — no document-reading service is connected. Enter the bill from the supplier's invoice; nothing is filled in by guesswork.
+            </p>
+          )}
+          {!live && !scanResult && !scanning && (
             <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-mist-300 bg-mist-50/60 px-6 py-10 text-center text-sm text-mist-500 hover:bg-mist-50">
               <ScanLine size={24} className="text-mist-400" />
               Choose an invoice file…

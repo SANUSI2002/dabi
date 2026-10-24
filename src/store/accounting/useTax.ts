@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { audit } from "@/store/useAudit";
 import { useLedger } from "@/store/accounting/useLedger";
-import { seedTaxRates, seedTaxReturns, type TaxRate, type TaxReturn, type ReturnType } from "@/data/accounting/tax";
+import { seedTaxRates, seedTaxReturns, type TaxRate, type TaxReturn, type TaxReturnSchedule, type ReturnType } from "@/data/accounting/tax";
 import { ACCT } from "@/data/accounting/coa";
 
 const rid = () => Math.random().toString(36).slice(2, 9);
@@ -30,9 +30,12 @@ type TaxState = {
 
   /** build a return from the period movement on the relevant liability account */
   prepareReturn: (returnType: ReturnType, periodStart: string, periodEnd: string) => TaxReturn;
-  /** e-file: generate a submission acknowledgement from the tax authority */
-  efileReturn: (id: string) => { ok: boolean; ref?: string };
+  /** e-file: generate a submission acknowledgement from the tax authority. Where direct e-filing isn't
+   *  connected, the filing is recorded with the acknowledgement the authority's portal issued (`ack`). */
+  efileReturn: (id: string, ack?: string) => { ok: boolean; ref?: string; needsAcknowledgement?: boolean };
   payReturn: (id: string, fromAccount: number) => void;
+  /** Every ledger line behind a return, with the counterparty and its TIN, for the authority's portal. */
+  returnSchedule: (id: string) => Promise<TaxReturnSchedule>;
 };
 
 export const useTax = create<TaxState>((set, get) => ({
@@ -99,6 +102,36 @@ export const useTax = create<TaxState>((set, get) => ({
     set((s) => ({ returns: s.returns.map((x) => (x.id === id ? { ...x, status: "Filed", filedAt: new Date().toISOString(), submissionRef: ref, filedVia: `${r.authority} e-filing portal` } : x)) }));
     audit(`e-filed ${r.returnType} return ${r.reference} — ack ${ref}`, `accounting/tax/${r.reference}`);
     return { ok: true, ref };
+  },
+
+  returnSchedule: async (id) => {
+    const r = get().returns.find((x) => x.id === id);
+    if (!r) throw new Error("Tax return not found.");
+    // Loaded when needed (payables and receivables use this store); typed here so the stores' types stay independent.
+    type Party = { name: string; taxId?: string };
+    const [{ useAP }, { useAR }] = (await Promise.all([import("@/store/accounting/useAP"), import("@/store/accounting/useAR")])) as unknown as [
+      { useAP: { getState(): { vendorById(id: string): Party | undefined } } },
+      { useAR: { getState(): { customerById(id: string): Party | undefined } } },
+    ];
+    const from = new Date(r.periodStart).getTime();
+    const to = new Date(r.periodEnd).getTime();
+    const rows = useLedger.getState().entries
+      .filter((e) => (e.status === "Posted" || e.status === "Reversed") && new Date(e.date).getTime() >= from && new Date(e.date).getTime() <= to)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .flatMap((e) => {
+        const party = e.lines.find((l) => l.vendorId || l.customerId);
+        const vendor = party?.vendorId ? useAP.getState().vendorById(party.vendorId) : undefined;
+        const counterparty = vendor?.name ?? (party?.customerId ? useAR.getState().customerById(party.customerId)?.name : undefined);
+        return e.lines.filter((l) => l.accountNumber === r.liabilityAccount).map((l) => ({
+          date: e.date, entryNumber: e.number, source: e.source, reference: e.reference, description: l.description ?? e.memo,
+          counterparty, counterpartyTin: vendor?.taxId, tax: round2(l.credit), reclaimed: round2(l.debit),
+        }));
+      });
+    return {
+      reference: r.reference, returnType: r.returnType, authority: r.authority, periodStart: r.periodStart, periodEnd: r.periodEnd,
+      outputTax: r.outputTax, inputTax: r.inputTax, netPayable: r.netPayable, rows,
+      totals: { tax: round2(rows.reduce((n, x) => n + x.tax, 0)), reclaimed: round2(rows.reduce((n, x) => n + x.reclaimed, 0)) },
+    };
   },
 
   payReturn: (id, fromAccount) => {

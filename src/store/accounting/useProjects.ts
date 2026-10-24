@@ -68,7 +68,7 @@ export const useProjects = create<ProjectsState>((set, get) => ({
     let cost = 0;
     const byAccountMap = new Map<number, { amount: number; kind: "revenue" | "cost" }>();
     for (const je of led.entries) {
-      if (je.status !== "Posted") continue;
+      if (je.status !== "Posted" && je.status !== "Reversed") continue; // a reversal is posted too, so the pair nets to zero
       if (new Date(je.date).getTime() > end) continue;
       for (const l of je.lines) {
         if (l.projectId !== projectId) continue;

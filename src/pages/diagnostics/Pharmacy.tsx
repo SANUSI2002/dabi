@@ -13,12 +13,15 @@ import { useClinical, selectAllergiesFor } from "@/store/useClinical";
 import { useAP } from "@/store/accounting/useAP";
 import { usePharmacy } from "@/store/usePharmacy";
 import type { SafetyAlert } from "@/data/medicationSafety";
-import { DRUG_CATEGORIES, PHARMACY_LOCATIONS, REJECTION_REASONS, type PharmacyLocation, type ExpiryBucket, type DrugMasterStatus, type DrugBatch, type ControlledMedicineEntry } from "@/data/pharmacyOps";
+import { PHARMACY_LOCATIONS, type PharmacyLocation, type ExpiryBucket, type DrugMasterStatus, type DrugBatch, type ControlledMedicineEntry } from "@/data/pharmacyOps";
 import { dateTime, shortDate } from "@/lib/format";
 import type { Prescription } from "@/data/types";
 import { useIsLiveEmr, useLiveEmr, liveCan } from "@/emr-live/session";
 import { useLivePharmacy, useLivePharmacyRefresh, type LiveRxLine, type LiveRegisterEntry, type ApiBatch } from "@/emr-live/pharmacy";
 import { describeEmrError, newIdempotencyKey } from "@/emr-live/client";
+import { Link } from "react-router-dom";
+import { DRUG_LISTS_LINK, drugCategoryLabel, inDrugCategory, useDrugCategories, useDrugClasses } from "@/lib/drugCategories";
+import { useListValues } from "@/lib/listOptions";
 
 const RX_QUEUE_TABS = ["Under Review", "Approved", "Rejected", "All"] as const;
 const RX_STATUS_TONE: Record<string, "brand" | "action" | "mist" | "amber"> = {
@@ -108,7 +111,8 @@ export default function Pharmacy() {
   const [queueTab, setQueueTab] = useState<(typeof RX_QUEUE_TABS)[number]>("Under Review");
   const [reviewing, setReviewing] = useState<EncounterRx | null>(null);
   const [rejecting, setRejecting] = useState(false);
-  const [rejectReason, setRejectReason] = useState<string>(REJECTION_REASONS[0]);
+  const rejectionReasons = useListValues("prescription-rejection-reasons"); // the pharmacy's Prescription Rejection Reasons
+  const [rejectReason, setRejectReason] = useState<string>("");
   const [rejectNote, setRejectNote] = useState("");
   const [overrideReason, setOverrideReason] = useState("");
 
@@ -123,7 +127,7 @@ export default function Pharmacy() {
     setReviewing(row);
     setRejecting(false);
     setOverrideReason("");
-    setRejectReason(REJECTION_REASONS[0]);
+    setRejectReason(rejectionReasons[0] ?? "");
     setRejectNote("");
   }
 
@@ -277,16 +281,26 @@ export default function Pharmacy() {
 
   // ---- Drug Catalogue ----
   const [categoryFilter, setCategoryFilter] = useState("All");
+  // Categories and classes are the hospital's own lists (Settings → Master Data), kept by the pharmacy.
+  const drugCategories = useDrugCategories();
+  const drugClasses = useDrugClasses();
+  const canManageLists = !live || liveCan("emr.formulary.manage");
+  /** The active categories, plus the drug's own if it has since been switched off. */
+  const categoryOptions = (current: string) => [
+    { value: "", label: "— Not set —" },
+    ...drugCategories,
+    ...(current && !drugCategories.some((c) => c.value === current) ? [{ value: current, label: `${drugCategoryLabel(current)} (switched off)` }] : []),
+  ];
   const [editingDrugId, setEditingDrugId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Record<string, unknown>>({});
   const [showAddDrug, setShowAddDrug] = useState(false);
   const [addDrugForm, setAddDrugForm] = useState({
-    name: "", genericName: "", brandName: "", strength: "", dosageForm: "Tablet", category: DRUG_CATEGORIES[0], unitOfMeasure: "Tablet",
+    name: "", genericName: "", brandName: "", strength: "", dosageForm: "Tablet", category: "", unitOfMeasure: "Tablet",
     prescriptionRequired: true, controlledSubstance: false,
   });
   const [addDrugError, setAddDrugError] = useState("");
   // Live formulary products also need a code and the units prescribing and dispensing use.
-  const [liveDrugExtra, setLiveDrugExtra] = useState({ code: "", doseUnit: "mg", dispenseUnit: "tablet", dosePerUnit: "", route: "PO" });
+  const [liveDrugExtra, setLiveDrugExtra] = useState({ code: "", doseUnit: "mg", dispenseUnit: "tablet", dosePerUnit: "", route: "PO", drugClasses: [] as string[] });
 
   const catalogRows = (live
     ? store.drugs.map((drug) => ({
@@ -297,7 +311,7 @@ export default function Pharmacy() {
       },
     }))
     : pharmacy.drugCatalog()
-  ).filter((d) => categoryFilter === "All" || d.master?.category === categoryFilter);
+  ).filter((d) => categoryFilter === "All" || inDrugCategory(d.master?.category || d.klass, categoryFilter));
 
   function openEditDrug(drugId: string) {
     setActionError("");
@@ -306,7 +320,7 @@ export default function Pharmacy() {
       setEditForm({
         genericName: liveDrug.genericName, brandName: liveDrug.brandName ?? "", strength: liveDrug.strength, manufacturer: liveDrug.manufacturer ?? "",
         category: liveDrug.category ?? "", status: liveDrug.active ? "Active" : "Inactive", minStock: liveDrug.minStock, reorderLevel: liveDrug.reorderLevel,
-        prescriptionRequired: liveDrug.prescriptionRequired, controlledSubstance: liveDrug.controlled,
+        prescriptionRequired: liveDrug.prescriptionRequired, controlledSubstance: liveDrug.controlled, drugClasses: liveDrug.drugClasses ?? [],
         patientDescription: liveDrug.patientDescription ?? "", pharmacistNotes: liveDrug.pharmacistNotes ?? "",
       });
       setEditingDrugId(drugId);
@@ -329,7 +343,7 @@ export default function Pharmacy() {
         genericName: String(editForm.genericName ?? "").trim() || liveDrug.genericName, brandName: optional(editForm.brandName),
         strength: String(editForm.strength ?? "").trim() || liveDrug.strength, manufacturer: optional(editForm.manufacturer), category: optional(editForm.category),
         active: editForm.status === "Active", minStock: Number(editForm.minStock) || 0, reorderLevel: Number(editForm.reorderLevel) || 0,
-        prescriptionRequired: Boolean(editForm.prescriptionRequired), controlled: Boolean(editForm.controlledSubstance),
+        prescriptionRequired: Boolean(editForm.prescriptionRequired), controlled: Boolean(editForm.controlledSubstance), drugClasses: (editForm.drugClasses as string[] | undefined) ?? [],
         patientDescription: optional(editForm.patientDescription), pharmacistNotes: optional(editForm.pharmacistNotes),
       }));
       if (done) setEditingDrugId(null);
@@ -347,11 +361,12 @@ export default function Pharmacy() {
           code: liveDrugExtra.code.trim(), genericName: addDrugForm.genericName.trim(), ...(addDrugForm.brandName.trim() ? { brandName: addDrugForm.brandName.trim() } : {}),
           form: addDrugForm.dosageForm.trim(), strength: addDrugForm.strength.trim(), doseUnit: liveDrugExtra.doseUnit.trim(), dispenseUnit: liveDrugExtra.dispenseUnit.trim(),
           ...(liveDrugExtra.dosePerUnit ? { dosePerDispenseUnit: Number(liveDrugExtra.dosePerUnit) } : {}), defaultRoute: liveDrugExtra.route,
-          category: addDrugForm.category, prescriptionRequired: addDrugForm.prescriptionRequired, controlled: addDrugForm.controlledSubstance,
+          ...(addDrugForm.category ? { category: addDrugForm.category } : {}), drugClasses: liveDrugExtra.drugClasses,
+          prescriptionRequired: addDrugForm.prescriptionRequired, controlled: addDrugForm.controlledSubstance,
         });
         setShowAddDrug(false);
-        setAddDrugForm({ name: "", genericName: "", brandName: "", strength: "", dosageForm: "Tablet", category: DRUG_CATEGORIES[0], unitOfMeasure: "Tablet", prescriptionRequired: true, controlledSubstance: false });
-        setLiveDrugExtra({ code: "", doseUnit: "mg", dispenseUnit: "tablet", dosePerUnit: "", route: "PO" });
+        setAddDrugForm({ name: "", genericName: "", brandName: "", strength: "", dosageForm: "Tablet", category: "", unitOfMeasure: "Tablet", prescriptionRequired: true, controlledSubstance: false });
+        setLiveDrugExtra({ code: "", doseUnit: "mg", dispenseUnit: "tablet", dosePerUnit: "", route: "PO", drugClasses: [] });
       } catch (cause) {
         setAddDrugError(describeEmrError(cause));
       }
@@ -360,7 +375,7 @@ export default function Pharmacy() {
     try {
       pharmacy.createDrug(addDrugForm);
       setShowAddDrug(false);
-      setAddDrugForm({ name: "", genericName: "", brandName: "", strength: "", dosageForm: "Tablet", category: DRUG_CATEGORIES[0], unitOfMeasure: "Tablet", prescriptionRequired: true, controlledSubstance: false });
+      setAddDrugForm({ name: "", genericName: "", brandName: "", strength: "", dosageForm: "Tablet", category: "", unitOfMeasure: "Tablet", prescriptionRequired: true, controlledSubstance: false });
     } catch (err) {
       setAddDrugError(err instanceof Error ? err.message : "Could not create this drug.");
     }
@@ -577,7 +592,11 @@ export default function Pharmacy() {
           ) : tab === "Drug Catalogue" ? (
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <Select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} options={["All", ...DRUG_CATEGORIES]} className="h-9 w-auto py-0 text-sm" />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select aria-label="Filter by category" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} options={[{ value: "All", label: "All categories" }, ...drugCategories]} className="h-9 w-auto py-0 text-sm" />
+                  {canManageLists && <Link to={DRUG_LISTS_LINK.categories} className="text-xs font-semibold text-brand-600 hover:underline">Manage categories</Link>}
+                  {canManageLists && <Link to={DRUG_LISTS_LINK.classes} className="text-xs font-semibold text-brand-600 hover:underline">Manage drug classes</Link>}
+                </div>
                 <Button variant="soft" className="px-2.5 py-1 text-xs" onClick={() => { setAddDrugError(""); setShowAddDrug(true); }}><Plus size={13} /> Add new drug</Button>
               </div>
               <Table columns={["Medication", "Generic", "Strength / Form", "Category", "Rx required", "Controlled", "Status", "On hand", ""]} caption="Medication catalogue and stock">
@@ -586,7 +605,7 @@ export default function Pharmacy() {
                     <Cell className="font-semibold">{drug.name}</Cell>
                     <Cell className="text-mist-500">{drug.master?.genericName || "—"}</Cell>
                     <Cell className="text-mist-500">{drug.master?.strength || drug.strength} {drug.master?.dosageForm || drug.form}</Cell>
-                    <Cell>{drug.master?.category || drug.klass}</Cell>
+                    <Cell>{drugCategoryLabel(drug.master?.category || drug.klass)}</Cell>
                     <Cell>{drug.master?.prescriptionRequired ? <Badge tone="amber">Yes</Badge> : <Badge tone="brand">No</Badge>}</Cell>
                     <Cell>{drug.master?.controlledSubstance ? <Badge tone="action">Controlled</Badge> : "—"}</Cell>
                     <Cell><Badge tone={DRUG_STATUS_TONE[drug.master?.status ?? "Active"]}>{drug.master?.status ?? "Active"}</Badge></Cell>
@@ -773,7 +792,7 @@ export default function Pharmacy() {
             {rejecting && (
               <div className="space-y-3 rounded-xl bg-mist-50 p-3">
                 <Field label="Reason *">
-                  <Select value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} options={REJECTION_REASONS} />
+                  <Select value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} options={rejectionReasons} />
                 </Field>
                 <Field label="Pharmacist note * (shown to the prescriber)">
                   <Textarea value={rejectNote} onChange={(e) => setRejectNote(e.target.value)} />
@@ -969,7 +988,7 @@ export default function Pharmacy() {
             <Field label="Strength"><Input value={(editForm.strength as string) ?? ""} onChange={(e) => setEditForm({ ...editForm, strength: e.target.value })} /></Field>
             <Field label="Manufacturer"><Input value={(editForm.manufacturer as string) ?? ""} onChange={(e) => setEditForm({ ...editForm, manufacturer: e.target.value })} /></Field>
             <Field label="Category">
-              <Select value={(editForm.category as string) ?? DRUG_CATEGORIES[0]} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} options={live ? [{ value: "", label: "— Not set —" }, ...DRUG_CATEGORIES.map((c) => ({ value: c, label: c }))] : DRUG_CATEGORIES} />
+              <Select value={(editForm.category as string) ?? ""} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} options={categoryOptions((editForm.category as string) ?? "")} />
             </Field>
             <Field label="Status">
               <Select value={(editForm.status as string) ?? "Draft"} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} options={live ? ["Active", "Inactive"] : DRUG_STATUSES} />
@@ -981,6 +1000,7 @@ export default function Pharmacy() {
             <Checkbox label="Prescription required" checked={Boolean(editForm.prescriptionRequired)} onChange={(e) => setEditForm({ ...editForm, prescriptionRequired: e.target.checked })} />
             <Checkbox label="Controlled medicine" checked={Boolean(editForm.controlledSubstance)} onChange={(e) => setEditForm({ ...editForm, controlledSubstance: e.target.checked })} />
           </Grid>
+          {live && <ClassPicker options={drugClasses} value={(editForm.drugClasses as string[] | undefined) ?? []} onChange={(classes) => setEditForm({ ...editForm, drugClasses: classes })} />}
           <Field label="Patient-facing description"><Textarea value={(editForm.patientDescription as string) ?? ""} onChange={(e) => setEditForm({ ...editForm, patientDescription: e.target.value })} /></Field>
           <Field label="Pharmacist notes (internal)"><Textarea value={(editForm.pharmacistNotes as string) ?? ""} onChange={(e) => setEditForm({ ...editForm, pharmacistNotes: e.target.value })} /></Field>
         </div>
@@ -1007,7 +1027,7 @@ export default function Pharmacy() {
             <Field label="Strength"><Input value={addDrugForm.strength} onChange={(e) => setAddDrugForm({ ...addDrugForm, strength: e.target.value })} placeholder="e.g. 400mg" /></Field>
             <Field label="Dosage form"><Input value={addDrugForm.dosageForm} onChange={(e) => setAddDrugForm({ ...addDrugForm, dosageForm: e.target.value })} /></Field>
             <Field label="Category">
-              <Select value={addDrugForm.category} onChange={(e) => setAddDrugForm({ ...addDrugForm, category: e.target.value })} options={DRUG_CATEGORIES} />
+              <Select value={addDrugForm.category} onChange={(e) => setAddDrugForm({ ...addDrugForm, category: e.target.value })} options={categoryOptions("")} />
             </Field>
           </Grid>
           <Grid cols={2}>
@@ -1019,6 +1039,7 @@ export default function Pharmacy() {
               <Field label="Dose unit *" hint="What doses are prescribed in, e.g. mg"><Input value={liveDrugExtra.doseUnit} onChange={(e) => setLiveDrugExtra({ ...liveDrugExtra, doseUnit: e.target.value })} /></Field>
               <Field label="Dispense unit *" hint="What is handed over, e.g. tablet"><Input value={liveDrugExtra.dispenseUnit} onChange={(e) => setLiveDrugExtra({ ...liveDrugExtra, dispenseUnit: e.target.value })} /></Field>
               <Field label="Dose per dispense unit" hint="e.g. 400 (mg per tablet) — lets quantities be worked out"><Input type="number" min={0} value={liveDrugExtra.dosePerUnit} onChange={(e) => setLiveDrugExtra({ ...liveDrugExtra, dosePerUnit: e.target.value })} /></Field>
+              <div className="col-span-full"><ClassPicker options={drugClasses} value={liveDrugExtra.drugClasses} onChange={(classes) => setLiveDrugExtra({ ...liveDrugExtra, drugClasses: classes })} /></div>
               <Field label="Default route"><Select value={liveDrugExtra.route} onChange={(e) => setLiveDrugExtra({ ...liveDrugExtra, route: e.target.value })} options={["PO", "SL", "IV", "IM", "SC", "INHALED", "TOPICAL", "PR", "PV", "OPHTHALMIC", "OTIC", "NASAL"]} /></Field>
             </Grid>
           )}
@@ -1054,5 +1075,25 @@ export default function Pharmacy() {
         </div>
       </Modal>
     </div>
+  );
+}
+
+/** Drug classes behind the allergy and duplicate-therapy checks — chosen from the pharmacy's own list. */
+function ClassPicker({ options, value, onChange }: { options: { value: string; label: string }[]; value: string[]; onChange: (classes: string[]) => void }) {
+  const unknown = value.filter((v) => !options.some((o) => o.value === v));
+  return (
+    <Field label="Drug classes" hint="Used to catch allergies and same-class duplicates when prescribing">
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Drug classes">
+        {[...options, ...unknown.map((v) => ({ value: v, label: `${v} (switched off)` }))].map((o) => {
+          const on = value.includes(o.value);
+          return (
+            <button key={o.value} type="button" aria-pressed={on} onClick={() => onChange(on ? value.filter((v) => v !== o.value) : [...value, o.value])}
+              className={on ? "rounded-md bg-brand-600 px-2 py-0.5 text-[11px] font-semibold text-white" : "rounded-md bg-white px-2 py-0.5 text-[11px] font-semibold text-mist-600 ring-1 ring-mist-200 hover:bg-mist-50"}>
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
+    </Field>
   );
 }

@@ -25,6 +25,9 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/testing/setup.ts"],
     clearMocks: true,
+    // Screen tests render whole pages in jsdom; with every file in parallel on a busy machine a
+    // multi-step one can take longer than the 5 s default without anything being wrong.
+    testTimeout: 20000,
     restoreMocks: true,
     css: true,
   },

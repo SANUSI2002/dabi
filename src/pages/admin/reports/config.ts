@@ -22,6 +22,8 @@ export type ReportFamily = {
 };
 
 const nm = (p?: { firstName: string; lastName: string }) => (p ? `${p.firstName} ${p.lastName}` : "—");
+const drugsOf = (s: EmrSnapshot) => s.drugs ?? drugs;
+const auditOf = (s: EmrSnapshot) => s.auditEvents ?? auditTrail;
 
 const FP_CYP: Record<string, number> = {
   "Implant": 2.5, "IUCD": 4.6,
@@ -276,14 +278,14 @@ export const REPORTS: ReportFamily[] = [
     name: "Pharmacy / Drugs",
     stats: (s) => [
       { label: "Dispensed items", value: s.encounters.flatMap((e) => e.prescriptions).filter((r) => r.status === "Dispensed").length, tone: "brand" },
-      { label: "Unique drugs", value: drugs.length },
-      { label: "Stock-out", value: drugs.filter((d) => d.stock === 0).length, tone: "action" },
-      { label: "Low stock", value: drugs.filter((d) => d.stock > 0 && d.stock <= d.reorder).length, tone: "amber" },
+      { label: "Unique drugs", value: drugsOf(s).length },
+      { label: "Stock-out", value: drugsOf(s).filter((d) => d.stock === 0).length, tone: "action" },
+      { label: "Low stock", value: drugsOf(s).filter((d) => d.stock > 0 && d.stock <= d.reorder).length, tone: "amber" },
     ],
     tabs: [
-      { name: "Drug Consumption", kind: "table", columns: ["Drug", "Dispensed", "On hand"], rows: (s) => drugs.map((d) => [d.name, s.encounters.flatMap((e) => e.prescriptions).filter((r) => r.drug.includes(d.name)).reduce((n, r) => n + r.qty, 0), d.stock]) },
-      { name: "Stock Balance", kind: "table", columns: ["Drug", "Form", "Stock", "Reorder", "Status"], rows: () => drugs.map((d) => [d.name, d.form, d.stock, d.reorder, d.stock === 0 ? "Out" : d.stock <= d.reorder ? "Low" : "OK"]) },
-      { name: "Stock-Out", kind: "table", columns: ["Drug", "Form", "Reorder level"], rows: () => drugs.filter((d) => d.stock === 0).map((d) => [d.name, d.form, d.reorder]) },
+      { name: "Drug Consumption", kind: "table", columns: ["Drug", "Dispensed", "On hand"], rows: (s) => drugsOf(s).map((d) => [d.name, s.encounters.flatMap((e) => e.prescriptions).filter((r) => r.drug.includes(d.name)).reduce((n, r) => n + r.qty, 0), d.stock]) },
+      { name: "Stock Balance", kind: "table", columns: ["Drug", "Form", "Stock", "Reorder", "Status"], rows: (s) => drugsOf(s).map((d) => [d.name, d.form, d.stock, d.reorder, d.stock === 0 ? "Out" : d.stock <= d.reorder ? "Low" : "OK"]) },
+      { name: "Stock-Out", kind: "table", columns: ["Drug", "Form", "Reorder level"], rows: (s) => drugsOf(s).filter((d) => d.stock === 0).map((d) => [d.name, d.form, d.reorder]) },
       { name: "Expiry Tracking", kind: "empty", hint: "No batches expiring in the next 90 days." },
       { name: "Dispensing Summary", kind: "empty", hint: "No dispensing recorded in this period." },
       { name: "Returns", kind: "empty", hint: "No returns in this period." },
@@ -567,19 +569,19 @@ export const REPORTS: ReportFamily[] = [
   {
     name: "Compliance — NDPR",
     stats: (s) => [
-      { label: "Events (24h)", value: auditTrail.length, tone: "brand" },
-      { label: "Users", value: new Set(auditTrail.map((e) => e.user)).size },
-      { label: "Data exports", value: auditTrail.filter((e) => e.action.includes("REPORT")).length, tone: "amber" },
+      { label: "Events (24h)", value: auditOf(s).length, tone: "brand" },
+      { label: "Users", value: new Set(auditOf(s).map((e) => e.user)).size },
+      { label: "Data exports", value: auditOf(s).filter((e) => /report/i.test(e.action)).length, tone: "amber" },
       { label: "Amendments", value: s.encounters.filter((e) => e.amendedBy).length },
     ],
     tabs: [
-      { name: "Access Log Summary", kind: "table", columns: ["Action", "Count"], rows: () => [...new Set(auditTrail.map((e) => e.action))].map((a) => [a, auditTrail.filter((e) => e.action === a).length]) },
-      { name: "Data Exports", kind: "table", columns: ["User", "Resource", "IP"], rows: () => auditTrail.filter((e) => e.action.includes("REPORT")).slice(0, 8).map((e) => [e.user, e.resource, e.ip]) },
+      { name: "Access Log Summary", kind: "table", columns: ["Action", "Count"], rows: (s) => [...new Set(auditOf(s).map((e) => e.action))].map((a) => [a, auditOf(s).filter((e) => e.action === a).length]) },
+      { name: "Data Exports", kind: "table", columns: ["User", "Resource", "IP"], rows: (s) => auditOf(s).filter((e) => /report/i.test(e.action)).slice(0, 8).map((e) => [e.user, e.resource, e.ip]) },
       { name: "Contact Preferences", kind: "kv", rows: (s) => [
-        { k: "Registered patients", v: s.patients.length },
-        { k: "Phone/SMS reminders opted in", v: s.patients.filter((patient) => patient.consentToContact === true).length },
-        { k: "Phone/SMS reminders opted out", v: s.patients.filter((patient) => patient.consentToContact === false).length },
-        { k: "Contact preference not recorded", v: s.patients.filter((patient) => patient.consentToContact === undefined).length },
+        { k: "Registered patients", v: s.registry?.total ?? s.patients.length },
+        { k: "Phone/SMS reminders opted in", v: s.registry?.consentYes ?? s.patients.filter((patient) => patient.consentToContact === true).length },
+        { k: "Phone/SMS reminders opted out", v: s.registry?.consentNo ?? s.patients.filter((patient) => patient.consentToContact === false).length },
+        { k: "Contact preference not recorded", v: s.registry?.consentUnknown ?? s.patients.filter((patient) => patient.consentToContact === undefined).length },
         { k: "Treatment or sharing consent", v: "Not captured in this frontend demo" },
       ] },
       { name: "Amendment Log", kind: "empty", hint: "No record amendments in this period." },

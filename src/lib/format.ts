@@ -20,6 +20,10 @@ export const signedMoney = (n: number, currency = "₦") =>
 
 export const isoDate = (d: string | Date) => format(new Date(d), "yyyy-MM-dd");
 
+/** The first and last instant of a picked day (yyyy-MM-dd) in the hospital's own time zone, as ISO —
+ *  not UTC midnight, which in Lagos (UTC+1) starts and ends every day an hour off. */
+export const dayStartIso = (day: string) => new Date(`${day}T00:00:00`).toISOString();
+export const dayEndIso = (day: string) => new Date(`${day}T23:59:59.999`).toISOString();
 export const shortDate = (d: string | Date) => format(new Date(d), "dd MMM yyyy");
 export const dateTime = (d: string | Date) => format(new Date(d), "dd MMM yyyy, HH:mm");
 export const timeAgo = (d: string | Date) => formatDistanceToNow(new Date(d), { addSuffix: true });

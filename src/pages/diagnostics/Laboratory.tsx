@@ -24,12 +24,12 @@ import type { LabOrder } from "@/data/types";
 import { useIsLiveEmr, liveCan } from "@/emr-live/session";
 import { useLiveLab, useLiveLabRefresh, analyteRange, resultValue, referenceText, type LiveLabTest } from "@/emr-live/lab";
 import { describeEmrError } from "@/emr-live/client";
+import { useListValues } from "@/lib/listOptions";
 
-// Live labs have no configured bench phases: after collection a test goes straight to analysis.
+// A live test with no bench phases set (Lab Test Settings) goes straight from collection to analysis.
 const LIVE_PHASES = ["Analysis"];
 
 const SAMPLE_TYPES = ["Venous blood (EDTA)", "Venous blood (Plain)", "Capillary blood", "Urine", "Stool", "Sputum", "Swab", "Other"];
-const REJECT_REASONS = ["Haemolysed sample", "Insufficient volume", "Clotted sample", "Wrong container", "Unlabelled / mislabelled", "Leaked in transit", "Expired collection", "Other"];
 
 const labConcept = (test: string) => {
   const loinc = LAB_LOINC[test];
@@ -53,7 +53,12 @@ export default function Laboratory() {
   const liveTest = (id: string) => lab.tests.find((test) => test.id === id) as LiveLabTest;
   const patientById = (id?: string) => (live ? lab.tests.find((test) => test.patientId === id)?.patient : emr.patientById(id));
   const clinicians = live ? lab.clinicians.map((c) => ({ value: c.userId, label: c.name })) : demoClinicians.map((c) => ({ value: c.name, label: c.name }));
-  const phasesFor = (test: string) => (live ? LIVE_PHASES : configFor(test).phases);
+  const phasesFor = (order: LabOrder) => {
+    if (!live) return configFor(order.test).phases;
+    const phases = liveTest(order.id)?.phases ?? [];
+    return phases.length ? phases : LIVE_PHASES;
+  };
+  const turnaroundFor = (order: LabOrder) => (live ? liveTest(order.id)?.turnaroundMinutes ?? 60 : configFor(order.test).turnaroundMinutes);
   const [actionError, setActionError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -86,7 +91,8 @@ export default function Laboratory() {
   const [backFor, setBackFor] = useState<string | null>(null);
   const [backNote, setBackNote] = useState("");
   const [rejectId, setRejectId] = useState<string | null>(null);
-  const [rejectReason, setRejectReason] = useState(REJECT_REASONS[0]);
+  const rejectReasons = useListValues("specimen-rejection-reasons"); // the laboratory's Specimen Rejection Reasons
+  const [rejectReason, setRejectReason] = useState("");
   const [criticalFor, setCriticalFor] = useState<string | null>(null);
   const [criticalTo, setCriticalTo] = useState("");
 
@@ -171,9 +177,9 @@ export default function Laboratory() {
               {pending.map((order) => {
                 const patient = patientById(order.patientId);
                 const config = configFor(order.test);
-                const phases = phasesFor(order.test);
-                // Turnaround targets are configured per test in the demo only.
-                const overdue = !live && labOrderOverdue(order, config.turnaroundMinutes);
+                const phases = phasesFor(order);
+                // Turnaround targets are set per test in Lab Test Settings.
+                const overdue = labOrderOverdue(order, turnaroundFor(order));
                 const currentPhase = phases[order.phaseIndex ?? 0];
                 return (
                   <Card key={order.id}>
@@ -182,7 +188,7 @@ export default function Laboratory() {
                         <CodedValue concept={labConcept(order.test)} className="font-display text-base font-bold" />
                         <p className="mt-0.5 text-[11px] text-mist-400">
                           <PatientLink patient={patient} /> · ordered {dateTime(order.orderedAt)} by {order.orderedBy}
-                          {live ? (liveTest(order.id).accessionNumber ? ` · ${liveTest(order.id).accessionNumber}` : "") : ` · expected turnaround ${config.turnaroundMinutes} min`}
+                          {live ? `${liveTest(order.id).accessionNumber ? ` · ${liveTest(order.id).accessionNumber}` : ""} · expected turnaround ${turnaroundFor(order)} min` : ` · expected turnaround ${config.turnaroundMinutes} min`}
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-1.5">
@@ -205,7 +211,7 @@ export default function Laboratory() {
 
                     <div className="mt-3 flex flex-wrap justify-end gap-2">
                       {(order.status === "Pending" || order.status === "Sample Collected") && (
-                        <Button variant="ghost" className="px-2.5 py-1 text-xs" onClick={() => { setRejectReason(REJECT_REASONS[0]); setRejectId(order.id); }}>
+                        <Button variant="ghost" className="px-2.5 py-1 text-xs" onClick={() => { setRejectReason(rejectReasons[0] ?? ""); setRejectId(order.id); }}>
                           <Ban size={13} /> Reject specimen
                         </Button>
                       )}
@@ -220,7 +226,7 @@ export default function Laboratory() {
                         </Button>
                       )}
                       {order.status === "In Process" && ((order.phaseIndex ?? 0) < phases.length - 1 ? (
-                        <Button onClick={() => advancePhase(order.id, currentPhase)}>
+                        <Button disabled={busy} onClick={() => act(() => advancePhase(order.id, currentPhase), () => lab.completePhase(liveTest(order.id), currentPhase))}>
                           <CheckCircle2 size={14} /> Complete “{currentPhase}”
                         </Button>
                       ) : (
@@ -318,7 +324,7 @@ export default function Laboratory() {
           <Button variant="action" disabled={busy} onClick={() => { if (rejectId) void act(() => rejectSpecimen(rejectId, rejectReason), () => lab.reject(liveTest(rejectId), rejectReason), () => setRejectId(null)); }}>Reject specimen</Button></>}
       >
         <div className="space-y-3">
-          <Field label="Rejection reason"><Select value={rejectReason} onChange={(event) => setRejectReason(event.target.value)} options={REJECT_REASONS} /></Field>
+          <Field label="Rejection reason"><Select value={rejectReason} onChange={(event) => setRejectReason(event.target.value)} options={rejectReasons} /></Field>
           <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700">The ordering clinician should be asked to re-collect. A rejected specimen is a closed order.</p>
         </div>
       </Modal>
@@ -418,7 +424,7 @@ export default function Laboratory() {
               {viewOrder.flag && viewOrder.flag !== "Normal" && <Badge tone="action">{viewOrder.flag}</Badge>}
               {viewOrder.acknowledgedAt && <Badge tone="brand">Acknowledged by {viewOrder.acknowledgedBy}</Badge>}
             </div>
-            <LabProgress order={viewOrder} phases={phasesFor(viewOrder.test)} />
+            <LabProgress order={viewOrder} phases={phasesFor(viewOrder)} />
             <div className="grid gap-2 sm:grid-cols-2">
               {live && liveTest(viewOrder.id).results.map((result) => (
                 <div key={result.analyteCode} className="rounded-xl bg-mist-50 px-3 py-2">

@@ -359,5 +359,7 @@ export const seedDelayedCharges: DelayedCharge[] = [
 ];
 
 // dunning ladder now lives in useAccountingSettings.reminderRules (B6, editable)
-export type InvoiceReminder = { invoiceId: string; level: number; tone: string; sentAt: string; sentBy: string };
+/** Whether a notice reached the customer by email (live hospitals). */
+export type NoticeEmail = { status: "QUEUED" | "SENT" | "FAILED" | "NOT_SENT" | "NO_EMAIL_ADDRESS"; sentAt?: string; error?: string };
+export type InvoiceReminder = { invoiceId: string; level: number; tone: string; sentAt: string; sentBy: string; email?: NoticeEmail };
 export const seedReminders: InvoiceReminder[] = [];

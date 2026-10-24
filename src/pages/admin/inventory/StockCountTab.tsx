@@ -4,13 +4,21 @@ import { Button, Badge } from "@/components/ui/primitives";
 import { Table, Row, Cell, EmptyRow } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Checkbox } from "@/components/ui/form";
-import { useInventoryAccounting } from "@/store/accounting/useInventoryAccounting";
+import { Select } from "@/components/ui/form";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { useStoreLocationsSource, useStoresSource } from "@/emr-live/stores";
 import { naira, shortDate } from "@/lib/format";
 
 /** Physical counts: freeze the system quantity, enter what's on the shelf, then post the differences as ledger adjustments. */
 export function StockCountTab() {
-  const inv = useInventoryAccounting();
+  const inv = useStoresSource();
+  const locations = useStoreLocationsSource();
+  const live = useIsLiveEmr();
+  // Live counts are taken at one location; the system quantity is what is held there.
+  const [countLocationId, setCountLocationId] = useState("");
+  const countLocation = countLocationId || locations.mainLocationId;
   const items = inv.items.filter((i) => i.active);
+  const heldFor = (itemId: string, locationId: string) => (live ? inv.balanceByLocation(itemId, locationId) : inv.itemById(itemId)?.currentQty ?? 0);
   const counts = inv.counts;
 
   const [creating, setCreating] = useState(false);
@@ -27,23 +35,29 @@ export function StockCountTab() {
     setCreating(true);
   }
 
-  function create() {
-    const id = inv.createStockCount({ date: new Date().toISOString(), itemIds: [...picked], note: note.trim() || undefined });
-    setCreating(false);
-    setOpenId(id);
+  async function create() {
+    try {
+      const id = await inv.createStockCount({ date: new Date().toISOString(), itemIds: [...picked], note: note.trim() || undefined, locationId: countLocation });
+      setCreating(false);
+      setOpenId(id);
+    } catch (cause) {
+      setCreating(false);
+      setMessage(cause instanceof Error ? cause.message : "The count could not be started.");
+    }
   }
-
-  function post() {
+  async function post() {
     if (!open) return;
-    const res = inv.postStockCount(open.id);
+    const res = await inv.postStockCount(open.id);
     setOpenId(null);
-    setMessage(res.ok ? `Count ${open.number} posted — ${res.adjustments} adjustment${res.adjustments === 1 ? "" : "s"}, net ${naira(res.netValue ?? 0)}.` : (res.error ?? "The count could not be posted."));
+    setMessage(res.ok ? `Count ${open.number} posted — ${res.adjustments} adjustment${res.adjustments === 1 ? "" : "s"}, ${"netValue" in res ? `net ${naira(res.netValue ?? 0)}` : "recorded in the stock ledger"}.` : (res.error ?? "The count could not be posted."));
   }
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs text-mist-400">Posting a count adjusts stock to what was counted and records the gain or shrinkage in the general ledger.</p>
+        <p className="text-xs text-mist-400">{live
+          ? "Each count is for one location. Posting it adjusts the stock there to what was counted; every change is recorded in the stock movement ledger (nothing is posted to accounting)."
+          : "Posting a count adjusts stock to what was counted and records the gain or shrinkage in the general ledger."}</p>
         <Button variant="soft" className="px-2.5 py-1 text-xs" onClick={startCreate}><Plus size={13} /> New count</Button>
       </div>
       {message && <p className="rounded-xl bg-brand-50 px-3 py-2 text-sm text-brand-700">{message}</p>}
@@ -67,9 +81,14 @@ export function StockCountTab() {
         open={creating}
         onClose={() => setCreating(false)}
         title="New stock count"
-        footer={<><Button variant="ghost" onClick={() => setCreating(false)}>Cancel</Button><Button disabled={picked.size === 0} onClick={create}>Start count ({picked.size})</Button></>}
+        footer={<><Button variant="ghost" onClick={() => setCreating(false)}>Cancel</Button><Button disabled={picked.size === 0} onClick={() => void create()}>Start count ({picked.size})</Button></>}
       >
         <div className="space-y-4">
+          {live && (
+            <Field label="Location *">
+              <Select value={countLocation} onChange={(e) => setCountLocationId(e.target.value)} options={locations.activeLocations().map((l) => ({ value: l.id, label: l.name }))} />
+            </Field>
+          )}
           <Field label="Note"><Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Monthly cycle count — Main Store" /></Field>
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
@@ -81,7 +100,7 @@ export function StockCountTab() {
             {items.map((i) => (
               <Checkbox
                 key={i.id}
-                label={`${i.name} — ${i.currentQty} ${i.unit} on hand`}
+                label={`${i.name} — ${live ? heldFor(i.id, countLocation) : i.currentQty} ${i.unit} on hand`}
                 checked={picked.has(i.id)}
                 onChange={(e) => setPicked((prev) => { const next = new Set(prev); if (e.target.checked) next.add(i.id); else next.delete(i.id); return next; })}
               />
@@ -98,7 +117,7 @@ export function StockCountTab() {
         wide
         footer={
           open?.status === "Draft" ? (
-            <><Button variant="ghost" onClick={() => setOpenId(null)}>Close</Button><Button onClick={post}>Post adjustments</Button></>
+            <><Button variant="ghost" onClick={() => setOpenId(null)}>Close</Button><Button onClick={() => void post()}>Post adjustments</Button></>
           ) : (
             <Button variant="ghost" onClick={() => setOpenId(null)}>Close</Button>
           )
@@ -110,11 +129,12 @@ export function StockCountTab() {
             <Table columns={["Item", "System qty", "Counted", "Variance"]}>
               {open.lines.map((l) => {
                 const item = inv.itemById(l.itemId);
-                const variance = l.countedQty - (open.status === "Draft" ? item?.currentQty ?? l.systemQty : l.systemQty);
+                const current = open.status === "Draft" ? (live && "locationId" in open ? heldFor(l.itemId, open.locationId as string) : item?.currentQty ?? l.systemQty) : l.systemQty;
+                const variance = l.countedQty - current;
                 return (
                   <Row key={l.itemId}>
                     <Cell className="font-semibold">{item?.name ?? l.itemId}<span className="block text-[11px] font-normal text-mist-400">{item?.unit}</span></Cell>
-                    <Cell>{open.status === "Draft" ? item?.currentQty ?? l.systemQty : l.systemQty}</Cell>
+                    <Cell>{current}</Cell>
                     <Cell>
                       {open.status === "Draft" ? (
                         <Input aria-label={`Counted ${item?.name ?? ""}`} type="number" min={0} value={l.countedQty} onChange={(e) => inv.updateCountLine(open.id, l.itemId, Number(e.target.value))} className="h-8 w-24" />

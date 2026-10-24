@@ -9,8 +9,8 @@ import { useLetters, templateTokens } from "@/platform/useLetters";
 import type { LetterCategory, LetterTemplate } from "@/platform/letters";
 import { term } from "@/platform/useTerminology";
 import { shortDate } from "@/lib/format";
+import { useListValues } from "@/lib/listOptions";
 
-const CATEGORIES: LetterCategory[] = ["Onboarding", "Discipline", "Movement", "Finance", "General"];
 
 // sample values so previews read like a real letter
 const SAMPLE: Record<string, string> = {
@@ -47,6 +47,7 @@ const SAMPLE: Record<string, string> = {
 };
 
 export default function LetterTemplates() {
+  const listed = useListValues("letter-categories"); // the hospital's list (Settings → Master Data)
   const { templates, generated, saveTemplate, addTemplate, letterById } = useLetters();
   const [editKey, setEditKey] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -58,8 +59,9 @@ export default function LetterTemplates() {
   const viewLetter = viewLetterId ? letterById(viewLetterId) : null;
 
   const byCategory = useMemo(
-    () => CATEGORIES.map((c) => ({ category: c, items: templates.filter((t) => t.category === c) })).filter((g) => g.items.length),
-    [templates],
+    // the Letter Categories list, plus any category a template still carries
+    () => [...new Set([...listed, ...templates.map((t) => t.category)])].map((c) => ({ category: c, items: templates.filter((t) => t.category === c) })).filter((g) => g.items.length),
+    [templates, listed],
   );
 
   return (
@@ -174,6 +176,7 @@ function EditModal({
 }) {
   const [name, setName] = useState(template.name);
   const [category, setCategory] = useState<LetterCategory>(template.category);
+  const categories = useListValues("letter-categories", template.category); // the Letter Categories list (and this template's own)
   const [body, setBody] = useState(template.body);
   const [signatories, setSignatories] = useState(template.signatories.join("\n"));
   const [active, setActive] = useState(template.active !== false);
@@ -196,7 +199,7 @@ function EditModal({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Template name"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
           <Field label="Category">
-            <Select options={CATEGORIES} value={category} onChange={(e) => setCategory(e.target.value as LetterCategory)} />
+            <Select options={categories} value={category} onChange={(e) => setCategory(e.target.value as LetterCategory)} />
           </Field>
         </div>
         <Field label="Body" hint="Use {{token}} placeholders. Blank lines separate paragraphs.">

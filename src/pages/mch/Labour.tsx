@@ -7,10 +7,13 @@ import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Textarea, Grid } from "@/components/ui/form";
 import { PatientPicker } from "@/components/ui/PatientPicker";
 import { PatientLink } from "@/components/ui/PatientLink";
-import { BirthCertificateDoc } from "@/components/print/documents";
+import { BirthCertificateDoc, BirthNotificationDoc } from "@/components/print/documents";
 import { useEmr } from "@/store/useEmr";
 import { shortDate, dateTime } from "@/lib/format";
-import type { Sex } from "@/data/types";
+import type { BirthRegisterEntry, Delivery, Patient, Sex } from "@/data/types";
+import { useIsLiveEmr, useLiveEmr } from "@/emr-live/session";
+import { describeEmrError } from "@/emr-live/client";
+import { newIdempotencyKey, useLiveDeliveries, useLiveDeliveriesLoad, type LiveBirthEntry, type LiveDelivery } from "@/emr-live/deliveries";
 
 const NHMIS_LABOUR = [
   "Decision-to-seek-care ≤ 24 hours", "Arrived by ambulance / referral",
@@ -24,7 +27,33 @@ const NHMIS_NEWBORN = [
 ];
 
 export default function Labour() {
-  const { deliveries, birthRegister, patientById, addDelivery, notifyBirth, registerBirth, issueBirthCertificate } = useEmr();
+  const { deliveries: demoDeliveries, birthRegister: demoRegister, patientById, addDelivery, notifyBirth, registerBirth, issueBirthCertificate } = useEmr();
+  // A live hospital's deliveries and birth register come from its EMR (see src/emr-live/deliveries.ts).
+  const live = useIsLiveEmr();
+  const hospital = useLiveEmr((state) => state.access?.organizationName ?? "");
+  useLiveDeliveriesLoad(live, hospital);
+  const liveDeliveries = useLiveDeliveries((state) => state.deliveries);
+  const liveRegister = useLiveDeliveries((state) => state.register);
+  const clinicians = useLiveDeliveries((state) => state.clinicians);
+  const liveError = useLiveDeliveries((state) => state.error);
+  const liveOps = useLiveDeliveries.getState;
+  const deliveries: (Delivery & Partial<LiveDelivery>)[] = live ? liveDeliveries : demoDeliveries;
+  const birthRegister: (BirthRegisterEntry & Partial<LiveBirthEntry>)[] = live ? liveRegister : demoRegister;
+  const motherOf = (record: { patientId: string; patient?: Patient }) => (live ? record.patient : patientById(record.patientId));
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [recordKey, setRecordKey] = useState(newIdempotencyKey);
+  const [notifyKey, setNotifyKey] = useState(newIdempotencyKey);
+  const [registerFor, setRegisterFor] = useState<LiveBirthEntry | null>(null);
+  const [rf, setRf] = useState({ registrationNumber: "", babyName: "" });
+  const [printEntry, setPrintEntry] = useState<LiveBirthEntry | null>(null);
+  /** Saves (live: on the hospital's record) and shows the hospital's answer if it refuses. */
+  async function run(work: () => Promise<void> | void, after: () => void = () => {}) {
+    setBusy(true); setActionError("");
+    try { await work(); after(); }
+    catch (cause) { setActionError(describeEmrError(cause)); }
+    finally { setBusy(false); }
+  }
   const [f, setF] = useState({
     patientId: "", date: "", mode: "SVD", gaWeeks: 39,
     bookingStatus: "Booked", complications: "", notes: "", nhmisIndicators: [] as string[],
@@ -32,11 +61,13 @@ export default function Labour() {
     babySex: "F" as Sex, babyStatus: "Alive" as const, weight: 3.1, apgar1: 8, apgar5: 10, breastfed1h: true,
     conductedBy: "Dr. Adaeze Okonjo",
   });
+  // Live: "Conducted by" is a colleague's user id.
+  const conductedBy = live ? (clinicians.some((c) => c.userId === f.conductedBy) ? f.conductedBy : "") : f.conductedBy;
   const [certFor, setCertFor] = useState<string | null>(null);
   const [notifyFor, setNotifyFor] = useState<string | null>(null);
   const [nf, setNf] = useState({ babyName: "", informantName: "", informantRelation: "Mother", fatherName: "" });
 
-  const live = deliveries.filter((d) => d.babyStatus === "Alive").length;
+  const liveBirths = deliveries.filter((d) => d.babyStatus === "Alive").length;
   const registeredId = (dId: string) => birthRegister.find((b) => b.deliveryId === dId);
   const notifiedCount = birthRegister.length;
   const certCount = birthRegister.filter((b) => b.status === "Certificate issued").length;
@@ -45,10 +76,14 @@ export default function Labour() {
     <div>
       <PageHeader title="Labour and Delivery" subtitle="Delivery records, NHMIS indicators, birth certificates" />
 
+      {live && (actionError || liveError) && !notifyFor && !registerFor && (
+        <p role="alert" className="mb-4 rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError || liveError}</p>
+      )}
+
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Deliveries" value={deliveries.length} tone="brand" icon={<Baby size={18} />} />
-        <StatCard label="Live Births" value={live} tone="brand" delay={0.05} />
-        <StatCard label="Births notified" value={`${notifiedCount}/${live}`} tone={notifiedCount < live ? "amber" : "brand"} delay={0.1} icon={<FileCheck2 size={18} />} />
+        <StatCard label="Live Births" value={liveBirths} tone="brand" delay={0.05} />
+        <StatCard label="Births notified" value={`${notifiedCount}/${liveBirths}`} tone={notifiedCount < liveBirths ? "amber" : "brand"} delay={0.1} icon={<FileCheck2 size={18} />} />
         <StatCard label="Certificates issued" value={certCount} tone="brand" delay={0.15} icon={<BadgeCheck size={18} />} />
       </div>
 
@@ -67,7 +102,7 @@ export default function Labour() {
                 <p className="mb-2 text-xs font-bold uppercase text-mist-400">Delivery</p>
                 <Grid cols={3}>
                   <Field label="Date & time"><Input type="datetime-local" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
-                  <Field label="GA (weeks)"><Input type="number" value={f.gaWeeks} onChange={(e) => setF({ ...f, gaWeeks: +e.target.value })} /></Field>
+                  <Field label="GA (weeks)" hint={live ? "Taken from her antenatal LMP when she is enrolled here" : undefined}><Input type="number" value={f.gaWeeks} onChange={(e) => setF({ ...f, gaWeeks: +e.target.value })} /></Field>
                   <Field label="Mode"><Select value={f.mode} onChange={(e) => setF({ ...f, mode: e.target.value })} options={["SVD", "Assisted (vacuum)", "Breech", "Caesarean (referred)"]} /></Field>
                 </Grid>
               </section>
@@ -107,13 +142,18 @@ export default function Labour() {
                   </div>
                 </div>
               </section>
-              <Grid cols={2}><Field label="Conducted by"><Input value={f.conductedBy} onChange={(event) => setF({ ...f, conductedBy: event.target.value })} /></Field><Field label="Notes"><Textarea placeholder="Brief notes / complications…" value={f.notes} onChange={(event) => setF({ ...f, notes: event.target.value })} /></Field></Grid>
+              <Grid cols={2}><Field label="Conducted by">{live ? (
+                <Select value={conductedBy} onChange={(event) => setF({ ...f, conductedBy: event.target.value })} options={[{ value: "", label: "Select the clinician…" }, ...clinicians.map((c) => ({ value: c.userId, label: c.name }))]} />
+              ) : <Input value={f.conductedBy} onChange={(event) => setF({ ...f, conductedBy: event.target.value })} />}</Field><Field label="Notes"><Textarea placeholder="Brief notes / complications…" value={f.notes} onChange={(event) => setF({ ...f, notes: event.target.value })} /></Field></Grid>
               <div className="flex justify-end">
                 <Button
-                  disabled={!f.patientId || !f.date}
-                  onClick={() => { addDelivery({ ...f, date: new Date(f.date).toISOString() }); setF({ ...f, patientId: "", date: "", complications: "", notes: "", nhmisIndicators: [] }); }}
+                  disabled={!f.patientId || !f.date || busy || (live && !conductedBy)}
+                  onClick={() => void run(
+                    () => (live ? liveOps().record({ ...f, conductedBy }, recordKey) : addDelivery({ ...f, date: new Date(f.date).toISOString() })),
+                    () => { setF({ ...f, patientId: "", date: "", complications: "", notes: "", nhmisIndicators: [] }); setRecordKey(newIdempotencyKey()); },
+                  )}
                 >
-                  Save Delivery
+                  {busy ? "Saving…" : "Save Delivery"}
                 </Button>
               </div>
             </div>
@@ -123,7 +163,7 @@ export default function Labour() {
             ) : (
               <Table columns={["Mother", "Date", "Mode", "GA", "Mother", "Baby", "Weight", "APGAR", "Details", ""]}>
                 {deliveries.map((d, i) => {
-                  const p = patientById(d.patientId);
+                  const p = motherOf(d);
                   return (
                     <Row key={d.id} index={i}>
                       <Cell className="font-semibold"><PatientLink patient={p} /></Cell>
@@ -133,7 +173,7 @@ export default function Labour() {
                       <Cell><Badge tone={d.motherStatus === "Alive" ? "brand" : "action"}>{d.motherStatus}</Badge></Cell>
                       <Cell><Badge tone={d.babyStatus === "Alive" ? "brand" : "action"}>{d.babyStatus}</Badge></Cell>
                       <Cell>{d.weight} kg</Cell>
-                      <Cell>{d.apgar1}/{d.apgar5}</Cell>
+                      <Cell>{d.babyStatus === "Alive" ? `${d.apgar1}/${d.apgar5}` : "—"}</Cell>
                       <Cell className="max-w-[230px] whitespace-normal text-xs text-mist-500">
                         {[d.bookingStatus, d.complications, d.notes].filter(Boolean).join(" · ") || "—"}
                         {!!d.nhmisIndicators?.length && <details className="mt-1"><summary className="cursor-pointer text-brand-700">{d.nhmisIndicators.length} indicators recorded</summary><ul className="mt-1 list-disc pl-4">{d.nhmisIndicators.map((indicator) => <li key={indicator}>{indicator}</li>)}</ul></details>}
@@ -141,7 +181,7 @@ export default function Labour() {
                       <Cell>
                         {d.babyStatus === "Alive" && !registeredId(d.id) && (
                           <button
-                            onClick={() => { setNotifyFor(d.id); setNf({ babyName: "", informantName: p ? `${p.firstName} ${p.lastName}` : "", informantRelation: "Mother", fatherName: "" }); }}
+                            onClick={() => { setNotifyFor(d.id); setNotifyKey(newIdempotencyKey()); setActionError(""); setNf({ babyName: "", informantName: p ? `${p.firstName} ${p.lastName}` : "", informantRelation: "Mother", fatherName: "" }); }}
                             className="btn-primary px-2.5 py-1 text-xs"
                           >
                             <FileCheck2 size={12} /> Notify birth
@@ -168,25 +208,26 @@ export default function Labour() {
                     <Cell className="font-mono text-[11px]">
                       {b.npopcNo}
                       {b.regNo && <span className="block text-brand-600">{b.regNo}</span>}
+                      {b.notifiedBy && <span className="block font-sans text-[11px] text-mist-400">by {b.notifiedBy}</span>}
                     </Cell>
                     <Cell className="font-semibold">
                       {b.babyName || <span className="text-mist-400">unnamed</span>}
                       <span className="block text-[11px] font-normal text-mist-400">{b.sex} · {b.weight} kg</span>
                     </Cell>
                     <Cell>{dateTime(b.bornAt)}</Cell>
-                    <Cell><PatientLink patient={patientById(b.patientId)} /></Cell>
+                    <Cell><PatientLink patient={motherOf(b)} /></Cell>
                     <Cell className="text-mist-500">{b.informantName}<span className="block text-[11px] text-mist-400">{b.informantRelation}</span></Cell>
                     <Cell><Badge tone={statusTone(b.status)}>{b.status}</Badge></Cell>
                     <Cell>
                       <div className="flex justify-end gap-1.5">
                         {b.status === "Notified" && (
-                          <button onClick={() => registerBirth(b.id)} className="btn-primary px-2.5 py-1 text-xs"><Stamp size={12} /> Register</button>
+                          <button onClick={() => { if (live) { setRegisterFor(b as LiveBirthEntry); setRf({ registrationNumber: "", babyName: b.babyName }); setActionError(""); } else registerBirth(b.id); }} className="btn-primary px-2.5 py-1 text-xs"><Stamp size={12} /> Register</button>
                         )}
                         {b.status === "Registered" && (
-                          <button onClick={() => issueBirthCertificate(b.id)} className="btn-primary px-2.5 py-1 text-xs"><BadgeCheck size={12} /> Issue certificate</button>
+                          <button disabled={busy} onClick={() => void run(() => (live ? liveOps().recordCertificate(b as LiveBirthEntry) : issueBirthCertificate(b.id)))} className="btn-primary px-2.5 py-1 text-xs"><BadgeCheck size={12} /> Issue certificate</button>
                         )}
                         {b.status === "Certificate issued" && (
-                          <button onClick={() => setCertFor(b.patientId)} className="btn-soft px-2.5 py-1 text-xs">Print certificate</button>
+                          <button onClick={() => (live ? setPrintEntry(b as LiveBirthEntry) : setCertFor(b.patientId))} className="btn-soft px-2.5 py-1 text-xs">Print certificate</button>
                         )}
                       </div>
                     </Cell>
@@ -201,6 +242,32 @@ export default function Labour() {
         }
       </Tabs>
 
+      {printEntry && <BirthNotificationDoc entry={printEntry} open onClose={() => setPrintEntry(null)} />}
+
+      <Modal
+        open={!!registerFor}
+        onClose={() => setRegisterFor(null)}
+        title="Register birth"
+        footer={<><Button variant="ghost" onClick={() => setRegisterFor(null)}>Cancel</Button>
+          <Button disabled={rf.registrationNumber.trim().length < 3 || busy} onClick={() => void run(() => liveOps().registerBirth(registerFor!, rf.registrationNumber, rf.babyName), () => setRegisterFor(null))}>
+            <Stamp size={14} /> {busy ? "Saving…" : "Record registration"}
+          </Button></>}
+      >
+        <div className="space-y-4">
+          {actionError && <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError}</p>}
+          {registerFor && (
+            <div className="rounded-xl bg-mist-50 px-3 py-2 text-sm text-mist-600">
+              <b>{registerFor.npopcNo}</b> · born {dateTime(registerFor.bornAt)} to {registerFor.motherName} · {registerFor.sex} · {registerFor.weight} kg
+            </div>
+          )}
+          <Field label="Civil registration number (from NPopC)">
+            <Input value={rf.registrationNumber} onChange={(e) => setRf({ ...rf, registrationNumber: e.target.value })} placeholder="As written on the NPopC registration" />
+          </Field>
+          <Field label="Child's name (if now given)"><Input value={rf.babyName} onChange={(e) => setRf({ ...rf, babyName: e.target.value })} /></Field>
+          <p className="rounded-xl bg-mist-50 px-3 py-2 text-xs text-mist-500">The registration number is issued by the National Population Commission. Record it exactly as issued; it cannot be used for another birth.</p>
+        </div>
+      </Modal>
+
       {certFor && patientById(certFor) && (
         <BirthCertificateDoc patient={patientById(certFor)!} open onClose={() => setCertFor(null)} />
       )}
@@ -211,15 +278,16 @@ export default function Labour() {
         title="Birth notification"
         footer={<><Button variant="ghost" onClick={() => setNotifyFor(null)}>Cancel</Button>
           <Button
-            disabled={!nf.informantName.trim()}
-            onClick={() => { if (notifyFor) notifyBirth(notifyFor, nf); setNotifyFor(null); }}
-          ><FileCheck2 size={14} /> Issue notification</Button></>}
+            disabled={!nf.informantName.trim() || busy}
+            onClick={() => void run(() => { if (notifyFor) return live ? liveOps().notify(notifyFor, nf, notifyKey) : notifyBirth(notifyFor, nf); }, () => setNotifyFor(null))}
+          ><FileCheck2 size={14} /> {busy ? "Saving…" : "Issue notification"}</Button></>}
       >
         {(() => {
           const d = notifyFor ? deliveries.find((x) => x.id === notifyFor) : undefined;
-          const p = d ? patientById(d.patientId) : undefined;
+          const p = d ? motherOf(d) : undefined;
           return (
             <div className="space-y-4">
+              {live && actionError && <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError}</p>}
               {d && (
                 <div className="rounded-xl bg-mist-50 px-3 py-2 text-sm text-mist-600">
                   <b>{p ? `${p.firstName} ${p.lastName}` : "—"}</b> · delivered {dateTime(d.date)} · {d.babySex} · {d.weight} kg · {d.mode}

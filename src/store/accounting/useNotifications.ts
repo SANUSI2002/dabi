@@ -95,7 +95,7 @@ export const useNotifications = create<NotificationState>((set, get) => ({
     if (prefs.largeJournal) {
       for (const e of useLedger.getState().entries.filter((x) => x.status === "Posted")) {
         const dr = e.lines.reduce((n, l) => n + l.debit, 0);
-        if (dr >= LARGE_JE) out.push({ id: `je-${e.id}`, key: "largeJournal", severity: "info", title: `Large entry ${e.number}`, detail: `${e.memo} · ${dr.toLocaleString()}`, href: "/accounting/journal-entries" });
+        if (dr >= LARGE_JE) out.push({ id: `je-${e.id}`, key: "largeJournal", severity: "info", title: `Large entry ${e.number}`, detail: `${e.memo} · ${dr.toLocaleString()}`, href: "/accounting/journals" });
       }
     }
 

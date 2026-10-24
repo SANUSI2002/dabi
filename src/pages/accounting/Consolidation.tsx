@@ -6,7 +6,7 @@ import { Table, Row, Cell } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Checkbox } from "@/components/ui/form";
 import { PrintDoc, Section, Line } from "@/components/print/PrintFrame";
-import { money, shortDate, isoDate } from "@/lib/format";
+import { money, shortDate, isoDate, dayEndIso } from "@/lib/format";
 import { useLedger } from "@/store/accounting/useLedger";
 import { consolidate, consolidatedSummary } from "@/store/accounting/useConsolidation";
 
@@ -20,7 +20,7 @@ export default function Consolidation() {
   const [ng, setNg] = useState<{ name: string; branchIds: string[] }>({ name: "", branchIds: [] });
   const [print, setPrint] = useState(false);
 
-  const iso = new Date(asOf + "T23:59:59Z").toISOString();
+  const iso = dayEndIso(asOf);
   const con = useMemo(() => consolidate(groupId, iso), [groupId, iso]);
   const summary = useMemo(() => consolidatedSummary(groupId, new Date(new Date().getUTCFullYear(), 0, 1).toISOString(), iso), [groupId, iso]);
   const group = consolidationGroups.find((g) => g.id === groupId);

@@ -9,10 +9,25 @@ import { PatientPicker } from "@/components/ui/PatientPicker";
 import { PatientLink } from "@/components/ui/PatientLink";
 import { useEmr } from "@/store/useEmr";
 import { shortDate, ageFromDob } from "@/lib/format";
+import type { NcdClient, Patient } from "@/data/types";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { describeEmrError } from "@/emr-live/client";
+import { newIdempotencyKey, useLiveNcdLoad, useLiveProgrammes } from "@/emr-live/programmes";
+import { useListValues } from "@/lib/listOptions";
 
 export default function Ncd() {
-  const { ncdClients, patientById, addNcdClient } = useEmr();
+  const { ncdClients: demoClients, patientById, addNcdClient } = useEmr();
+  const live = useIsLiveEmr();
+  useLiveNcdLoad(live);
+  const liveClients = useLiveProgrammes((st) => st.ncd);
+  const liveError = useLiveProgrammes((st) => st.error);
+  const ncdClients: (NcdClient & { patient?: Patient })[] = live ? liveClients : demoClients;
+  const patientOf = (c: { patientId: string; patient?: Patient }) => (live ? c.patient : patientById(c.patientId));
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [enrolKey, setEnrolKey] = useState(newIdempotencyKey);
   const [open, setOpen] = useState(false);
+  const conditions = useListValues("ncd-conditions"); // the hospital's NCD Conditions
   const [f, setF] = useState({ patientId: "", condition: "Essential hypertension", bp: "", fbs: 0, nextVisit: "", control: "Controlled" as "Controlled" | "Uncontrolled" });
 
   return (
@@ -20,8 +35,9 @@ export default function Ncd() {
       <PageHeader
         title="NCD Register"
         subtitle="Hypertension & diabetes chronic care"
-        actions={<Button onClick={() => setOpen(true)}><Plus size={15} /> Enrol Client</Button>}
+        actions={<Button onClick={() => { setEnrolKey(newIdempotencyKey()); setActionError(""); setOpen(true); }}><Plus size={15} /> Enrol Client</Button>}
       />
+      {live && liveError && <p role="alert" className="mb-4 rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{liveError}</p>}
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Enrolled" value={ncdClients.length} tone="brand" icon={<Activity size={18} />} />
         <StatCard label="Hypertension" value={ncdClients.filter((c) => c.condition.toLowerCase().includes("hyperten")).length} tone="mist" delay={0.05} />
@@ -36,7 +52,7 @@ export default function Ncd() {
               <Row><Cell className="text-mist-400">{t === "Register" ? "No NCD clients enrolled yet." : "No clients due for review in the next 7 days."}</Cell></Row>
             )}
             {(t === "Register" ? ncdClients : ncdClients.filter((c) => new Date(c.nextVisit) < new Date(Date.now() + 7 * 864e5))).map((c, i) => {
-              const p = patientById(c.patientId);
+              const p = patientOf(c);
               return (
                 <Row key={c.id} index={i}>
                   <Cell className="font-semibold"><PatientLink patient={p} /></Cell>
@@ -58,19 +74,25 @@ export default function Ncd() {
         onClose={() => setOpen(false)}
         title="Enrol NCD Client"
         footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button disabled={!f.patientId} onClick={() => {
-            addNcdClient({
-              patientId: f.patientId, condition: f.condition, bp: f.bp, fbs: f.fbs,
-              control: f.control,
-              nextVisit: f.nextVisit ? new Date(f.nextVisit).toISOString() : new Date(Date.now() + 28 * 864e5).toISOString(),
-            });
-            setOpen(false);
-            setF({ patientId: "", condition: "Essential hypertension", bp: "", fbs: 0, nextVisit: "", control: "Controlled" });
-          }}>Enrol</Button></>}
+          <Button disabled={!f.patientId || busy} onClick={async () => {
+            setBusy(true); setActionError("");
+            try {
+              if (live) await useLiveProgrammes.getState().enrol(f, enrolKey);
+              else addNcdClient({
+                patientId: f.patientId, condition: f.condition, bp: f.bp, fbs: f.fbs,
+                control: f.control,
+                nextVisit: f.nextVisit ? new Date(f.nextVisit).toISOString() : new Date(Date.now() + 28 * 864e5).toISOString(),
+              });
+              setOpen(false);
+              setF({ patientId: "", condition: "Essential hypertension", bp: "", fbs: 0, nextVisit: "", control: "Controlled" });
+            } catch (cause) { setActionError(describeEmrError(cause)); }
+            finally { setBusy(false); }
+          }}>{busy ? "Saving…" : "Enrol"}</Button></>}
       >
         <div className="space-y-4">
+          {live && actionError && <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError}</p>}
           <Field label="Patient"><PatientPicker value={f.patientId} onChange={(id) => setF({ ...f, patientId: id })} /></Field>
-          <Field label="Condition"><Select value={f.condition} onChange={(e) => setF({ ...f, condition: e.target.value })} options={["Essential hypertension", "Type 2 Diabetes Mellitus", "Hypertension + Diabetes", "Asthma", "Sickle Cell Disease"]} /></Field>
+          <Field label="Condition"><Select value={f.condition} onChange={(e) => setF({ ...f, condition: e.target.value })} options={conditions} /></Field>
           <Grid cols={3}>
             <Field label="BP"><Input value={f.bp} onChange={(e) => setF({ ...f, bp: e.target.value })} placeholder="120/80" /></Field>
             <Field label="FBS (mmol/L)"><Input type="number" step="0.1" value={f.fbs || ""} onChange={(e) => setF({ ...f, fbs: +e.target.value })} /></Field>

@@ -10,6 +10,10 @@ import { PatientLink } from "@/components/ui/PatientLink";
 import { useEmr } from "@/store/useEmr";
 import { shortDate } from "@/lib/format";
 import { differenceInCalendarDays } from "date-fns";
+import type { Patient } from "@/data/types";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { describeEmrError } from "@/emr-live/client";
+import { newIdempotencyKey, useLivePostnatal, useLivePostnatalLoad } from "@/emr-live/postnatal";
 
 const DANGER = ["Not feeding well", "Convulsions", "Fast breathing (>60/min)", "Severe chest indrawing", "Hypothermia (<35.5°)", "Fever (>37.5°)", "Jaundice", "Umbilical infection"];
 
@@ -23,7 +27,23 @@ const SCHEDULE = [
 const contactFor = (daysPP: number) => (daysPP <= 2 ? 1 : daysPP <= 5 ? 2 : daysPP <= 20 ? 3 : 4) as 1 | 2 | 3 | 4;
 
 export default function Postnatal() {
-  const { pncVisits, deliveries, patientById, addPncVisit } = useEmr();
+  const { pncVisits: demoVisits, deliveries: demoDeliveries, patientById, addPncVisit } = useEmr();
+  // A live hospital's postnatal care comes from its EMR (see src/emr-live/postnatal.ts).
+  const live = useIsLiveEmr();
+  useLivePostnatalLoad(live);
+  const liveVisits = useLivePostnatal((state) => state.visits);
+  const liveDue = useLivePostnatal((state) => state.due);
+  const liveDeliveriesFor = useLivePostnatal((state) => state.deliveriesFor);
+  const liveError = useLivePostnatal((state) => state.error);
+  const pncVisits: ((typeof demoVisits)[number] & { patient?: Patient })[] = live ? liveVisits : demoVisits;
+  const deliveries: { id: string; patientId: string; date: string; mode: string; babyStatus: string; motherStatus?: string; patient?: Patient }[] = live
+    ? liveDue.map((x) => ({ id: x.deliveryId, patientId: x.patientId, date: x.deliveredAt, mode: "", babyStatus: "", patient: x.patient }))
+    : demoDeliveries;
+  const patientOf = (row: { patientId: string; patient?: Patient }) => (live ? row.patient : patientById(row.patientId));
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [saveKey, setSaveKey] = useState(newIdempotencyKey);
   const [f, setF] = useState({
     patientId: "", deliveryId: "", date: "", timing: "48–72 hours", daysPP: 3, bp: "",
     uterus: "Well contracted", lochia: "Normal", breast: "Normal", breastfeeding: "Exclusive",
@@ -32,7 +52,7 @@ export default function Postnatal() {
   const [danger, setDanger] = useState<string[]>([]);
 
   // PNC due: deliveries with a live/alive mother in the last 45 days, next contact not yet done
-  const due = useMemo(() => {
+  const demoDue = useMemo(() => {
     const recent = deliveries.filter((d) => d.motherStatus !== "Died" && differenceInCalendarDays(new Date(), new Date(d.date)) <= 45);
     return recent.map((d) => {
       const daysPP = differenceInCalendarDays(new Date(), new Date(d.date));
@@ -43,14 +63,21 @@ export default function Postnatal() {
       return { d, daysPP, next, overdueDays, status: overdueDays > 3 ? "Overdue" : overdueDays >= -1 ? "Due" : "Upcoming" };
     }).filter(Boolean) as { d: (typeof deliveries)[number]; daysPP: number; next: (typeof SCHEDULE)[number]; overdueDays: number; status: string }[];
   }, [deliveries, pncVisits]);
+  // Live: the hospital works out which contact is next for each mother.
+  const due = live
+    ? liveDue.map((x) => ({ d: { id: x.deliveryId, patientId: x.patientId, date: x.deliveredAt, patient: x.patient }, daysPP: x.daysPP, next: SCHEDULE.find((s) => s.contact === x.nextContact)!, overdueDays: x.overdueDays, status: x.status }))
+    : demoDue;
 
   const overdue = due.filter((x) => x.status === "Overdue");
 
-  const patientDeliveries = deliveries.filter((d) => d.patientId === f.patientId);
+  const patientDeliveries = live
+    ? (liveDeliveriesFor[f.patientId] ?? []).map((d) => ({ ...d, patientId: f.patientId }))
+    : deliveries.filter((d) => d.patientId === f.patientId);
   const [tab, setTab] = useState("PNC Due");
 
   function startFrom(patientId: string, deliveryId: string) {
-    const d = deliveries.find((x) => x.id === deliveryId);
+    if (live) void useLivePostnatal.getState().loadDeliveries(patientId);
+    const d = live ? due.find((x) => x.d.id === deliveryId)?.d : deliveries.find((x) => x.id === deliveryId);
     const daysPP = d ? differenceInCalendarDays(new Date(), new Date(d.date)) : 3;
     setF((s) => ({ ...s, patientId, deliveryId, daysPP, date: new Date().toISOString().slice(0, 10) }));
     setTab("Record Visit");
@@ -61,6 +88,8 @@ export default function Postnatal() {
       <PageHeader title="Postnatal Care (PNC)" subtitle="WHO 4-contact schedule · mother & newborn assessment · danger-sign escalation" />
 
       <GuidelineBanner guidelineKey="pnc-2013" className="mb-5" />
+      {live && (actionError || liveError) && <p role="alert" className="mb-4 rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError || liveError}</p>}
+      {live && notice && <p role="status" className="mb-4 rounded-xl bg-brand-50 px-3 py-2 text-sm text-brand-800">{notice}</p>}
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="PNC visits" value={pncVisits.length} tone="brand" icon={<HeartPulse size={18} />} />
         <StatCard label="Contacts due" value={due.length} tone={due.length ? "amber" : "brand"} delay={0.05} icon={<CalendarClock size={18} />} />
@@ -74,7 +103,7 @@ export default function Postnatal() {
             <Table columns={["Mother", "Delivered", "Days PP", "Next contact", "Status", ""]}>
               {due.sort((a, b) => b.overdueDays - a.overdueDays).map((x, i) => (
                 <Row key={x.d.id} index={i} className={x.status === "Overdue" ? "bg-action-50/40" : undefined}>
-                  <Cell><PatientLink patient={patientById(x.d.patientId)} /></Cell>
+                  <Cell><PatientLink patient={patientOf(x.d)} /></Cell>
                   <Cell className="text-mist-400">{shortDate(x.d.date)}</Cell>
                   <Cell>{x.daysPP}</Cell>
                   <Cell className="font-medium">{x.next.label}</Cell>
@@ -91,11 +120,11 @@ export default function Postnatal() {
               <section>
                 <p className="mb-2 text-xs font-bold uppercase text-mist-400">Mother & delivery link</p>
                 <Grid cols={2}>
-                  <Field label="Patient"><PatientPicker value={f.patientId} onChange={(id) => setF({ ...f, patientId: id, deliveryId: "" })} filter={(p) => p.sex === "F"} /></Field>
+                  <Field label="Patient"><PatientPicker value={f.patientId} onChange={(id) => { setF({ ...f, patientId: id, deliveryId: "" }); if (live) void useLivePostnatal.getState().loadDeliveries(id); }} filter={(p) => p.sex === "F"} /></Field>
                   <Field label="Link to delivery">
                     <Select
                       value={f.deliveryId}
-                      onChange={(e) => { const d = deliveries.find((x) => x.id === e.target.value); setF({ ...f, deliveryId: e.target.value, daysPP: d ? differenceInCalendarDays(new Date(), new Date(d.date)) : f.daysPP }); }}
+                      onChange={(e) => { const d = patientDeliveries.find((x) => x.id === e.target.value); setF({ ...f, deliveryId: e.target.value, daysPP: d ? differenceInCalendarDays(new Date(), new Date(d.date)) : f.daysPP }); }}
                       options={[{ value: "", label: patientDeliveries.length ? "Select a delivery…" : "No facility delivery on record" }, ...patientDeliveries.map((d) => ({ value: d.id, label: `${shortDate(d.date)} · ${d.mode} · ${d.babyStatus}` }))]}
                     />
                   </Field>
@@ -137,8 +166,18 @@ export default function Postnatal() {
               <Field label="Notes"><Textarea value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} placeholder="Concerns, education provided, follow-up plan…" /></Field>
               <div className="flex justify-end">
                 <Button
-                  disabled={!f.patientId || !f.date}
-                  onClick={() => {
+                  disabled={!f.patientId || !f.date || busy}
+                  onClick={async () => {
+                    if (live) {
+                      setBusy(true); setActionError(""); setNotice("");
+                      try {
+                        const saved = await useLivePostnatal.getState().record(f, danger, saveKey);
+                        setNotice(saved.escalated ? "Visit saved. Danger signs sent her to the Consultation queue as Urgent." : "Visit saved.");
+                        setF({ ...f, patientId: "", deliveryId: "", date: "", bp: "", notes: "" }); setDanger([]); setSaveKey(newIdempotencyKey()); setTab("PNC Records");
+                      } catch (cause) { setActionError(describeEmrError(cause)); }
+                      finally { setBusy(false); }
+                      return;
+                    }
                     addPncVisit({
                       patientId: f.patientId, deliveryId: f.deliveryId || undefined, contact: contactFor(f.daysPP),
                       date: new Date(f.date).toISOString(), timing: SCHEDULE.find((s) => s.contact === contactFor(f.daysPP))?.label ?? f.timing,
@@ -150,7 +189,7 @@ export default function Postnatal() {
                     setTab("PNC Records");
                   }}
                 >
-                  Save visit
+                  {busy ? "Saving…" : "Save visit"}
                 </Button>
               </div>
             </div>
@@ -160,7 +199,7 @@ export default function Postnatal() {
             <Table columns={["Mother", "Date", "Contact", "Days PP", "BP", "Danger", "Breastfeeding", "FP"]}>
               {pncVisits.map((v, i) => (
                 <Row key={v.id} index={i} className={v.dangerSigns.length ? "bg-action-50/40" : undefined}>
-                  <Cell><PatientLink patient={patientById(v.patientId)} /></Cell>
+                  <Cell><PatientLink patient={patientOf(v)} /></Cell>
                   <Cell className="text-mist-400">{shortDate(v.date)}</Cell>
                   <Cell><Badge tone="mist">PNC {v.contact ?? contactFor(v.daysPP)}</Badge></Cell>
                   <Cell>{v.daysPP}</Cell>

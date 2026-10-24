@@ -12,7 +12,11 @@ import { useEmr, referralStatus, referralOverdue } from "@/store/useEmr";
 import { useHr } from "@/store/useHr";
 import { OUT_REFERRAL_REASONS } from "@/data/catalog";
 import { shortDate, timeAgo } from "@/lib/format";
-import type { Referral, ReferralFeedback } from "@/data/types";
+import type { Patient, Referral, ReferralFeedback } from "@/data/types";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { describeEmrError } from "@/emr-live/client";
+import { useLivePatientRecord, useLivePatientRecordLoad } from "@/emr-live/patientRecord";
+import { newIdempotencyKey, useLiveReferrals, useLiveReferralsLoad, type LiveReferral } from "@/emr-live/referrals";
 
 const OUTCOMES: ReferralFeedback["outcome"][] = [
   "Admitted & managed", "Treated & discharged", "Investigations done", "Patient did not attend", "Referred onward",
@@ -21,7 +25,27 @@ const INTERNAL_UNITS = ["NCD clinic", "Antenatal clinic", "Family planning", "Nu
 
 export default function Referrals() {
   const emr = useEmr();
-  const { referrals, patientById, labOrders, addReferral, acceptReferral, declineReferral, scheduleReferral, markReferralAttended, cancelReferral, recordReferralFeedback } = emr;
+  const { referrals: demoReferrals, patientById, labOrders, addReferral, acceptReferral, declineReferral, scheduleReferral, markReferralAttended, cancelReferral, recordReferralFeedback } = emr;
+  const live = useIsLiveEmr();
+  useLiveReferralsLoad(live);
+  const liveReferrals = useLiveReferrals((st) => st.referrals);
+  const liveError = useLiveReferrals((st) => st.error);
+  const referrals: (Referral & Partial<LiveReferral>)[] = live ? liveReferrals : demoReferrals;
+  const patientOf = (r: { patientId: string; patient?: Patient }) => (live ? r.patient : patientById(r.patientId));
+  const liveById = (id: string | null) => liveReferrals.find((r) => r.id === id);
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [sendKey, setSendKey] = useState(newIdempotencyKey);
+  async function run(work: () => Promise<void> | void, after: () => void = () => {}) {
+    setBusy(true); setActionError("");
+    try { await work(); after(); }
+    catch (cause) { setActionError(describeEmrError(cause)); }
+    finally { setBusy(false); }
+  }
+  const errorLine = live && actionError ? <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError}</p> : null;
+  /** In live mode each step goes to the hospital's EMR; otherwise the demo store. */
+  const step = (id: string, action: "accept" | "decline" | "schedule" | "attend" | "cancel" | "outcome", body: Record<string, unknown>, demo: () => void, after?: () => void) =>
+    void run(() => (live ? useLiveReferrals.getState().step(liveById(id)!, action, body) : demo()), after);
   const clinicians = useHr((state) => state.staff).filter((staff) => staff.status === "Active" && staff.role === "Medical Officer");
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -41,9 +65,12 @@ export default function Referrals() {
   const overdue = referrals.filter(referralOverdue);
   const loopRate = external.length ? Math.round((external.filter((referral) => referralStatus(referral.status) === "Completed").length / external.length) * 100) : 0;
 
+  // Live: the chosen patient's verified results come from their record in the hospital's EMR.
+  useLivePatientRecordLoad(live && createOpen, form.patientId);
+  const liveRecord = useLivePatientRecord((st) => (st.id === form.patientId ? st.record : null));
   const formPatientResults = useMemo(
-    () => (form.patientId ? labOrders.filter((order) => order.patientId === form.patientId && order.status === "Resulted") : []),
-    [form.patientId, labOrders],
+    () => (!form.patientId ? [] : (live ? liveRecord?.labs ?? [] : labOrders).filter((order) => order.patientId === form.patientId && order.status === "Resulted")),
+    [form.patientId, labOrders, live, liveRecord],
   );
 
   function nextActions(referral: Referral) {
@@ -51,20 +78,20 @@ export default function Referrals() {
     const buttons: { label: string; icon?: React.ReactNode; onClick: () => void; primary?: boolean }[] = [];
     if (referral.type !== "In") {
       if (status === "Requested") {
-        buttons.push({ label: "Accept", onClick: () => acceptReferral(referral.id), primary: true });
+        buttons.push({ label: "Accept", onClick: () => step(referral.id, "accept", {}, () => acceptReferral(referral.id)), primary: true });
         buttons.push({ label: "Decline", onClick: () => { setDeclineReason(""); setDeclineFor(referral.id); } });
       }
       if (status === "Accepted") {
         buttons.push({ label: "Schedule appointment", icon: <CalendarClock size={12} />, onClick: () => { setScheduleDate(""); setScheduleFor(referral.id); } });
       }
       if (status === "Scheduled") {
-        buttons.push({ label: "Mark attended", onClick: () => markReferralAttended(referral.id) });
+        buttons.push({ label: "Mark attended", onClick: () => step(referral.id, "attend", {}, () => markReferralAttended(referral.id)) });
       }
       if (["Accepted", "Scheduled", "Attended", "Requested"].includes(status)) {
         buttons.push({ label: "Record outcome", icon: <CornerDownLeft size={12} />, onClick: () => { setFeedbackFor(referral.id); setFeedback({ outcome: "Treated & discharged", note: "", by: referral.receivingClinician ?? "", backReferral: false }); }, primary: status === "Attended" });
       }
       if (["Requested", "Accepted", "Scheduled"].includes(status)) {
-        buttons.push({ label: "Cancel", icon: <Ban size={12} />, onClick: () => cancelReferral(referral.id) });
+        buttons.push({ label: "Cancel", icon: <Ban size={12} />, onClick: () => step(referral.id, "cancel", {}, () => cancelReferral(referral.id)) });
       }
     }
     return buttons;
@@ -74,7 +101,7 @@ export default function Referrals() {
     <Table columns={["Patient", internalView ? "Unit" : "Facility", "Reason for referral", "Urgency", "Requested", "Status", "Actions"]} caption={internalView ? "Internal referrals" : "External referrals"}>
       {list.length === 0 && <EmptyRow colSpan={7}>{internalView ? "No internal referrals." : "No external referrals."}</EmptyRow>}
       {list.map((referral, index) => {
-        const patient = patientById(referral.patientId);
+        const patient = patientOf(referral);
         const status = referralStatus(referral.status);
         return (
           <Row key={referral.id} index={index}>
@@ -99,7 +126,7 @@ export default function Referrals() {
             <Cell>
               <div className="flex flex-wrap justify-end gap-1">
                 {nextActions(referral).map((action) => (
-                  <button key={action.label} onClick={action.onClick} className={`${action.primary ? "btn-primary" : "btn-ghost"} px-2 py-1 text-xs`}>
+                  <button key={action.label} onClick={action.onClick} disabled={busy} className={`${action.primary ? "btn-primary" : "btn-ghost"} px-2 py-1 text-xs`}>
                     {action.icon}{action.label}
                   </button>
                 ))}
@@ -116,9 +143,11 @@ export default function Referrals() {
       <PageHeader
         title="Referrals"
         subtitle={`${openExternal.length} external referrals open · ${loopRate}% loop closed · ${overdue.length} overdue`}
-        actions={<Button onClick={() => { setForm({ patientId: "", type: "Out", diagnosis: "", facility: "", reason: OUT_REFERRAL_REASONS[6].reason, urgency: "Routine", clinicalSummary: "", attachedResultIds: [] }); setCreateOpen(true); }}><Plus size={15} /> New referral</Button>}
+        actions={<Button onClick={() => { setSendKey(newIdempotencyKey()); setActionError(""); setForm({ patientId: "", type: "Out", diagnosis: "", facility: "", reason: OUT_REFERRAL_REASONS[6].reason, urgency: "Routine", clinicalSummary: "", attachedResultIds: [] }); setCreateOpen(true); }}><Plus size={15} /> New referral</Button>}
       />
 
+      {live && liveError && <p role="alert" className="mb-4 rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{liveError}</p>}
+      {!createOpen && !declineFor && !scheduleFor && !feedbackFor && errorLine && <div className="mb-4">{errorLine}</div>}
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="All referrals" value={referrals.length} tone="brand" icon={<Share2 size={18} />} />
         <StatCard label="External open" value={openExternal.length} tone={openExternal.length ? "amber" : "mist"} delay={0.05} />
@@ -131,7 +160,7 @@ export default function Referrals() {
           <p className="font-semibold text-action-700">Referrals overdue a response</p>
           <ul className="mt-1 space-y-0.5 text-mist-600">
             {overdue.slice(0, 6).map((referral) => {
-              const patient = patientById(referral.patientId);
+              const patient = patientOf(referral);
               return <li key={referral.id}>{patient ? `${patient.firstName} ${patient.lastName}` : "—"} → {referral.facility} · {referral.urgency} · sent {shortDate(referral.date)}</li>;
             })}
           </ul>
@@ -155,7 +184,7 @@ export default function Referrals() {
               {inbound.length === 0 && <EmptyRow colSpan={5}>No inbound referrals.</EmptyRow>}
               {inbound.map((referral, index) => (
                 <Row key={referral.id} index={index}>
-                  <Cell><PatientLink patient={patientById(referral.patientId)} /></Cell>
+                  <Cell><PatientLink patient={patientOf(referral)} /></Cell>
                   <Cell>{referral.facility}</Cell>
                   <Cell className="text-mist-500">{referral.diagnosis} · {referral.reason}</Cell>
                   <Cell className="text-mist-400">{shortDate(referral.date)}</Cell>
@@ -185,9 +214,8 @@ export default function Referrals() {
         wide
         footer={<><Button variant="ghost" onClick={() => setCreateOpen(false)}>Cancel</Button>
           <Button
-            disabled={!form.patientId || !form.facility.trim() || !form.diagnosis.trim()}
-            onClick={() => {
-              addReferral({
+            disabled={!form.patientId || !form.facility.trim() || !form.diagnosis.trim() || busy}
+            onClick={() => void run(() => live ? useLiveReferrals.getState().send(form, sendKey) : addReferral({
                 patientId: form.patientId,
                 type: form.type,
                 diagnosis: form.diagnosis.trim(),
@@ -196,14 +224,13 @@ export default function Referrals() {
                 urgency: form.urgency,
                 clinicalSummary: form.clinicalSummary.trim() || undefined,
                 attachedResultIds: form.attachedResultIds.length ? form.attachedResultIds : undefined,
-              });
-              setCreateOpen(false);
-            }}
+              }), () => setCreateOpen(false))}
           >
-            Send referral
+            {busy ? "Sending…" : "Send referral"}
           </Button></>}
       >
         <div className="space-y-4">
+          {errorLine}
           <Field label="Patient"><PatientPicker value={form.patientId} onChange={(id) => setForm({ ...form, patientId: id, attachedResultIds: [] })} /></Field>
           <Grid cols={3}>
             <Field label="Referral type">
@@ -256,8 +283,9 @@ export default function Referrals() {
         onClose={() => setDeclineFor(null)}
         title="Decline referral"
         footer={<><Button variant="ghost" onClick={() => setDeclineFor(null)}>Cancel</Button>
-          <Button variant="action" disabled={!declineReason.trim()} onClick={() => { if (declineFor) declineReferral(declineFor, declineReason.trim()); setDeclineFor(null); }}>Decline</Button></>}
+          <Button variant="action" disabled={!declineReason.trim() || busy} onClick={() => { if (declineFor) step(declineFor, "decline", { reason: declineReason.trim() }, () => declineReferral(declineFor, declineReason.trim()), () => setDeclineFor(null)); }}>{busy ? "Saving…" : "Decline"}</Button></>}
       >
+        {errorLine}
         <Field label="Reason for declining"><Textarea value={declineReason} onChange={(event) => setDeclineReason(event.target.value)} placeholder="e.g. Not the appropriate service, missing information, capacity" /></Field>
       </Modal>
 
@@ -267,8 +295,9 @@ export default function Referrals() {
         onClose={() => setScheduleFor(null)}
         title="Schedule referral appointment"
         footer={<><Button variant="ghost" onClick={() => setScheduleFor(null)}>Cancel</Button>
-          <Button disabled={!scheduleDate} onClick={() => { if (scheduleFor) scheduleReferral(scheduleFor, new Date(scheduleDate).toISOString()); setScheduleFor(null); }}>Schedule</Button></>}
+          <Button disabled={!scheduleDate || busy} onClick={() => { if (scheduleFor) step(scheduleFor, "schedule", { appointmentDate: scheduleDate }, () => scheduleReferral(scheduleFor, new Date(scheduleDate).toISOString()), () => setScheduleFor(null)); }}>{busy ? "Saving…" : "Schedule"}</Button></>}
       >
+        {errorLine}
         <Field label="Appointment date"><Input type="date" value={scheduleDate} onChange={(event) => setScheduleDate(event.target.value)} /></Field>
       </Modal>
 
@@ -278,15 +307,16 @@ export default function Referrals() {
         onClose={() => setFeedbackFor(null)}
         title="Record referral outcome"
         footer={<><Button variant="ghost" onClick={() => setFeedbackFor(null)}>Cancel</Button>
-          <Button disabled={!feedback.by.trim() || !feedback.note.trim()} onClick={() => { if (feedbackFor) recordReferralFeedback(feedbackFor, feedback); setFeedbackFor(null); }}>
+          <Button disabled={!feedback.by.trim() || !feedback.note.trim() || busy} onClick={() => { if (feedbackFor) step(feedbackFor, "outcome", { outcome: feedback.outcome, note: feedback.note.trim(), by: feedback.by.trim(), backReferral: feedback.backReferral }, () => recordReferralFeedback(feedbackFor, feedback), () => setFeedbackFor(null)); }}>
             <CheckCircle2 size={14} /> Save &amp; close the loop
           </Button></>}
       >
         {(() => {
           const referral = feedbackFor ? referrals.find((entry) => entry.id === feedbackFor) : undefined;
-          const patient = referral ? patientById(referral.patientId) : undefined;
+          const patient = referral ? patientOf(referral) : undefined;
           return (
             <div className="space-y-4">
+              {errorLine}
               {referral && (
                 <div className="rounded-xl bg-mist-50 px-3 py-2 text-sm text-mist-600">
                   <b>{patient ? `${patient.firstName} ${patient.lastName}` : "—"}</b> → {referral.facility} · {referral.diagnosis} · sent {shortDate(referral.date)}

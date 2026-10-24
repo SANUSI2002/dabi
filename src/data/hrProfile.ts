@@ -51,7 +51,7 @@ export type EmployeeDocument = {
   rejectReason?: string;
 };
 
-export type PolicyCategory = "Conduct" | "Safety & Clinical" | "Data & Security" | "IT & Assets" | "Leave & Attendance" | "Other";
+export type PolicyCategory = "Conduct" | "Safety & Clinical" | "Data & Security" | "IT & Assets" | "Leave & Attendance" | "Other" | (string & {}) /* the hospital's own (Settings → Master Data) */;
 export type Policy = {
   id: string;
   category: PolicyCategory;

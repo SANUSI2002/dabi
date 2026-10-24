@@ -32,7 +32,7 @@ describe("a live hospital's navigation", () => {
   });
 
   it("opens a module without live records on a plain notice, never sample data", () => {
-    render(<MemoryRouter initialEntries={["/hr/employees"]}><EntitlementBoundary><p>Sample employees</p></EntitlementBoundary></MemoryRouter>);
+    render(<MemoryRouter initialEntries={["/equipment-scada"]}><EntitlementBoundary><p>Sample employees</p></EntitlementBoundary></MemoryRouter>);
     expect(screen.getByText("Not connected yet")).toBeTruthy();
     expect(screen.queryByText("Sample employees")).toBeNull();
   });

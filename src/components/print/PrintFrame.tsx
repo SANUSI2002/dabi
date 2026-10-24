@@ -4,6 +4,7 @@ import { X, Printer } from "lucide-react";
 import { ShieldPlus } from "lucide-react";
 import { useIdentity } from "@/store/useIdentity";
 import { useTenant } from "@/store/useTenant";
+import { useIsLiveEmr, useLiveEmr } from "@/emr-live/session";
 import { dateTime } from "@/lib/format";
 
 export function PrintDoc({
@@ -17,8 +18,13 @@ export function PrintDoc({
   docTitle: string;
   children: ReactNode;
 }) {
-  const printedBy = useIdentity((s) => s.user.name);
+  const demoPrintedBy = useIdentity((s) => s.user.name);
   const tenant = useTenant((s) => s.tenant);
+  // A live hospital's documents carry its own name and the person actually signed in, never the demo facility.
+  const live = useIsLiveEmr();
+  const liveHospital = useLiveEmr((s) => s.access?.organizationName);
+  const liveUser = useLiveEmr((s) => s.user?.name);
+  const printedBy = live ? liveUser ?? "Signed-in user" : demoPrintedBy;
   return (
     <AnimatePresence>
       {open && (
@@ -51,10 +57,12 @@ export function PrintDoc({
                   <ShieldPlus size={22} />
                 </div>
                 <div>
-                  <p className="font-display text-xl font-extrabold text-mist-900">{tenant.name}</p>
-                  <p className="text-xs text-mist-500">
-                    {tenant.facilityCode} · {tenant.state}, {tenant.country} · {tenant.tenantId}
-                  </p>
+                  <p className="font-display text-xl font-extrabold text-mist-900">{live ? liveHospital : tenant.name}</p>
+                  {!live && (
+                    <p className="text-xs text-mist-500">
+                      {tenant.facilityCode} · {tenant.state}, {tenant.country} · {tenant.tenantId}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="text-right text-[11px] text-mist-400">

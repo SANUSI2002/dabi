@@ -8,11 +8,14 @@ import { useRecruitment } from "@/store/useRecruitment";
 import { useHr } from "@/store/useHr";
 import { useMasterData } from "@/platform/useMasterData";
 import { timeAgo, initials, shortDate, dateTime } from "@/lib/format";
-import { SKILL_ZONES } from "@/data/recruitment";
 import type { TalentPoolEntry } from "@/data/recruitment";
+import { useListValues } from "@/lib/listOptions";
 
 export default function TalentPool() {
   const { talentPool, requisitions, talentEntryById, addTalentNote, addTalentDocument, takeToRecruitment } = useRecruitment();
+  // the Talent Pool Skill Zones list, plus any zone an entry still carries
+  const listedZones = useListValues("talent-skill-zones");
+  const zones = [...new Set([...listedZones, ...talentPool.map((t) => t.skillZone)])];
   const staff = useHr((s) => s.staff);
   const statuses = useMasterData((s) => s.items("recruitment-statuses")).filter((x) => x.active);
   const docTypes = useMasterData((s) => s.items("document-types")).filter((x) => x.active);
@@ -41,7 +44,7 @@ export default function TalentPool() {
       </div>
 
       <div className="space-y-4">
-        {SKILL_ZONES.map((zone) => {
+        {zones.map((zone) => {
           const entries = talentPool.filter((t) => t.skillZone === zone);
           if (!entries.length) return null;
           return (

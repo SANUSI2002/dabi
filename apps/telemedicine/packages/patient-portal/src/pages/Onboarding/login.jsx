@@ -1,4 +1,5 @@
 import CareStory from "../../../../shared-portal/CareStory";
+import SocialSignInStatus from "../../../../shared-portal/SocialSignInStatus";
 import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import {
@@ -35,7 +36,7 @@ export default function SabiHealthLogin({ responder = false, onSignedIn } = {}) 
   const [signupOffer, setSignupOffer] = useState(null);
   const [offerAgreed, setOfferAgreed] = useState(false);
   const providerName = (p) => (p === "apple" || p === "APPLE" ? "Apple" : "Google");
-  const missingProviders = social.checked ? ["google", "apple"].filter((p) => !social.configured[p]) : [];
+  const missingProviders = social.checked && !social.error ? ["google", "apple"].filter((p) => !social.configured[p]) : [];
 
   const signedIn = (user) => { if (responder) onSignedIn?.(user); else navigate("/dashboard", { replace: true }); };
   const handleSocialResult = (result) => {
@@ -186,6 +187,7 @@ export default function SabiHealthLogin({ responder = false, onSignedIn } = {}) 
             <div className="flex-1 h-px bg-gray-200" />
           </div>
 
+          <SocialSignInStatus social={social} />
           <div className="grid grid-cols-2 gap-2.5">
             {["google", "apple"].map((provider) => {
               const ready = social.available[provider];
@@ -195,7 +197,7 @@ export default function SabiHealthLogin({ responder = false, onSignedIn } = {}) 
                   type="button"
                   disabled={!ready || busy || !!socialBusy}
                   onClick={() => handleSocial(provider)}
-                  title={ready ? undefined : social.configured[provider] ? "Loading…" : "Available when Sabi Identity OIDC is configured"}
+                  title={ready ? undefined : social.configured[provider] ? "Loading…" : `${providerName(provider)} sign-in is coming soon`}
                   aria-describedby={missingProviders.length ? "patient-login-social-note" : undefined}
                   className={`flex items-center justify-center gap-2 min-h-[44px] rounded-xl border border-gray-200 bg-white transition-colors ${ready ? "hover:bg-gray-50" : "opacity-60 cursor-not-allowed"} disabled:cursor-not-allowed`}
                 >

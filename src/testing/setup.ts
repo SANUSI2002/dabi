@@ -1,6 +1,10 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup } from "@testing-library/react";
+import { cleanup, configure } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
+
+// Multi-step screen tests wait for the next state with findBy/waitFor. The default 1 s is too short when
+// the whole suite runs in parallel on a busy machine; a longer ceiling costs nothing when tests are fast.
+configure({ asyncUtilTimeout: 5000 });
 
 Object.defineProperty(window, "matchMedia", {
   writable: true,

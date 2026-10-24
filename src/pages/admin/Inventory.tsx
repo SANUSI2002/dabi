@@ -6,15 +6,24 @@ import { Tabs } from "@/components/ui/Tabs";
 import { Table, Row, Cell, EmptyRow } from "@/components/ui/Table";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input, Select, Grid } from "@/components/ui/form";
-import { useInventoryAccounting } from "@/store/accounting/useInventoryAccounting";
-import { useInventoryLocations } from "@/store/useInventoryLocations";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { useLiveEquipment, useLiveEquipmentLoad } from "@/emr-live/equipment";
+import type { AssetCategory, AssetStatus } from "@/data/assets";
+import type { InventoryItem } from "@/data/accounting/inventory";
+import { useStoreLocationsSource, useStoresSource } from "@/emr-live/stores";
 import { shortDate, dateTime, naira } from "@/lib/format";
 import { QuarantineModal, QuarantinePanel } from "./inventory/Quarantine";
 import { RequisitionsTab } from "./inventory/RequisitionsTab";
 import { TransfersTab } from "./inventory/TransfersTab";
 import { StockCountTab } from "./inventory/StockCountTab";
+import { useListValues } from "@/lib/listOptions";
 
 type Asset = { id: string; name: string; category: string; serial: string; location: string; cost: number; status: "Functional" | "Faulty" | "Under Repair" | "Disposed"; acquired: string };
+
+// Live hospitals keep one asset register (Equipment & Maintenance); this tab shows it in its own terms.
+const FROM_REGISTER: Record<AssetStatus, Asset["status"]> = { "In service": "Functional", "Under repair": "Under Repair", "Out of service": "Faulty", Retired: "Disposed" };
+const TO_REGISTER: Record<Asset["status"], AssetStatus> = { Functional: "In service", "Under Repair": "Under repair", Faulty: "Out of service", Disposed: "Retired" };
+const REGISTER_CATEGORY: Record<string, AssetCategory> = { Equipment: "General", "Cold Chain": "Cold chain", Furniture: "General", Vehicle: "General", IT: "IT", Other: "General" };
 
 type StockStatus = "OK" | "Reorder" | "Low Stock" | "Out of Stock";
 function statusFor(currentQty: number, minLevel: number | undefined, reorderLevel: number): { label: StockStatus; tone: "brand" | "action" | "amber" | "mist" } {
@@ -36,9 +45,46 @@ export default function Inventory() {
     { id: "as2", name: "Vaccine Refrigerator", category: "Cold Chain", serial: "VR-8890", location: "EPI Room", cost: 380000, status: "Functional", acquired: new Date(Date.now() - 400 * 864e5).toISOString() },
     { id: "as3", name: "Delivery Bed", category: "Furniture", serial: "DB-1120", location: "Labour Room", cost: 120000, status: "Under Repair", acquired: new Date(Date.now() - 700 * 864e5).toISOString() },
   ]);
-  const inv = useInventoryAccounting();
-  const locations = useInventoryLocations();
+  const inv = useStoresSource();
+  const locations = useStoreLocationsSource();
   const activeLocations = locations.activeLocations();
+  const live = useIsLiveEmr();
+  useLiveEquipmentLoad(live);
+  const register = useLiveEquipment((s) => s.assets);
+  const shownAssets: Asset[] = live
+    ? register.map((a) => ({ id: a.id, name: a.name, category: a.category, serial: a.serialNumber ?? a.tag, location: a.location, cost: a.cost ?? 0, status: FROM_REGISTER[a.status], acquired: a.commissionedOn }))
+    : assets;
+  const storesError = live && "error" in inv ? (inv as { error: string }).error : "";
+  const [assetError, setAssetError] = useState("");
+  // ---- live: new items and receiving stock (the demo receives through accounting goods receipts) ----
+  const [itemOpen, setItemOpen] = useState(false);
+  const itemCategories = useListValues("store-item-categories"); // the hospital's Store Item Categories
+  const [itemForm, setItemForm] = useState({ sku: "", name: "", category: "Consumables" as InventoryItem["category"], unit: "", reorderLevel: "", minLevel: "" });
+  const [receiveOpen, setReceiveOpen] = useState(false);
+  const [receiveForm, setReceiveForm] = useState({ itemId: "", locationId: "", quantity: "", unitCost: "", batchNumber: "", expiryDate: "", reference: "" });
+  const [formError, setFormError] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function saveItem() {
+    if (!("addItem" in inv) || !live) return;
+    setBusy(true); setFormError("");
+    const res = await (inv as { addItem: (i: object) => Promise<{ ok: boolean; error?: string }> }).addItem({
+      sku: itemForm.sku.trim(), name: itemForm.name.trim(), category: itemForm.category, unit: itemForm.unit.trim(), reorderLevel: Number(itemForm.reorderLevel) || 0,
+      ...(itemForm.minLevel !== "" ? { minLevel: Number(itemForm.minLevel) } : {}),
+    });
+    setBusy(false);
+    if (!res.ok) { setFormError(res.error ?? "The item could not be added."); return; }
+    setItemOpen(false);
+  }
+  async function saveReceipt() {
+    setBusy(true); setFormError("");
+    const res = await inv.receiveStock({
+      itemId: receiveForm.itemId, qty: Number(receiveForm.quantity), unitCost: Number(receiveForm.unitCost), date: new Date().toISOString(), locationId: receiveForm.locationId,
+      batchNumber: receiveForm.batchNumber.trim() || undefined, expiryDate: receiveForm.expiryDate || undefined, reference: receiveForm.reference.trim() || undefined,
+    });
+    setBusy(false);
+    if (!res.ok) { setFormError(res.error ?? "The stock could not be received."); return; }
+    setReceiveOpen(false);
+  }
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({ name: "", category: "Equipment", serial: "", location: "", cost: 0, status: "Functional" as const });
 
@@ -89,7 +135,7 @@ export default function Inventory() {
     setActionError("");
   }
 
-  function submitAction() {
+  async function submitAction() {
     if (!actionItem) return;
     setActionError("");
     const item = inv.itemById(actionItem.itemId);
@@ -97,12 +143,13 @@ export default function Inventory() {
     const today = new Date().toISOString();
     let result: { ok: boolean; error?: string };
     if (actionItem.mode === "issue") {
-      result = inv.issueStock({ itemId: item.id, qty: Number(actionForm.quantity), date: today, locationId: actionForm.locationId, department: actionForm.department, purpose: actionForm.purpose });
+      result = await inv.issueStock({ itemId: item.id, qty: Number(actionForm.quantity), date: today, locationId: actionForm.locationId, department: actionForm.department, purpose: actionForm.purpose });
     } else if (actionItem.mode === "adjust") {
-      const delta = Number(actionForm.quantity) - item.currentQty;
-      result = inv.adjustStock({ itemId: item.id, qtyDelta: delta, date: today, reason: actionForm.reason, locationId: actionForm.locationId });
+      // Live stock is held per location: the new quantity is for the chosen location.
+      const delta = Number(actionForm.quantity) - (live ? inv.balanceByLocation(item.id, actionForm.locationId) : item.currentQty);
+      result = await inv.adjustStock({ itemId: item.id, qtyDelta: delta, date: today, reason: actionForm.reason, locationId: actionForm.locationId });
     } else {
-      result = inv.writeOff({ itemId: item.id, qty: Number(actionForm.quantity), date: today, reason: actionForm.reason, locationId: actionForm.locationId });
+      result = await inv.writeOff({ itemId: item.id, qty: Number(actionForm.quantity), date: today, reason: actionForm.reason, locationId: actionForm.locationId });
     }
     if (!result.ok) { setActionError(result.error ?? "This action could not be completed."); return; }
     setActionItem(null);
@@ -113,8 +160,15 @@ export default function Inventory() {
       <PageHeader
         title="Inventory"
         subtitle="Assets, general supplies & drug stock"
-        actions={tab === "Assets" ? <Button onClick={() => setOpen(true)}><Plus size={15} /> Add Asset</Button> : undefined}
+        actions={tab === "Assets" ? <Button onClick={() => { setAssetError(""); setOpen(true); }}><Plus size={15} /> Add Asset</Button>
+          : live && (tab === "Stock List" || tab === "Dashboard") ? (
+            <>
+              <Button variant="ghost" onClick={() => { setFormError(""); setItemForm({ sku: "", name: "", category: "Consumables", unit: "", reorderLevel: "", minLevel: "" }); setItemOpen(true); }}><Plus size={15} /> New item</Button>
+              <Button onClick={() => { setFormError(""); setReceiveForm({ itemId: items[0]?.id ?? "", locationId: locations.mainLocationId, quantity: "", unitCost: "", batchNumber: "", expiryDate: "", reference: "" }); setReceiveOpen(true); }}><Boxes size={15} /> Receive stock</Button>
+            </>
+          ) : undefined}
       />
+      {storesError && <p role="alert" className="mb-4 rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{storesError}</p>}
 
       <Tabs tabs={TABS} active={tab} onChange={(t) => { setTab(t); setSearchParams({}); }} label="Inventory sections">
         {(activeTab) =>
@@ -214,7 +268,8 @@ export default function Inventory() {
             </div>
           ) : (
             <Table columns={["Name", "Category", "Serial", "Location", "Acquired", "Cost", "Status"]}>
-              {assets.map((a, i) => (
+              {shownAssets.length === 0 && <EmptyRow colSpan={7}>No assets registered yet.</EmptyRow>}
+              {shownAssets.map((a, i) => (
                 <Row key={a.id} index={i}>
                   <Cell className="font-semibold">{a.name}</Cell>
                   <Cell>{a.category}</Cell>
@@ -237,9 +292,25 @@ export default function Inventory() {
         onClose={() => setOpen(false)}
         title="Add Asset"
         footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button disabled={!f.name} onClick={() => { setAssets((a) => [{ ...f, id: Math.random().toString(), acquired: new Date().toISOString() }, ...a]); setOpen(false); }}>Add Asset</Button></>}
+          <Button disabled={!f.name || (live && !f.serial.trim())} onClick={async () => {
+            if (!live) { setAssets((a) => [{ ...f, id: Math.random().toString(), acquired: new Date().toISOString() }, ...a]); setOpen(false); return; }
+            // Live: added to the hospital's equipment register (the serial number is its tag there).
+            setAssetError("");
+            const today = new Date().toISOString();
+            try {
+              await useLiveEquipment.getState().addAsset({
+                tag: f.serial.trim().toUpperCase(), name: f.name.trim(), category: REGISTER_CATEGORY[f.category] ?? "General", location: f.location, commissionedOn: today, lastServicedOn: today,
+                serviceIntervalDays: 180, serialNumber: f.serial.trim(), cost: f.cost || undefined, status: TO_REGISTER[f.status],
+              });
+              setOpen(false);
+            } catch (cause) {
+              setAssetError(cause instanceof Error ? cause.message : "The asset could not be added.");
+            }
+          }}>Add Asset</Button></>}
       >
         <div className="space-y-4">
+          {assetError && <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{assetError}</p>}
+          {live && <p className="rounded-xl bg-mist-50 px-3 py-2 text-xs text-mist-500">Added to the equipment register (Equipment &amp; Maintenance), where its servicing is scheduled.</p>}
           <Grid cols={2}>
             <Field label="Name"><Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
             <Field label="Category"><Select value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })} options={["Equipment", "Cold Chain", "Furniture", "Vehicle", "IT", "Other"]} /></Field>
@@ -257,13 +328,16 @@ export default function Inventory() {
         open={Boolean(actionItem)}
         onClose={() => setActionItem(null)}
         title={actionItem ? `${actionItem.mode === "issue" ? "Issue" : actionItem.mode === "adjust" ? "Adjust" : "Write off"} — ${inv.itemById(actionItem.itemId)?.name ?? ""}` : ""}
-        footer={<><Button variant="ghost" onClick={() => setActionItem(null)}>Cancel</Button><Button variant={actionItem?.mode === "writeoff" ? "action" : "primary"} onClick={submitAction}>Confirm</Button></>}
+        footer={<><Button variant="ghost" onClick={() => setActionItem(null)}>Cancel</Button><Button variant={actionItem?.mode === "writeoff" ? "action" : "primary"} onClick={() => void submitAction()}>Confirm</Button></>}
       >
         {actionItem && (
           <div className="space-y-4">
             {actionError && <p className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError}</p>}
-            <p className="text-sm text-mist-500">Current on hand: {inv.itemById(actionItem.itemId)?.currentQty} {inv.itemById(actionItem.itemId)?.unit}</p>
-            <Field label={actionItem.mode === "adjust" ? "New quantity *" : "Quantity *"}>
+            <p className="text-sm text-mist-500">
+              Current on hand: {inv.itemById(actionItem.itemId)?.currentQty} {inv.itemById(actionItem.itemId)?.unit}
+              {live && <> · at {locations.locationName(actionForm.locationId)}: {inv.balanceByLocation(actionItem.itemId, actionForm.locationId)}</>}
+            </p>
+            <Field label={actionItem.mode === "adjust" ? (live ? "New quantity at this location *" : "New quantity *") : "Quantity *"}>
               <Input type="number" min={0} value={actionForm.quantity} onChange={(e) => setActionForm({ ...actionForm, quantity: e.target.value })} />
             </Field>
             <Field label="Location">
@@ -276,6 +350,51 @@ export default function Inventory() {
             )}
           </div>
         )}
+      </Modal>
+
+      {/* live: a new store item */}
+      <Modal
+        open={itemOpen}
+        onClose={() => setItemOpen(false)}
+        title="New store item"
+        footer={<><Button variant="ghost" onClick={() => setItemOpen(false)}>Cancel</Button><Button disabled={busy || !itemForm.sku.trim() || !itemForm.name.trim() || !itemForm.unit.trim()} onClick={() => void saveItem()}>{busy ? "Saving…" : "Add item"}</Button></>}
+      >
+        <div className="space-y-4">
+          {formError && <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{formError}</p>}
+          <Grid cols={2}>
+            <Field label="SKU *"><Input value={itemForm.sku} onChange={(e) => setItemForm({ ...itemForm, sku: e.target.value.toUpperCase() })} placeholder="e.g. GLV-M" /></Field>
+            <Field label="Name *"><Input value={itemForm.name} onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })} /></Field>
+            <Field label="Category"><Select value={itemForm.category} onChange={(e) => setItemForm({ ...itemForm, category: e.target.value as InventoryItem["category"] })} options={itemCategories} /></Field>
+            <Field label="Unit *"><Input value={itemForm.unit} onChange={(e) => setItemForm({ ...itemForm, unit: e.target.value })} placeholder="e.g. box, pack, roll" /></Field>
+            <Field label="Reorder level"><Input type="number" min={0} value={itemForm.reorderLevel} onChange={(e) => setItemForm({ ...itemForm, reorderLevel: e.target.value })} /></Field>
+            <Field label="Minimum level"><Input type="number" min={0} value={itemForm.minLevel} onChange={(e) => setItemForm({ ...itemForm, minLevel: e.target.value })} /></Field>
+          </Grid>
+        </div>
+      </Modal>
+
+      {/* live: receiving stock */}
+      <Modal
+        open={receiveOpen}
+        onClose={() => setReceiveOpen(false)}
+        title="Receive stock"
+        footer={<><Button variant="ghost" onClick={() => setReceiveOpen(false)}>Cancel</Button><Button disabled={busy || !receiveForm.itemId || !(Number(receiveForm.quantity) > 0) || receiveForm.unitCost === ""} onClick={() => void saveReceipt()}>{busy ? "Saving…" : "Receive"}</Button></>}
+      >
+        <div className="space-y-4">
+          {formError && <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{formError}</p>}
+          {items.length === 0 ? (
+            <p className="text-sm text-mist-500">Add an item first, then receive stock against it.</p>
+          ) : (
+            <Grid cols={2}>
+              <Field label="Item *"><Select value={receiveForm.itemId} onChange={(e) => setReceiveForm({ ...receiveForm, itemId: e.target.value })} options={items.map((i) => ({ value: i.id, label: `${i.name} (${i.unit})` }))} /></Field>
+              <Field label="Into *"><Select value={receiveForm.locationId} onChange={(e) => setReceiveForm({ ...receiveForm, locationId: e.target.value })} options={activeLocations.map((l) => ({ value: l.id, label: l.name }))} /></Field>
+              <Field label="Quantity *"><Input type="number" min={1} value={receiveForm.quantity} onChange={(e) => setReceiveForm({ ...receiveForm, quantity: e.target.value })} /></Field>
+              <Field label="Unit cost (₦) *"><Input type="number" min={0} step="0.01" value={receiveForm.unitCost} onChange={(e) => setReceiveForm({ ...receiveForm, unitCost: e.target.value })} /></Field>
+              <Field label="Batch / lot number"><Input value={receiveForm.batchNumber} onChange={(e) => setReceiveForm({ ...receiveForm, batchNumber: e.target.value })} /></Field>
+              <Field label="Expiry date"><Input type="date" value={receiveForm.expiryDate} onChange={(e) => setReceiveForm({ ...receiveForm, expiryDate: e.target.value })} /></Field>
+              <Field label="Reference"><Input value={receiveForm.reference} onChange={(e) => setReceiveForm({ ...receiveForm, reference: e.target.value })} placeholder="e.g. delivery note no." /></Field>
+            </Grid>
+          )}
+        </div>
       </Modal>
     </div>
   );

@@ -39,6 +39,13 @@ export type TaxReturn = {
   journalEntryId?: string;
 };
 
+/** The ledger lines behind a return — to upload with it on the authority's portal. `tax` adds up to the output tax. */
+export type TaxScheduleRow = { date: string; entryNumber: string; source: string; reference?: string; description?: string; counterparty?: string; counterpartyTin?: string; tax: number; reclaimed: number };
+export type TaxReturnSchedule = {
+  reference: string; returnType: ReturnType; authority: TaxReturn["authority"]; periodStart: string; periodEnd: string;
+  outputTax: number; inputTax: number; netPayable: number; rows: TaxScheduleRow[]; totals: { tax: number; reclaimed: number };
+};
+
 export const seedTaxRates: TaxRate[] = [
   { id: "tax-vat-standard", name: "VAT 7.5%", kind: "VAT", rate: 7.5, accountNumber: 2200, isCompound: false, isActive: true, description: "Standard Nigerian VAT" },
   { id: "tax-vat-exempt", name: "VAT Exempt", kind: "Exempt", rate: 0, accountNumber: 2200, isCompound: false, isActive: true, description: "Medical services exempt from VAT" },

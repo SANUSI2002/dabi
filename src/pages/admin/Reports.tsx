@@ -13,6 +13,9 @@ import { REPORTS } from "./reports/config";
 import { ReportView } from "./reports/ReportView";
 import type { EmrSnapshot } from "./reports/types";
 import { DATE_PRESETS, resolveRange, scopeSnapshot, type DatePreset } from "./reports/dateScope";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { useLiveReports } from "@/emr-live/reports";
+import { useLiveReportSnapshot, useLiveReportSnapshotLoad } from "@/emr-live/reportSnapshot";
 
 export default function Reports() {
   const emr = useEmr();
@@ -20,7 +23,7 @@ export default function Reports() {
   const maintenanceJobs = useAssets((s) => s.jobs);
   const wards = useWards((s) => s.wards);
   const beds = useWards((s) => s.beds);
-  const snap: EmrSnapshot = useMemo(() => ({
+  const demoSnap: EmrSnapshot = useMemo(() => ({
     patients: emr.patients, queue: emr.queue, encounters: emr.encounters, labOrders: emr.labOrders,
     admissions: emr.admissions, appointments: emr.appointments, referrals: emr.referrals, transfers: emr.transfers,
     ancRecords: emr.ancRecords, fpClients: emr.fpClients, childVisits: emr.childVisits,
@@ -35,6 +38,12 @@ export default function Reports() {
   const [customFrom, setCustomFrom] = useState(isoDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1)));
   const [customTo, setCustomTo] = useState(isoDate(new Date()));
   const range = useMemo(() => resolveRange(preset, customFrom, customTo), [preset, customFrom, customTo]);
+  // A live hospital's reports are computed from its own EMR for the chosen period (see src/emr-live/reportSnapshot.ts).
+  const live = useIsLiveEmr();
+  useLiveReportSnapshotLoad(live, isoDate(range.from), isoDate(range.to));
+  const liveSnap = useLiveReportSnapshot();
+  const liveError = useLiveReports((s) => s.error);
+  const snap = live ? liveSnap : demoSnap;
   const scopedSnap = useMemo(() => scopeSnapshot(snap, range), [snap, range]);
   const family = useMemo(() => REPORTS.find((f) => f.name === familyName)!, [familyName]);
   const [tabName, setTabName] = useState(family.tabs[0].name);
@@ -108,6 +117,8 @@ export default function Reports() {
             </p>
           </div>
 
+          {live && liveError && <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{liveError}</p>}
+          {live && liveSnap.truncated && <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-700">This period holds more records than one report can load — choose a shorter period for complete figures.</p>}
           <motion.div key={familyName} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <h2 className="mb-4 font-display text-lg font-bold text-mist-900">Reports · {family.name}</h2>
 

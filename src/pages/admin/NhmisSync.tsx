@@ -2,23 +2,35 @@ import { Download, Cloud } from "lucide-react";
 import { PageHeader, Card, Button, Badge, StatCard } from "@/components/ui/primitives";
 import { Reveal } from "@/components/motion/Reveal";
 import { useEmr } from "@/store/useEmr";
+import { isoDate } from "@/lib/format";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { useLiveReportCounts, useLiveReports } from "@/emr-live/reports";
 
 export default function NhmisSync() {
   const emr = useEmr();
+  // A live hospital's counts are its own records for the current month, counted by its EMR.
+  const live = useIsLiveEmr();
+  const now = new Date();
+  const monthFrom = isoDate(new Date(now.getFullYear(), now.getMonth(), 1));
+  const monthTo = isoDate(now);
+  useLiveReportCounts(live, monthFrom, monthTo);
+  const counts = useLiveReports((s) => s.counts);
+  const liveError = useLiveReports((s) => s.error);
+  const n = (value: number | undefined) => value ?? 0;
 
   // Record counts are drawn only from what this EMR actually holds — no
   // dataset here is padded with an invented baseline. A dataset this build
   // has no real source for is marked unavailable rather than given a number.
   const DATASETS: { name: string; records: number | null; target: string }[] = [
-    { name: "OPD Morbidity (weekly)", records: emr.encounters.length, target: "DHIS2 · NHMIS_OPD" },
-    { name: "Immunization (monthly)", records: emr.immunizations.length, target: "DHIS2 · NHMIS_EPI" },
-    { name: "Maternal Health (monthly)", records: emr.ancRecords.length + emr.deliveries.length + emr.pncVisits.length, target: "DHIS2 · NHMIS_MNCH" },
-    { name: "Birth Notifications (monthly)", records: emr.birthRegister.length, target: "NPopC · e-Birth" },
-    { name: "IDSR Notifiable (weekly)", records: emr.surveillanceCases.length, target: "SORMAS · IDSR_WK" },
+    { name: "OPD Morbidity (weekly)", records: live ? n(counts?.datasets.opd) : emr.encounters.length, target: "DHIS2 · NHMIS_OPD" },
+    { name: "Immunization (monthly)", records: live ? n(counts?.datasets.immunization) : emr.immunizations.length, target: "DHIS2 · NHMIS_EPI" },
+    { name: "Maternal Health (monthly)", records: live ? n(counts?.datasets.maternal) : emr.ancRecords.length + emr.deliveries.length + emr.pncVisits.length, target: "DHIS2 · NHMIS_MNCH" },
+    { name: "Birth Notifications (monthly)", records: live ? n(counts?.datasets.births) : emr.birthRegister.length, target: "NPopC · e-Birth" },
+    { name: "IDSR Notifiable (weekly)", records: live ? n(counts?.datasets.surveillance) : emr.surveillanceCases.length, target: "SORMAS · IDSR_WK" },
     { name: "Commodity / LMIS (monthly)", records: null, target: "NHLMIS" },
-    { name: "Family Planning (monthly)", records: emr.fpClients.length, target: "DHIS2 · NHMIS_FP" },
-    { name: "Referrals (monthly)", records: emr.referrals.length, target: "DHIS2 · NHMIS_REF" },
-    { name: "Patient Transfers (monthly)", records: emr.transfers.filter((t) => t.status !== "Cancelled").length, target: "DHIS2 · NHMIS_MOV" },
+    { name: "Family Planning (monthly)", records: live ? n(counts?.datasets.familyPlanning) : emr.fpClients.length, target: "DHIS2 · NHMIS_FP" },
+    { name: "Referrals (monthly)", records: live ? n(counts?.datasets.referrals) : emr.referrals.length, target: "DHIS2 · NHMIS_REF" },
+    { name: "Patient Transfers (monthly)", records: live ? n(counts?.datasets.transfers) : emr.transfers.filter((t) => t.status !== "Cancelled").length, target: "DHIS2 · NHMIS_MOV" },
   ];
   const available = DATASETS.filter((dataset) => dataset.records !== null);
   const endpoints = new Set(DATASETS.map((dataset) => dataset.target.split(" · ")[0])).size;
@@ -40,12 +52,13 @@ export default function NhmisSync() {
     <div>
       <PageHeader
         title="NHMIS Sync"
-        subtitle="Local dataset preview only · no national-platform connection"
+        subtitle={live ? "Local dataset preview for this month · no national-platform connection" : "Local dataset preview only · no national-platform connection"}
         actions={
           <Button onClick={downloadSummary}><Download size={15} /> Download summary CSV</Button>
         }
       />
 
+      {live && liveError && <p role="alert" className="mb-4 rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{liveError}</p>}
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Datasets" value={DATASETS.length} tone="brand" icon={<Cloud size={18} />} />
         <StatCard label="Local records" value={available.reduce((n, d) => n + (d.records ?? 0), 0)} tone="mist" delay={0.05} />

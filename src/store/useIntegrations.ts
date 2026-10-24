@@ -49,10 +49,12 @@ type IntegrationsState = {
   accountingCustomerByAccountId: Record<string, string>;
 
   setAutoSync: (on: boolean) => void;
-  pendingCounts: () => { emrBilling: number; payrollAccrual: number; payrollSettlement: number; pharmacy: number };
+  pendingCounts: () => { emrBilling: number; payrollAccrual: number; payrollSettlement: number; pharmacy: number; stores?: number };
   syncEmrBilling: () => SyncResult;
   syncPayroll: () => SyncResult;
   syncPharmacy: () => SyncResult;
+  /** hospital store movements → inventory (live only: the demo stock ledger posts as it moves) */
+  syncStores: () => SyncResult;
   syncAll: () => SyncResult[];
 };
 
@@ -274,6 +276,8 @@ export const useIntegrations = create<IntegrationsState>((set, get) => ({
     if (result.created) audit(`posted pharmacy COGS for ${result.created} dispensed item(s)`, "integrations/pharmacy");
     return result;
   },
+
+  syncStores: () => ({ module: "Stores", created: 0, skipped: 0, errors: [] }),
 
   syncAll: () => {
     const r = [get().syncEmrBilling(), get().syncPayroll(), get().syncPharmacy()];

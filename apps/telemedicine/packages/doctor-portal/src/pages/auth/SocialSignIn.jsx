@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { activateDoctorSession } from "../../store/doctorSession";
+import SocialSignInStatus from "../../../../shared-portal/SocialSignInStatus";
 
 const NAMES = { google: "Google", apple: "Apple", GOOGLE: "Google", APPLE: "Apple" };
 export const providerName = (provider) => NAMES[provider] || "Google";
@@ -22,8 +23,9 @@ export function routeSignedIn(navigate, result, email = "") {
 /** Google and Apple buttons. Hidden entirely until the server has a provider switched on. */
 export function SocialButtons({ social, busy, onChoose, label = "or continue with" }) {
   const providers = ["google", "apple"].filter((p) => social.configured[p]);
-  if (!providers.length) return null;
+  if (!providers.length) return <SocialSignInStatus social={social} />;
   return <div className="sh-social">
+    <SocialSignInStatus social={social} />
     <div className="sh-social-divider"><span>{label}</span></div>
     <div className="sh-social-row">{providers.map((provider) =>
       <button key={provider} type="button" className="sh-social-button" disabled={!social.available[provider] || !!busy} onClick={() => onChoose(provider)}>

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { audit } from "@/store/useAudit";
+import { newLinesOnly } from "@/lib/bankStatement";
 import { useIdentity } from "@/store/useIdentity";
 import { useLedger } from "@/store/accounting/useLedger";
 import { ACCT, type AccountSubtype } from "@/data/accounting/coa";
@@ -21,7 +22,7 @@ type BankingState = {
   reconciliationRules: ReconciliationRule[];
 
   metaFor: (accountNumber: number) => BankAccountMeta | undefined;
-  connectBank: (accountNumber: number, provider: BankConnection["provider"]) => void;
+  connectBank: (accountNumber: number, provider: BankConnection["provider"]) => { ok: boolean; error?: string } | void;
   disconnectBank: (id: string) => void;
   syncFeed: (connectionId: string) => { imported: number; autoMatched: number };
   addRule: (r: Omit<ReconciliationRule, "id" | "active">) => void;
@@ -169,7 +170,7 @@ export const useBanking = create<BankingState>((set, get) => ({
     const cutoff = asOf ? new Date(asOf).getTime() : Infinity;
     return useLedger
       .getState()
-      .entries.filter((e) => e.status === "Posted" && new Date(e.date).getTime() <= cutoff)
+      .entries.filter((e) => (e.status === "Posted" || e.status === "Reversed") && new Date(e.date).getTime() <= cutoff)
       .flatMap((e) =>
         e.lines
           .filter((l) => l.accountNumber === accountNumber)
@@ -207,7 +208,7 @@ export const useBanking = create<BankingState>((set, get) => ({
   },
 
   importStatementLines: (accountNumber, lines) => {
-    const rows: BankStatementLine[] = lines.map((l) => ({ id: `stmt-${rid()}`, accountNumber, date: l.date, description: l.description, amount: round2(l.amount), reference: l.reference, reconciled: false, importedAt: new Date().toISOString() }));
+    const rows: BankStatementLine[] = newLinesOnly(get().statementLines.filter((l) => l.accountNumber === accountNumber), lines).map((l) => ({ id: `stmt-${rid()}`, accountNumber, date: l.date, description: l.description, amount: round2(l.amount), reference: l.reference, reconciled: false, importedAt: new Date().toISOString() }));
     set((s) => ({ statementLines: [...rows, ...s.statementLines] }));
     audit(`imported ${rows.length} bank statement line(s)`, `accounting/banking/${accountNumber}`);
   },

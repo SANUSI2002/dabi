@@ -15,7 +15,7 @@ export type Vendor = {
   phone?: string;
   address?: string;
   taxId?: string;
-  category: "Pharmaceuticals" | "Medical Supplies" | "Equipment" | "Utilities" | "Services" | "Facilities" | "Other";
+  category: "Pharmaceuticals" | "Medical Supplies" | "Equipment" | "Utilities" | "Services" | "Facilities" | "Other" | (string & {}) /* the hospital's own (Settings → Master Data) */;
   currency?: string;
   paymentTermsDays: number;
   paymentTermId?: string;
@@ -129,6 +129,7 @@ export type VendorPayment = {
   reference?: string;
   withheldTax?: number;
   journalEntryId?: string;
+  status?: "Pending Approval" | "Posted" | "Rejected"; // absent = posted
   approval: DocApproval;
   createdBy: string;
   createdAt: string;

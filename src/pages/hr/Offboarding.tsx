@@ -7,7 +7,7 @@ import { useOffboarding } from "@/store/useOffboarding";
 import { useHr } from "@/store/useHr";
 import { shortDate, initials } from "@/lib/format";
 import { cn } from "@/lib/cn";
-import { EXIT_REASONS } from "@/data/offboarding";
+import { useListValues } from "@/lib/listOptions";
 
 export default function Offboarding() {
   const { stages, cases, initiate, recordExitInterview, recordHandover, settleFnf, canAdvance, advanceStage } = useOffboarding();
@@ -18,7 +18,8 @@ export default function Offboarding() {
   const eligible = staff.filter((s) => s.status === "Active" && !cases.some((c) => c.employeeId === s.id && c.status === "Ongoing"));
 
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState({ employeeId: eligible[0]?.id ?? "", reason: EXIT_REASONS[0], lastWorkingDate: "" });
+  const exitReasons = useListValues("exit-reasons"); // the hospital's Exit Reasons
+  const [f, setF] = useState({ employeeId: eligible[0]?.id ?? "", reason: exitReasons[0] ?? "", lastWorkingDate: "" });
   const [ivFor, setIvFor] = useState<string | null>(null);
   const [ivNotes, setIvNotes] = useState("");
   const [hoFor, setHoFor] = useState<string | null>(null);
@@ -31,7 +32,7 @@ export default function Offboarding() {
       <PageHeader
         title="Offboarding"
         subtitle="Exit workflow — notice, exit interview, handover, final settlement"
-        actions={<Button variant="action" onClick={() => { setF({ employeeId: eligible[0]?.id ?? "", reason: EXIT_REASONS[0], lastWorkingDate: "" }); setOpen(true); }}><Plus size={15} /> Initiate offboarding</Button>}
+        actions={<Button variant="action" onClick={() => { setF({ employeeId: eligible[0]?.id ?? "", reason: exitReasons[0] ?? "", lastWorkingDate: "" }); setOpen(true); }}><Plus size={15} /> Initiate offboarding</Button>}
       />
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -142,7 +143,7 @@ export default function Offboarding() {
       >
         <div className="space-y-4">
           <Field label="Employee"><Select value={f.employeeId} onChange={(e) => setF({ ...f, employeeId: e.target.value })} options={eligible.map((s) => ({ value: s.id, label: s.name }))} /></Field>
-          <Field label="Reason"><Select value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} options={EXIT_REASONS} /></Field>
+          <Field label="Reason"><Select value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} options={exitReasons} /></Field>
           <Field label="Last working date"><Input type="date" value={f.lastWorkingDate} onChange={(e) => setF({ ...f, lastWorkingDate: e.target.value })} /></Field>
         </div>
       </Modal>

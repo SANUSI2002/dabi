@@ -1,4 +1,4 @@
-import { liveApiRequest, type LiveApiError } from "@/identity/liveIdentity";
+import { liveApiRequest, liveApiUpload, type LiveApiError } from "@/identity/liveIdentity";
 import { useLiveEmr } from "./session";
 
 // Calls the tenant-scoped EMR API (/api/v1/emr/organizations/:organizationId/...) for the hospital
@@ -26,14 +26,15 @@ export function describeEmrError(cause: unknown): string {
     const label = FIELD_LABELS[field.split(".")[0]] ?? field;
     return `${label}: ${detail.message}`;
   }
-  if (error.status === 403) return "Your role does not allow this action.";
+  // A refusal with its own reason ("Only the named manager writes the manager review.") says so.
+  if (error.status === 403) return error.message && error.message !== "Access denied." ? error.message : "Your role does not allow this action.";
   return error.message || "The EMR service could not complete this request.";
 }
 
-async function send<T>(path: string, request: EmrRequest): Promise<T> {
+async function send<T>(path: string, request: EmrRequest, product: "emr" | "workforce" | "org-config" | "accounting" = "emr"): Promise<T> {
   const organizationId = useLiveEmr.getState().access?.organizationId;
   if (!organizationId) throw new Error("No hospital is selected.");
-  return liveApiRequest<T>(`/api/v1/emr/organizations/${encodeURIComponent(organizationId)}${path}`, {
+  return liveApiRequest<T>(`/api/v1/${product}/organizations/${encodeURIComponent(organizationId)}${path}`, {
     method: request.method ?? "GET",
     ...(request.body !== undefined ? { body: JSON.stringify(request.body) } : {}),
     headers: {
@@ -50,6 +51,53 @@ export async function emrRequest<T>(path: string, request: EmrRequest = {}): Pro
     if ((cause as Partial<LiveApiError>).status !== 401) throw cause;
     await useLiveEmr.getState().reselect();
     return send<T>(path, request);
+  }
+}
+
+/** The same, for the Workforce API (/api/v1/workforce/organizations/:organizationId/...): people, time, HR. */
+export async function workforceRequest<T>(path: string, request: EmrRequest = {}): Promise<T> {
+  try {
+    return await send<T>(path, request, "workforce");
+  } catch (cause) {
+    if ((cause as Partial<LiveApiError>).status !== 401) throw cause;
+    await useLiveEmr.getState().reselect();
+    return send<T>(path, request, "workforce");
+  }
+}
+
+/** The same, for the organization configuration API (/api/v1/org-config/...): master data, terminology, letters. */
+export async function orgConfigRequest<T>(path: string, request: EmrRequest = {}): Promise<T> {
+  try {
+    return await send<T>(path, request, "org-config");
+  } catch (cause) {
+    if ((cause as Partial<LiveApiError>).status !== 401) throw cause;
+    await useLiveEmr.getState().reselect();
+    return send<T>(path, request, "org-config");
+  }
+}
+
+/** The same, for the Accounting API (/api/v1/accounting/organizations/:organizationId/...): ledger, receivables, payables. */
+export async function accountingRequest<T>(path: string, request: EmrRequest = {}): Promise<T> {
+  try {
+    return await send<T>(path, request, "accounting");
+  } catch (cause) {
+    if ((cause as Partial<LiveApiError>).status !== 401) throw cause;
+    await useLiveEmr.getState().reselect();
+    return send<T>(path, request, "accounting");
+  }
+}
+
+/** Uploads a file to the Accounting API (the file is the request body). */
+export async function accountingUpload<T>(path: string, file: Blob, headers: Record<string, string>): Promise<T> {
+  const organizationId = useLiveEmr.getState().access?.organizationId;
+  if (!organizationId) throw new Error("No hospital is selected.");
+  const url = `/api/v1/accounting/organizations/${encodeURIComponent(organizationId)}${path}`;
+  try {
+    return await liveApiUpload<T>(url, file, headers);
+  } catch (cause) {
+    if ((cause as Partial<LiveApiError>).status !== 401) throw cause;
+    await useLiveEmr.getState().reselect();
+    return liveApiUpload<T>(url, file, headers);
   }
 }
 

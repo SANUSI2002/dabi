@@ -5,76 +5,74 @@ import { idleSignInUrl, startIdleTimeout } from "../../shared-portal/idleTimeout
 import { elsewhereSignInUrl, startSessionWatch } from "../../shared-portal/sessionWatch.js";
 import "./index.css";
 import { ZoomProvider } from "./context/ZoomContext";
-import { Dashboard } from "./pages/dashboard/Dashboard";
-import { Profile } from "./pages/profile/Profile";
-import { Records } from "./pages/records/Records";
-import { Appointments } from "./pages/appointments/Appointments";
-import { RescheduleAppointment } from "./pages/appointments/RescheduleAppointment";
-import { ConsultationReport } from "./pages/reports/ConsultationReport";
-import { VitalsHub } from "./pages/vitals/VitalsHub";
-import { SelectVitalType } from "./pages/vitals/SelectVitalType";
-import { AddVitalReading } from "./pages/vitals/AddVitalReading";
-import { VitalHistoryPage } from "./pages/vitals/VitalHistoryPage";
-import SabiHealthLogin from "./pages/Onboarding/login";
-import AccountTypeSelection from "./pages/Onboarding/AccountTypeSelection";
-import CaregiverOnboarding from "./pages/Onboarding/CaregiverOnboarding";
-import OnboardingSubmitted from "./pages/Onboarding/OnboardingSubmitted";
-import SignupPage from "./pages/Onboarding/Signup";
-import VerifyEmail from "./pages/Onboarding/VerifyEmail";
-import AnimatedAuth from "./pages/Onboarding/AnimatedAuth";
-import IdentityVerificationPage from "./pages/Onboarding/IdentityVerification";
-import SuccessPage from "./pages/Onboarding/SuccessPage";
-import { PrescriptionsPage } from "./pages/prescriptions/PrescriptionsPage";
-import { DieticianTablePage } from './pages/prescriptions/DieticianTablePage';
-import { ActivityLogPage } from './pages/activity/ActivityLogPage';
-import { MedicinesPage } from './pages/medicines/MedicinesPage';
-import { NotificationSettingsPage } from './pages/notification-settings/NotificationSettingsPage';
-import { InstallAppPage } from './pwa/InstallApp';
-import EmergencyAccessPage from './emergency/EmergencyAccessPage';
-import { PrescriptionDetailPage } from "./pages/prescriptions/PrescriptionDetailPage";
-import { SelectPharmacyPage } from "./pages/prescriptions/SelectPharmacyPage";
-import { PharmacyMarketPage } from "./pages/pharmacy-market/PharmacyMarketPage";
-import { PharmacyStorefrontPage } from "./pages/pharmacy-market/PharmacyStorefrontPage";
-import { PharmacyQuotesPage } from "./pages/pharmacy-quotes/PharmacyQuotesPage";
-import { DeliveryListPage } from "./pages/delivery-tracking/DeliveryListPage";
-import { DeliveryTrackingPage } from "./pages/delivery-tracking/DeliveryTrackingPage";
-import FindYourDoctor from "./pages/doctor/Doctor";
-import { WellnessHubPage } from "./pages/wellness/WellnessHubPage";
-import ProfessionalBookingPage from './pages/wellness/ProfessionalBookingPage';
-import { PractitionerListPage } from "./pages/wellness/PractitionerListPage";
-import { PractitionerDetailPage } from "./pages/wellness/PractitionerDetailPage";
-import { BookPractitionerPage } from "./pages/wellness/BookPractitionerPage";
-import { EngagementsPage } from "./pages/wellness/EngagementsPage";
-import { EngagementDetailPage } from "./pages/wellness/EngagementDetailPage";
+const Dashboard = lazy(() => import("./pages/dashboard/Dashboard").then(m => ({ default: m.Dashboard })));
+const Profile = lazy(() => import("./pages/profile/Profile").then(m => ({ default: m.Profile })));
+const Records = lazy(() => import("./pages/records/Records").then(m => ({ default: m.Records })));
+const Appointments = lazy(() => import("./pages/appointments/Appointments").then(m => ({ default: m.Appointments })));
+const RescheduleAppointment = lazy(() => import("./pages/appointments/RescheduleAppointment").then(m => ({ default: m.RescheduleAppointment })));
+const ConsultationReport = lazy(() => import("./pages/reports/ConsultationReport").then(m => ({ default: m.ConsultationReport })));
+const VitalsHub = lazy(() => import("./pages/vitals/VitalsHub").then(m => ({ default: m.VitalsHub })));
+const SelectVitalType = lazy(() => import("./pages/vitals/SelectVitalType").then(m => ({ default: m.SelectVitalType })));
+const AddVitalReading = lazy(() => import("./pages/vitals/AddVitalReading").then(m => ({ default: m.AddVitalReading })));
+const VitalHistoryPage = lazy(() => import("./pages/vitals/VitalHistoryPage").then(m => ({ default: m.VitalHistoryPage })));
+const SabiHealthLogin = lazy(() => import("./pages/Onboarding/login"));
+const AccountTypeSelection = lazy(() => import("./pages/Onboarding/AccountTypeSelection"));
+const CaregiverOnboarding = lazy(() => import("./pages/Onboarding/CaregiverOnboarding"));
+const OnboardingSubmitted = lazy(() => import("./pages/Onboarding/OnboardingSubmitted"));
+const SignupPage = lazy(() => import("./pages/Onboarding/Signup"));
+const VerifyEmail = lazy(() => import("./pages/Onboarding/VerifyEmail"));
+const AnimatedAuth = lazy(() => import("./pages/Onboarding/AnimatedAuth"));
+const IdentityVerificationPage = lazy(() => import("./pages/Onboarding/IdentityVerification"));
+const SuccessPage = lazy(() => import("./pages/Onboarding/SuccessPage"));
+const PrescriptionsPage = lazy(() => import("./pages/prescriptions/PrescriptionsPage").then(m => ({ default: m.PrescriptionsPage })));
+const DieticianTablePage = lazy(() => import("./pages/prescriptions/DieticianTablePage").then(m => ({ default: m.DieticianTablePage })));
+const ActivityLogPage = lazy(() => import("./pages/activity/ActivityLogPage").then(m => ({ default: m.ActivityLogPage })));
+const MedicinesPage = lazy(() => import("./pages/medicines/MedicinesPage").then(m => ({ default: m.MedicinesPage })));
+const NotificationSettingsPage = lazy(() => import("./pages/notification-settings/NotificationSettingsPage").then(m => ({ default: m.NotificationSettingsPage })));
+const InstallAppPage = lazy(() => import("./pwa/InstallApp").then(m => ({ default: m.InstallAppPage })));
+const EmergencyAccessPage = lazy(() => import("./emergency/EmergencyAccessPage"));
+const PrescriptionDetailPage = lazy(() => import("./pages/prescriptions/PrescriptionDetailPage").then(m => ({ default: m.PrescriptionDetailPage })));
+const SelectPharmacyPage = lazy(() => import("./pages/prescriptions/SelectPharmacyPage").then(m => ({ default: m.SelectPharmacyPage })));
+const PharmacyMarketPage = lazy(() => import("./pages/pharmacy-market/PharmacyMarketPage").then(m => ({ default: m.PharmacyMarketPage })));
+const PharmacyStorefrontPage = lazy(() => import("./pages/pharmacy-market/PharmacyStorefrontPage").then(m => ({ default: m.PharmacyStorefrontPage })));
+const PharmacyQuotesPage = lazy(() => import("./pages/pharmacy-quotes/PharmacyQuotesPage").then(m => ({ default: m.PharmacyQuotesPage })));
+const DeliveryListPage = lazy(() => import("./pages/delivery-tracking/DeliveryListPage").then(m => ({ default: m.DeliveryListPage })));
+const DeliveryTrackingPage = lazy(() => import("./pages/delivery-tracking/DeliveryTrackingPage").then(m => ({ default: m.DeliveryTrackingPage })));
+const FindYourDoctor = lazy(() => import("./pages/doctor/Doctor"));
+const WellnessHubPage = lazy(() => import("./pages/wellness/WellnessHubPage").then(m => ({ default: m.WellnessHubPage })));
+const ProfessionalBookingPage = lazy(() => import("./pages/wellness/ProfessionalBookingPage"));
+const PractitionerListPage = lazy(() => import("./pages/wellness/PractitionerListPage").then(m => ({ default: m.PractitionerListPage })));
+const PractitionerDetailPage = lazy(() => import("./pages/wellness/PractitionerDetailPage").then(m => ({ default: m.PractitionerDetailPage })));
+const BookPractitionerPage = lazy(() => import("./pages/wellness/BookPractitionerPage").then(m => ({ default: m.BookPractitionerPage })));
+const EngagementsPage = lazy(() => import("./pages/wellness/EngagementsPage").then(m => ({ default: m.EngagementsPage })));
+const EngagementDetailPage = lazy(() => import("./pages/wellness/EngagementDetailPage").then(m => ({ default: m.EngagementDetailPage })));
 
-import {
-  FamilyDashboardPage,
-  AddMemberPage,
-  SetupDependentPage,
-  MemberAddedSuccessPage,
-  MemberProfilePage,
-} from "./pages/family";
-import { CareCalendarPage } from "./pages/family/CareCalendarPage";
-import { CartPage } from "./pages/pharmacy-market/CartPage";
-import { CheckoutPage } from "./pages/pharmacy-market/CheckoutPage";
-import { OrderConfirmationPage } from "./pages/pharmacy-market/OrderConfirmationPage";
-import { RefillPrescriptionPage } from "./pages/pharmacy-market/RefillPrescriptionPage";
-import { PrescriptionPage } from "./pages/pharmacy-market/PrescriptionPage";
-import { RepeatLastOrderPage } from "./pages/pharmacy-market/RepeatLastOrderPage";
-import { EmergencyMedsPage } from "./pages/pharmacy-market/EmergencyMedsPage";
-import { PharmacyQuotesInboxPage } from "./pages/pharmacy-quotes/PharmacyQuotesInboxPage";
-import { FloatingCartButton } from "./pages/pharmacy-market/components";
-import { HospitalsPage } from "./pages/hospitals/HospitalsPage";
-import { HospitalDetailPage } from "./pages/hospitals/HospitalDetailPage";
-import { HospitalEnrollmentWizardPage } from "./pages/hospitals/HospitalEnrollmentWizardPage";
-import { BookHospitalAppointmentPage } from "./pages/hospitals/BookHospitalAppointmentPage";
-import { CheckInPage } from "./pages/hospitals/CheckInPage";
-import { FamilyHospitalEnrollmentPage } from "./pages/hospitals/FamilyHospitalEnrollmentPage";
-import { InsurancePage } from "./pages/insurance/InsurancePage";
-import { WalletPage } from "./pages/wallet/WalletPage";
+const FamilyDashboardPage = lazy(() => import("./pages/family").then(m => ({ default: m.FamilyDashboardPage })));
+const AddMemberPage = lazy(() => import("./pages/family").then(m => ({ default: m.AddMemberPage })));
+const SetupDependentPage = lazy(() => import("./pages/family").then(m => ({ default: m.SetupDependentPage })));
+const MemberAddedSuccessPage = lazy(() => import("./pages/family").then(m => ({ default: m.MemberAddedSuccessPage })));
+const MemberProfilePage = lazy(() => import("./pages/family").then(m => ({ default: m.MemberProfilePage })));
+const CareCalendarPage = lazy(() => import("./pages/family/CareCalendarPage").then(m => ({ default: m.CareCalendarPage })));
+const CartPage = lazy(() => import("./pages/pharmacy-market/CartPage").then(m => ({ default: m.CartPage })));
+const CheckoutPage = lazy(() => import("./pages/pharmacy-market/CheckoutPage").then(m => ({ default: m.CheckoutPage })));
+const OrderConfirmationPage = lazy(() => import("./pages/pharmacy-market/OrderConfirmationPage").then(m => ({ default: m.OrderConfirmationPage })));
+const RefillPrescriptionPage = lazy(() => import("./pages/pharmacy-market/RefillPrescriptionPage").then(m => ({ default: m.RefillPrescriptionPage })));
+const PrescriptionPage = lazy(() => import("./pages/pharmacy-market/PrescriptionPage").then(m => ({ default: m.PrescriptionPage })));
+const RepeatLastOrderPage = lazy(() => import("./pages/pharmacy-market/RepeatLastOrderPage").then(m => ({ default: m.RepeatLastOrderPage })));
+const EmergencyMedsPage = lazy(() => import("./pages/pharmacy-market/EmergencyMedsPage").then(m => ({ default: m.EmergencyMedsPage })));
+const PharmacyQuotesInboxPage = lazy(() => import("./pages/pharmacy-quotes/PharmacyQuotesInboxPage").then(m => ({ default: m.PharmacyQuotesInboxPage })));
+import { FloatingCartButton } from "./pages/pharmacy-market/components/FloatingCartButton";
+const HospitalsPage = lazy(() => import("./pages/hospitals/HospitalsPage").then(m => ({ default: m.HospitalsPage })));
+const HospitalDetailPage = lazy(() => import("./pages/hospitals/HospitalDetailPage").then(m => ({ default: m.HospitalDetailPage })));
+const HospitalEnrollmentWizardPage = lazy(() => import("./pages/hospitals/HospitalEnrollmentWizardPage").then(m => ({ default: m.HospitalEnrollmentWizardPage })));
+const BookHospitalAppointmentPage = lazy(() => import("./pages/hospitals/BookHospitalAppointmentPage").then(m => ({ default: m.BookHospitalAppointmentPage })));
+const CheckInPage = lazy(() => import("./pages/hospitals/CheckInPage").then(m => ({ default: m.CheckInPage })));
+const FamilyHospitalEnrollmentPage = lazy(() => import("./pages/hospitals/FamilyHospitalEnrollmentPage").then(m => ({ default: m.FamilyHospitalEnrollmentPage })));
+const InsurancePage = lazy(() => import("./pages/insurance/InsurancePage").then(m => ({ default: m.InsurancePage })));
+const WalletPage = lazy(() => import("./pages/wallet/WalletPage").then(m => ({ default: m.WalletPage })));
 const SabiAiPage = lazy(() => import('./pages/ai/SabiAiPage'));
-import ForgotPassword from "./pages/Onboarding/ForgotPassword";
-import ResetPassword from "./pages/Onboarding/ResetPassword";
+const ForgotPassword = lazy(() => import("./pages/Onboarding/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/Onboarding/ResetPassword"));
 import { HOSPITAL_ONBOARDING_URL, DOCTOR_PORTAL_URL } from "./ecosystemLinks";
 
 import "../../shared-portal/portal-revamp.css";
@@ -188,6 +186,7 @@ export default function App() {
           <Logo />
 
           <main>
+          <Suspense fallback={<div className="sabi-route-loading" role="status" aria-live="polite">Opening Sabi Health…</div>}>
           <Routes>
             <Route path="/emergency-access" element={<EmergencyAccessPage />} />
               <Route path="/" element={<Navigate to="/login" replace />} />
@@ -272,6 +271,7 @@ export default function App() {
               <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
               <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
+          </Suspense>
           </main>
           <FloatingCartButton />
         </div>

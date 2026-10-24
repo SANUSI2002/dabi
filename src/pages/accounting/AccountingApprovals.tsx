@@ -4,13 +4,15 @@ import { PageHeader, Button, Badge, StatCard, Card, EmptyState } from "@/compone
 import { Table, Row, Cell } from "@/components/ui/Table";
 import { money, shortDate } from "@/lib/format";
 import { useAP, purchaseTotal } from "@/store/accounting/useAP";
+import { useLedger } from "@/store/accounting/useLedger";
 import { useExpenses, claimTotal } from "@/store/accounting/useExpenses";
 import { useAcctControl } from "@/store/accounting/useAcctControl";
 import { useIdentity } from "@/store/useIdentity";
 import { useHr } from "@/store/useHr";
 
 export default function AccountingApprovals() {
-  const { bills, requisitions, vendorById, decideBill, decideRequisition } = useAP();
+  const { bills, requisitions, vendorPayments, vendorById, decideBill, decideRequisition, decideVendorPayment } = useAP();
+  const { entries, decideEntry } = useLedger();
   const { claims, decideClaim } = useExpenses();
   const { canDecide, myRole } = useAcctControl();
   useIdentity((s) => s.user.id);
@@ -20,16 +22,23 @@ export default function AccountingApprovals() {
   const pendingBills = bills.filter((b) => b.status === "Pending Approval");
   const pendingPRs = requisitions.filter((r) => r.status === "Pending Approval");
   const pendingClaims = claims.filter((c) => c.status === "Pending Approval");
+  const pendingPayments = vendorPayments.filter((p) => p.status === "Pending Approval");
+  const pendingJournals = entries.filter((e) => e.status === "Pending Approval" && e.approval?.status === "Pending");
+  const entryTotal = (e: (typeof entries)[number]) => e.lines.reduce((n, l) => n + l.debit, 0);
 
   const mine = [
     ...pendingBills.filter((b) => canDecide(b.approval)).map((b) => ({ id: b.id, kind: "Bill" as const, ref: b.number, who: vendorById(b.vendorId)?.name ?? "", amount: purchaseTotal(b.lines), date: b.date, level: b.approval.currentLevel })),
     ...pendingPRs.filter((r) => canDecide(r.approval)).map((r) => ({ id: r.id, kind: "Requisition" as const, ref: r.number, who: r.department ?? nameOf(r.requestedBy), amount: purchaseTotal(r.lines), date: r.date, level: r.approval.currentLevel })),
     ...pendingClaims.filter((c) => canDecide(c.approval)).map((c) => ({ id: c.id, kind: "Expense" as const, ref: c.number, who: nameOf(c.claimantId), amount: claimTotal(c.lines), date: c.date, level: c.approval.currentLevel })),
+    ...pendingPayments.filter((p) => canDecide(p.approval)).map((p) => ({ id: p.id, kind: "Vendor Payment" as const, ref: p.number, who: vendorById(p.vendorId)?.name ?? "", amount: p.amount, date: p.date, level: p.approval.currentLevel })),
+    ...pendingJournals.filter((e) => canDecide(e.approval!)).map((e) => ({ id: e.id, kind: "Journal" as const, ref: e.number, who: e.memo, amount: entryTotal(e), date: e.date, level: e.approval!.currentLevel })),
   ];
 
   const decide = (kind: string, id: string, d: "Approved" | "Rejected") => {
     if (kind === "Bill") decideBill(id, d);
     else if (kind === "Requisition") decideRequisition(id, d);
+    else if (kind === "Vendor Payment") decideVendorPayment(id, d);
+    else if (kind === "Journal") decideEntry(id, d);
     else decideClaim(id, d);
   };
 
@@ -37,6 +46,8 @@ export default function AccountingApprovals() {
     ...pendingBills.map((b) => ({ kind: "Bill", ref: b.number, amount: purchaseTotal(b.lines), status: b.approval })),
     ...pendingPRs.map((r) => ({ kind: "Requisition", ref: r.number, amount: purchaseTotal(r.lines), status: r.approval })),
     ...pendingClaims.map((c) => ({ kind: "Expense", ref: c.number, amount: claimTotal(c.lines), status: c.approval })),
+    ...pendingPayments.map((p) => ({ kind: "Vendor Payment", ref: p.number, amount: p.amount, status: p.approval })),
+    ...pendingJournals.map((e) => ({ kind: "Journal", ref: e.number, amount: entryTotal(e), status: e.approval! })),
   ];
 
   return (

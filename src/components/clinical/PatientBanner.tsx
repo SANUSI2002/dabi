@@ -3,7 +3,7 @@ import { TriangleAlert, ShieldCheck, MapPin, Clock3 } from "lucide-react";
 import { Badge } from "@/components/ui/primitives";
 import { useEmr } from "@/store/useEmr";
 import { useClinical, selectAllergiesFor } from "@/store/useClinical";
-import { PATIENT_CATEGORIES } from "@/data/catalog";
+import { usePatientCategories } from "@/emr-live/catalogs";
 import { ageFromDob, initials, timeAgo } from "@/lib/format";
 import type { Admission, Patient, QueueEntry, Station } from "@/data/types";
 import type { AllergyIntolerance, Condition } from "@/data/clinical";
@@ -31,6 +31,7 @@ export function PatientBanner({
   };
 }) {
   const emr = useEmr();
+  const categories = usePatientCategories();
   const allergyRecords = useClinical((state) => state.allergies);
   const conditionRecords = useClinical((state) => state.conditions);
   const demoAllergies = useMemo(() => selectAllergiesFor(allergyRecords, patient), [allergyRecords, patient]);
@@ -52,7 +53,7 @@ export function PatientBanner({
   const queued = live
     ? live.inClinic ?? undefined
     : emr.queue.find((entry) => entry.patientId === patient.id && (entry.status === "Waiting" || entry.status === "In Progress"));
-  const category = PATIENT_CATEGORIES.find((entry) => entry.code === patient.category);
+  const category = categories.find((entry) => entry.code === patient.category);
 
   const lastUpdated = live ? live.lastUpdated || patient.registeredAt : [
     ...emr.encounters.filter((entry) => entry.patientId === patient.id).map((entry) => entry.date),

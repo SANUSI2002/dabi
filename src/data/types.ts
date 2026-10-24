@@ -241,7 +241,7 @@ export type Appointment = {
   date: string;
   time: string;
   provider: string;
-  type: "General" | "ANC" | "PNC" | "Follow-up" | "Immunization" | "Specialist";
+  type: "General" | "ANC" | "PNC" | "Follow-up" | "Immunization" | "Specialist" | (string & {}) /* the hospital's own (Settings → Master Data) */;
   reason?: string;
   status: "Scheduled" | "Attended" | "No-Show" | "Cancelled";
   encounterId?: string;
@@ -280,7 +280,7 @@ export type PatientTransfer = {
   patientId?: string; // linked local record (always set for Out)
   patientName: string;
   facility: string; // the other facility
-  reason: "Relocation" | "Catchment reassignment" | "Service not available here" | "Patient request" | "Higher level of care";
+  reason: "Relocation" | "Catchment reassignment" | "Service not available here" | "Patient request" | "Higher level of care" | (string & {}) /* the hospital's own (Settings → Master Data) */;
   summary?: string; // clinical handover note
   date: string;
   status: "Pending" | "Completed" | "Cancelled";
@@ -332,8 +332,13 @@ export type AncRecord = {
   bloodGroup?: string;
   hb?: number;
   ttDoses: number;
-  status: "Active" | "Delivered" | "Transferred";
-  visits: { date: string; weeks: number; weight: number; bp: string; hb?: number; fhr?: number; next: string }[];
+  status: "Active" | "Delivered" | "Transferred" | "Ended";
+  visits: { id?: string; date: string; weeks: number; weight?: number; bp: string; hb?: number; fhr?: number; next: string; recordedBy?: string }[];
+  // Live EMR only (src/emr-live/antenatal.ts): worked out by the hospital's record.
+  gestationalWeeksToday?: number;
+  riskFlags?: { code: string; label: string }[];
+  /** Lab orders since the LMP; null when this user may not read lab orders. */
+  labs?: { id: string; testName: string; orderedAt: string; status: "Pending" | "Resulted" | "Verified"; result?: string }[] | null;
 };
 
 export type FpVisitType = "New Visit" | "Revisit" | "Resupply" | "Switch method" | "Removal";

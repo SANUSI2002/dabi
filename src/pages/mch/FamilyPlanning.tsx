@@ -14,7 +14,11 @@ import { useIdentity } from "@/store/useIdentity";
 import { FP_METHODS } from "@/data/catalog";
 import { shortDate, ageFromDob, timeAgo } from "@/lib/format";
 import { differenceInCalendarDays } from "date-fns";
-import type { FpVisitType } from "@/data/types";
+import type { FpClient, FpVisitType, Patient } from "@/data/types";
+import { useIsLiveEmr } from "@/emr-live/session";
+import { describeEmrError } from "@/emr-live/client";
+import { newIdempotencyKey, useLiveFamilyPlanning, useLiveFamilyPlanningLoad, type LiveFpClient } from "@/emr-live/familyPlanning";
+import { useListValues } from "@/lib/listOptions";
 
 // annual couple-years-of-protection contribution by method (WHO/USAID factors, per client-year on method)
 const CYP: Record<string, number> = {
@@ -26,7 +30,25 @@ const CYP: Record<string, number> = {
 const VISIT_TYPES: FpVisitType[] = ["Revisit", "Resupply", "Switch method", "Removal"];
 
 export default function FamilyPlanning() {
-  const { fpClients, patientById, addFpClient, addFpVisit, discontinueFp } = useEmr();
+  const { fpClients: demoClients, patientById, addFpClient, addFpVisit, discontinueFp } = useEmr();
+  // A live hospital's clients come from its EMR (see src/emr-live/familyPlanning.ts).
+  const live = useIsLiveEmr();
+  useLiveFamilyPlanningLoad(live);
+  const liveClients = useLiveFamilyPlanning((st) => st.clients);
+  const liveError = useLiveFamilyPlanning((st) => st.error);
+  const fpClients: (FpClient & Partial<LiveFpClient>)[] = live ? liveClients : demoClients;
+  const patientOf = (c: { patientId: string; patient?: Patient }) => (live ? c.patient : patientById(c.patientId));
+  const clientById = (id: string | null) => liveClients.find((c) => c.id === id);
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [registerKey, setRegisterKey] = useState(newIdempotencyKey);
+  async function run(work: () => Promise<void> | void, after: () => void) {
+    setBusy(true); setActionError("");
+    try { await work(); after(); }
+    catch (cause) { setActionError(describeEmrError(cause)); }
+    finally { setBusy(false); }
+  }
+  const errorLine = live && actionError ? <p role="alert" className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError}</p> : null;
   const me = useIdentity((s) => s.user.name);
 
   const [open, setOpen] = useState(false);
@@ -34,6 +56,7 @@ export default function FamilyPlanning() {
   const [visitFor, setVisitFor] = useState<string | null>(null);
   const [vf, setVf] = useState<{ type: FpVisitType; method: string; nextVisit: string; notes: string }>({ type: "Resupply", method: "", nextVisit: "", notes: "" });
   const [discFor, setDiscFor] = useState<string | null>(null);
+  const stopReasons = useListValues("fp-discontinue-reasons"); // the hospital's reasons (a removal visit records "Removal")
   const [discReason, setDiscReason] = useState("");
 
   const active = fpClients.filter((c) => c.status === "Active");
@@ -48,10 +71,11 @@ export default function FamilyPlanning() {
       <PageHeader
         title="Family Planning"
         subtitle={`${active.length} active clients · ${totalCyp.toFixed(1)} CYP`}
-        actions={<Button onClick={() => { setF({ patientId: "", method: FP_METHODS[0], firstTime: false, startDate: "", nextVisit: "", counselled: true, notes: "" }); setOpen(true); }}><Plus size={15} /> New client</Button>}
+        actions={<Button onClick={() => { setRegisterKey(newIdempotencyKey()); setActionError(""); setF({ patientId: "", method: FP_METHODS[0], firstTime: false, startDate: "", nextVisit: "", counselled: true, notes: "" }); setOpen(true); }}><Plus size={15} /> New client</Button>}
       />
 
       <GuidelineBanner guidelineKey="fp-2018" className="mb-5" />
+      {live && (actionError || liveError) && !open && !visitFor && !discFor && <p role="alert" className="mb-4 rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{actionError || liveError}</p>}
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Active clients" value={active.length} tone="brand" icon={<Users size={18} />} />
         <StatCard label="CYP (protection)" value={totalCyp.toFixed(1)} tone="brand" delay={0.05} />
@@ -64,7 +88,7 @@ export default function FamilyPlanning() {
           t === "FP Clients" ? (
             <Table columns={["Patient", "Age", "Method", "New", "Started", "Next visit", "Visits", "Status", ""]}>
               {fpClients.map((c, i) => {
-                const p = patientById(c.patientId);
+                const p = patientOf(c);
                 const late = c.status === "Active" && c.nextVisit && differenceInCalendarDays(new Date(c.nextVisit), new Date()) < 0;
                 return (
                   <Row key={c.id} index={i} className={late ? "bg-action-50/40" : undefined}>
@@ -79,8 +103,8 @@ export default function FamilyPlanning() {
                     <Cell>
                       {c.status === "Active" && (
                         <div className="flex justify-end gap-1.5">
-                          <button onClick={() => { setVisitFor(c.id); setVf({ type: "Resupply", method: c.method, nextVisit: "", notes: "" }); }} className="btn-primary px-2.5 py-1 text-xs"><RefreshCw size={12} /> Visit</button>
-                          <button onClick={() => { setDiscFor(c.id); setDiscReason(""); }} className="btn-ghost px-2 py-1 text-xs"><XCircle size={12} /> Stop</button>
+                          <button onClick={() => { setVisitFor(c.id); setActionError(""); setVf({ type: "Resupply", method: c.method, nextVisit: "", notes: "" }); }} className="btn-primary px-2.5 py-1 text-xs"><RefreshCw size={12} /> Visit</button>
+                          <button onClick={() => { setDiscFor(c.id); setActionError(""); setDiscReason(""); }} className="btn-ghost px-2 py-1 text-xs"><XCircle size={12} /> Stop</button>
                         </div>
                       )}
                     </Cell>
@@ -95,13 +119,13 @@ export default function FamilyPlanning() {
                 const last = c.visits?.[c.visits.length - 1];
                 return (
                   <Row key={c.id} index={i} className={overdueDays > 0 ? "bg-action-50/40" : undefined}>
-                    <Cell><PatientLink patient={patientById(c.patientId)} /></Cell>
+                    <Cell><PatientLink patient={patientOf(c)} /></Cell>
                     <Cell><Badge tone="mist">{c.method}</Badge></Cell>
                     <Cell>{shortDate(c.nextVisit!)}</Cell>
                     <Cell><Badge tone={overdueDays > 0 ? "action" : "amber"}>{overdueDays > 0 ? `${overdueDays}d overdue` : `in ${-overdueDays}d`}</Badge></Cell>
                     <Cell className="text-mist-400">{last ? timeAgo(last.date) : "—"}</Cell>
                     <Cell>
-                      <button onClick={() => { setVisitFor(c.id); setVf({ type: "Resupply", method: c.method, nextVisit: "", notes: "" }); }} className="btn-primary px-2.5 py-1 text-xs">Record visit</button>
+                      <button onClick={() => { setVisitFor(c.id); setActionError(""); setVf({ type: "Resupply", method: c.method, nextVisit: "", notes: "" }); }} className="btn-primary px-2.5 py-1 text-xs">Record visit</button>
                     </Cell>
                   </Row>
                 );
@@ -145,9 +169,10 @@ export default function FamilyPlanning() {
         onClose={() => setOpen(false)}
         title="Register FP client"
         footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button disabled={!f.patientId || !f.startDate} onClick={() => { addFpClient({ ...f, nextVisit: f.nextVisit || undefined } as never); setOpen(false); }}>Save</Button></>}
+          <Button disabled={!f.patientId || !f.startDate || busy} onClick={() => void run(() => (live ? useLiveFamilyPlanning.getState().register(f, registerKey) : addFpClient({ ...f, nextVisit: f.nextVisit || undefined } as never)), () => setOpen(false))}>{busy ? "Saving…" : "Save"}</Button></>}
       >
         <div className="space-y-4">
+          {errorLine}
           <Field label="Patient (female)"><PatientPicker value={f.patientId} onChange={(id) => setF({ ...f, patientId: id })} filter={(p) => p.sex === "F"} /></Field>
           <Grid cols={2}>
             <Field label="Method"><Select value={f.method} onChange={(e) => setF({ ...f, method: e.target.value })} options={FP_METHODS} /></Field>
@@ -165,9 +190,14 @@ export default function FamilyPlanning() {
         onClose={() => setVisitFor(null)}
         title="Record FP visit"
         footer={<><Button variant="ghost" onClick={() => setVisitFor(null)}>Cancel</Button>
-          <Button onClick={() => { if (visitFor) addFpVisit(visitFor, { type: vf.type, method: vf.method, nextVisit: vf.nextVisit ? new Date(vf.nextVisit).toISOString() : undefined, notes: vf.notes.trim() || undefined, by: me }); setVisitFor(null); }}>Save visit</Button></>}
+          <Button disabled={busy} onClick={() => void run(() => {
+            if (!visitFor) return;
+            if (live) return useLiveFamilyPlanning.getState().visit(clientById(visitFor)!, vf);
+            addFpVisit(visitFor, { type: vf.type, method: vf.method, nextVisit: vf.nextVisit ? new Date(vf.nextVisit).toISOString() : undefined, notes: vf.notes.trim() || undefined, by: me });
+          }, () => setVisitFor(null))}>{busy ? "Saving…" : "Save visit"}</Button></>}
       >
         <div className="space-y-4">
+          {errorLine}
           <Grid cols={2}>
             <Field label="Visit type"><Select value={vf.type} onChange={(e) => setVf({ ...vf, type: e.target.value as FpVisitType })} options={VISIT_TYPES} /></Field>
             <Field label={vf.type === "Switch method" ? "New method" : "Method"}>
@@ -185,9 +215,14 @@ export default function FamilyPlanning() {
         onClose={() => setDiscFor(null)}
         title="Discontinue FP"
         footer={<><Button variant="ghost" onClick={() => setDiscFor(null)}>Cancel</Button>
-          <Button variant="action" disabled={!discReason.trim()} onClick={() => { if (discFor) discontinueFp(discFor, discReason.trim()); setDiscFor(null); }}>Discontinue</Button></>}
+          <Button variant="action" disabled={!discReason.trim() || busy} onClick={() => void run(() => {
+            if (!discFor) return;
+            if (live) return useLiveFamilyPlanning.getState().discontinue(clientById(discFor)!, discReason.trim());
+            discontinueFp(discFor, discReason.trim());
+          }, () => setDiscFor(null))}>{busy ? "Saving…" : "Discontinue"}</Button></>}
       >
-        <Field label="Reason"><Select value={discReason} onChange={(e) => setDiscReason(e.target.value)} options={["", "Wants to conceive", "Side effects", "Method failure", "Moved away", "Partner objection", "Switched method"].map((r) => ({ value: r, label: r || "Select a reason…" }))} /></Field>
+        {errorLine}
+        <Field label="Reason"><Select value={discReason} onChange={(e) => setDiscReason(e.target.value)} options={["", ...stopReasons.filter((r) => r !== "Removal")].map((r) => ({ value: r, label: r || "Select a reason…" }))} /></Field>
       </Modal>
     </div>
   );

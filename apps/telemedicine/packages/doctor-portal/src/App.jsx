@@ -1,34 +1,34 @@
-import React, { useEffect, useState, useSyncExternalStore } from "react";
+import React, { useEffect, useState, useSyncExternalStore, lazy, Suspense } from "react";
 import { createBrowserRouter, RouterProvider, Navigate, Route, Routes } from "react-router-dom";
 import { getCurrentDoctor, subscribeToDoctorSession, activateDoctorSession, signOutDoctor } from "./store/doctorSession";
 import SaveNotice from "./components/SaveNotice";
-import DoctorRegistrationPage from "./pages/auth/DoctorRegistrationPage";
-import ProfessionalRegistrationPage from "./pages/auth/ProfessionalRegistrationPage";
-import SignInPage from "./pages/auth/SignInPage";
-import RegistrationStatusPage from "./pages/auth/RegistrationStatusPage";
-import PortalPreviewPage from "./pages/auth/PortalPreviewPage";
+const DoctorRegistrationPage = lazy(() => import("./pages/auth/DoctorRegistrationPage"));
+const ProfessionalRegistrationPage = lazy(() => import("./pages/auth/ProfessionalRegistrationPage"));
+const SignInPage = lazy(() => import("./pages/auth/SignInPage"));
+const RegistrationStatusPage = lazy(() => import("./pages/auth/RegistrationStatusPage"));
+const PortalPreviewPage = lazy(() => import("./pages/auth/PortalPreviewPage"));
 import { AUTH_CONFIGURED, PREVIEW_ENABLED, getAuthenticatedSession, signOutAccount, doctorRequest, checkDoctorSession } from "./services/doctorAuth";
 import { elsewhereSignInUrl, startSessionWatch } from "../../shared-portal/sessionWatch.js";
 import { idleSignInUrl, startIdleTimeout } from "../../shared-portal/idleTimeout.js";
-import LiveDoctorWorkspace from "./live/LiveDoctorWorkspace";
+const LiveDoctorWorkspace = lazy(() => import("./live/LiveDoctorWorkspace"));
 import PortalErrorBoundary from "./components/PortalErrorBoundary";
-import Dashboard from "./pages/dashboard/Dashboard";
-import Calendar from "./pages/calendar/Calendar";
-import Appointments from "./pages/appointments/Appointments";
-import ManageAvailability from "./pages/availability/ManageAvailability";
-import PatientAccessPreview from "./pages/patients/PatientAccessPreview";
-import PatientsPage from "./pages/patients/PatientsPage";
-import ConsultationsPage from "./pages/consultations/ConsultationsPage";
-import PrescriptionsPage from "./pages/prescriptions/PrescriptionsPage";
-import PatientPrescriptionsPage from "./pages/prescriptions/PatientPrescriptionsPage";
-import ReportsPage from "./pages/reports/ReportsPage";
-import MessagesPage from "./pages/messages/MessagesPage";
-import HospitalWorkspacePage from "./pages/hospital-workspace/HospitalWorkspacePage";
-import EarningsPage from "./pages/earnings/EarningsPage";
-import ReviewsPage from "./pages/reviews/ReviewsPage";
-import NotificationsPage from "./pages/notifications/NotificationsPage";
-import ProfilePage from "./pages/profile/ProfilePage";
-import SettingsPage from "./pages/settings/SettingsPage";
+const Dashboard = lazy(() => import("./pages/dashboard/Dashboard"));
+const Calendar = lazy(() => import("./pages/calendar/Calendar"));
+const Appointments = lazy(() => import("./pages/appointments/Appointments"));
+const ManageAvailability = lazy(() => import("./pages/availability/ManageAvailability"));
+const PatientAccessPreview = lazy(() => import("./pages/patients/PatientAccessPreview"));
+const PatientsPage = lazy(() => import("./pages/patients/PatientsPage"));
+const ConsultationsPage = lazy(() => import("./pages/consultations/ConsultationsPage"));
+const PrescriptionsPage = lazy(() => import("./pages/prescriptions/PrescriptionsPage"));
+const PatientPrescriptionsPage = lazy(() => import("./pages/prescriptions/PatientPrescriptionsPage"));
+const ReportsPage = lazy(() => import("./pages/reports/ReportsPage"));
+const MessagesPage = lazy(() => import("./pages/messages/MessagesPage"));
+const HospitalWorkspacePage = lazy(() => import("./pages/hospital-workspace/HospitalWorkspacePage"));
+const EarningsPage = lazy(() => import("./pages/earnings/EarningsPage"));
+const ReviewsPage = lazy(() => import("./pages/reviews/ReviewsPage"));
+const NotificationsPage = lazy(() => import("./pages/notifications/NotificationsPage"));
+const ProfilePage = lazy(() => import("./pages/profile/ProfilePage"));
+const SettingsPage = lazy(() => import("./pages/settings/SettingsPage"));
 
 import "../../shared-portal/portal-revamp.css";
 import "../../shared-portal/premium-pages.css";
@@ -73,6 +73,7 @@ function DoctorApplication() {
     <>
       <SaveNotice key={`notice:${doctor?.id || "signed-out"}`} />
       <PortalErrorBoundary key={`boundary:${doctor?.id || "signed-out"}`}>
+      <Suspense fallback={<main className="dp-session-page" role="status" aria-live="polite">Opening your workspace…</main>}>
       <Routes key={doctor?.id || "signed-out"}>
         <Route path="/register" element={<ProfessionalRegistrationPage />} />
         <Route path="/login" element={<SignInPage />} />
@@ -108,6 +109,7 @@ function DoctorApplication() {
           <Route path="*" element={<Navigate to="/login" replace />} />
         </>}
       </Routes>
+      </Suspense>
       </PortalErrorBoundary>
     </>
   );

@@ -15,6 +15,7 @@ import { getRevenueCycleApi } from "@/billing/runtime";
 import { useIsLiveEmr, useLiveEmr } from "@/emr-live/session";
 import { LIVE_PAYMENT_METHODS, newIdempotencyKey, recordLivePayment, useLiveInvoice, useLiveInvoiceLoad } from "@/emr-live/billing";
 import { describeEmrError } from "@/emr-live/client";
+import { useListValues } from "@/lib/listOptions";
 
 const paymentMethods: PaymentMethod[] = ["CASH", "CARD_POS", "BANK_TRANSFER", "MOBILE_MONEY", "INSURANCE", "OTHER"];
 
@@ -49,7 +50,8 @@ export default function BillingInvoiceDetail() {
   const [error, setError] = useState("");
   const [paymentPending, setPaymentPending] = useState(false);
   const [paymentRequestId, setPaymentRequestId] = useState("");
-  const [form, setForm] = useState({ amount: "", method: "CASH" as PaymentMethod, paymentDate: isoDate(new Date()), reference: "", receivingAccount: "Main cash account", notes: "" });
+  const receivingAccounts = useListValues("receiving-accounts"); // the hospital's Receiving Accounts
+  const [form, setForm] = useState({ amount: "", method: "CASH" as PaymentMethod, paymentDate: isoDate(new Date()), reference: "", receivingAccount: receivingAccounts[0] ?? "", notes: "" });
 
   const invoicePayments = useMemo(() => {
     if (live) return liveView?.payments ?? [];
@@ -74,7 +76,7 @@ export default function BillingInvoiceDetail() {
   function openPayment() {
     setError("");
     setPaymentRequestId(live ? newIdempotencyKey() : `payment:${currentInvoice.id}:${globalThis.crypto.randomUUID()}`);
-    setForm({ amount: (currentInvoice.balanceMinor / 100).toFixed(2), method: "CASH", paymentDate: isoDate(new Date()), reference: "", receivingAccount: "Main cash account", notes: "" });
+    setForm({ amount: (currentInvoice.balanceMinor / 100).toFixed(2), method: "CASH", paymentDate: isoDate(new Date()), reference: "", receivingAccount: receivingAccounts[0] ?? "", notes: "" });
     setPaymentOpen(true);
   }
 
@@ -163,7 +165,7 @@ export default function BillingInvoiceDetail() {
           <Field label="Amount received"><Input autoFocus type="number" min="0.01" max={(invoice.balanceMinor / 100).toFixed(2)} step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} /></Field>
           <div className="grid gap-4 sm:grid-cols-2"><Field label="Payment method"><Select value={form.method} onChange={(event) => setForm({ ...form, method: event.target.value as PaymentMethod })} options={methods.map((method) => ({ value: method, label: paymentMethodLabel[method] }))} /></Field><Field label="Transaction date"><Input type="date" value={form.paymentDate} onChange={(event) => setForm({ ...form, paymentDate: event.target.value })} /></Field></div>
           <Field label="Reference (optional)"><Input value={form.reference} onChange={(event) => setForm({ ...form, reference: event.target.value })} placeholder="Transfer, POS or insurer reference" /></Field>
-          <Field label="Receiving account"><Select value={form.receivingAccount} onChange={(event) => setForm({ ...form, receivingAccount: event.target.value })} options={["Main cash account", "POS clearing account", "Primary bank account", "Mobile money clearing"]} /></Field>
+          <Field label="Receiving account"><Select value={form.receivingAccount} onChange={(event) => setForm({ ...form, receivingAccount: event.target.value })} options={receivingAccounts} /></Field>
           <Field label="Notes (optional)"><Textarea rows={3} value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Additional payment context" /></Field>
           {amountMinor > invoice.balanceMinor && <p className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">Amount received cannot exceed the outstanding balance.</p>}
           {error && <p className="rounded-xl bg-action-50 px-3 py-2 text-sm text-action-700">{error}</p>}

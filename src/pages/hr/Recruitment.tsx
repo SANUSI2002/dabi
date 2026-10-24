@@ -12,7 +12,8 @@ import { useOrg } from "@/store/useOrg";
 import { useHr } from "@/store/useHr";
 import { timeAgo, initials } from "@/lib/format";
 import { cn } from "@/lib/cn";
-import { SKILL_ZONES, type CandidateSource } from "@/data/recruitment";
+import { type CandidateSource } from "@/data/recruitment";
+import { useListValues } from "@/lib/listOptions";
 
 function Stars({ value, onChange }: { value: number; onChange: (n: number) => void }) {
   return (
@@ -46,7 +47,11 @@ export default function Recruitment() {
   const [rejectFor, setRejectFor] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [pool, setPool] = useState(false);
-  const [poolZone, setPoolZone] = useState(SKILL_ZONES[0]);
+  // the hospital's Recruitment Sources, Candidate Rejection Reasons and Talent Pool Skill Zones
+  const sources = useListValues("recruitment-sources").filter((source) => source !== "Inside software"); // recorded for talent-pool candidates
+  const rejectionReasons = useListValues("candidate-rejection-reasons");
+  const skillZones = useListValues("talent-skill-zones");
+  const [poolZone, setPoolZone] = useState(skillZones[0] ?? "");
   const [ivFor, setIvFor] = useState<string | null>(null);
   const [ivf, setIvf] = useState({ scheduledAt: "", interviewerIds: [] as string[], notes: "" });
 
@@ -111,7 +116,7 @@ export default function Recruitment() {
                         {col.type === "Interview" && (
                           <button onClick={() => { setIvFor(c.id); setIvf({ scheduledAt: "", interviewerIds: [], notes: "" }); }} className="btn-ghost px-2 py-1 text-[11px]"><CalendarClock size={11} /> Interview</button>
                         )}
-                        <button onClick={() => { setRejectFor(c.id); setRejectReason(""); setPool(false); setPoolZone(SKILL_ZONES[0]); }} className="btn-ghost px-2 py-1 text-[11px] text-action-600"><X size={11} /> Reject</button>
+                        <button onClick={() => { setRejectFor(c.id); setRejectReason(""); setPool(false); setPoolZone(skillZones[0] ?? ""); }} className="btn-ghost px-2 py-1 text-[11px] text-action-600"><X size={11} /> Reject</button>
                         {col.type === "Hired" ? (
                           !c.hired && <button onClick={() => hire(c.id)} className="btn-primary px-2 py-1 text-[11px]"><UserCheck size={11} /> Hire &amp; onboard</button>
                         ) : (
@@ -161,7 +166,7 @@ export default function Recruitment() {
             <Field label="Email"><Input value={cf.email} onChange={(e) => setCf({ ...cf, email: e.target.value })} /></Field>
             <Field label="Phone"><Input value={cf.phone} onChange={(e) => setCf({ ...cf, phone: e.target.value })} /></Field>
           </Grid>
-          <Field label="Source"><Select value={cf.source} onChange={(e) => setCf({ ...cf, source: e.target.value as CandidateSource })} options={["Application", "Referral", "Inside software"]} /></Field>
+          <Field label="Source"><Select value={cf.source} onChange={(e) => setCf({ ...cf, source: e.target.value as CandidateSource })} options={sources} /></Field>
           {cf.source === "Referral" && (
             <Field label="Referred by"><Select value={cf.referredBy} onChange={(e) => setCf({ ...cf, referredBy: e.target.value })} options={[{ value: "", label: "Select staff…" }, ...staff.map((s) => ({ value: s.id, label: s.name }))]} /></Field>
           )}
@@ -186,9 +191,9 @@ export default function Recruitment() {
           >Reject</Button></>}
       >
         <div className="space-y-4">
-          <Field label="Reason"><Select value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} options={["", "Overqualified", "Underqualified", "Failed practical test", "Salary mismatch", "Did not attend interview", "Position filled internally", "Other"].map((r) => ({ value: r, label: r || "Select a reason…" }))} /></Field>
+          <Field label="Reason"><Select value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} options={["", ...rejectionReasons].map((r) => ({ value: r, label: r || "Select a reason…" }))} /></Field>
           <Checkbox label="Keep in Talent Pool for future openings" checked={pool} onChange={(e) => setPool(e.target.checked)} />
-          {pool && <Field label="Skill zone"><Select value={poolZone} onChange={(e) => setPoolZone(e.target.value)} options={SKILL_ZONES} /></Field>}
+          {pool && <Field label="Skill zone"><Select value={poolZone} onChange={(e) => setPoolZone(e.target.value)} options={skillZones} /></Field>}
         </div>
       </Modal>
 
