@@ -49,7 +49,8 @@ export type SalesDocStatus =
   | "Partially Paid"
   | "Paid"
   | "Overdue"
-  | "Void";
+  | "Void"
+  | "Written Off";
 
 export type Estimate = {
   id: string;
@@ -89,7 +90,7 @@ export type Invoice = {
   dueDate: string;
   lines: SalesLine[];
   notes?: string;
-  status: Extract<SalesDocStatus, "Draft" | "Open" | "Partially Paid" | "Paid" | "Overdue" | "Void">;
+  status: Extract<SalesDocStatus, "Draft" | "Open" | "Partially Paid" | "Paid" | "Overdue" | "Void" | "Written Off">;
   journalEntryId?: string;
   amountPaid: number; // in the invoice's currency — cash receipts + credit-note applications
   currency: string; // ISO — the currency the document is denominated in
@@ -97,7 +98,7 @@ export type Invoice = {
   createdBy: string;
   createdAt: string;
   issuedAt?: string;
-  source?: "Manual" | "EMR Billing";
+  source?: "Manual" | "EMR Billing" | "Payer Bill"; // Payer Bill: a patient's charges billed to their HMO or NHIA
   emrInvoiceId?: string;
   isRecurring?: boolean;
   recurrenceEveryMonths?: number;

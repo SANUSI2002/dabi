@@ -91,6 +91,7 @@ export const LIVE_CONNECTED_ROUTES: Record<string, string | readonly string[]> =
   "/accounting/quotations": "acct.view",
   "/accounting/sales-orders": "acct.view",
   "/accounting/invoices": "acct.view",
+  "/accounting/payers": "acct.view",
   "/accounting/receipts": "acct.view",
   "/accounting/credit-notes": "acct.view",
   "/accounting/sales-receipts": "acct.view",

@@ -125,7 +125,7 @@ export const MODULES: ModuleDef[] = [
   { key: "accounting.gl", product: "accounting", label: "General Ledger", core: true, description: "Chart of accounts, journals, trial balance, period control",
     routes: ["/accounting", "/accounting/chart-of-accounts", "/accounting/journals", "/accounting/general-ledger", "/accounting/trial-balance", "/accounting/period-end", "/accounting/setup", "/accounting/settings", "/accounting/audit-trail", "/accounting/notifications"] },
   { key: "accounting.ar", product: "accounting", label: "Accounts Receivable", description: "Customers, quotes, orders, invoices, receipts, credit notes",
-    routes: ["/accounting/customers", "/accounting/quotations", "/accounting/sales-orders", "/accounting/invoices", "/accounting/sales-receipts", "/accounting/delayed-charges", "/accounting/receipts", "/accounting/credit-notes"] },
+    routes: ["/accounting/customers", "/accounting/quotations", "/accounting/sales-orders", "/accounting/invoices", "/accounting/payers", "/accounting/sales-receipts", "/accounting/delayed-charges", "/accounting/receipts", "/accounting/credit-notes"] },
   { key: "accounting.ap", product: "accounting", label: "Accounts Payable", description: "Vendors, requisitions, POs, goods receipts, bills, payments",
     routes: ["/accounting/vendors", "/accounting/requisitions", "/accounting/purchase-orders", "/accounting/goods-receipts", "/accounting/bills", "/accounting/vendor-payments", "/accounting/vendor-credits"] },
   { key: "accounting.banking", product: "accounting", label: "Banking", description: "Bank accounts, transactions, feeds, reconciliation",

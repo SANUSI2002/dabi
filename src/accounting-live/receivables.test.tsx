@@ -20,10 +20,12 @@ import { useAccountingSettings } from "@/store/accounting/useAccountingSettings"
 import { useLiveEmr } from "@/emr-live/session";
 import { LiveWorkforceSync } from "@/workforce-live/LiveWorkforceSync";
 import { useWorkforceSync } from "@/workforce-live/sync";
-import { emailStatementNow, sendRemindersNow, useLiveARMeta } from "./receivables";
+import { emailStatementNow, loadReceivables, sendRemindersNow, useLiveARMeta } from "./receivables";
 import { useLiveAcctSettingsMeta } from "./settings";
 import { customerStatementPdf, emailInvoiceNow, loadStatement } from "./documents";
 import { PortalLinks } from "@/pages/accounting/_portalLinks";
+import Payers from "@/pages/accounting/Payers";
+import { usePayers } from "./payers";
 
 const C = "00000000-0000-4000-8000-0000000000c1";
 const settings = {
@@ -170,5 +172,21 @@ describe("live receivables", () => {
     expect(writes()).toContainEqual(["/portal-links", "POST", { partyKind: "customer", partyId: C, days: 30, email: true }]);
     (await screen.findByRole("button", { name: /Revoke/ })).click();
     expect(await screen.findByText("Revoked")).toBeInTheDocument();
+  });
+
+  it("bills a patient's invoice to their HMO from the claims page, and reloads the payers", async () => {
+    await ready();
+    const H = "00000000-0000-4000-8000-0000000000c9";
+    const withHmo = { ...receivables, customers: [...receivables.customers.map((c) => ({ ...c, type: "Patient", arAccountNumber: 1100 })), { ...receivables.customers[0], id: H, name: "Reliance HMO", type: "HMO", arAccountNumber: 1120 }] };
+    const overview = { payers: [{ id: H, name: "Reliance HMO", type: "HMO" }], transfers: [], claims: [], capitations: [], writeOffs: [], creditLossRuns: [], allowance: 0, bands: ["Current", "1-30 days", "31-60 days", "61-90 days", "Over 90 days"], defaultLossRates: { patient: [2, 5, 15, 30, 60], payer: [1, 2, 5, 15, 35] } };
+    api.accountingRequest.mockImplementation(async (path: string, o?: { method?: string }) => ({ data: o?.method ? { id: "t1", payerInvoiceNumber: "INV-2026-000009" } : path === "/settings" ? settings : path === "/receivables" ? withHmo : path === "/receivables/payers" ? overview : {} }));
+    await loadReceivables();
+    render(<MemoryRouter><Payers /></MemoryRouter>);
+    await waitFor(() => expect(usePayers.getState().payers).toHaveLength(1));
+    (await screen.findAllByRole("button", { name: /Bill payer/ }))[0].click();
+    await screen.findByText(/Bill all or part of it to their payer/);
+    (await screen.findAllByRole("button", { name: /Bill payer/ })).at(-1)!.click(); // the dialog's
+    expect(await screen.findByText("Billed: payer invoice INV-2026-000009.")).toBeInTheDocument();
+    expect(writes()).toContainEqual(["/receivables/invoices/i1/bill-payer", "POST", expect.objectContaining({ payerId: H, amount: 215000 })]);
   });
 });

@@ -121,6 +121,7 @@ const AcctCustomers = lazy(() => import("@/pages/accounting/Customers"));
 const AcctEstimates = lazy(() => import("@/pages/accounting/Estimates"));
 const AcctSalesOrders = lazy(() => import("@/pages/accounting/SalesOrders"));
 const AcctInvoices = lazy(() => import("@/pages/accounting/Invoices"));
+const AcctPayers = lazy(() => import("@/pages/accounting/Payers"));
 const AcctReceipts = lazy(() => import("@/pages/accounting/CustomerReceipts"));
 const AcctCreditNotes = lazy(() => import("@/pages/accounting/CreditNotes"));
 const AcctSalesReceipts = lazy(() => import("@/pages/accounting/SalesReceipts"));
@@ -509,6 +510,7 @@ export default function App() {
           <Route path="/accounting/quotations" element={<AcctEstimates />} />
           <Route path="/accounting/sales-orders" element={<AcctSalesOrders />} />
           <Route path="/accounting/invoices" element={<AcctInvoices />} />
+          <Route path="/accounting/payers" element={<AcctPayers />} />
           <Route path="/accounting/receipts" element={<AcctReceipts />} />
           <Route path="/accounting/credit-notes" element={<AcctCreditNotes />} />
           <Route path="/accounting/sales-receipts" element={<AcctSalesReceipts />} />
