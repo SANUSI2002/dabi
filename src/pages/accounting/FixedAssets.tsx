@@ -103,7 +103,7 @@ export default function FixedAssets() {
                       <div className="flex justify-end gap-1">
                         {a.status === "Under Construction" && <button className="btn-primary px-2 py-1 text-xs" onClick={(e) => { e.stopPropagation(); setCcf({ amount: 0, date: isoDate(new Date()), description: "", fromAccount: 1010 }); setCwip(a); }}>Costs</button>}
                         {(a.status === "Active" || a.status === "Impaired") && <button className="btn-ghost px-2 py-1 text-xs" onClick={(e) => { e.stopPropagation(); setRv({ newValue: netBookValue(a), date: isoDate(new Date()), note: "" }); setReval(a); }}>Revalue</button>}
-                        {a.status !== "Disposed" && a.status !== "Under Construction" && <button className="btn-ghost px-2 py-1 text-xs" onClick={(e) => { e.stopPropagation(); setDf({ date: isoDate(new Date()), proceeds: 0, proceedsAccount: 1010 }); setDispose(a); }}><Archive size={11} /></button>}
+                        {a.status !== "Disposed" && a.status !== "Under Construction" && <button className="btn-ghost px-2 py-1 text-xs" onClick={(e) => { e.stopPropagation(); setDf({ date: isoDate(new Date()), proceeds: 0, proceedsAccount: 1010 }); setDispose(a); }} aria-label="Dispose of asset" title="Dispose of asset"><Archive size={11} /></button>}
                       </div>
                     </Cell>
                   </Row>

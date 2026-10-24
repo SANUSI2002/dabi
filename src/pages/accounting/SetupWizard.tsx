@@ -22,7 +22,12 @@ export default function SetupWizard() {
   const { accounts, booksLockedBefore, setBooksLockedBefore, applyCoaTemplate, postJournal } = useLedger();
   const [step, setStep] = useState(0);
   const [orgForm, setOrgForm] = useState(org);
+  // the form follows the saved profile whenever it changes (it arrives from the server after the page opens)
+  const [shownOrg, setShownOrg] = useState(org);
+  if (org !== shownOrg) { setShownOrg(org); setOrgForm(org); }
   const [taxForm, setTaxForm] = useState(taxRegistration);
+  const [shownTax, setShownTax] = useState(taxRegistration);
+  if (taxRegistration !== shownTax) { setShownTax(taxRegistration); setTaxForm(taxRegistration); }
   const [tmpl, setTmpl] = useState("");
   const [lock, setLock] = useState(booksLockedBefore ? booksLockedBefore.slice(0, 10) : "2026-01-01");
   const [ob, setOb] = useState<{ accountNumber: number; amount: number }[]>([{ accountNumber: 1010, amount: 0 }]);

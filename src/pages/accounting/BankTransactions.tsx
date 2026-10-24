@@ -12,7 +12,8 @@ import { parseStatement } from "@/lib/bankStatement";
 export default function BankTransactions() {
   const { accounts, glMovements, recordBankLine, importStatementLines, statementLines } = useBanking();
   const allAccts = useLedger((s) => s.accounts).filter((a) => a.isActive);
-  const [acctNo, setAcctNo] = useState(accounts[0]?.accountNumber ?? 1010);
+  // opens on the first bank account (not petty cash, which sorts first)
+  const [acctNo, setAcctNo] = useState((accounts.find((a) => a.bankName !== "Cash") ?? accounts[0])?.accountNumber ?? 1010);
   const [entry, setEntry] = useState(false);
   const [imp, setImp] = useState(false);
   const [err, setErr] = useState<string | null>(null);

@@ -60,10 +60,10 @@ export default function PurchaseOrders() {
                 <Cell><Badge tone={statusTone(o.status === "Received" || o.status === "Billed" ? "approved" : o.status === "Cancelled" ? "rejected" : "submitted")}>{o.status}</Badge></Cell>
                 <Cell>
                   <div className="flex justify-end gap-1">
-                    {o.status === "Draft" && <button className="btn-ghost px-2 py-1 text-xs" onClick={() => sendPurchaseOrder(o.id)}><Send size={11} /></button>}
+                    {o.status === "Draft" && <button className="btn-ghost px-2 py-1 text-xs" onClick={() => sendPurchaseOrder(o.id)} aria-label="Send to vendor" title="Send to vendor"><Send size={11} /></button>}
                     {(o.status === "Sent" || o.status === "Partially Received") && <button className="btn-soft px-2 py-1 text-xs" onClick={() => { setRcv({}); setReceive(o); }}><PackageCheck size={11} /> Receive</button>}
                     {(o.status === "Received" || o.status === "Partially Received") && <button className="btn-primary px-2 py-1 text-xs" onClick={() => convertPOToBill(o.id)}>To bill</button>}
-                    {(o.status === "Draft" || o.status === "Sent") && <button className="btn-ghost px-2 py-1 text-xs" onClick={() => cancelPurchaseOrder(o.id)}><X size={11} /></button>}
+                    {(o.status === "Draft" || o.status === "Sent") && <button className="btn-ghost px-2 py-1 text-xs" onClick={() => cancelPurchaseOrder(o.id)} aria-label="Cancel order" title="Cancel order"><X size={11} /></button>}
                   </div>
                 </Cell>
               </Row>

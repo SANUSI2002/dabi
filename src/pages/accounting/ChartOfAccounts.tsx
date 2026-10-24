@@ -132,7 +132,7 @@ export default function ChartOfAccounts() {
                           <Pencil size={12} />
                         </button>
                         {a.isActive && !a.system && (
-                          <button className="btn-ghost px-2 py-1 text-xs" onClick={() => archiveAccount(a.id)}><Archive size={12} /></button>
+                          <button className="btn-ghost px-2 py-1 text-xs" onClick={() => archiveAccount(a.id)} aria-label="Archive account" title="Archive account"><Archive size={12} /></button>
                         )}
                       </div>
                     </Cell>

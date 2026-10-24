@@ -77,7 +77,7 @@ export default function Vendors() {
                     <Cell><Badge tone="mist">{v.category}</Badge></Cell>
                     <Cell>Net {v.paymentTermsDays}</Cell>
                     <Cell className="font-mono font-semibold">{money(vendorBalance(v.id))}</Cell>
-                    <Cell><button className="btn-ghost px-2 py-1 text-xs" onClick={(e) => { e.stopPropagation(); setStatement(v); }}><Printer size={12} /></button></Cell>
+                    <Cell><button className="btn-ghost px-2 py-1 text-xs" onClick={(e) => { e.stopPropagation(); setStatement(v); }} aria-label="Statement" title="Statement of account"><Printer size={12} /></button></Cell>
                   </Row>
                 ))}
               </Table>

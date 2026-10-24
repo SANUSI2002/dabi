@@ -64,7 +64,7 @@ export default function BankFeeds() {
                       <Cell>{r.direction ? <Badge tone="mist">{r.direction === "in" ? "money in" : "money out"}</Badge> : "any"}</Cell>
                       <Cell className="font-mono text-xs">{r.contraAccount}</Cell>
                       <Cell><button onClick={() => updateRule(r.id, { active: !r.active })}><Badge tone={r.active ? "brand" : "mist"}>{r.active ? "On" : "Off"}</Badge></button></Cell>
-                      <Cell><button className="btn-ghost px-2 py-1 text-xs" onClick={() => removeRule(r.id)}><Trash2 size={12} /></button></Cell>
+                      <Cell><button className="btn-ghost px-2 py-1 text-xs" onClick={() => removeRule(r.id)} aria-label="Remove rule" title="Remove rule"><Trash2 size={12} /></button></Cell>
                     </Row>
                   ))}
                 </Table>
@@ -87,9 +87,9 @@ export default function BankFeeds() {
                         {live && c.status === "Reauth Required" && provider && <button className="btn-primary px-2 py-1 text-xs" disabled={busy} onClick={() => liveRun(connectBankFeed(c.accountNumber, provider.publicKey))}><Link2 size={11} /> Reconnect</button>}
                         {(c.status === "Connected" || (live && c.status === "Error")) && <>
                           <button className="btn-primary px-2 py-1 text-xs" disabled={busy} onClick={() => { if (live) return liveRun(syncBankFeed(c.id)); const r = syncFeed(c.id); setMsg(`Pulled ${r.imported} transaction(s); ${r.autoMatched} auto-categorised by rules. The rest are in Reconciliation.`); }}><RefreshCw size={11} /> Sync</button>
-                          <button className="btn-ghost px-2 py-1 text-xs" onClick={() => { const r = applyRulesTo(c.accountNumber); setMsg(`${r.matched} line(s) matched.`); }}><Zap size={11} /></button>
+                          <button className="btn-ghost px-2 py-1 text-xs" onClick={() => { const r = applyRulesTo(c.accountNumber); setMsg(`${r.matched} line(s) matched.`); }} aria-label="Apply rules" title="Apply rules"><Zap size={11} /></button>
                         </>}
-                        {c.status !== "Disconnected" && <button className="btn-ghost px-2 py-1 text-xs" disabled={busy} title="Disconnect" onClick={() => { if (live) return liveRun(disconnectBankFeed(c.id)); disconnectBank(c.id); }}><Unplug size={11} /></button>}
+                        {c.status !== "Disconnected" && <button className="btn-ghost px-2 py-1 text-xs" disabled={busy} title="Disconnect" aria-label="Disconnect" onClick={() => { if (live) return liveRun(disconnectBankFeed(c.id)); disconnectBank(c.id); }}><Unplug size={11} /></button>}
                       </div>
                     </Cell>
                   </Row>

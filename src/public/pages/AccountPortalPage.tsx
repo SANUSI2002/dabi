@@ -16,7 +16,11 @@ type View = { kind: "customer" | "vendor"; hospital: Hospital; party: { name: st
   | { kind: "vendor"; bills: { id: string; number: string; yourReference?: string; date: string; dueDate?: string; currency: string; status: string; total: number; balance: number }[]; payments: { id: string; number: string; date: string; method: string; amount: number; withheldTax: number; reference?: string }[] }
 );
 
-const naira = (n: number, currency = "NGN") => `${currency === "NGN" ? "₦" : `${currency} `}${n.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+// negatives in brackets, as on the hospital's own screens: "(₦30,000.00)"
+const naira = (n: number, currency = "NGN") => {
+  const text = `${currency === "NGN" ? "₦" : `${currency} `}${Math.abs(n).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return n < -0.005 ? `(${text})` : text;
+};
 const day = (d?: string) => (d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—");
 const tone = (s: string) => (s === "Overdue" ? "bg-red-50 text-red-700" : s === "Paid" ? "bg-emerald-50 text-emerald-700" : s === "Void" ? "bg-slate-100 text-slate-500" : "bg-amber-50 text-amber-800");
 

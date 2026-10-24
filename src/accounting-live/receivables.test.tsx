@@ -25,6 +25,7 @@ import { useLiveAcctSettingsMeta } from "./settings";
 import { customerStatementPdf, emailInvoiceNow, loadStatement } from "./documents";
 import { PortalLinks } from "@/pages/accounting/_portalLinks";
 import Payers from "@/pages/accounting/Payers";
+import AccountingSettings from "@/pages/accounting/AccountingSettings";
 import { usePayers } from "./payers";
 
 const C = "00000000-0000-4000-8000-0000000000c1";
@@ -188,5 +189,20 @@ describe("live receivables", () => {
     (await screen.findAllByRole("button", { name: /Bill payer/ })).at(-1)!.click(); // the dialog's
     expect(await screen.findByText("Billed: payer invoice INV-2026-000009.")).toBeInTheDocument();
     expect(writes()).toContainEqual(["/receivables/invoices/i1/bill-payer", "POST", expect.objectContaining({ payerId: H, amount: 215000 })]);
+  });
+
+  it("never shows or saves the preview's sample company on a live hospital, even before its settings load", async () => {
+    // the settings page is open before the hospital's own settings have arrived
+    let release: () => void = () => {};
+    const gate = new Promise<void>((r) => { release = r; });
+    api.accountingRequest.mockImplementation(async (path: string) => { if (path === "/settings") await gate; return { data: path === "/settings" ? settings : path === "/receivables" ? receivables : {} }; });
+    render(<LiveWorkforceSync />);
+    render(<MemoryRouter><AccountingSettings /></MemoryRouter>);
+    const legal = await screen.findByLabelText("Legal name");
+    expect((legal as HTMLInputElement).value).toBe(""); // not "Sabi Health Post Limited"
+    expect(screen.getByLabelText("Tax ID (TIN)")).toHaveValue("");
+    release();
+    await waitFor(() => expect(screen.getByLabelText("Legal name")).toHaveValue("Sabi Test General Hospital Ltd"));
+    expect(writes().filter(([p]) => p === "/settings")).toEqual([]); // nothing saved by opening the page
   });
 });

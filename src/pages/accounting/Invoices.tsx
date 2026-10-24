@@ -174,7 +174,7 @@ export default function Invoices() {
                       <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                         {inv.status === "Draft" && <button className="btn-primary px-2 py-1 text-xs" onClick={() => { const r = issueInvoice(inv.id); if (!r.ok) alert(r.error); }}><Send size={11} /> Issue</button>}
                         {(inv.status === "Open" || inv.status === "Partially Paid" || inv.status === "Overdue") && <button className="btn-primary px-2 py-1 text-xs" onClick={() => { setPay(inv); setPayF({ ...payF, amount: invoiceBalance(inv) }); }}><Banknote size={11} /> Pay</button>}
-                        <button className="btn-ghost px-2 py-1 text-xs" onClick={() => setPrint(inv)}><Printer size={11} /></button>
+                        <button className="btn-ghost px-2 py-1 text-xs" onClick={() => setPrint(inv)} aria-label="Print invoice" title="Print"><Printer size={11} /></button>
                       </div>
                     </Cell>
                   </Row>

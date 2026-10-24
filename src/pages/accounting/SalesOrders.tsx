@@ -46,8 +46,8 @@ export default function SalesOrders() {
                 <Cell>
                   <div className="flex justify-end gap-1">
                     {o.status === "Draft" && <>
-                      <button className="btn-ghost px-2 py-1 text-xs" onClick={() => confirmSalesOrder(o.id)}><Check size={11} /></button>
-                      <button className="btn-ghost px-2 py-1 text-xs" onClick={() => cancelSalesOrder(o.id)}><X size={11} /></button>
+                      <button className="btn-ghost px-2 py-1 text-xs" onClick={() => confirmSalesOrder(o.id)} aria-label="Confirm order" title="Confirm order"><Check size={11} /></button>
+                      <button className="btn-ghost px-2 py-1 text-xs" onClick={() => cancelSalesOrder(o.id)} aria-label="Cancel order" title="Cancel order"><X size={11} /></button>
                     </>}
                     {o.status === "Confirmed" && <button className="btn-primary px-2 py-1 text-xs" onClick={() => convertOrderToInvoice(o.id)}>To invoice <ArrowRight size={10} /></button>}
                   </div>

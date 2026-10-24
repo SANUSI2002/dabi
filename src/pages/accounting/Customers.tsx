@@ -95,7 +95,7 @@ export default function Customers() {
                       <Cell className="font-mono">{c.creditLimit ? money(c.creditLimit) : "—"}</Cell>
                       <Cell className="font-mono font-semibold">{money(bal)}</Cell>
                       <Cell>{c.creditHold ? <Badge tone="action">On hold</Badge> : bal > c.creditLimit && c.creditLimit > 0 ? <Badge tone="amber">Over limit</Badge> : <Badge tone="brand">OK</Badge>}</Cell>
-                      <Cell><button className="btn-ghost px-2 py-1 text-xs" onClick={(e) => { e.stopPropagation(); setStatement(c); }}><Printer size={12} /></button></Cell>
+                      <Cell><button className="btn-ghost px-2 py-1 text-xs" onClick={(e) => { e.stopPropagation(); setStatement(c); }} aria-label="Statement" title="Statement of account"><Printer size={12} /></button></Cell>
                     </Row>
                   );
                 })}
