@@ -10,6 +10,7 @@ describe('official Sabi branding', () => {
     const artwork = brand.querySelector('img')!;
     expect(artwork.src).toContain('sabi-wordmark.webp');
     expect(artwork).toHaveAttribute('alt', '');
+    expect(artwork).toHaveAttribute('height', '163');
     expect(artwork).toHaveStyle({ objectFit: 'contain', height: 'auto' });
   });
 

@@ -12,5 +12,5 @@ export default function SabiBrand({ symbol = false, size = 36, width = 160, inve
     background: 'transparent', padding: 0, borderRadius: 0,
     ...(inverse ? { background: '#fff', borderRadius: 10, padding: symbol ? 4 : '6px 10px', boxSizing: 'content-box' as const } : {}),
     ...style,
-  }}><img src={symbol ? symbolImage : wordmark} alt="" aria-hidden="true" width={symbol ? 256 : 720} style={{ display: 'block', width: '100%', height: 'auto', objectFit: 'contain' }} /></span>;
+  }}><img src={symbol ? symbolImage : wordmark} alt="" aria-hidden="true" width={symbol ? 256 : 720} height={symbol ? 256 : 163} style={{ display: 'block', width: '100%', height: 'auto', objectFit: 'contain' }} /></span>;
 }
