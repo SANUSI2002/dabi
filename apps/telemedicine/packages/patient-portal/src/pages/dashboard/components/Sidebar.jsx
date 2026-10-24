@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, Menu, X } from "lucide-react";
 import { NavRow } from "../share";
 import { FOOTER_ITEMS, NAV_GROUPS } from "../data";
-import logo from "../../../assets/logo.jpeg";
+import logo from "../../../../../shared-portal/assets/sabi-symbol.webp";
 import { signOut } from "../../../utils/sabiIdentity";
 import { forgetThisDevice } from "../../../pwa/pushNotifications";
 
@@ -88,7 +88,7 @@ export function Sidebar() {
             src={logo}
             alt="Sabi Health Logo"
             className="sabi-sidebar-brand-icon"
-            style={{ objectFit: "cover" }}
+            style={{ objectFit: "contain", background: "transparent" }}
           />
 
           <div className="sabi-sidebar-brand-text">

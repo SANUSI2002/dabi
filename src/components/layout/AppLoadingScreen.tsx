@@ -1,4 +1,5 @@
-import { Activity, ShieldPlus, Sparkles } from "lucide-react";
+import { Activity, Sparkles } from "lucide-react";
+import SabiBrand from '@/components/brand/SabiBrand';
 import { motion } from "framer-motion";
 import { routeLabel } from "./loadingRoutes";
 import { isRiderPath, RiderRouteLoader } from "@/rider/RiderLoading";
@@ -14,9 +15,7 @@ function BrandLoader({ compact = false }: { compact?: boolean }) {
           transition={{ duration: 1.5, ease: "linear", repeat: Infinity }}
           style={{ borderTopColor: "rgb(15 192 109)", borderRightColor: "transparent" }}
         />
-        <span className={`${compact ? "h-12 w-12 rounded-2xl" : "h-14 w-14 rounded-[20px]"} grid place-items-center bg-brand-gradient text-white shadow-glow`}>
-          <ShieldPlus size={compact ? 23 : 27} />
-        </span>
+        <SabiBrand symbol size={compact ? 42 : 50}/>
       </div>
       {!compact && (
         <div className="mt-5 flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.18em] text-brand-700">

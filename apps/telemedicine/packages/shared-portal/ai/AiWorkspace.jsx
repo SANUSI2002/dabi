@@ -1,3 +1,4 @@
+import SabiBrand from "../SabiBrand";
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowUp, Check, Download, FileText, Loader2, MessageCircle, Plus, RefreshCw, Search, ShieldCheck, Sparkles, Square, Trash2, X } from 'lucide-react';
 import './ai-workspace.css';
@@ -185,7 +186,7 @@ export default function AiWorkspace({ request, accountName = 'Your workspace', h
 
   return <section className={`sabi-ai-workspace${embedded ? ' sabi-ai-embedded' : ''}`} aria-label="Sabi AI workspace">
     <aside className={`sabi-ai-rail${historyOpen ? ' sabi-ai-history-open' : ''}`}>
-      <a className="sabi-ai-brand" href={homeHref}><span><Sparkles size={20} aria-hidden="true" /></span><b>Sabi AI</b></a>
+      <a className="sabi-ai-brand" href={homeHref}><SabiBrand symbol size={32} /><b>Sabi AI</b></a>
       <button type="button" className="sabi-ai-primary" onClick={startNew} disabled={busy}><Plus size={18} aria-hidden="true" /> New conversation</button>
       <label className="sabi-ai-search"><Search size={16} aria-hidden="true" /><span className="sabi-ai-sr">Search your conversations</span><input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search conversations" /></label>
       <nav aria-label="Your conversations"><p className="sabi-ai-overline">Recent conversations</p>

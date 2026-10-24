@@ -1,15 +1,9 @@
+import SabiBrand from '../../../../shared-portal/SabiBrand';
 import CareStory from "../../../../shared-portal/CareStory";
 import SocialSignInStatus from "../../../../shared-portal/SocialSignInStatus";
 import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import {
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  ShieldCheck,
-  HeartPulse,
-} from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { completeSocialSignup, restoreSession, signIn, verifyMfaLogin, mayUsePatientPortal } from "../../utils/sabiIdentity";
 import { useSocialSignIn } from "../../utils/socialSignIn";
 import { useEffect } from "react";
@@ -83,14 +77,7 @@ export default function SabiHealthLogin({ responder = false, onSignedIn } = {}) 
       {/* Left panel - form */}
       <div className="sabi-patient-login-form w-full lg:w-1/2 flex flex-col justify-center px-6 sm:px-10 lg:px-14 py-6 relative z-10">
         <div className="w-full max-w-sm mx-auto">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-500 flex items-center justify-center shadow-md shadow-emerald-900/20">
-              <HeartPulse className="w-5 h-5 text-white" />
-            </div>
-            <h1 className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-900 to-emerald-600 bg-clip-text text-transparent">
-              Sabi Health
-            </h1>
-          </div>
+          <h1><SabiBrand width={165}/></h1>
           <p className="mt-2 text-sm text-gray-500 italic">Precision Care, Compassionate Vision.</p>
 
           <div className="mt-4">

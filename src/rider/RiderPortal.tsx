@@ -1,3 +1,4 @@
+import SabiBrand from '@/components/brand/SabiBrand';
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation, useMatch, useNavigate } from "react-router-dom";
 import {
@@ -497,7 +498,7 @@ function RefreshButton({ busy, onClick }: { busy: boolean; onClick: () => void }
 function Brand() {
   return (
     <Link className="rider-brand" to="/rider/dashboard">
-      <span><Bike size={22} aria-hidden="true" /></span>
+      <SabiBrand symbol size={38} inverse/>
       <div><strong>Sabi Health</strong><small>RIDER PORTAL</small></div>
     </Link>
   );

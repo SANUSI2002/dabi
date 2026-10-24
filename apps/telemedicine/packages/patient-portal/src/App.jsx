@@ -1,3 +1,4 @@
+import SabiBrand from "../../shared-portal/SabiBrand";
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { getCurrentUser, restoreSession, signOut, authorizedRequest, checkSession, mayUsePatientPortal } from "./utils/sabiIdentity";
@@ -149,13 +150,7 @@ function Logo() {
 
   return (
     <div className="absolute top-2 left-4 sm:top-3 sm:left-8 z-50">
-      <span
-        className={`text-2xl sm:text-3xl font-bold tracking-tight ${
-          isSignup ? "text-white" : "text-teal-800"
-        }`}
-      >
-        SabiHealth
-      </span>
+      <SabiBrand width={170} inverse={isSignup} />
     </div>
   );
 }

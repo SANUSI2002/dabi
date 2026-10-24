@@ -24,7 +24,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import "./Sidebar.css";
-import logo from '../../../patient-portal/src/assets/logo.jpeg';
+import logo from '../../../shared-portal/assets/sabi-symbol.webp';
 import {getCurrentDoctor} from '../store/doctorSession';
 
 /* ─── Navigation items ───────────────────────────────────────── */
@@ -106,7 +106,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
 
       {/* ── Brand + desktop collapse toggle ─────────────────── */}
       <div className="dp-sidebar-brand">
-        <img className="dp-sidebar-brand-icon" src={logo} alt="Sabi Health" />
+        <img className="dp-sidebar-brand-icon" style={{ objectFit: "contain", background: "transparent" }} src={logo} alt="Sabi Health" />
 
         <div className="dp-sidebar-brand-text">
           <div className="dp-sidebar-brand-name">Sabi Health</div>

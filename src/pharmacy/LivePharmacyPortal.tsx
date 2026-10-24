@@ -1,18 +1,8 @@
+import SabiBrand from "@/components/brand/SabiBrand";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  Pill,
-  Building2,
-  Package,
-  FileText,
-  ShoppingBag,
-  LogOut,
-  ShieldCheck,
-  Users,
-  BarChart3,
-  Boxes,
-} from "lucide-react";
+import { Building2, Package, FileText, ShoppingBag, LogOut, ShieldCheck, Users, BarChart3, Boxes } from "lucide-react";
 import {
   restoreLiveIdentity,
   liveSignOut,
@@ -274,7 +264,7 @@ export default function LivePharmacyPortal() {
           to="/pharmacy-portal"
           className="flex min-h-11 items-center gap-3 font-display text-xl font-bold"
         >
-          <Pill className="text-[#f5b94e]" />
+          <SabiBrand symbol size={36} inverse />
           Sabi Pharmacy
         </Link>
         <p className="mt-4 text-sm font-semibold text-[#f5b94e]">

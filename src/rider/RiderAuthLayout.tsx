@@ -1,3 +1,4 @@
+import SabiBrand from '@/components/brand/SabiBrand';
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, Bike, Check, Eye, EyeOff, Radio, ShieldCheck, Wallet, X } from "lucide-react";
@@ -11,7 +12,7 @@ export function RiderAuthLayout({ children, registration = false }: { children: 
     <div className={`sabi-rider rider-access${registration ? " rider-access-register" : ""}`}>
       <header className="rider-access-header">
         <Link className="rider-brand" to="/rider/login">
-          <span><Bike size={22} aria-hidden="true" /></span>
+          <SabiBrand symbol size={38} inverse/>
           <div><strong>Sabi Health</strong><small>RIDER NETWORK</small></div>
         </Link>
         <a className="rider-access-home" href={SABI_HEALTH_URL}>Sabi Health <ArrowUpRight size={16} aria-hidden="true" /></a>

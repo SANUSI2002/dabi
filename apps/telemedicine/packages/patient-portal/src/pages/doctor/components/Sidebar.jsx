@@ -4,7 +4,7 @@ import { ChevronLeft, Menu, LogOut, Settings } from "lucide-react";
 import { NavRow } from "../share";
 import { NAV_ITEMS } from "../data";
 import { useSidebar } from "../../hooks/useSidebar";
-import sabiLogo from "../../../assets/logo.jpeg";
+import sabiLogo from "../../../../../shared-portal/assets/sabi-symbol.webp";
 
 export function Sidebar() {
   const location = useLocation();

@@ -1,9 +1,10 @@
+import SabiBrand from '@/components/brand/SabiBrand';
 // The Command Centre shell: sidebar with collapsible groups (the current page's group always open),
 // live counts of waiting work, role locks and the product switcher; header breadcrumb, alerts bell
 // and keyboard shortcut for search. Navigation items are never hidden.
 import { useEffect, useMemo, useState, type RefObject } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { Bell, Building2, Check, ChevronDown, ChevronRight, Lock, ShieldCheck, X } from 'lucide-react';
+import { Bell, Building2, Check, ChevronDown, ChevronRight, Lock, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { COMMAND_ITEMS, COMMAND_NAV, navForProduct, type CommandNavGroup } from '../navigation';
 import { useProductContext, type ProductContext } from '../useProductContext';
@@ -69,7 +70,7 @@ export function Sidebar({ email, name, roles, permissions, badges, close }: { em
   });
   return <aside className="flex h-full w-[264px] shrink-0 flex-col border-r border-white/[0.06] bg-[#08110d] text-slate-300">
     <div className="flex h-[64px] items-center gap-3 border-b border-white/[0.06] px-4">
-      <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-emerald-300 to-emerald-500 text-slate-950 shadow-[0_0_24px_rgba(52,211,153,.25)]"><ShieldCheck size={19} /></div>
+      <SabiBrand symbol size={34} inverse/>
       <div className="leading-tight"><p className="font-display text-sm font-extrabold tracking-tight text-white">SABI</p><p className="text-[10px] font-semibold uppercase tracking-[.16em] text-emerald-400">Command Center</p></div>
       {close && <button onClick={close} className="ml-auto rounded-lg p-1.5 text-slate-400 hover:bg-white/10 lg:hidden" aria-label="Close navigation"><X size={18} /></button>}
     </div>

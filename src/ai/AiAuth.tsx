@@ -1,15 +1,7 @@
+import SabiBrand from "@/components/brand/SabiBrand";
 import { useEffect, useState, type ReactNode, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import {
-  ArrowRight,
-  Building2,
-  Check,
-  Heart,
-  Loader2,
-  ShieldCheck,
-  Sparkles,
-  Stethoscope,
-} from "lucide-react";
+import { ArrowRight, Building2, Check, Heart, Loader2, ShieldCheck, Stethoscope } from "lucide-react";
 import {
   liveSignIn,
   liveVerifyMfa,
@@ -49,9 +41,7 @@ const kinds = [
 ];
 export const AiBrand = () => (
   <Link to="/ai" className="sai-brand">
-    <span>
-      <Sparkles size={22} aria-hidden="true" />
-    </span>
+    <SabiBrand symbol size={32} />
     Sabi <em>AI</em>
   </Link>
 );

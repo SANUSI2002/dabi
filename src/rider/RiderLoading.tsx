@@ -1,3 +1,4 @@
+import SabiBrand from '@/components/brand/SabiBrand';
 // Loading states for the rider area. Instead of a generic spinner or the clinical "Sabi OS" screen,
 // riders see the shape of the page that is about to appear, so nothing jumps when it arrives.
 // Self-contained styles (riderLoading.css) so the route-level loader works before rider.css loads.
@@ -14,7 +15,7 @@ function Block({ w = "100%", h = 14, r = 8, className = "" }: { w?: number | str
 function Mark({ label = "RIDER PORTAL" }: { label?: string }) {
   return (
     <span className="rsk-brand" aria-hidden="true">
-      <span className="rsk-mark"><Bike size={20} /></span>
+      <SabiBrand symbol size={36}/>
       <span><strong>Sabi Health</strong><small>{label}</small></span>
     </span>
   );

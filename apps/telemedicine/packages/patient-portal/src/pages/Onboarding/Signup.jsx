@@ -1,8 +1,9 @@
+import SabiBrand from '../../../../shared-portal/SabiBrand';
 import CareStory from "../../../../shared-portal/CareStory";
 import SocialSignInStatus from "../../../../shared-portal/SocialSignInStatus";
 import { Children, cloneElement, isValidElement, useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { HeartPulse, Phone, Mail, Lock, Eye, EyeOff, ArrowRight, IdCard, X } from "lucide-react";
+import { Phone, Mail, Lock, Eye, EyeOff, ArrowRight, IdCard, X } from "lucide-react";
 import { registerPatient } from "../../utils/sabiIdentity";
 import { useSocialSignIn } from "../../utils/socialSignIn";
 
@@ -256,7 +257,7 @@ export default function SignupPage() {
           {/* Patient registration form */}
           <div className="flex items-center">
             <div className="sabi-patient-signup-card">
-            <div className="sabi-signup-mobile-brand"><HeartPulse size={22}/> Sabi Health</div>
+            <div className="sabi-signup-mobile-brand"><SabiBrand width={155}/></div>
             {/* progress */}
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-semibold text-teal-800">Patient account details</span>

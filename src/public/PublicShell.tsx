@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import SabiBrand from '@/components/brand/SabiBrand';
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { ArrowRight, Menu, ShieldPlus, X } from "lucide-react";
+import { ArrowRight, Menu, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/cn";
 import { TELEMEDICINE_SIGN_IN_URL } from "@/public/ecosystemLinks";
@@ -33,8 +34,7 @@ const meta: Record<string, [string, string]> = {
 export function Brand({ inverse = false }: { inverse?: boolean }) {
   return (
     <Link to="/" className="inline-flex items-center gap-2.5" aria-label="Sabi Health home">
-      <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-gradient text-white shadow-glow"><ShieldPlus size={18} /></span>
-      <span className={cn("font-display text-lg font-extrabold tracking-[-0.03em]", inverse ? "text-white" : "text-slate-950")}>Sabi <span className="text-brand-600">Health</span></span>
+      <SabiBrand width={150} inverse={inverse} />
     </Link>
   );
 }
