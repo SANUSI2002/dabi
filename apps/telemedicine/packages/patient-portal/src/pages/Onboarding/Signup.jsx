@@ -366,11 +366,11 @@ export default function SignupPage() {
                 />
                 <span>
                   I agree to the{" "}
-                  <a href="#" className="text-teal-800 underline underline-offset-2">
+                  <a href="https://sabihealth.org/resources#terms" target="_blank" rel="noopener noreferrer" className="text-teal-800 underline underline-offset-2">
                     Terms of Service
                   </a>{" "}
                   and{" "}
-                  <a href="#" className="text-teal-800 underline underline-offset-2">
+                  <a href="https://sabihealth.org/privacy" target="_blank" rel="noopener noreferrer" className="text-teal-800 underline underline-offset-2">
                     Privacy Policy
                   </a>
                   .

@@ -25,6 +25,7 @@ const meta: Record<string, [string, string]> = {
   "/ai/organisations": ["Sabi Intelligence — AI pilots for hospitals and clinics", "Explore how Sabi supports healthcare professionals with documentation, workflow and operational intelligence."],
   "/roadmap": ["Product Roadmap | Sabi Health", "See selected Sabi Health and Sabi OS product improvements that are planned, in progress or released."],
   "/security": ["Security & Privacy | Sabi Health", "Learn about Sabi Health's security architecture, tenant isolation, access controls and privacy-by-design principles."],
+  "/privacy": ["Privacy notice | Sabi Health", "How Sabi Health handles account information, health records, connected providers and privacy requests."],
   "/about": ["About Sabi Health", "Meet the team and mission behind connected healthcare infrastructure for Africa."],
   "/pricing": ["Pricing — Coming Soon | Sabi Health", "Published Sabi pricing is coming soon. Call or WhatsApp us for a quote today."],
 };
@@ -103,7 +104,7 @@ export default function PublicShell() {
             <FooterGroup title="Company" links={[["About", "/about"], ["Team", "/about#team"], ["Careers", "/resources#careers"], ["Contact", "/book-demo"]]} />
             <FooterGroup title="Resources" links={[["Resources", "/resources"], ["Documentation", "/resources#documentation"], ["Help Centre", "/resources#help-centre"], ["System Status", "/resources#system-status"]]} />
           </div>
-          <div className="flex flex-col gap-4 pt-7 text-xs text-emerald-50/50 sm:flex-row sm:items-center sm:justify-between"><p>© {new Date().getFullYear()} Sabi Health.</p><div className="flex flex-wrap gap-5"><Link to="/resources#privacy">Privacy</Link><Link to="/resources#terms">Terms</Link><Link to="/resources#cookies">Cookies</Link><Link to="/register/organization">Register Organization</Link></div></div>
+          <div className="flex flex-col gap-4 pt-7 text-xs text-emerald-50/50 sm:flex-row sm:items-center sm:justify-between"><p>© {new Date().getFullYear()} Sabi Health.</p><div className="flex flex-wrap gap-5"><Link to="/privacy">Privacy</Link><Link to="/resources#terms">Terms</Link><Link to="/resources#cookies">Cookies</Link><Link to="/register/organization">Register Organization</Link></div></div>
         </div>
       </footer>
     </div>
